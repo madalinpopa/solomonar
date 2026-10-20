@@ -32,9 +32,9 @@ operating procedure; the governing rules live in those files. `§n` means `rules
 | Record owned by another orchestrator | Stop and tell the user; take over only on an explicit handoff (§10) |
 | Record is `cancelled` | Inspect the preserved work; resume only on explicit user instruction (§7) |
 
-- Resume inspection: record (`solomonar task show <ID>`); worktree (`git worktree list`, branch `feature/<ID>`);
-  `HEAD` vs `revision`; dirty files (preserve them); `docs/decisions.md`; PR, checks, merge state. Reconcile the
-  record with `task move`. Treat `active_agents` as not running and reports without a durable reference as
+- Resume inspection: `solomonar task status <ID>` (record; worktree on `feature/<ID>`; `HEAD` vs `revision`;
+  dirty files, preserve them; merge state; drift; allowed commands); then `docs/decisions.md`, and PR and checks
+  when `task status` reports them `unknown`. Reconcile the record with `task move`. Treat `active_agents` as not running and reports without a durable reference as
   unverified: re-delegate (§10).
 - IDs: task = allocated by `task register` (the `planned` record's ID when you pass it, else the next free
   `W-NNN`); owner = unique among active owners, stable for the session (e.g. `orchestrator-2`), kept on resume;
@@ -77,8 +77,8 @@ present a listed alternative (§3).
   code (`implementer.md` §5 step 1). Wait for the report; validate its header (section 6, item 1); route per §2.
 - **State:** `task move --agent` at delegation. On `READY_FOR_REVIEW`: verify the SHA is committed on
   `feature/<ID>` and the worktree is clean; triage (§6): tier and specialties with reasons, and after a fix which
-  earlier verdicts the change affects (§6 Candidate stability); then `task move --revision <SHA> --stage
-  specialized_review`, or `--stage integration` for tier 0. **Exit:** that verified report.
+  earlier verdicts the change affects (§6 Candidate stability); then `task move --revision <SHA> --tier <n>
+  --stage specialized_review`, or `--stage integration` for tier 0. Only the tier goes into state. **Exit:** that verified report.
 - **Failure:** `NEEDS_DECISION` → §3 procedure, send *Decision request*. `INCOMPLETE` → resolve the gap,
   re-delegate. Two consecutive rounds with the same blocker → loop stop (§5), send *Blocked*.
 

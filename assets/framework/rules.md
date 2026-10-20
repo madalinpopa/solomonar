@@ -118,7 +118,9 @@ integration with main → closure commits (§9) → merge → `task done` (`done
 
 ### Triage and gate
 
-Before launching reviews, record each candidate's risk tier and which specialties apply, with reasons.
+Before launching reviews, record each candidate's risk tier and which specialties apply, with reasons. The tier
+goes into state with `task move --tier` (§7); specialties and reasons stay in the session, then the PR
+Verification section (`report.md` §8).
 
 | Tier | Candidate | Agent reviews |
 |---|---|---|
@@ -184,20 +186,27 @@ Before launching reviews, record each candidate's risk tier and which specialtie
   Read it with `solomonar task show [<ID>]` or `git show refs/heads/workflow-state:state.json`.
 - Only `solomonar task` commands write it. Agents never edit, commit, or check out the registry. A runtime hook
   that denies direct writes to `state.json` is a Phase 2 adapter concern.
+- The CLI is a guard and an oracle, never a driver: it validates and records what the orchestrator decided and
+  reports what Git shows. It never launches agents, calls models, or stores review verdicts. State holds
+  decisions; Git holds what happened; `task status` reconciles them.
 
 | Command | Who | Effect |
 |---|---|---|
 | `task plan --title <t>` | user | Creates a `planned` record without owner |
 | `task register [<ID>] --title <t> --owner <o>` | orchestrator | Claims the `planned` `<ID>` or allocates the next `W-NNN`; sets `reserved` / `setup`, branch `feature/<ID>`, `next_action` |
-| `task move <ID> [--status] [--stage] [--revision] [--spec] [--agent <id>:<role>]... [--pr] [--next <actor>:<action>]` | owner | Validated transition and field update; repeated `--agent` replaces `active_agents`, `--agent none` clears it |
+| `task move <ID> [--status] [--stage] [--revision] [--spec] [--tier <0\|1\|2>] [--agent <id>:<role>]... [--pr] [--next <actor>:<action>]` | owner | Validated transition and field update; repeated `--agent` replaces `active_agents`, `--agent none` clears it |
 | `task block <ID> --kind <k> --summary <s> [--ref <r>]` / `task unblock <ID> <blocker-id>` | owner | Adds or clears a blocker |
 | `task done <ID> --merge <sha> --spec-ref <sha:path> --summary <s>` | owner | Verifies the merge commit is reachable from main and `spec_ref` resolves and names the last `spec(<ID>)` commit merged, then writes the compact record (`done` / `complete`) |
 | `task handoff <ID> --owner <o>` | new owner, on user instruction | Ownership change (§10) |
-| `task show [<ID>]` | anyone | Read |
+| `task show [<ID>]` | anyone | Reads the stored record |
+| `task status <ID> [--json]` | anyone | Read-only: the record; facts derived from Git (branch, worktree, HEAD vs `revision`, dirty paths, merge into main); PR and check facts when available; drift between record and facts; the commands allowed next. Writes nothing |
 
 - `planned` records are created by the user with `task plan`; they have no owner. This is the only state write
   not made by an orchestrator. Otherwise each orchestrator writes only its own task's record.
-- The CLI validates schema, ownership, and allowed transitions, and writes with Git plumbing compare-and-swap:
+- The CLI validates schema, ownership, and allowed transitions, and checks facts before writing: `--revision` is
+  a full SHA reachable from `feature/<ID>`; `--spec` exists in the feature worktree or at the recorded
+  `revision`; a stage move respects the recorded `tier`. A rejection names the failed check and the corrective
+  action. It writes with Git plumbing compare-and-swap:
   `hash-object` → `mktree` → `commit-tree -p <old>` → `update-ref refs/heads/workflow-state <new> <old>`,
   retrying on mismatch. No checkout, no lock.
 - Each successful command is one commit: `state(<ID>): <status>/<stage>, <summary>`. Git history is the
@@ -206,6 +215,8 @@ Before launching reviews, record each candidate's risk tier and which specialtie
 - The CLI pushes `workflow-state` when a remote is configured and reports publication failures; the local ref
   stays canonical. Never force-push it; never merge it into main. Multiple independently writable clones are
   out of scope.
+- Local Git facts are required. PR and check facts come from `gh` when it is installed and authenticated;
+  otherwise `task status` reports them as `unknown`, never as passing. `task done` relies only on Git.
 
 ### Status
 
@@ -225,7 +236,8 @@ Before launching reviews, record each candidate's risk tier and which specialtie
 (PR, required CI, compatibility with main, closure commits, merge) → `complete`.
 
 - Stage reflects the current activity. Preserve the stage while `blocked` or `paused`.
-- Tier 0 goes from `implementation` to `integration`; tier 1 skips `adversarial_review` (§6).
+- Tier 0 goes from `implementation` to `integration`; tier 1 skips `adversarial_review` (§6). The CLI enforces
+  this from the recorded `tier`; no stage after `implementation` without one.
 - `planned` or `reserved` → `running` → `done`. `done` comes only with stage `complete`, set by `task done`.
 - `reserved` or `running` → `blocked` or `paused` → back to the prior status at the preserved stage.
 - `cancelled` resumes only on explicit user instruction after inspecting preserved work.
@@ -239,7 +251,7 @@ Before launching reviews, record each candidate's risk tier and which specialtie
 | Planned | `title`, `status`, `updated_at` |
 | Reserved | adds `owner`, `branch`, `stage`, `next_action` |
 | Before implementation | adds `spec` (worktree-relative path) |
-| Review | adds `revision`: latest reported committed candidate, full SHA |
+| Review | adds `revision`: latest reported committed candidate, full SHA; `tier` (0, 1, 2) from that candidate's triage (§6) |
 
 - Always present once reserved: `active_agents` `[{id, role}]` (last set by `task move --agent`, not proof of
   liveness), `blockers`, `pr` once opened.
@@ -248,6 +260,8 @@ Before launching reviews, record each candidate's risk tier and which specialtie
   IDs stay stable within the task.
 - `next_action`: `{actor, action}`, e.g. `{"actor":"user","action":"Decide W-001/D-1: session storage"}`.
 - Use full SHAs and RFC 3339 UTC timestamps. Never store logs, secrets, or machine-specific paths in state.
+- Never store a fact Git can derive (worktree path, HEAD, dirty files, PR or check state); `task status` reads
+  it. `revision` is stored because reviews pin it, and the CLI verifies it.
 - Resolve active `spec` paths against the feature worktree (§4 step 4) or its recorded `revision`.
 
 Active record (illustrative):
@@ -255,7 +269,7 @@ Active record (illustrative):
 "W-001": {
   "title": "Login", "status": "blocked", "stage": "implementation",
   "owner": "orchestrator-1", "branch": "feature/W-001",
-  "spec": "docs/work/W-001-login.md", "revision": "<FULL_SHA>",
+  "spec": "docs/work/W-001-login.md", "revision": "<FULL_SHA>", "tier": 2,
   "active_agents": [{"id": "impl-1", "role": "implementer"}],
   "blockers": [{"id": "B-1", "kind": "decision", "summary": "Session storage", "ref": "W-001/D-1"}],
   "next_action": {"actor": "user", "action": "Decide W-001/D-1: session storage"},
@@ -316,15 +330,16 @@ At confirmed merge:
 
 ## 10. Recovery
 
-Before acting on any event, inspect actual Git state, worktree, dirty files, checks, decisions, and PR,
-then reconcile the record with what exists (`task move`). Never duplicate worktrees or PRs. Preserve
+Before acting on any event, inspect actual state: `task status <ID>` (§7) reports Git state, worktree, dirty
+files, merge state, and drift; check decisions yourself, and PR and checks when it reports them `unknown`.
+Then reconcile the record with what exists (`task move`). Never duplicate worktrees or PRs. Preserve
 uncommitted changes.
 
 | Event | Orchestrator behavior |
 |---|---|
 | Pause | Stop delegating; settle or stop active work; set status `paused` with the latest committed `revision` and a `next_action` naming outstanding work |
 | Unexpected session end | Nothing automatic; the next session follows Resume |
-| Resume | Inspect and reconcile; continue the recorded stage; reuse the existing worktree and PR; if the PR is merged, verify the merge commit is in main's history and run `task done` (§9) with `spec_ref` from the PR, without reimplementing |
+| Resume | Inspect (`task status`) and reconcile; continue the recorded stage; reuse the existing worktree and PR; if the PR is merged, verify the merge commit is in main's history and run `task done` (§9) with `spec_ref` from the PR, without reimplementing |
 | Ownership handoff | Only on explicit user instruction; stop or confirm the previous execution stopped; `task handoff` before any further write; the previous owner stops writing |
 | Cancel | Stop execution; set status `cancelled` with a `next_action` naming the reason and remaining work; keep branch, worktree, and PR untouched |
 | Regression or revert after merge | Keep the merged task `done`; register a new task linked via `related_task` |

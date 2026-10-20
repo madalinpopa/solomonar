@@ -36,7 +36,8 @@ Load `docs/framework/skills/<skill>/SKILL.md` before using a skill.
 - UI: `docs/ui.md`, the relevant capability, and the prototype flow (`prototype/README.md`).
 - Approvals: the relevant `approved` entries in `docs/decisions.md`.
 - Run and check commands: `docs/README.md` "Commands".
-- Execution state: `solomonar task show [<ID>]` or `git show refs/heads/workflow-state:state.json`.
+- Execution state: `solomonar task status <ID>` (record, Git facts, drift), `solomonar task show [<ID>]`, or
+  `git show refs/heads/workflow-state:state.json`.
 - History: the task's compact record; load its `spec_ref` with `git show` only for a concrete question.
 
 ## Mandatory rules
