@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="dg" width="960" height="470" viewBox="0 0 960 470" role="img" aria-label="The orchestrator is the hub: it delegates the work spec to the implementer, sends the same revision to the required specialists in parallel, then to the adversarial reviewer for tier 2 tasks, asks the user to approve decisions, writes state only through solomonar task, and opens the PR.">
+<style>
+svg {
+  --bg: #F2F4F1; --surface: #FFFFFF; --ink: #18211E; --muted: #56625D; --line: #9AA7A1; --grid: #DDE3DF;
+  --acc: #1D6B86; --acc-soft: #DCEBF0; --warn: #A85A12; --warn-soft: #F6E7D6;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { svg {
+  --bg: #121816; --surface: #1B2320; --ink: #E4EBE7; --muted: #9BA9A3; --line: #5C6B64; --grid: #26302C;
+  --acc: #6CB8D3; --acc-soft: #173440; --warn: #E09A55; --warn-soft: #3A2A1A; color-scheme: dark; } }
+
+
+
+svg { font-family: var(--sans); }
+.bg { fill: var(--surface); }
+/* diagram vocabulary */
+.dg text { font-family: var(--sans); }
+.dg .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+.dg .box-acc { fill: var(--acc-soft); stroke: var(--acc); stroke-width: 1.25; }
+.dg .box-warn { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.25; }
+.dg .frame { fill: var(--bg); stroke: var(--line); stroke-width: 1; stroke-dasharray: 4 4; }
+.dg .t { font-size: 14px; font-weight: 600; fill: var(--ink); }
+.dg .t-sm { font-size: 12px; font-weight: 500; fill: var(--ink); }
+.dg .s { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.dg .s-acc { font-family: var(--mono); font-size: 11px; fill: var(--acc); font-weight: 500; }
+.dg .s-warn { font-family: var(--mono); font-size: 11px; fill: var(--warn); font-weight: 500; }
+.dg .lbl { font-size: 11.5px; fill: var(--muted); }
+.dg .lbl-warn { font-size: 11.5px; fill: var(--warn); font-weight: 500; }
+.dg .ph { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; fill: var(--muted); }
+.dg .rule { stroke: var(--line); stroke-width: 1; }
+.dg .lane { stroke: var(--grid); stroke-width: 2; }
+.dg .lane-strong { stroke: var(--line); stroke-width: 2.5; fill: none; }
+.dg .e { stroke: var(--ink); stroke-width: 1.4; fill: none; }
+.dg .e-acc { stroke: var(--acc); stroke-width: 1.4; fill: none; }
+.dg .e-warn { stroke: var(--warn); stroke-width: 1.4; fill: none; }
+.dg .dash { stroke-dasharray: 5 4; }
+.dg .mk { fill: var(--ink); }
+.dg .mk-acc { fill: var(--acc); }
+.dg .mk-warn { fill: var(--warn); }
+.dg .dot { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+.dg .dot-acc { fill: var(--acc); stroke: var(--acc); stroke-width: 1.5; }
+.dg .dot-warn { fill: var(--warn); stroke: var(--warn); stroke-width: 1.5; }
+.dg .bar { fill: var(--acc-soft); stroke: var(--acc); stroke-width: 1; }
+.dg .bar-warn { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1; }
+.dg .bar-t { font-size: 11px; fill: var(--ink); }
+.dg .ink { fill: var(--ink); }
+</style>
+<rect class="bg" width="960" height="470"/>
+      <defs>
+        <marker id="f2a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="mk"/></marker>
+        <marker id="f2c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="mk-acc"/></marker>
+        <marker id="f2w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="mk-warn"/></marker>
+      </defs>
+
+      <rect class="box-warn" x="380" y="30" width="200" height="60" rx="4"/>
+      <text class="t" x="480" y="56" text-anchor="middle">User</text>
+      <text class="s" x="480" y="75" text-anchor="middle">architecture · dependencies</text>
+
+      <rect class="box" x="40" y="30" width="200" height="60" rx="4"/>
+      <text class="t" x="140" y="56" text-anchor="middle">PR → main</text>
+      <text class="s" x="140" y="75" text-anchor="middle">checks · merge commit</text>
+
+      <rect class="box-acc" x="380" y="220" width="200" height="80" rx="4"/>
+      <text class="t" x="480" y="252" text-anchor="middle">Orchestrator</text>
+      <text class="s" x="480" y="271" text-anchor="middle">delegates · consolidates</text>
+      <text class="s" x="480" y="287" text-anchor="middle">top-level, one per task</text>
+
+      <rect class="box" x="40" y="220" width="200" height="80" rx="4"/>
+      <text class="t" x="140" y="250" text-anchor="middle">Implementer</text>
+      <text class="s" x="140" y="270" text-anchor="middle">worktree feature/W-001</text>
+      <text class="s" x="140" y="286" text-anchor="middle">approach before code</text>
+
+      <text class="ph" x="690" y="120">SPECIALISTS, IN PARALLEL</text>
+      <rect class="frame" x="690" y="130" width="230" height="170" rx="6"/>
+      <rect class="box" x="705" y="145" width="200" height="40" rx="3"/>
+      <text class="t-sm" x="805" y="169" text-anchor="middle">Security</text>
+      <rect class="box" x="705" y="195" width="200" height="40" rx="3"/>
+      <text class="t-sm" x="805" y="219" text-anchor="middle">Go and correctness</text>
+      <rect class="box" x="705" y="245" width="200" height="40" rx="3"/>
+      <text class="t-sm" x="805" y="269" text-anchor="middle">Spec compliance</text>
+
+      <rect class="box" x="705" y="370" width="200" height="60" rx="4"/>
+      <text class="t" x="805" y="396" text-anchor="middle">Adversarial</text>
+      <text class="s" x="805" y="415" text-anchor="middle">tier 2 · other model</text>
+
+      <rect class="box" x="40" y="400" width="200" height="60" rx="4"/>
+      <text class="t" x="140" y="426" text-anchor="middle">state.json</text>
+      <text class="s" x="140" y="445" text-anchor="middle">refs/heads/workflow-state</text>
+
+      <!-- user approval loop -->
+      <path class="e-warn" d="M450 220 V92" marker-end="url(#f2w)"/>
+      <text class="lbl-warn" x="440" y="150" text-anchor="end">question + recommendation</text>
+      <text class="lbl" x="440" y="165" text-anchor="end">decision blocker</text>
+      <path class="e-warn" d="M510 90 V218" marker-end="url(#f2w)"/>
+      <text class="lbl-warn" x="520" y="150">scoped approval</text>
+      <text class="s" x="520" y="165">→ docs/decisions.md</text>
+
+      <!-- implementer -->
+      <path class="e" d="M380 245 H242" marker-end="url(#f2a)"/>
+      <text class="lbl" x="310" y="237" text-anchor="middle">work spec / fixes</text>
+      <path class="e" d="M240 280 H378" marker-end="url(#f2a)"/>
+      <text class="s" x="310" y="296" text-anchor="middle">READY_FOR_REVIEW</text>
+      <text class="s" x="310" y="310" text-anchor="middle">NEEDS_DECISION</text>
+
+      <!-- specialists -->
+      <path class="e-acc" d="M580 240 H688" marker-end="url(#f2c)"/>
+      <text class="lbl" x="634" y="232" text-anchor="middle">same revision</text>
+      <path class="e" d="M690 280 H582" marker-end="url(#f2a)"/>
+      <text class="lbl" x="634" y="296" text-anchor="middle">verdict + evidence</text>
+
+      <!-- adversarial -->
+      <path class="e-acc" d="M560 300 V390 H703" marker-end="url(#f2c)"/>
+      <text class="lbl" x="632" y="382" text-anchor="middle">tier 2, after 0 blockers</text>
+      <path class="e" d="M705 415 H540 V302" marker-end="url(#f2a)"/>
+      <text class="lbl" x="632" y="431" text-anchor="middle">scenarios + verdict</text>
+
+      <!-- state -->
+      <path class="e" d="M420 300 V430 H242" marker-end="url(#f2a)"/>
+      <text class="s" x="330" y="422" text-anchor="middle">solomonar task</text>
+
+      <!-- PR -->
+      <path class="e" d="M400 220 V120 H140 V92" marker-end="url(#f2a)"/>
+      <text class="lbl" x="270" y="112" text-anchor="middle">accepted candidate</text>
+    </svg>
