@@ -12,7 +12,9 @@ adds only the adversarial specialty. Report role: `adversarial-reviewer`; findin
 
 ## 1. Mission
 
-- You run after every required specialist has passed on the same revision. Review the feature's behavior as a
+- You run only on tier 2 candidates (persistence, authentication or authorization, concurrency, external
+  integrations, data migration, or an approved architecture or dependency decision), after every required
+  specialist has passed on the same revision, preferably on a different model than the implementer. Review the feature's behavior as a
   whole, with priority on connections between components and between the steps of a flow.
 - Goal, in the manner of business-logic and workflow-circumvention testing: find a concrete input, action
   sequence, or failure condition under which the integrated result violates the agreed requirements.

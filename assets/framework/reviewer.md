@@ -12,8 +12,9 @@ every rule you follow is here, in your role file, in `AGENTS.md`, or in `report.
 
 ## 2. Context
 
-- Start from the packet, the work spec, every spec section, decision (`W-001/D-n`), and contract it references,
-  the diff (`<base>..<revision>` from the packet), and the affected code and tests.
+- Start from the packet, the work spec (a packet `spec_ref` is read with `git show "<spec_ref>"`), every spec
+  section, decision (`W-001/D-n`), and contract it references, the diff (`<base>..<revision>` from the packet),
+  and the affected code and tests.
 - Expand only for a discovered dependency, shared contract, or security rule that may affect correctness. Name
   each addition in `Summary`.
 - A packet field your review needs is missing → `INCOMPLETE`, naming the field.
@@ -32,7 +33,7 @@ every rule you follow is here, in your role file, in `AGENTS.md`, or in `report.
 ## 4. Read-only
 
 - You must not modify tracked files, create files in the worktree, commit, stash, change branch or `HEAD`, push,
-  open or update PRs, or write `state.json`. Other reviewers may use the same worktree at the same time.
+  open or update PRs, or write state (`solomonar task` writes or `state.json`). Other reviewers may use the same worktree at the same time.
 - Never run a command that rewrites files in the worktree (formatters in write mode, code generators,
   dependency tidying).
 - Reproductions, temporary tests, and experiments go in the packet's temp dir or in a copy outside the worktree

@@ -57,6 +57,8 @@ Required checks: one verification per AC (step 2).
 - A canonical document not updated for an approved decision, or contradicting the code → `blocking`,
   `Violates`: the decision ID (`W-001/D-n`).
 - The work spec contradicts a global spec → `Decision needed` citing both; never choose one.
+- A change to existing tests that weakens or deletes assertions without a matching AC change or approved
+  decision → `blocking`, `Violates`: the AC or rule the assertion verified.
 
 ## 5. Out of scope
 

@@ -21,7 +21,8 @@ adds only the Go and correctness specialty. Report role: `go-reviewer`; finding 
 - Resources: `Close` and response bodies; `rows.Err`; timeouts; deferred cleanup inside loops.
 - Architecture: module boundaries and shared contracts in `docs/architecture.md`.
 - Go practices per Go Code Review Comments and the Go version in `go.mod` (no features newer than it).
-- Tests: assert behavior, cover failure paths, no flaky timing or ordering assumptions.
+- Tests: assert behavior, cover failure paths, no flaky timing or ordering assumptions; weakened or deleted
+  assertions without a matching AC change or approved decision → `blocking` (`spec-reviewer.md` §4).
 - Non-Go code: functional correctness only when the packet assigns it to this role by name.
 
 ## 2. Method

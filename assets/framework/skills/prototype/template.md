@@ -17,12 +17,12 @@ Open `prototype/index.html` directly in a browser. No build step, no install, no
 ## Simulated behavior
 <!-- Every faked backend or service and how (in memory, localStorage). Matches the `SIMULATED:` comments. -->
 
-- <what> — <how> (`<file>`)
+- <what>: <how> (`<file>`)
 
 ## Prototype-only libraries
 <!-- Optional; delete when none. Never an approved dependency. -->
 
-- <name> <version> — `vendor/<file>` — <why it is useful>
+- <name> <version>, `vendor/<file>`: <why it is useful>
 
 ## Intentional changes
 <!-- date (YYYY-MM-DD) · flow ID · change · reason (user decision or observed problem). Not defect fixes. -->

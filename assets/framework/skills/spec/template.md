@@ -7,11 +7,12 @@ and all hints; no placeholders. -->
 
 ## Rules
 <!-- One line per rule: <capability>/R-<n> · **Observed** | **Agreed** · <observable statement> · <source>.
-Observed → `<full SHA>:prototype/<file> — flow <flow-id>`. Agreed → `user YYYY-MM-DD` or `W-001/D-n`.
+Observed → `<full SHA>:prototype/<file>, flow <flow-id>`. Agreed → `user YYYY-MM-DD` or `W-001/D-n`.
 Observable behavior only; no storage, framework, or simulation detail. IDs are stable and never reused.
+EARS where it fits: "When <trigger>, the system shall <response>" / "If <condition>, then the system shall <response>".
 Illustrative only, delete:
-- orders/R-1 · **Agreed** · A customer can cancel an order only while its status is "Pending". · user 2026-10-20
-- orders/R-2 · **Observed** · A placed order is still listed after the page is reloaded. · <full SHA>:prototype/orders.html — flow checkout
+- orders/R-1 · **Agreed** · If an order's status is not "Pending", then the system shall reject its cancellation. · user 2026-10-20
+- orders/R-2 · **Observed** · When the page is reloaded, the system shall still list a placed order. · <full SHA>:prototype/orders.html, flow checkout
 - orders/Q-1 (Open, under "Open questions") · Where are placed orders stored? · blocks: orders/R-2 · needs decision: yes -->
 
 - <capability>/R-1 · **Agreed** · <observable rule> · <source>
@@ -32,5 +33,5 @@ states. Cite rule IDs; reference shared rules in `docs/ui.md` (e.g. `ui/R-2`) in
 ## References
 <!-- Optional. -->
 
-- Prototype: `<full SHA>:prototype/<entry file> — flow <flow-id>`
+- Prototype: `<full SHA>:prototype/<entry file>, flow <flow-id>`
 - Decisions: <W-001/D-n>. Related specs: `docs/specs/<other>.md`, `docs/ui.md`

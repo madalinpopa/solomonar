@@ -17,7 +17,7 @@ Every agent report, the consolidated correction list, and the PR Verification se
 ## 2. Report template
 
 ```markdown
-# <Task ID> — <Role>
+# <Task ID>: <Role>
 Revision: <exact candidate commit, full SHA>
 Result: <result value>
 
@@ -93,7 +93,7 @@ Result: <result value>
 Entry format (omit `Violates` for `suggestion`; `Status` only on rechecks):
 
 ```markdown
-- <ID> `<classification>` — <location: file:line, endpoint, or flow step>
+- <ID> `<classification>`: <location: file:line, endpoint, or flow step>
   - Conditions: <when it occurs>
   - Impact: <consequence>
   - Violates: <rule or AC ID; when none exists, `demonstrated defect: <invariant broken>`>
@@ -115,7 +115,7 @@ Entry format (omit `Violates` for `suggestion`; `Status` only on rechecks):
 ## 6. Decision needed
 
 ```markdown
-- <ID> — <question>
+- <ID>: <question>
   - Recommended: <option and why>; Alternatives: <other options>
   - Impact: <consequence of each option>
   - Waiting: <work awaiting the decision>; Independent: <work that can continue>
@@ -130,17 +130,17 @@ Entry format (omit `Violates` for `suggestion`; `Status` only on rechecks):
 The single list the implementer receives after consolidation (`rules.md` §6):
 
 ```markdown
-# <Task ID> — Corrections
+# <Task ID>: Corrections
 Revision reviewed: <full SHA>
 
 ## Open findings
-- W-001/F-n `<classification>` — <location>; violates <rule/AC>; evidence <ref>; correction: <outcome>
+- W-001/F-n `<classification>`: <location>; violates <rule/AC>; evidence <ref>; correction: <outcome>
 
 ## Approved decisions to apply
-- W-001/D-n — <selected option; scope reference>
+- W-001/D-n: <selected option; scope reference>
 
 ## Rejected (do not act)
-- <W-001/F-n or reviewer ID> — <evidence-backed justification>
+- <W-001/F-n or reviewer ID>: <evidence-backed justification>
 ```
 
 - The implementer addresses only this list, never raw reviewer reports. It must resolve every `blocking`
@@ -154,10 +154,10 @@ Revision reviewed: <full SHA>
 ## Verification
 - Task: W-001
 - Candidate: <full SHA>; integration baseline: <main SHA or integrated candidate>
-- Final specification: <spec commit:path>
+- Final specification: <spec_ref: final spec commit:path, written before merge>
 - Acceptance: <AC IDs, outcomes, and evidence>
 - Checks: <commands/scenarios actually run and results>
-- Reviews: <required specialist and adversarial verdicts, revisions, report references>
+- Reviews: tier <0 | 1 | 2> and why; <required specialist and adversarial verdicts, revisions, models, report references>
 - Decisions: <scoped approval references relevant to the change>
 - Limits: <unverified behavior or environment limitations, if any>
 ```
@@ -167,12 +167,12 @@ Revision reviewed: <full SHA>
 - Every verdict names the revision it covers. List specialties marked "not required" with their reason.
   List only checks actually run. Omit `Limits` only when nothing is unverified.
 - Report references point to a durable location when one exists; otherwise write `session only (not durable)`.
-- This section is the durable evidence kept after compaction.
+- This section is the durable evidence kept after closure. Tier 0: `Reviews` states the tier and "CI only".
 
 ## 9. Example (illustrative)
 
 ```markdown
-# W-001 — security-reviewer
+# W-001: security-reviewer
 Revision: <FULL_SHA>
 Result: CHANGES_REQUIRED
 
@@ -184,13 +184,13 @@ Reviewed login and session handling at <FULL_SHA>. One blocking finding; one sug
 - Login rate limit; 200 req/s load scenario; not run (no load environment; not required); limit unverified
 
 ## Findings
-- SEC-1 `blocking` — internal/auth/session.go:42
+- SEC-1 `blocking`: internal/auth/session.go:42
   - Conditions: logout from any client
   - Impact: a stolen session token stays valid until expiry
   - Violates: AC-5 (logout invalidates the session server-side)
   - Evidence: log in, copy token, log out, reuse token → HTTP 200 (temporary test outside the worktree)
   - Correction: a token presented after logout must be rejected
-- SEC-2 `suggestion` — internal/auth/cookie.go:12, internal/auth/login.go:30
+- SEC-2 `suggestion`: internal/auth/cookie.go:12, internal/auth/login.go:30
   - Impact: cookie attributes are set in two places; one helper would prevent drift
   - Correction: a single source for session cookie attributes
 

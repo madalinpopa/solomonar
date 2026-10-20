@@ -88,7 +88,7 @@ Framework version: 0.1.0
 1. When the user is ready, confirm which flows are ready (one question if unclear).
 2. Set them to `ready for spec`, update `prototype/README.md`, and commit.
 3. Give one reference per flow, using the full SHA of that commit (`git rev-parse HEAD`):
-   `<full commit SHA>:prototype/<entry file> — flow <flow-id>`.
+   `<full commit SHA>:prototype/<entry file>, flow <flow-id>`.
 4. List the open questions for those flows, blocking ones first.
 5. State the next action: run the `spec` skill with these references. Do not write specs yourself.
 

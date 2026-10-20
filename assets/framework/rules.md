@@ -23,7 +23,7 @@ procedures: `docs/framework/agents/<role>.md`. Skill procedures: `docs/framework
 ## 2. Orchestrator responsibilities and delegation
 
 - The orchestrator must:
-  - exclusively claim its task and maintain the task's state record (§7);
+  - exclusively claim its task and maintain the task's state record through `solomonar task` commands (§7);
   - prepare context and delegate implementation and every review; it must not perform them itself;
   - consolidate findings (§6) and manage user approvals (§3);
   - create the PR, and merge when §8 holds and it has the right to integrate.
@@ -32,7 +32,7 @@ procedures: `docs/framework/agents/<role>.md`. Skill procedures: `docs/framework
   additionally receive the exact revision (full SHA) or diff and the check results. Pass full conversation
   history only when necessary.
 - The implementer and reviewers report only to the orchestrator. Only the orchestrator starts the next stage.
-- Route results: `READY_FOR_REVIEW` → record its committed SHA as `revision`, start triage (§6);
+- Route results: `READY_FOR_REVIEW` → record its committed SHA as `revision` (`task move`), start triage (§6);
   `CHANGES_REQUIRED` → consolidation (§6); `NEEDS_DECISION` → §3; `INCOMPLETE` → resolve the gap, rerun.
 - The implementer must receive one consolidated list of corrections, never concurrent or conflicting instructions.
 
@@ -44,15 +44,15 @@ procedures: `docs/framework/agents/<role>.md`. Skill procedures: `docs/framework
   alternatives, impact, blocked work. It must not apply the choice before approval.
 - Orchestrator procedure:
   1. Assign a task-scoped decision ID (`W-001/D-1`).
-  2. Add a blocker of kind `decision`, set `next_action` to the user, commit the record (§7). Write the
+  2. Record a `decision` blocker (`task block`) and set `next_action` to the user (`task move --next`, §7). Write the
      decision entry in `docs/decisions.md` in the task worktree with status `pending`; while a review set runs
      on the current revision, write it only after every running review has reported (§6 Candidate stability).
   3. Present question, recommendation, alternatives, impact.
-  4. If no independent authorized work can continue, set status `blocked`.
+  4. If no independent authorized work can continue, set status `blocked` (`task move --status`).
   5. Save a checkpoint (§10) and wait. No response is not approval. Never repeat the question; never retry automatically.
 - While waiting, affected and dependent work must wait. Independent authorized work may continue.
-- On approval: set the entry `approved` with the selected option, update affected specs, clear the blocker,
-  resume dependent work on the approval event.
+- On approval: set the entry `approved` with the selected option, update affected specs, clear the blocker
+  (`task unblock`), resume dependent work on the approval event.
 - On rejection: keep the entry `pending` and list the rejected option with its reason in it. Re-delegate the
   role that identified the need when the revised option needs investigation; otherwise present a listed
   alternative. Present the revised option under the same decision ID.
@@ -68,22 +68,25 @@ procedures: `docs/framework/agents/<role>.md`. Skill procedures: `docs/framework
 
 The user starts tasks one at a time. Started tasks run in parallel. Work selected from a prototype enters at step 1.
 
-1. Read the committed registry (§7) and the task brief or existing spec. Check ownership and dependencies.
-   A complete work spec is not required to reserve.
-2. Write the record (§7 write protocol): task ID, title, owner, status `reserved`, stage `setup`, planned
-   branch `feature/<ID>`, planned worktree, `next_action`. Commit `state.json` in the coordination checkout.
-3. The successful local commit is the registration barrier. Confirm it to the user. Only then may the next
+1. Read the registry (`solomonar task show`, §7) and the task brief or existing spec. Check ownership and
+   dependencies. A complete work spec is not required to reserve.
+2. Run `solomonar task register [<ID>] --title <t> --owner <o>`. It claims the `planned` ID or allocates the
+   next `W-NNN` and records `reserved` / `setup`, branch `feature/<ID>`, and `next_action` (§7).
+3. The successful `task register` is the registration barrier. Confirm it to the user. Only then may the next
    task start. A push is not required.
-4. Create branch `feature/<ID>` and its worktree from the intended current main revision. If a prerequisite
-   merged remotely, update the baseline first and verify it contains the prerequisite's recorded `merge_commit`.
-5. Set status `running`, stage `specification`. Create or refine the work spec in the worktree with the
-   `work-spec` skill. Commit it separately. Record `spec`.
+4. Create branch `feature/<ID>` and its worktree at `../<repo>-worktrees/<ID>` (relative to the main checkout)
+   from the intended current main revision. The path is not recorded; locate it with `git worktree list` by
+   branch `feature/<ID>`. If a prerequisite merged remotely, update the baseline first and verify it contains
+   the prerequisite's recorded `merge_commit`.
+5. Set status `running`, stage `specification` (`task move`). Create or refine the work spec in the worktree
+   with the `work-spec` skill. Commit it separately. Record `spec` (`task move --spec`).
 6. When the readiness gate owned by `work-spec` passes, apply the work spec's user-confirmed "Spec changes"
    with the `spec` skill (in-task mode), commit them as `docs(<ID>): apply spec changes`, and cite the assigned
    rule IDs in the work spec (`spec(<ID>): refine task specification`). Then set stage `implementation` and delegate.
 
-- If registration or its commit fails, do not create the worktree.
-- If worktree setup fails, keep the registration: status `blocked`, stage `setup`, blocker kind `environment`.
+- If `task register` fails, do not create the worktree.
+- If worktree setup fails, keep the registration: blocker kind `environment` (`task block`), status `blocked`,
+  stage `setup`.
 - Each task has its own branch and worktree. Agents must modify only the assigned worktree.
 - When services are shared, assign separate ports and test data. A worktree does not isolate databases or
   external services.
@@ -92,9 +95,9 @@ The user starts tasks one at a time. Started tasks run in parallel. Work selecte
 
 ## 5. Task flow
 
-Main flow: implement → specialist reviews in parallel on the same revision → consolidate → fix loop →
-adversarial review once specialist blockers are closed → fix loop → PR, required checks, integration with
-main → merge → `done` → compaction (§9).
+Main flow: implement → triage (§6) → specialist reviews in parallel on the same revision → consolidate → fix
+loop → tier 2: adversarial review once specialist blockers are closed → fix loop → PR, required checks,
+integration with main → closure commits (§9) → merge → `task done` (`done` / `complete`).
 
 | Trigger | Return to | Resume when |
 |---|---|---|
@@ -115,18 +118,26 @@ main → merge → `done` → compaction (§9).
 
 ### Triage and gate
 
-Decide which specialties apply to each candidate and record why.
+Before launching reviews, record each candidate's risk tier and which specialties apply, with reasons.
+
+| Tier | Candidate | Agent reviews |
+|---|---|---|
+| 0 | Documentation only, no behavior or requirement change | None; CI only |
+| 1 | Normal code | The required specialists per the table below |
+| 2 | Persistence, authentication or authorization, concurrency, external integrations, data migration, or any approved architecture or dependency decision in the task | Specialists plus adversarial |
 
 | Specialty | Role | Required when |
 |---|---|---|
 | Security | `security-reviewer` | Authorization, data isolation, external input, files, secrets, trust boundaries, relevant dependency or configuration changes |
 | Go and correctness | `go-reviewer` | Go code changes |
 | Spec compliance | `spec-reviewer` | A requirement is implemented or changed |
-| Adversarial | `adversarial-reviewer` | Every task (see Adversarial ordering) |
+| Adversarial | `adversarial-reviewer` | Tier 2 (see Adversarial ordering) |
 
 - Functional correctness of non-Go code stays an explicit concern: name the reviewer responsible for it in
   the delegation packet.
 - Mark an inapplicable specialty "not required" with a reason. Never fabricate a `PASS`.
+- Use a different model for the adversarial reviewer when the runtime allows; record the model in the
+  Verification section (`report.md` §8).
 - Every required reviewer must return a valid `PASS` on the current revision before the stage advances,
   unless its earlier verdict is reused under Candidate stability.
 - A missing result or an important unrun check makes the stage `INCOMPLETE`, not `PASS`.
@@ -138,6 +149,7 @@ Decide which specialties apply to each candidate and record why.
 - Run interfering checks sequentially.
 - A changed candidate gets a new revision and an explicit assessment of affected checks. Reuse unaffected
   evidence only with its original revision and a recorded reason. An earlier `PASS` never covers new code.
+- Updating the candidate from main follows §8: CI always reruns; agent reviews rerun only on its conditions.
 
 ### Consolidation
 
@@ -161,26 +173,39 @@ Decide which specialties apply to each candidate and record why.
 
 ### Adversarial ordering
 
-- Start adversarial review only after specialist blockers are closed.
+- Tier 2 only: start adversarial review after specialist blockers are closed.
 - After an adversarial fix: implementer → relevant specialists recheck → adversarial recheck, all on the new revision.
 
 ## 7. Shared state (registry)
 
 ### Location and writes
 
-- Canonical registry: `state.json` on branch `workflow-state`, read as `refs/heads/workflow-state:state.json`:
-  `{"schema_version": 1, "tasks": {"<ID>": <record>}}`.
-- Write it only in one persistent coordination checkout (e.g. `<repo>-state/`). Never merge it into main.
-  Never force-push it. Feature-local copies are not coordination sources.
-- Only orchestrators write, each only its own task's record, except during an explicit ownership handoff (§10).
-- Write protocol: acquire a short local serialization lock → read current → validate owner and transition →
-  update → commit → release. Never hold the lock during implementation, review, or a user wait.
-- On write failure: report it and resolve any uncommitted registry change before another writer proceeds.
-  Consumers read the last successful commit.
-- Commit every change to stage, status, agent assignment, blockers, decisions, or next action as
-  `state(<ID>): <status>/<stage> — <summary>`. Git history is the transition history; state.json holds no event log.
-- Push to a configured remote when available and surface publication failures. The local branch stays
-  canonical. Multiple independently writable clones are out of scope.
+- Canonical registry: `state.json` on `refs/heads/workflow-state`: `{"schema_version": 1, "tasks": {"<ID>": <record>}}`.
+  Read it with `solomonar task show [<ID>]` or `git show refs/heads/workflow-state:state.json`.
+- Only `solomonar task` commands write it. Agents never edit, commit, or check out the registry. A runtime hook
+  that denies direct writes to `state.json` is a Phase 2 adapter concern.
+
+| Command | Who | Effect |
+|---|---|---|
+| `task plan --title <t>` | user | Creates a `planned` record without owner |
+| `task register [<ID>] --title <t> --owner <o>` | orchestrator | Claims the `planned` `<ID>` or allocates the next `W-NNN`; sets `reserved` / `setup`, branch `feature/<ID>`, `next_action` |
+| `task move <ID> [--status] [--stage] [--revision] [--spec] [--agent <id>:<role>]... [--pr] [--next <actor>:<action>]` | owner | Validated transition and field update; repeated `--agent` replaces `active_agents`, `--agent none` clears it |
+| `task block <ID> --kind <k> --summary <s> [--ref <r>]` / `task unblock <ID> <blocker-id>` | owner | Adds or clears a blocker |
+| `task done <ID> --merge <sha> --spec-ref <sha:path> --summary <s>` | owner | Verifies the merge commit is reachable from main and `spec_ref` resolves and names the last `spec(<ID>)` commit merged, then writes the compact record (`done` / `complete`) |
+| `task handoff <ID> --owner <o>` | new owner, on user instruction | Ownership change (§10) |
+| `task show [<ID>]` | anyone | Read |
+
+- `planned` records are created by the user with `task plan`; they have no owner. This is the only state write
+  not made by an orchestrator. Otherwise each orchestrator writes only its own task's record.
+- The CLI validates schema, ownership, and allowed transitions, and writes with Git plumbing compare-and-swap:
+  `hash-object` → `mktree` → `commit-tree -p <old>` → `update-ref refs/heads/workflow-state <new> <old>`,
+  retrying on mismatch. No checkout, no lock.
+- Each successful command is one commit: `state(<ID>): <status>/<stage>, <summary>`. Git history is the
+  transition history; state.json holds no event log. A failed command writes nothing: report it. Consumers read
+  the last successful commit.
+- The CLI pushes `workflow-state` when a remote is configured and reports publication failures; the local ref
+  stays canonical. Never force-push it; never merge it into main. Multiple independently writable clones are
+  out of scope.
 
 ### Status
 
@@ -192,15 +217,16 @@ Decide which specialties apply to each candidate and record why.
 | `blocked` | A blocker stops all authorized work on the task |
 | `paused` | Stopped on instruction; resumes on instruction |
 | `cancelled` | Stopped without merge; work preserved; never `done` |
-| `done` | Feature merge into main confirmed; compaction may be pending |
+| `done` | Feature merge into main confirmed; compact record written; final |
 
 ### Stages and transitions
 
 `setup` → `specification` → `implementation` → `specialized_review` → `adversarial_review` → `integration`
-(PR, required CI, compatibility with main, merge) → `compaction` → `complete`.
+(PR, required CI, compatibility with main, closure commits, merge) → `complete`.
 
 - Stage reflects the current activity. Preserve the stage while `blocked` or `paused`.
-- `planned` or `reserved` → `running` → `done`.
+- Tier 0 goes from `implementation` to `integration`; tier 1 skips `adversarial_review` (§6).
+- `planned` or `reserved` → `running` → `done`. `done` comes only with stage `complete`, set by `task done`.
 - `reserved` or `running` → `blocked` or `paused` → back to the prior status at the preserved stage.
 - `cancelled` resumes only on explicit user instruction after inspecting preserved work.
 - A `done` task stays `done`. A regression or revert is a new task linked via `related_task`.
@@ -211,25 +237,24 @@ Decide which specialties apply to each candidate and record why.
 | Phase | Required fields |
 |---|---|
 | Planned | `title`, `status`, `updated_at` |
-| Reserved | adds `owner`, `branch`, `worktree`, `stage`, `next_action` |
+| Reserved | adds `owner`, `branch`, `stage`, `next_action` |
 | Before implementation | adds `spec` (worktree-relative path) |
 | Review | adds `revision`: latest reported committed candidate, full SHA |
 
-- Always present once reserved: `active_agents` `[{id, role}]` (last reported, not proof of liveness),
-  `blockers`, `pr` once opened.
-- Optional: `depends_on`, `related_task`, `session_ref`, `cleanup_pr`, evidence references. Omit empty
-  optional fields.
+- Always present once reserved: `active_agents` `[{id, role}]` (last set by `task move --agent`, not proof of
+  liveness), `blockers`, `pr` once opened.
+- Optional: `depends_on`, `related_task`, `session_ref`, evidence references. Omit empty optional fields.
 - Blocker: `{id, kind, summary, ref?}`, kind ∈ `decision` | `dependency` | `check` | `environment`. Blocker
   IDs stay stable within the task.
 - `next_action`: `{actor, action}`, e.g. `{"actor":"user","action":"Decide W-001/D-1: session storage"}`.
-- Use full SHAs and RFC 3339 UTC timestamps. Never store logs or secrets in state.
-- Resolve active `spec` paths against the feature worktree or its recorded `revision`, never the state checkout.
+- Use full SHAs and RFC 3339 UTC timestamps. Never store logs, secrets, or machine-specific paths in state.
+- Resolve active `spec` paths against the feature worktree (§4 step 4) or its recorded `revision`.
 
 Active record (illustrative):
 ```json
 "W-001": {
   "title": "Login", "status": "blocked", "stage": "implementation",
-  "owner": "orchestrator-1", "branch": "feature/W-001", "worktree": "../<repo>-W-001",
+  "owner": "orchestrator-1", "branch": "feature/W-001",
   "spec": "docs/work/W-001-login.md", "revision": "<FULL_SHA>",
   "active_agents": [{"id": "impl-1", "role": "implementer"}],
   "blockers": [{"id": "B-1", "kind": "decision", "summary": "Session storage", "ref": "W-001/D-1"}],
@@ -251,55 +276,59 @@ Compact record (illustrative):
 
 - Merge only when all hold: mandatory criteria met; affected specs reflect approved decisions; required
   reviews complete and valid for the current candidate; no blocking defects or open decisions; mandatory
-  checks and integration with main succeeded; repository rules satisfied.
+  checks and integration with main succeeded; closure commits made (§9); repository rules satisfied.
 - No extra human merge confirmation by default. Approvals required by the repository stay mandatory. An
   informal approval message never replaces CI or repository rules.
 - Record every verdict with the revision checked in the PR Verification section.
-- If main changes relevantly or the candidate changes, recheck integration and affected reviews.
+- Staleness: before merge the feature branch contains current main (merged by the implementer,
+  `implementer.md` §7). CI always reruns. Agent reviews rerun only if updating from main had conflicts, or if
+  main's changes since the branch base touch files in the candidate's diff: with `<base>` =
+  `git merge-base <reviewed revision> main`, `git diff --name-only <base>..<reviewed revision>` and
+  `git diff --name-only <base>..main` share a file. A rerun moves the task back to `specialized_review` and
+  through the review stages to `integration` again. Otherwise reuse the verdicts with that reason (§6).
 - A spec rule ID that collides with one already on main after merging main: renumber the task's rule with the
   `spec` skill, update the work spec, and treat it as a changed candidate (§6).
-- Use a merge commit, never squash, so the final spec commit survives in main's history. Merge one task at
-  a time. Set `done` only after the merge is confirmed.
+- Merge only with a merge commit (§11), never squash or rebase, so the final spec commit survives in main's
+  history. Merge one task at a time. Run `task done` only after the merge is confirmed (§9).
 
-## 9. Closure and compaction (orchestrator rule, not a skill)
+## 9. Closure (orchestrator rule, not a skill)
 
-Before merge:
-- Canonical documents must reflect approved changes. Never rewrite requirements to match implementation omissions.
-- The final spec commit must match the spec used for final validation. If the work spec is unchanged since its
-  last `spec(<ID>)` commit inside the reviewed revision, that commit is the final spec commit; no new revision.
-  Only when content changed, commit that file alone as `spec(<ID>): finalize task specification` and treat it
-  as a changed candidate (§6 Candidate stability).
+Before merge, after every required gate passes on the candidate:
+1. Canonical documents must reflect approved changes. Never rewrite requirements to match implementation omissions.
+2. The final spec commit must match the spec used for final validation. If the work spec is unchanged since its
+   last `spec(<ID>)` commit inside the reviewed revision, that commit is the final spec commit; no new revision.
+   Only when content changed, commit that file alone as `spec(<ID>): finalize task specification` and treat it
+   as a changed candidate (§6 Candidate stability). The final spec commit and the work spec path form `spec_ref`;
+   write it on the PR Verification line `Final specification` (`report.md` §8).
+3. One last commit deletes `docs/work/<ID>-<slug>.md`: `docs(<ID>): remove completed work spec`. It needs no
+   agent review (docs-only deletion of the task spec); CI reruns. A later fix goes on top of it; packets then
+   name `Work spec: <spec_ref>`, read with `git show "<spec_ref>"`. A fix that changes the work spec first
+   reverts the deletion commit, follows the spec flow, and repeats steps 2–3.
 
-After confirmed merge:
-1. Set status `done`, stage `compaction`, and the real `merge_commit`.
-2. Set `spec_ref` to `<final spec commit SHA>:<spec path>`. Verify `git show "<spec_ref>"` opens the final
-   document and the commit is in main's history.
-3. Open a cleanup PR on branch `cleanup/<ID>` from current main: docs only; remove `docs/work/<ID>-*.md`, fix
-   references. Same task ID, no new work spec, commit `docs(W-001): compact completed task`. No specialist or
-   adversarial review; required repository checks and rules apply. Record `cleanup_pr`.
-4. After the cleanup PR merges, set stage `complete` and replace the record with the compact record (§7).
-
-- Cleanup failure: keep `done` / `compaction`, add a blocker (kind `check` or `environment`, by cause) and
-  a `next_action`. Never revert the feature; never block dependents. Keep the full spec until cleanup succeeds.
-  Follow-up cleanup commits: `docs(<ID>): fix compaction`.
+At confirmed merge:
+- Run `solomonar task done <ID> --merge <sha> --spec-ref <sha:path> --summary <s>`, with `spec_ref` from the
+  PR's `Final specification` line. It verifies the merge commit is reachable from main and `git show
+  "<spec_ref>"` resolves to the last `spec(<ID>)` commit merged, then writes the compact record (§7) with
+  `done` / `complete`. `done` is final at merge.
+- If `task done` fails, report the cause and rerun it once fixed. Never revert the merge.
 - Delete a worktree only as a separate deliberate step, after confirming it holds no uncommitted or unmerged work.
 - History lookup: read the compact record first. Run `git show "<spec_ref>"` only for a concrete question.
 
 ## 10. Recovery
 
 Before acting on any event, inspect actual Git state, worktree, dirty files, checks, decisions, and PR,
-then reconcile the record with what exists. Never duplicate worktrees or PRs. Preserve uncommitted changes.
+then reconcile the record with what exists (`task move`). Never duplicate worktrees or PRs. Preserve
+uncommitted changes.
 
 | Event | Orchestrator behavior |
 |---|---|
-| Pause | Stop delegating; settle or stop active work; commit status `paused` with the latest committed `revision` and a `next_action` naming outstanding work |
+| Pause | Stop delegating; settle or stop active work; set status `paused` with the latest committed `revision` and a `next_action` naming outstanding work |
 | Unexpected session end | Nothing automatic; the next session follows Resume |
-| Resume | Inspect and reconcile; continue the recorded stage; reuse the existing worktree and PR; if the PR is merged, set `done` / `compaction` with the real `merge_commit` and continue §9 without reimplementing |
-| Ownership handoff | Only on explicit user instruction; stop or confirm the previous execution stopped; commit the new `owner` before any further write; the previous owner stops writing |
-| Cancel | Stop execution; commit status `cancelled` with a `next_action` naming the reason and remaining work; keep branch, worktree, and PR untouched |
+| Resume | Inspect and reconcile; continue the recorded stage; reuse the existing worktree and PR; if the PR is merged, verify the merge commit is in main's history and run `task done` (§9) with `spec_ref` from the PR, without reimplementing |
+| Ownership handoff | Only on explicit user instruction; stop or confirm the previous execution stopped; `task handoff` before any further write; the previous owner stops writing |
+| Cancel | Stop execution; set status `cancelled` with a `next_action` naming the reason and remaining work; keep branch, worktree, and PR untouched |
 | Regression or revert after merge | Keep the merged task `done`; register a new task linked via `related_task` |
 
-- If only compaction is paused, cancelled, or blocked, status stays `done`.
 - Checkpoint = the task's state record + its worktree + Git history. A brief note of uncommitted work may go
   in `next_action`. Approvals persist within their recorded scope.
 - No heartbeats, no time-based ownership takeover, no automatic destructive cleanup.
@@ -307,9 +336,11 @@ then reconcile the record with what exists. Never duplicate worktrees or PRs. Pr
 
 ## 11. Bootstrap and runtime assumptions
 
-- Before the first managed task, the following must exist: a local Git baseline, branch `workflow-state`
-  with an empty registry, and the coordination checkout.
+- Before the first managed task, the following must exist: a local Git baseline and `refs/heads/workflow-state`
+  with an empty registry, created by `solomonar init`. No other checkout is needed for state.
 - v0.1 requires a Git repository and Git worktrees; Jujutsu and other VCS front ends are out of scope.
+- The repository must allow merge commits, and the orchestrator merges only with a merge commit: squash and
+  rebase merges break `spec_ref`. `solomonar doctor` checks the repository settings (Phase 2).
 - Integration requires a remote and PR path. Missing access is a concrete blocker (kind `environment`).
 - Record real run, build, test, and lint commands in `docs/README.md` once known. Record unknown commands as
   "not established"; never guess them.

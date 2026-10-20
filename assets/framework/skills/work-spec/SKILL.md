@@ -26,7 +26,7 @@ Load only what the change touches:
 - the relevant `docs/specs/*.md` and `docs/ui.md`: rule IDs, labels, open questions;
 - the `docs/architecture.md`, `docs/stack.md`, and `docs/decisions.md` entries in scope;
 - the affected code and tests (required for a bug fix or refactor);
-- for a regression of a merged task: that task's compact record (`git show refs/heads/workflow-state:state.json`).
+- for a regression of a merged task: that task's compact record (`solomonar task show <ID>`).
   Load its `spec_ref` with `git show "<spec_ref>"` only for a concrete question.
 
 ## 3. Procedure
@@ -38,7 +38,7 @@ Load only what the change touches:
    scope", with its boundaries. No authorized outcome is a blocking question. If no runnable application
    baseline exists, apply section 5's baseline rule.
 3. Identify the context: rule IDs, sections, contracts, code paths, prototype references
-   (`<full commit SHA>:prototype/<entry file> — flow <flow-id>`). Cite them; never copy their content.
+   (`<full commit SHA>:prototype/<entry file>, flow <flow-id>`). Cite them; never copy their content.
 4. Draft the acceptance criteria (section 4).
 5. List the constraints: approved decisions (`W-001/D-n`) and global rules that bind the change, by ID or path.
    List the checks that verify the ACs, by AC ID: commands from `docs/README.md` or named scenarios, with known
@@ -66,6 +66,10 @@ Load only what the change touches:
 - Each AC is observable: a condition and the expected result, verified by a check named under "Constraints and
   checks". That check is an automated test unless the work spec states why one is impractical; then it is a named
   manual scenario plus its verification limit.
+- Each AC cites the rule IDs it verifies or introduces: `<capability>/R-n`, or `<capability>/new` until the
+  `spec` skill assigns one. A behavior AC always maps to a rule (add one under "Spec changes"); only a purely
+  technical outcome cites `none`. Preferred form (EARS): "When <trigger>, the system shall <response>" or "If
+  <condition>, then the system shall <response>".
 - Include the relevant failure and boundary cases.
 - Per type:
   - feature: new or changed behavior;
@@ -99,8 +103,8 @@ Implementation is ready when all hold:
   architecture or dependency approval it needs (language, framework, storage) is a blocking
   `needs decision: yes` question.
 - Output, at the end of the run: `Readiness: READY` or
-  `Readiness: NOT READY — <failing criteria; blocking question IDs>` (e.g.
-  `Readiness: NOT READY — Decisions; W-001/Q-1`). The verdict is never written into the work spec.
+  `Readiness: NOT READY (<failing criteria; blocking question IDs>)` (e.g.
+  `Readiness: NOT READY (Decisions; W-001/Q-1)`). The verdict is never written into the work spec.
 
 ## 6. Never
 

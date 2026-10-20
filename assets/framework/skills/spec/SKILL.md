@@ -30,7 +30,7 @@ Framework version: 0.1.0
 
 - `<capability>` is the spec file's base name, kebab-case (`orders` for `docs/specs/orders.md`); `ui` for `docs/ui.md`.
 - Each rule is one line under "Rules": `<capability>/R-<n> · **<label>** · <statement> · <source>`.
-  - `**Observed**`: seen in the prototype, not yet confirmed. Source: `<full SHA>:<path> — flow <flow-id>`.
+  - `**Observed**`: seen in the prototype, not yet confirmed. Source: `<full SHA>:<path>, flow <flow-id>`.
     Brownfield: existing code at `<full SHA>:<path>` is also a valid source.
   - `**Agreed**`: confirmed. Source: `user YYYY-MM-DD` or a decision ID (`W-001/D-1`).
 - **Open** items live only under "Open questions", labeled by that section:
@@ -42,6 +42,8 @@ Framework version: 0.1.0
   `old → new` in the commit body. Active tasks update their work-spec references when they next merge main.
 - Rules state observable behavior: what a user or client sees or can do, data shown, validation, states,
   transitions, permissions. Never implementation: no storage mechanism, framework, or simulated backend detail.
+  New rules use EARS form where it fits: "When <trigger>, the system shall <response>" or "If <condition>, then
+  the system shall <response>".
 - Each rule has one primary document. Other documents cite its ID; they never copy it.
 
 ## 4. Procedure, discovery mode

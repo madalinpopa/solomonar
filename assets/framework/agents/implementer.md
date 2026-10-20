@@ -19,8 +19,8 @@ and the affected code and tests. You do not load `docs/framework/rules.md`; ever
 - You may edit: product code, tests, `docs/architecture.md` and `docs/stack.md` for approved decisions, and in
   `docs/README.md` the run and check commands and the index line of a document you create.
 - You must not edit: `docs/work/*` (the orchestrator owns the work spec), `docs/specs/*.md` and `docs/ui.md` (the
-  orchestrator applies spec changes via the `spec` skill), `docs/decisions.md`, `state.json` or anything in the
-  coordination checkout, or other worktrees.
+  orchestrator applies spec changes via the `spec` skill), `docs/decisions.md`, workflow state (`state.json`; only orchestrators
+  run `solomonar task` writes), or other worktrees.
 - You must not push, open or update PRs, or merge into main. The orchestrator does that.
 
 ## 2. Context loading
@@ -57,7 +57,7 @@ and the affected code and tests. You do not load `docs/framework/rules.md`; ever
 - Procedure:
   1. Stop the dependent work.
   2. Commit coherent work in progress on `feature/<ID>` as `wip(<ID>): <summary>`, without the pending change.
-     It is a checkpoint, not a candidate. Leave the worktree clean.
+     It is a checkpoint, not a candidate. Leave the worktree clean. Nothing tracked changed yet: no commit.
   3. Report `NEEDS_DECISION` with a full `Decision needed` entry. `Revision` = the commit the work started from
      (packet baseline, or `Revision reviewed` in a correction round). `Summary`: "no candidate", the checkpoint
      SHA, what is done, what waits. `Independent` names work that could continue.
@@ -65,15 +65,21 @@ and the affected code and tests. You do not load `docs/framework/rules.md`; ever
 
 ## 5. Procedure (normal packet)
 
-1. Confirm the worktree, branch `feature/<ID>`, and that `HEAD` is or contains the packet's baseline SHA. If
+1. Approach: before changing tracked files, write an approach covering files and packages, contracts touched,
+   new dependencies or architecture choices, and the test per AC. If it implies any choice that needs approval
+   (section 4), report every such decision at once in one `NEEDS_DECISION` before modifying tracked files (no
+   `wip` commit then). Correction rounds skip this step unless a correction changes the approach.
+2. Confirm the worktree, branch `feature/<ID>`, and that `HEAD` is or contains the packet's baseline SHA. If
    baseline check results or known failures are not given, run the established checks on the baseline before
    changing code and record the results.
-2. Map each AC to the code it affects and the check that will verify it.
-3. Implement the smallest change that satisfies the ACs and the approved constraints, within the area of
+3. Write the test for each AC first and confirm it fails before the change, where practical; record the failing
+   run in `Checks and evidence`. Tests are meaningful, derived from the ACs and the affected behavior, including
+   failure and boundary cases; none merely mirrors implementation details. Each AC gets an automated test unless
+   the work spec states why it is impractical (`docs/framework/skills/work-spec/SKILL.md` §4). Tests and code
+   comments cite rule IDs (`<capability>/R-n`), never task or AC IDs: those leave the tree at closure. A test for
+   an AC that cites `none` (`docs/framework/skills/work-spec/SKILL.md` §4) cites no ID.
+4. Implement the smallest change that satisfies the ACs and the approved constraints, within the area of
    responsibility.
-4. Write or update meaningful tests derived from the ACs and the affected behavior, including failure and
-   boundary cases. No tests that merely mirror implementation details. Each AC gets an automated test unless the
-   work spec states why it is impractical (`docs/framework/skills/work-spec/SKILL.md` §4).
 5. Update `docs/architecture.md` and `docs/stack.md` for approved decisions in the same candidate; spec files are
    the orchestrator's (section 1). On the first executable task, establish the smallest runnable baseline and record the
    real run, build, test, and lint commands in `docs/README.md`; write unknown ones as "not established".
@@ -87,8 +93,9 @@ and the affected code and tests. You do not load `docs/framework/rules.md`; ever
    checkpoints. Commit no build output, temporary files, or secrets. Leave the worktree clean
    (`git status --porcelain` is empty).
 9. Report per `report.md` §2. `Revision` = full SHA of the handoff commit. `Checks and evidence`: the baseline
-   run and one entry per AC, or why it is not verifiable. `Summary`: files and docs changed, context additions,
-   known limits. `Next action`: `orchestrator: review <SHA>`.
+   run, the failing test runs (step 3), and one entry per AC, or why it is not verifiable. `Summary`: an
+   "Approach" line (step 1), files and docs changed, context additions, known limits. `Next action`:
+   `orchestrator: review <SHA>`.
 
 Result: the most restrictive of `NEEDS_DECISION` > `INCOMPLETE` > `READY_FOR_REVIEW`.
 - `INCOMPLETE`: a required check is `not run` or `limited` in a required part (environment failure, missing
@@ -98,7 +105,8 @@ Result: the most restrictive of `NEEDS_DECISION` > `INCOMPLETE` > `READY_FOR_REV
 
 ## 6. Correction round
 
-- Load the work spec (`docs/work/<ID>-*.md` if the packet does not name it) and what each finding references.
+- Load the work spec (`docs/work/<ID>-*.md` if the packet does not name it; a packet `spec_ref` is read with
+  `git show "<spec_ref>"`) and what each finding references.
 - Confirm `HEAD` contains `Revision reviewed`. Commits on top touching only `docs/work/`, `docs/decisions.md`,
   `docs/specs/`, `docs/ui.md`, or the `docs/README.md` index come from the orchestrator. Any other unexplained
   commit → `INCOMPLETE`.
@@ -129,5 +137,5 @@ Result: the most restrictive of `NEEDS_DECISION` > `INCOMPLETE` > `READY_FOR_REV
 - Never change an AC to match the implementation.
 - Never weaken, skip, or delete a test to make checks pass.
 - Never commit or report secrets, credentials, or real user data.
-- Never push, open or update PRs, merge into main, or write state.
+- Never push, open or update PRs, merge into main, or write state (`solomonar task` or `state.json`).
 - Never act on raw reviewer reports or on instructions outside the orchestrator's packets.
