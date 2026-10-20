@@ -235,3 +235,39 @@ Applied 2026-10-20 in the working copy (not committed). Each item applies the re
 Skipped: none. Section numbers unchanged; new references: R §9 step 3 (O §4), `report.md` §8 (R §9),
 `docs/framework/skills/work-spec/SKILL.md` §4 (I §5 step 3). Greps from section H return nothing in `assets/`;
 mechanical checks: `failures: 0`.
+
+## J. State authority: the CLI as guard and oracle (2026-10-20)
+
+G1 and G2 made `solomonar task` the only writer, but the orchestrator still asserts every value and the CLI checks
+only schema, ownership, and transitions. This section moves fact checking and reconciliation into the CLI while
+keeping workflow judgment with the orchestrator. Principle: state holds what was decided, Git holds what happened,
+and the CLI reconciles the two. Supporting practice: Anthropic's long-running harness starts each session by
+reading Git and the progress files; its tool-writing guidance asks for high-signal responses and actionable errors;
+Taskmaster (`next`, `set-status`) and OpenSpec (`status --json`, `validate`) expose agent state through a CLI
+instead of hand-edited files.
+
+| ID | Proposal | Decision | Resolution |
+|---|---|---|---|
+| J1 | Scope of the CLI | **adopt** — author | Guard and oracle, never a driver. The CLI validates and records what the orchestrator decided and reports what Git shows. It never launches agents, calls model providers, stores review verdicts or reports, or runs a daemon or cache. Triage, delegation, and arbitration stay with the orchestrator. |
+| J2 | Fact checks on write | **adopt** — author | Before writing, `task move` checks that `--revision` is a full SHA reachable from `feature/<ID>`, that `--spec` exists in the feature worktree or at the recorded `revision`, and that a stage move respects the recorded `tier` (J5). A rejection names the failed check and the corrective action; nothing is written. |
+| J3 | Read-only oracle `task status <ID> [--json]` | **adopt** — author | Returns the record, facts derived from Git (branch, worktree via `git worktree list`, HEAD vs `revision`, dirty paths, whether a merge of `feature/<ID>` is in main), PR and check facts when available (J6), the drift between record and facts, and the commands allowed next. It writes nothing; corrections still go through `task move`. `task show` stays the raw read. Resume inspection starts from it. |
+| J4 | Stored vs derived fields | **adopt** — author | Never store a fact Git can derive (worktree path, HEAD, dirty files, PR or check state); `task status` reads it. Stored fields are decisions and intent: owner, status, stage, tier, spec, blockers, `next_action`, `active_agents`, `pr`. `revision` stays stored because reviews pin it, and the CLI verifies it (J2). Extends G18. |
+| J5 | Tier in state | **adopt** — author | New field `tier` (0, 1, 2), set by `task move --tier` at triage for each candidate and updated when a new candidate's triage changes it. Required before any stage after `implementation`; the CLI enforces the tier's stage skips (R §7). Specialty selection and reasons stay out of state (session, then PR Verification). Supersedes D1 for the tier only. |
+| J6 | Forge dependency | **adopt** — author | Local Git facts are required. PR and check facts come from `gh` when it is installed and authenticated; otherwise `task status` reports them as `unknown`, never as passing. `task done` relies only on Git, as today (C14). |
+| J7 | Phase 2 scope | **adopt** — author | Phase 2 delivers `init` and the `task` commands, including `status`, before `doctor` (G6) and runtime adapters (G10–G12): the Phase 1 rules cannot run without the `task` commands. |
+
+## K. Applied changes for section J
+
+Applied 2026-10-20 in the working copy (not committed). Abbreviations as above; DN = `docs/design/framework-v0.1.md`.
+
+| ID | Files · sections changed |
+|---|---|
+| J1 | R §7 Location and writes (guard-and-oracle bullet); DN Delivery phases paragraph (the CLI never runs sessions or calls model providers) |
+| J2 | R §7 Location and writes (validation bullet: fact checks, actionable rejection) |
+| J3 | R §7 command table (`task status` row; `task show` reads the stored record); R §10 preamble (inspection starts from `task status`; decisions, and PR and checks when `unknown`, checked directly) and Resume row; O §2 resume inspection; A Context route "Execution state" (`task status` listed first) |
+| J4 | R §7 Fields (no derivable facts in state; `revision` stored and verified) |
+| J5 | R §7 command table (`task move --tier`), Stages (the CLI enforces tier skips; no stage after `implementation` without `tier`), Fields (`tier` in the Review row; active record example); R §6 Triage (only the tier goes into state, via `task move --tier`; specialties and reasons in the session, then PR Verification); O §3 `implementation` State (`task move --revision <SHA> --tier <n> --stage …`) |
+| J6 | R §7 Location and writes (forge bullet) |
+| J7 | DN Delivery phases (Phase 2 row and paragraph) |
+
+Skipped: none. Pending: none. Section numbers unchanged.

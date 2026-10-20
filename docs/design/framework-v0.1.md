@@ -9,9 +9,9 @@ Write all framework artifacts in English, including rules, documentation and spe
 | Phase | Deliverable | Completion condition |
 | - | - | - |
 | 1 — Framework definition | English rules, three skill contracts, agent responsibilities, context routing, work specification, state and report contracts, recovery and dashboard behavior. | The contracts form one coherent workflow and can be walked through with a small feature. |
-| 2 — Go CLI | Versioned embedded framework assets and an `init` command that installs them in a new project. | Initialization is repeatable, preserves project edits, and exposes the selected runtime's instructions correctly. |
+| 2 — Go CLI | Versioned embedded framework assets; an `init` command that installs them in a new project and creates `refs/heads/workflow-state`; the `solomonar task` commands (rules §7), the only state writers, with fact checks and the read-only `task status`. | Initialization is repeatable, preserves project edits, and exposes the selected runtime's instructions correctly. Every `task` command validates and rejects as rules §7 requires, with tests for transitions, fact checks, and the compare-and-swap retry. |
 
-The CLI's first responsibility is project initialization and packaging. Model providers, session execution, and dashboard hosting are implementation choices for Phase 2. No CLI, installed skills, dashboard application, or application architecture is implemented by this design note.
+The CLI's first responsibility is project initialization and packaging, then the state commands the rules depend on; `solomonar doctor` and runtime adapters (hooks, skill installation, native agent files) follow them. For state, the CLI is a guard and an oracle, never a driver: it never runs sessions or calls model providers. Dashboard hosting is an implementation choice for Phase 2. No CLI, installed skills, dashboard application, or application architecture is implemented by this design note.
 
 
 
