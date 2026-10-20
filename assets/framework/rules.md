@@ -45,7 +45,8 @@ procedures: `docs/framework/agents/<role>.md`. Skill procedures: `docs/framework
 - Orchestrator procedure:
   1. Assign a task-scoped decision ID (`W-001/D-1`).
   2. Add a blocker of kind `decision`, set `next_action` to the user, commit the record (§7). Write the
-     decision entry in `docs/decisions.md` in the task worktree with status `pending`.
+     decision entry in `docs/decisions.md` in the task worktree with status `pending`; while a review set runs
+     on the current revision, write it only after every running review has reported (§6 Candidate stability).
   3. Present question, recommendation, alternatives, impact.
   4. If no independent authorized work can continue, set status `blocked`.
   5. Save a checkpoint (§10) and wait. No response is not approval. Never repeat the question; never retry automatically.
@@ -77,7 +78,9 @@ The user starts tasks one at a time. Started tasks run in parallel. Work selecte
    merged remotely, update the baseline first and verify it contains the prerequisite's recorded `merge_commit`.
 5. Set status `running`, stage `specification`. Create or refine the work spec in the worktree with the
    `work-spec` skill. Commit it separately. Record `spec`.
-6. When the readiness gate owned by `work-spec` passes, set stage `implementation` and delegate.
+6. When the readiness gate owned by `work-spec` passes, apply the work spec's user-confirmed "Spec changes"
+   with the `spec` skill (in-task mode), commit them as `docs(<ID>): apply spec changes`, and cite the assigned
+   rule IDs in the work spec (`spec(<ID>): refine task specification`). Then set stage `implementation` and delegate.
 
 - If registration or its commit fails, do not create the worktree.
 - If worktree setup fails, keep the registration: status `blocked`, stage `setup`, blocker kind `environment`.
@@ -253,6 +256,8 @@ Compact record (illustrative):
   informal approval message never replaces CI or repository rules.
 - Record every verdict with the revision checked in the PR Verification section.
 - If main changes relevantly or the candidate changes, recheck integration and affected reviews.
+- A spec rule ID that collides with one already on main after merging main: renumber the task's rule with the
+  `spec` skill, update the work spec, and treat it as a changed candidate (§6).
 - Use a merge commit, never squash, so the final spec commit survives in main's history. Merge one task at
   a time. Set `done` only after the merge is confirmed.
 
@@ -276,6 +281,7 @@ After confirmed merge:
 
 - Cleanup failure: keep `done` / `compaction`, add a blocker (kind `check` or `environment`, by cause) and
   a `next_action`. Never revert the feature; never block dependents. Keep the full spec until cleanup succeeds.
+  Follow-up cleanup commits: `docs(<ID>): fix compaction`.
 - Delete a worktree only as a separate deliberate step, after confirming it holds no uncommitted or unmerged work.
 - History lookup: read the compact record first. Run `git show "<spec_ref>"` only for a concrete question.
 

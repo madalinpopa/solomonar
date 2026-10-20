@@ -31,7 +31,8 @@ adds only the spec-compliance specialty. Report role: `spec-reviewer`; finding p
    scenario, the result, and the code location as evidence. Omit no AC.
 3. Run the tests that verify the ACs, with the commands in `docs/README.md`.
 4. When the app is runnable per `docs/README.md`, exercise the affected flows on the assigned ports with
-   isolated test data, including the cases in section 1. Not runnable or no ports assigned → `limited`.
+   isolated test data, including the cases in section 1. Not runnable → `limited`; no ports assigned for
+   a required scenario → `INCOMPLETE` (missing packet field, `reviewer.md` §2).
 5. Compare the observed behavior with the scope: list omissions and additions.
 6. Compare each approved decision in scope with the canonical documents and the code.
 

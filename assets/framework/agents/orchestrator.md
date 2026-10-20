@@ -62,8 +62,9 @@ present a listed alternative (§3).
   marks blocking; route `needs decision: yes` questions and requirement conflicts through §3. Commit the spec
   on its own.
 - **State:** `spec` (worktree-relative path); blockers and `next_action` while waiting.
-- **Exit:** the skill's readiness gate passes → stage `implementation`. **Failure:** until it passes, stay in
-  `specification`, waiting on the blocking answers or decisions.
+- **Exit:** the skill's readiness gate passes and user-confirmed "Spec changes" are applied (§4 step 6) → stage
+  `implementation`. **Failure:** until it passes, stay in `specification`, waiting on the blocking answers or
+  decisions.
 
 ### `implementation`
 - **Entry:** spec ready, a consolidated correction list, or an approved decision to apply. **Delegate:** `implementer`.
@@ -95,12 +96,11 @@ present a listed alternative (§3).
 ### `integration`
 - **Entry:** every review gate passed on the current `revision`. **Delegate:** `implementer` for code changes or
   for merging main into `feature/<ID>`; otherwise none.
-- **Do:** run the `spec` skill in-task mode for the work spec's pending "Spec changes" and commit the result as
-  part of the candidate. Then the final spec commit (§9): the last `spec(<ID>)` commit when the work spec is
-  unchanged, else a new one. On any new commit, record the new `revision` and why verdicts still apply (§6).
+- **Do:** the final spec commit (§9): the last `spec(<ID>)` commit when the work spec is unchanged, else a new
+  one. On any new commit, record the new `revision` and why verdicts still apply (§6).
   Push; open the PR with *Verification* (`report.md` §8); monitor required checks and repository rules. Before
   merging, if main moved relevantly since the last integration check, re-verify integration and affected reviews
-  (§8). Merge with a merge commit.
+  (§8), including spec rule ID collisions. Merge with a merge commit.
 - **State:** `revision`, `pr`, blockers (`check`, `environment`). **Exit:** merge commit confirmed in main's history.
 - **Failure:** diagnose; retry transient errors; code changes → `implementation`, same PR (§5); no remote → §11.
 

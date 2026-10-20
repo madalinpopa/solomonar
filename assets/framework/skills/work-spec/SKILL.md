@@ -77,8 +77,8 @@ Load only what the change touches:
 - Behavior the change adds or alters, including confirmed **Observed** rules and expected behavior no rule states
   yet, goes into the "Spec changes" line: existing rule IDs with their target statement or label, new rules as
   `<capability>/new: <statement>` (the `spec` skill assigns IDs), each with its source (`user YYYY-MM-DD` or
-  `W-001/D-n`). Only the orchestrator applies it to the canonical specs before merge, via the `spec` skill
-  in-task mode.
+  `W-001/D-n`). Only the orchestrator applies it, via the `spec` skill in-task mode, when the readiness gate
+  passes and before implementation (`rules.md` §4 step 6); the work spec then cites the assigned IDs.
 - Never weaken or drop an AC to match an implementation. A change of an AC after implementation starts requires
   a user decision or an approved decision; cite it on the AC (`changed: W-001/D-2`).
 
