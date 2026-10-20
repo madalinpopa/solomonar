@@ -1,4 +1,7 @@
-# solomonar
+<h1 align="center">
+  <img src="docs/logo/lockup.svg" alt="solomonar" width="560">
+</h1>
+
 solomonar: in Romanian folklore, a wizard who learns every secret from a single book and rides a dragon to command the storms. solomonar gives your project its book (specs), its spells (skills) and its dragons (agents).
 
 **Framework v0.1.0 · Phase 1 complete**
@@ -84,4 +87,4 @@ State holds decisions; Git holds what happened. A fact Git can derive is never s
 
 ---
 
-Source: `docs/framework/` (rules.md, report.md, reviewer.md, agents, skills) · Solomonar v0.1.0
+Source: `docs/framework/` (rules.md, report.md, reviewer.md, agents, skills) · Logo: [`docs/logo/`](docs/logo/README.md) · Solomonar v0.1.0
