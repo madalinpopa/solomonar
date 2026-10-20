@@ -142,3 +142,96 @@ Applied 2026-10-20 in the working copy.
 | C8 | R §3 step 2: the `pending` entry waits until every running review on the current revision has reported |
 | C9, C10 | R §4 step 6: user-confirmed "Spec changes" applied when the readiness gate passes, assigned IDs cited in the work spec; R §8: rule ID collision after merging main → renumber, changed candidate; O §3 `specification` Exit and `integration` Do; sk:work-spec §4 |
 | C11 | SPC §2 step 4: not runnable → `limited`; no ports for a required scenario → `INCOMPLETE` |
+
+## G. External review (2026-10-20) and author decisions
+
+An external review of the design note proposed the items below. `Decision`: **adopt**, **adopt (variant)**,
+**Phase 2** (runtime or CLI work, recorded as a requirement), **done** (already true in the framework files), or
+**n/a**. Runtime claims about specific tool versions are unverified; check them before Phase 2 relies on them.
+
+| ID | Proposal | Decision | Resolution |
+|---|---|---|---|
+| G1 | Enforce the state protocol in code: CLI task commands; deny direct writes to `state.json` | **adopt** — author | `solomonar task plan / register / move / block / unblock / done / show` are the only writers; they validate schema, ownership, transitions, and that `merge_commit` is reachable from main. A runtime hook denying direct `state.json` writes is Phase 2. |
+| G2 | Drop the coordination checkout; commit state with Git plumbing and `update-ref` compare-and-swap | **adopt** — author | The CLI writes `workflow-state` with `hash-object` → `mktree` → `commit-tree -p <old>` → `update-ref refs/heads/workflow-state <new> <old>`; retry on mismatch. No checkout, no lock. Task ID allocation is race-free. |
+| G3 | Planning step before code | **adopt (variant)** | No new stage or skill: before changing tracked files, the implementer writes an approach (files, contracts, new dependencies or architecture, a test per AC) and raises every decision it implies in one `NEEDS_DECISION`. The approach goes in the `READY_FOR_REVIEW` summary. |
+| G4 | Stable requirement IDs; tests cite them; EARS form | **adopt (variant)** | `<capability>/R-n` already exists. Add: ACs map to rule IDs; tests and code comments cite rule IDs, never task or AC IDs; ACs and new rules use EARS form ("When <trigger>, the system shall <response>") where it fits. |
+| G5 | Collapse compaction into the feature PR | **adopt** — author | After every gate passes: final spec commit (`spec_ref`), then a last commit deleting `docs/work/<ID>-<slug>.md`; CI reruns, no agent review. At confirmed merge the task becomes `done` / `complete` with the compact record. Stage `compaction`, the cleanup PR, `cleanup_pr`, and administrative blockers are removed. |
+| G6 | Merge method as a checked precondition | **adopt** | R §11: the repository must allow merge commits and the orchestrator merges only with a merge commit; squash and rebase merges break `spec_ref`. `solomonar doctor` checks it (Phase 2). |
+| G7 | Mechanical staleness rule | **adopt** | Before merge the branch contains current main; CI always reruns; agent reviews rerun only if updating from main had conflicts or touched files in the candidate's diff. |
+| G8 | Risk tiers; different model for the adversarial reviewer | **adopt** — author | Triage records a tier. 0: docs, no behavior or requirement change → CI only. 1: normal code → required specialists. 2: persistence, authentication or authorization, concurrency, external integrations, data migration, or any approved architecture or dependency decision → specialists plus adversarial. Use a different model for the adversarial reviewer when the runtime allows. |
+| G9 | Tests as the executable spec | **adopt** | Builds on C4: the implementer writes a failing test per AC first where practical; reviewers block test changes that weaken or delete existing assertions without an AC or decision. |
+| G10 | `init` never creates `CLAUDE.md`; warn if one exists | **Phase 2** | Unverified claim about AGENTS.md precedence; verify, then implement in `init`. |
+| G11 | Install skills where runtimes discover them | **Phase 2** | `docs/framework/skills/` stays the portable source; adapters install or link into runtime directories. Skill `name` already matches its directory. |
+| G12 | Roles as native agent definitions with restricted tools | **Phase 2** | Adapters generate runtime agent files; reviewers get read-only tool lists. |
+| G13 | The orchestrator must be the top-level session | **adopt** | A, O §1: the user starts each orchestrator as a top-level session; it is never a delegated subagent. |
+| G14 | Typo `refs/heads/workflow-state.json` | **done** | Only in the design note; framework files use `refs/heads/workflow-state:state.json`. |
+| G15 | "Three skill contracts" vs two listed | **done** | Only in the design note; the framework has three skills. |
+| G16 | Who creates `planned` tasks? | **adopt** | The user, with `solomonar task plan`; a `planned` record has no owner. |
+| G17 | Product name | **adopt** — author | Solomonar; CLI `solomonar`. |
+| G18 | Machine-specific `worktree` path in state | **adopt** | Drop the field. Convention: `../<repo>-worktrees/<ID>` from the main checkout; find it with `git worktree list` by branch `feature/<ID>`. |
+| G19 | Em dashes in templates | **adopt** | Templates, headers, examples, and message formats that agents copy use `:` or `,` instead of an em dash (e.g. `# W-001: Change title`). |
+
+Superseded by G: C7's `docs(<ID>): fix compaction` (no cleanup PR remains); R §9 steps 3–4 and the coordination
+checkout in R §4, §7, §11.
+
+## H. Applied changes for section G
+
+Applied 2026-10-20 in the working copy (not committed). Abbreviations as above; ADV = `adversarial-reviewer.md`,
+GO = `go-reviewer.md`, sk = skill. Section numbers did not shift; R §9 is renamed "Closure".
+
+| ID | Files · sections changed |
+|---|---|
+| G1, G2 | R §7 Location and writes rewritten: CLI-only writes, command table (`plan`, `register`, `move`, `block` / `unblock`, `done`, `handoff`, `show`), validation, plumbing compare-and-swap, `state(<ID>): <status>/<stage>, <summary>`, push and publication failures, Phase 2 hook in one line; R §2 (record via `solomonar task`, `task move` for `revision`); R §3 steps 2, 4, On approval (`task block`, `task move`, `task unblock`); R §4 steps 1–5 and failure bullets (`task register` is the barrier); R §10 (reconcile with `task move`, Pause, Cancel, `task handoff`); R §11 (`solomonar init` creates the registry ref; no other checkout); O §1 (record only via `solomonar task`), §2 (resume inspection with `task show` and `git worktree list`; ID allocation by `task register`), §3 preamble and every stage's State line, §7 (state-lock line replaced by "never write state except through `solomonar task`"; coordination checkout removed); I §1, §8; Rv §4; A Mandatory rules 3, 4, 5 and Context route "Execution state"; sk:work-spec §2 (`task show`) |
+| G16 | R §7: `planned` records come from the user's `task plan`, without owner; the only write not made by an orchestrator; A rule 3 |
+| G18 | R §4 step 4 (path `../<repo>-worktrees/<ID>`, located with `git worktree list` by branch), R §7 Fields (`worktree` removed from the Reserved row and the example; no machine-specific paths in state; `spec` resolved against the worktree), O §2–§3 (`setup` Do, resume inspection) |
+| G5 | R §5 main flow; R §7 Status (`done` final), Stages (no `compaction`; `done` only with `complete`), Fields (`cleanup_pr` removed); R §8 (closure commits are a merge precondition; `task done` after merge); R §9 renamed "Closure": steps 1–3 before merge (canonical docs, final spec commit per B15 = `spec_ref`, `docs(<ID>): remove completed work spec` without agent review), `task done` at merge, failure rule without administrative blockers; R §10 (Resume after merge = verify merge + `task done`; "only compaction" rule removed); O frontmatter, §1, §3 `integration` absorbs closure, `compaction` block deleted, §5 one *Task complete* message, §7; A rule 10; P §8 ("after closure") |
+| G6 | R §11 (merge commits allowed; merge-commit only; squash and rebase break `spec_ref`; `solomonar doctor`, Phase 2); R §8 points to §11; O §3 `integration`, §7 |
+| G7 | R §8 Staleness (branch contains main; CI always reruns; agent reviews rerun on conflicts or a non-empty file intersection, `<base>` = `git merge-base <reviewed revision> main`); R §6 Candidate stability (reference to §8); O §3 `integration` |
+| G8 | R §6 Triage (tier table; adversarial row "Tier 2"; different model, recorded in Verification), Adversarial ordering (tier 2 only); R §5 main flow; R §7 Stages (tier 0 and tier 1 skips); O §3 `implementation` (triage and tier at `READY_FOR_REVIEW`; tier 0 → `integration`), `specialized_review` Exit, `adversarial_review` Entry; ADV §1; P §8 `Reviews` line (tier and models) |
+| G3 | I §5 step 1 (approach; one `NEEDS_DECISION` before tracked changes, no `wip`; skipped in correction rounds unless the approach changes), step 9 (`Approach` line in `Summary`); I §4 step 2 (no checkpoint when nothing tracked changed); O §3 `implementation` reference. Former step 2 (map AC → code and check) folded into the approach |
+| G9 | I §5 step 3 (failing test per AC first where practical, recorded in `Checks and evidence`), step 9; SPC §4 (weakened or deleted assertions → `blocking`); GO §1 test bullet |
+| G4 | sk:work-spec §4 (ACs cite `<capability>/R-n` or `<capability>/new`; EARS form) and template (hint and example ACs in EARS); sk:spec §3 and template (EARS for new rules, example rules); I §5 step 3 and A rule 13 (tests and comments cite rule IDs, never task or AC IDs) |
+| G13 | A Load your context; O §1 |
+| G19 | sk:work-spec template (`# W-001: Change title`, example), §3 step 3 prototype reference, §5 readiness line (`Readiness: NOT READY (<…>)`); P §2, §5, §6, §7, §9 (`# <Task ID>: <Role>`, entry lines); `state(<ID>)` format (R §7); O §4 packet headers (`Task: W-001, <title>`, `Role: …; …`) and §5 messages; prototype references (`, flow <flow-id>`) in sk:prototype §7, sk:spec §3 and template, sk:work-spec; prototype template list lines; README template index lines; A version line. No em dash remains anywhere in `assets/` |
+
+Skipped: none.
+
+Verification: the greps for `compaction`, `cleanup_pr`, `cleanup/`, `coordination checkout`, `state lock`,
+`"worktree":`, `fix compaction`, and `—` return nothing in `assets/`. No `§n` target moved; the references to the
+removed R §9 steps 1–4 and step 3 (O §3) were replaced. Mechanical checks (throwaway module outside the
+repository, `go run . <repo>/assets`): `failures: 0`.
+
+Scenario gaps found by the traces, each an open author decision below:
+- (d) A main update that triggers agent-review reruns happens in stage `integration`; no stage transition is
+  defined for the rerun → C12.
+- (d), later fixes: after `docs(<ID>): remove completed work spec`, packets still name a worktree path for the
+  work spec, and a fix that needs an AC change has no file to edit → C13.
+- (e) After a restart past the merge, nothing says where the orchestrator finds `spec_ref` for `task done` → C14.
+- `task move --agent` does not say whether it appends to or replaces `active_agents`, or how the list clears → C15.
+- G4 forbids task and AC IDs in tests, but a technical-task AC may have no product rule to cite → C16.
+- (a) works as written; the CLI requirement implied by "retrying on mismatch" is that each retry re-reads the
+  tip and re-validates before rebuilding the tree (Phase 2 CLI test case, no rule change).
+
+| ID | Source | Question | Options | Recommendation | Decision |
+|---|---|---|---|---|---|
+| C12 | H trace (d) | Stage while agent reviews rerun after a main update (R §8) | a) `task move --stage specialized_review`, then the normal review stages back to `integration`; b) stay in `integration` and record the reruns in Verification | a: stage reflects the current activity (R §7) and the review procedures already exist | **a**, author, 2026-10-20 |
+| C13 | H trace (d), G5 | Work spec access after the deletion commit | a) packets then name `Work spec: <spec_ref>` (read with `git show`); a fix that changes the work spec reverts the deletion commit, follows the spec flow, and closure repeats; b) delete the work spec only after the last CI run before merge (still exposed to a later main update) | a: one rule covers reruns and fixes; history stays linear on the branch | **a**, author, 2026-10-20 |
+| C14 | H trace (e) | Source of `spec_ref` for `task done` after a restart | a) the PR Verification line `Final specification` (P §8), which must be filled before merge; b) derive it: last `spec(<ID>)` commit on the merged branch; c) add `task move --spec-ref` before merge | a, with b as the CLI's cross-check: no new state field, and the PR is durable | **a**, author, 2026-10-20 |
+| C15 | G1 command table | Semantics of `task move --agent` | a) repeated `--agent` replaces `active_agents`; `--agent none` clears it; b) append, plus a separate clear flag | a: the field means "last reported", so a full replacement is simpler and idempotent | **a**, author, 2026-10-20 |
+| C16 | G4 | What tests cite when an AC maps to no product rule (technical task, some bug fixes) | a) the AC cites `none` and tests cite nothing; b) behavior ACs always map to a rule (the `spec` skill adds one); only purely technical outcomes cite `none` | b: keeps the rule-ID trace for behavior; technical outcomes have nothing durable to cite | **b**, author, 2026-10-20 |
+
+## I. Applied after the author's decisions on C12–C16
+
+Applied 2026-10-20 in the working copy (not committed). Each item applies the recommended option.
+
+| ID | Files · sections changed |
+|---|---|
+| C12 | R §8 Staleness: a rerun moves the task back to `specialized_review` and through the review stages to `integration`; O §3 `integration` Do (`task move --stage specialized_review`) |
+| C13 | R §9 step 3: after the deletion commit, packets name `Work spec: <spec_ref>` (read with `git show`); a fix that changes the work spec reverts the deletion commit, follows the spec flow, and repeats steps 2–3; O §4 bullet; I §6 (packet `spec_ref`); Rv §2 (packet `spec_ref`) |
+| C14 | R §9 step 2 (write `spec_ref` on the PR line `Final specification`) and At confirmed merge (`spec_ref` from the PR; `task done` checks it names the last `spec(<ID>)` commit merged); R §7 `task done` row; R §10 Resume; O §3 `integration` Do; P §8 `Final specification` line |
+| C15 | R §7 `task move` row (repeated `--agent` replaces `active_agents`; `--agent none` clears it) and Fields (`active_agents` = last set by `task move --agent`) |
+| C16 | sk:work-spec §4 (a behavior AC always maps to a rule, added under "Spec changes"; only a purely technical outcome cites `none`); I §5 step 3 (a test for such an AC cites no ID) |
+
+Skipped: none. Section numbers unchanged; new references: R §9 step 3 (O §4), `report.md` §8 (R §9),
+`docs/framework/skills/work-spec/SKILL.md` §4 (I §5 step 3). Greps from section H return nothing in `assets/`;
+mechanical checks: `failures: 0`.
