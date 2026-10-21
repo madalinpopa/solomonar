@@ -588,8 +588,46 @@ UC-4, architecture §6 updated to match.
 
 - [x] `Choices`, `CoreWants`, template rendering, the empty extensions block (I §4.1, I §4.6)
 - [x] `AGENTS.md` managed part, notes preservation, adoption, `--keep`/`--overwrite` (I §4.5, UC-4)
-- Stage 8.5 `[ ]` — `init` command, registry creation after file apply, `--keep`/`--overwrite`/`--dry-run`,
-  F-02/F-09 (UC-2, UC-3, UC-4); outside a repository `init` keeps its own `not_a_repository` fix from UC-4
+Decision (orchestrator, 2026-10-21, split further per the plan's rule): 8.5 the init plan and manifest (domain),
+8.6 the `init` command, 8.7 the UC-4 edge cases, 8.8 task commands read the manifest. Author decisions
+(2026-10-21): until steps 9 and 10, `--runtime` and `--ext` accept only `none` (another value is
+`unknown_runtime`/`unknown_extension`, exit 2), both default to none, and without `--yes` a writing plan is
+`interactive_required` even on a terminal; these step-8 limitations are recorded here only, the specs keep the final
+behavior; a `file_conflict` prints the conflict lines of the plan on stdout before the error (`render` writes
+`out.text` on failure too).
+
+### Stage 8.5 — Init plan and manifest (`internal/project`) `[x]`
+
+Decisions (author, 2026-10-21):
+- `InitPlan(root *os.Root, existing *Manifest, wants []Want, keep, overwrite []string, p Project, framework string)
+  (Plan, *Manifest, error)` runs `Classify` with `existing` (nil before the first init) and builds the manifest:
+  `schema_version` 1, `framework_version` `framework`, `project` `p`, empty `runtimes` and `extensions`, `files` the
+  `Classify` entries plus `.solomonar/manifest.json` `{"owner": "manifest"}` (I §4.5, I §4.7, AD-6);
+- the plan is the `Classify` plan followed by one change for `.solomonar/manifest.json`, owner `manifest`, content
+  the encoded manifest: `create` when absent, `unchanged` when the file's bytes equal the encoding, `update`
+  otherwise; the manifest is never classified by the I §4.5 table (it carries no hash) and is built even when the plan
+  has conflicts (nothing is written then);
+- `(m *Manifest) CheckChoices(requested Requested) error` with `Requested{Name, MainBranch, Remote string; Runtimes,
+  Extensions []string}` (empty string or nil list = not given) rejects the first differing choice, in the order
+  name, main branch, remote, runtimes, extensions, as `already_initialized` (exit 3, UC-3), no check, found
+  `manifest <field> <value>; requested <value>` (`name "ledger"`, `main_branch "main"`, `remote "origin"`; lists as
+  `[go, tdd]` in sorted order, an empty list as `none`), fix `rerun without --name; init never changes choices` (same
+  for `--main-branch`, `--remote`), `change runtimes with \`solomonar runtime add|remove\`; init never changes
+  choices`, `change extensions with \`solomonar extension add|remove\`; init never changes choices`; the CLI fills
+  unspecified choices from the manifest; `--objective` is not a recorded choice.
+- also: requested runtimes and extensions compare as sets (sorted, duplicates dropped); a list given as `none` counts
+  as given and is compared, only a nil list is not given; a nil manifest map counts as `none`; a
+  `.solomonar/manifest.json` that cannot be read as a file (a directory) is `read manifest: …` (exit 1), not a
+  conflict. I §4.5, UC-3, architecture §6 updated to match.
+
+- [x] `InitPlan`: `Classify`, the manifest built from its entries, the manifest change (I §4.7, AD-6)
+- [x] `CheckChoices` and `already_initialized` (UC-3)
+- Stage 8.6 `[ ]` — `init` command: flags, check order, registry check and creation after file apply, rollback until
+  the CAS (F-09), `--keep`/`--overwrite`/`--dry-run`/`--yes`, `interactive_required`, `file_conflict`,
+  `registry_exists_invalid`, human and JSON output, `Next:` (UC-2, UC-3, non-interactive UC-4)
+- Stage 8.7 `[ ]` — `--git-init` (moved from 10.2), the `not_a_repository` fix of UC-4, an empty repository's
+  `Next:`, the `.jj/` warning (UC-4)
+- Stage 8.8 `[ ]` — task commands read `main_branch` and `remote` from the manifest (architecture §7 step 2)
 
 ## Step 9: `init` with runtimes and catalog extensions
 
@@ -599,4 +637,5 @@ UC-4, architecture §6 updated to match.
 ## Step 10: Interactive `init`
 
 - Stage 10.1 `[ ]` — Line prompts and multi-select (I §3.7)
-- Stage 10.2 `[ ]` — Interactive `init`, `AGENTS.md` adoption, `--git-init`, `interactive_required` (UC-1, UC-4)
+- Stage 10.2 `[ ]` — Interactive `init`, `AGENTS.md` adoption, the `git init` question, `interactive_required`
+  (UC-1, UC-4)
