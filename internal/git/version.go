@@ -18,7 +18,7 @@ const (
 
 // Version returns the version of git on PATH and fails with ErrTooOld below 2.40.
 func Version(ctx context.Context, trace io.Writer) (string, error) {
-	out, err := run(ctx, "", trace, nil, []string{"version"})
+	out, err := run(ctx, "git", "", trace, nil, []string{"version"})
 	if err != nil {
 		return "", fmt.Errorf("check git version: %w", err)
 	}
