@@ -174,11 +174,29 @@ UC-11, UC-12, and I §8.3 updated to match.
 - [x] `task plan` rejects a blank or whitespace-only title with `checkTitle`, as `task register` does; update
       UC-11 and I §8.3 to match
 
-- Stage 5.3 `[ ]` — `Record.Move` and the I §8.3 fact checks, `--as` and ownership (UC-18); includes the `--next`
-  action length 1 to 120 and the `--agent` ID format `[a-z]+-[0-9]+` through `validAgentID`, both in I §8.3 but
-  not yet checked
-- Stage 5.4 `[ ]` — `task move` command and every UC-14 rejection (UC-13, UC-14); its rejections name the ID
-  (`task move W-001 rejected`) through `rejectedAs`, as I §3.6 states
+### Stage 5.3 — Move field checks and ownership (domain, no Git) `[x]`
+
+Decisions (author, 2026-10-21): the I §8.3 checks that need no Git split from
+those that do (stage 5.4); `Record.Move` takes the installed roles as `[]string` (architecture §5, §6), passed by
+`cli` in stage 5.5; the `--next` length check sits in the shared parser, so `task register` gets it too; `--spec` must be in clean form (`./a`, `a//b`, `a/`, `a/../b` are
+rejected); with no installed roles every `--agent` is rejected; `CheckOwner(id, as)` returns `owner_mismatch`
+with the UC-14 texts. I §8.3 updated to match.
+
+- [x] `owner_mismatch`: the acting owner differs from the record's owner; check, found, and fix as in UC-14
+- [x] `--agent`: ID `[a-z]+-[0-9]+` (`validAgentID`), role among the installed roles, never `orchestrator`
+      (`invalid_value`, I §8.3)
+- [x] `--next`: action 1 to 120 characters; actor `user`, the owner, or an `active_agents` ID after the move
+      (`invalid_value`, I §8.3)
+- [x] `--spec`: a relative path under the worktree, no `..` (`invalid_value`, I §8.3)
+
+- Stage 5.4 `[ ]` — Git fact checks of I §8.3: `branch_missing`, `revision_not_on_branch`, `spec_not_found`
+  through `git worktree list --porcelain` or the recorded `revision`, the worktree required by `setup` →
+  `specification` (I §8.2). Decision (author, 2026-10-21): that move is `branch_missing` without the branch and
+  `worktree_missing` (exit 3, fix `git worktree add ../<repo>-worktrees/<ID> feature/<ID>`) with the branch but no
+  worktree; I §8.4 gains the code
+- Stage 5.5 `[ ]` — `task move` command, `--as` and `SOLOMONAR_OWNER` (`owner_required`), every UC-14 rejection
+  (UC-13, UC-14, UC-18); its rejections name the ID (`task move W-001 rejected`) through `rejectedAs`, as I §3.6
+  states
 
 ## Step 6: `block`, `unblock`, `handoff`, `done`
 
