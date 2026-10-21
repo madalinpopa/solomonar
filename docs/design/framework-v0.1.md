@@ -19,7 +19,7 @@ The framework is a lightweight core of a process: a way of working, not a techno
 
 | Part | Contains | Installed by |
 | - | - | - |
-| Core | `rules.md`, `report.md`, `reviewer.md`; skills `prototype`, `spec`, `work-spec`; agents `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`. | `solomonar init`; always present, never removed. |
+| Core | `rules.md`, `report.md`, `reviewer.md`; skills `solomonar` (user entry point), `prototype`, `spec`, `work-spec`; agents `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`. | `solomonar init`; always present, never removed. |
 | Extensions | Skills with the rules of a language, library, or practice, or a supporting procedure; agents that add a specialist reviewer. | `solomonar init` or `solomonar extension add`. |
 
 - FW-1: An item belongs to the core only if the rules name it as a process step or a required role. Anything else is an extension.
@@ -62,7 +62,7 @@ Parallel execution requirement: the user starts tasks one at a time. Each orches
 | `prototype/` | Static HTML, CSS, and JavaScript used for product discovery. |
 | `docs/solomonar/rules.md` | Reusable orchestration, approval, review, state, and closure rules; identifies the framework version. |
 | `docs/solomonar/agents/<role>.md` | One concise contract per core role (orchestrator, implementer, security, correctness, spec, adversarial) or installed extension agent. |
-| `docs/solomonar/skills/<skill>/SKILL.md` | The procedure for a core skill (`prototype`, `spec`, `work-spec`) or the rules of an installed extension skill; small templates live beside the skill and are loaded when needed. |
+| `docs/solomonar/skills/<skill>/SKILL.md` | The procedure for a core skill (`solomonar`, `prototype`, `spec`, `work-spec`) or the rules of an installed extension skill; small templates live beside the skill and are loaded when needed. |
 
 These are portable source locations. The selected runtime may need a small registration adapter; references alone do not register a skill. Application documents are created only when useful. The versioned registry is `state.json` on the dedicated `workflow-state` branch, described below.
 

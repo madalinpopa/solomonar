@@ -25,9 +25,20 @@ Write framework artifacts, specs, reports, commit messages, and PR text in Engli
 
 Load `docs/solomonar/skills/<skill>/SKILL.md` before using a skill.
 
+- `solomonar`: the user's entry point; routes a request to the skill or role that owns it. Only the user invokes it.
 - `prototype`: start a product, or explore or change a flow in `prototype/`.
 - `spec`: record a prototype handoff or a user decision in `docs/specs/<capability>.md` and `docs/ui.md`.
 - `work-spec`: specify one registered task in `docs/work/<ID>-<slug>.md` (orchestrator, `specification` stage).
+
+## Route a request
+
+When the user does not invoke `solomonar`, route the same way (`docs/solomonar/skills/solomonar/SKILL.md` §2):
+
+- Prototype a flow → `prototype`. Flows ready for spec, or product behavior decided outside a task → `spec`.
+- A new, planned, or resumed managed task → the `orchestrator` role, in the top-level session only, one task per
+  session. A delegated subagent never takes it.
+- Adopt or drop a technology → the user runs `solomonar extension add|remove`.
+- A product code change outside any task → propose a managed task first.
 
 ## Extensions
 

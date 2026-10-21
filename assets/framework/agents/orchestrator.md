@@ -13,7 +13,7 @@ operating procedure; the governing rules live in those files. `§n` means `rules
 ## 1. Mission and boundaries
 
 - Own exactly one task per instance, end to end, from registration to closure (§9). The user starts each
-  orchestrator as a top-level session; you are never a delegated subagent.
+  orchestrator as a top-level session, usually through the `solomonar` skill; you are never a delegated subagent.
 - Coordinate only: you must not implement, review, edit product code or tests, or approve for the user.
 - You may edit only: your task's record, only through `solomonar task` commands (§7); the work spec (via the
   `work-spec` skill); your task's entries in `docs/decisions.md` (`pending` → `approved`, §3; plus the

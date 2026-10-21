@@ -16,7 +16,7 @@ Solomonar is a way of working, not a technology stack. The core holds only the m
 
 | Part | Contains |
 | - | - |
-| Core | Skills `prototype`, `spec`, `work-spec`. Agents `orchestrator`, `implementer`, and four language-agnostic reviewers: `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`. Always installed. |
+| Core | Skills `solomonar` (your entry point: `/solomonar <request>`), `prototype`, `spec`, `work-spec`. Agents `orchestrator`, `implementer`, and four language-agnostic reviewers: `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`. Always installed. |
 | Extensions | Skills with the rules of a language, library, or practice (for example `go`, `htmx`, `templ`, `tdd`), and agents that add a specialist reviewer. Added by the CLI; the process never depends on one. |
 
 ## 1 / 5 · The full cycle, from prototype to closure
