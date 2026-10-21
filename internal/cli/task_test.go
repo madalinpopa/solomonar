@@ -9,6 +9,7 @@ import (
 
 	"github.com/madalinpopa/solomonar/internal/git"
 	"github.com/madalinpopa/solomonar/internal/git/gittest"
+	"github.com/madalinpopa/solomonar/internal/project"
 	"github.com/madalinpopa/solomonar/internal/task"
 )
 
@@ -323,4 +324,118 @@ func TestVerboseTracesGitOnStderr(t *testing.T) {
 	require.Equal(t, 0, got.exit, got.stderr)
 	assert.Contains(t, got.stderr, "+ git rev-parse --path-format=absolute --show-toplevel --git-common-dir\n+ git version\n")
 	assert.Contains(t, got.stderr, "+ git cat-file blob ")
+}
+
+// putManifest writes a manifest of the given schema naming remote and mainBranch.
+func putManifest(t *testing.T, dir string, schema int, remote, mainBranch string) {
+	t.Helper()
+	manifest := project.Manifest{
+		SchemaVersion: schema, FrameworkVersion: "0.1.0",
+		Project:  project.Project{Name: "ledger", MainBranch: mainBranch, Remote: remote},
+		Runtimes: map[string]project.Runtime{}, Extensions: map[string]project.Extension{}, Files: map[string]project.File{},
+	}
+	data, err := manifest.Encode()
+	require.NoError(t, err)
+	writeFile(t, dir, project.ManifestPath, string(data))
+}
+
+// trunkRepo is doneRepo with main renamed to trunk and a manifest naming trunk.
+func trunkRepo(t *testing.T) doneFixture {
+	t.Helper()
+	f := doneRepo(t)
+	gittest.Git(t, f.dir, "branch", "-m", "main", "trunk")
+	putManifest(t, f.dir, project.ManifestSchemaVersion, "origin", "trunk")
+	return f
+}
+
+func TestTaskPlanPushesToManifestRemote(t *testing.T) {
+	dir, _ := registryRepo(t)
+	gittest.Git(t, dir, "remote", "add", "upstream", gittest.NewBareRemote(t))
+	putManifest(t, dir, project.ManifestSchemaVersion, "upstream", "trunk")
+
+	got := runInRepo(t, dir, "task", "plan", "--title", "Export")
+
+	require.Equal(t, 0, got.exit, got.stderr)
+	assert.Contains(t, got.stdout, "  registry @ "+registryTip(t, dir)+" · pushed upstream/workflow-state\n")
+	assert.Empty(t, got.stderr)
+}
+
+func TestTaskRegisterBranchesFromManifestMainBranch(t *testing.T) {
+	dir, _ := registryRepo(t)
+	putManifest(t, dir, project.ManifestSchemaVersion, "origin", "trunk")
+
+	got := runInRepo(t, dir, "task", "register", "--title", "Login", "--owner", "orchestrator-1")
+
+	require.Equal(t, 0, got.exit, got.stderr)
+	assert.Contains(t, got.stdout, "\n  git worktree add -b feature/W-001 ../"+filepath.Base(dir)+"-worktrees/W-001 trunk\n")
+}
+
+func TestTaskDoneChecksManifestMainBranch(t *testing.T) {
+	f := trunkRepo(t)
+
+	got := runInRepo(t, f.dir, f.args()...)
+
+	require.Equal(t, 0, got.exit, got.stderr)
+	assert.Contains(t, got.stdout, "  merge     "+f.merge[:8]+" is a merge commit reachable from trunk\n")
+}
+
+func TestTaskStatusMergedOnManifestMainBranch(t *testing.T) {
+	f := trunkRepo(t)
+
+	got := runInRepo(t, f.dir, "task", "status", "W-001", "--no-forge")
+
+	require.Equal(t, 0, got.exit, got.stderr)
+	assert.Contains(t, got.stdout, "  merged    yes, by "+f.merge+" (merge commit on trunk)\n")
+	assert.Contains(t, got.stdout, "  merged_not_done   feature/W-001 is merged into trunk but the record is not done\n")
+}
+
+func TestTaskCommandsRejectUnreadableManifest(t *testing.T) {
+	tests := []struct {
+		name   string
+		schema int
+		remote string
+		args   []string
+		exit   int
+		stderr string
+	}{
+		{
+			name: "newer manifest on a write", schema: 2, remote: "origin",
+			args: []string{"task", "move", "W-001", "--as", "orchestrator-1", "--status", "running", "--stage", "specification"}, exit: 3,
+			stderr: "error: task move W-001 rejected (cli_outdated)\n" +
+				"  check: manifest schema version\n" +
+				"  found: manifest schema 2, this CLI supports 1\n" +
+				"  fix:   install a newer solomonar release\n",
+		},
+		{
+			name: "invalid manifest on a write", schema: 1, remote: "",
+			args: []string{"task", "move", "W-001", "--as", "orchestrator-1", "--status", "running", "--stage", "specification"}, exit: 1,
+			stderr: "error: task move W-001 failed (manifest_invalid)\n" +
+				"  check: manifest schema\n" +
+				"  found: project.remote is missing\n" +
+				"  fix:   inspect .solomonar/manifest.json; never edit it by hand\n",
+		},
+		{
+			name: "newer manifest on show", schema: 2, remote: "origin", args: []string{"task", "show", "W-001"}, exit: 3,
+			stderr: "error: task show W-001 rejected (cli_outdated)\n",
+		},
+		{
+			name: "invalid manifest on show", schema: 1, remote: "", args: []string{"task", "show", "W-001"}, exit: 1,
+			stderr: "error: task show W-001 failed (manifest_invalid)\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir, _ := registryRepo(t)
+			putTask(t, dir, reservedTask())
+			putManifest(t, dir, tt.schema, tt.remote, "main")
+			before := registryTip(t, dir)
+
+			got := runInRepo(t, dir, tt.args...)
+
+			assert.Equal(t, tt.exit, got.exit)
+			assert.Empty(t, got.stdout)
+			assert.Contains(t, got.stderr, tt.stderr)
+			assert.Equal(t, before, registryTip(t, dir))
+		})
+	}
 }
