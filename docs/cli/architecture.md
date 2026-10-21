@@ -199,6 +199,8 @@ type Record struct {
 
 func (r *Record) Move(m Move, roles []string, now time.Time) (changed []string, err error)
 
+func SchemaOf(data []byte) (int, error)
+
 type Store struct {
 	Git    *git.Repo
 	Remote string
@@ -207,6 +209,8 @@ type Store struct {
 func (s *Store) Update(ctx context.Context, fn func(*Registry) (subject string, err error)) (Commit, error)
 ```
 
+`SchemaOf` reads the registry's `schema_version` with the header validation and no newer-than check; the strict
+decoder builds on it, and `version` calls it alone (UC-24).
 `Tier` is a pointer because tier 0 is valid and "no tier yet" must stay distinguishable. `task` and `project` each
 define their own `Rejection{Code, Check, Found, Fix}`; a shared package for one struct would be a `common` package
 in disguise. `cli` recognizes both with `errors.As` and maps codes to exit classes with one table.
@@ -238,6 +242,8 @@ type Choices struct{ Name, Objective, FrameworkVersion string }
 
 func CoreWants(assets fs.FS, c Choices) ([]Want, error)
 
+func ManifestVersions(data []byte) (schema int, framework string, err error)
+
 type Requested struct {
 	Name, MainBranch, Remote string
 	Runtimes, Extensions     []string
@@ -256,6 +262,8 @@ func (j *Journal) Rollback() error
 `CoreWants` returns the core files from `framework/` as `docs/solomonar/`, then `AGENTS.md` and `docs/README.md`
 from `templates/`, rendered with `text/template`.
 `InitPlan` runs `Classify`, builds the manifest from its entries, and appends the manifest change last (I §4.5).
+`ManifestVersions` reads the manifest's `schema_version` and `framework_version` with the header validation and no
+newer-than check; the strict decoder builds on it, and `version` calls it alone (UC-24).
 `CheckChoices` rejects a given choice that differs from the manifest with `already_initialized` (UC-3); an empty
 string or nil list means not given.
 `Apply` returns its `Journal` so the caller can still roll back a successful apply until the registry CAS
