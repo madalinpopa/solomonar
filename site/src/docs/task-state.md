@@ -1,8 +1,9 @@
 ---
 title: Task state and workflow tracking
+navTitle: Task state
 description: Understand Solomonar task status, workflow stages, blockers, and Git-backed state validation so AI coding sessions can resume from recorded evidence.
-kind: Reference
-group: Use the CLI
+kind: Explanation
+group: Learn the framework
 order: 7
 sources:
   - assets/framework/rules.md
@@ -30,7 +31,7 @@ A task is `reserved` exactly while at `setup`. On leaving setup, it becomes `run
 
 ## One registry, checked writes
 
-The registry is `state.json` stored on `refs/heads/workflow-state`. It has no filesystem checkout. Only `solomonar task` commands write it, using Git compare-and-swap updates.
+The registry is `state.json` stored on `refs/heads/workflow-state`, created empty by `solomonar init`. It has no filesystem checkout. Only `solomonar task` commands write it, using Git compare-and-swap updates.
 
 A command reads the current tip, validates the record and required Git facts, and attempts an atomic ref update. If another writer wins, it re-reads and re-validates before retrying. The local ref is canonical; remote publication can warn without undoing a successful local write.
 
