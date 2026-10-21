@@ -904,6 +904,43 @@ checks, selection table, Generation), UC-7 (`unknown_extension` exit 2), archite
 - [x] `LoadCatalog`, `CatalogExtension`, validation; the embedded catalog (`go`) loads
 - [x] `Resolve` with the three rejections; `Render` with sections, markers, provenance, `rendered_with`
 
+### Stage 9.4 — Extension files, `AGENTS.md` block, adapter stubs, manifest entries (`internal/project`; I §4.2, §4.3, §4.5, §4.6, §4.7) `[x]`
+
+Decision (author, 2026-10-21): an `AGENTS.md` extension line is `` - `<name>` (<group>): <applies_when verbatim> ``,
+followed by `` ; paths: `<glob>`, `<glob>` `` when `paths` is not empty.
+
+Decisions (author, 2026-10-21):
+- `ExtensionWants(assets fs.FS, installed []CatalogExtension, decisions map[string]string) ([]Want,
+  map[string]Extension, error)`: `decisions` maps a stack group to its decision ID (9.5 computes it; tests pass
+  `P/D-n`); `workflow` and `review` take none. Per extension, sorted by name: a skill installs every file of its
+  catalog directory except `extension.json` to `docs/solomonar/skills/<name>/<rel>` (sorted by path), an agent only
+  `<name>.md` to `docs/solomonar/agents/<name>.md`; owner `ext:<name>`; `SKILL.md` and the agent file go through
+  `Render(content, name, installed names, decision)`, other files are copied verbatim. The manifest entry is
+  `{state installed, kind, group, source catalog, decision (stack groups only), rendered_with}` from `Render`;
+- the catalog `description` in the skill or agent frontmatter is authored content and is copied as is (the CLI does
+  not generate it from `applies_when`);
+- `Choices` gains `Extensions []CatalogExtension`; `CoreWants` renders the `AGENTS.md` block: `- Skills` with one
+  nested line per installed skill and `- Agents: an installed agent is a specialist reviewer, required by triage when
+  its "applies when" matches.` with one nested line per installed agent, each list ordered by group (I §4.3 table
+  order), then name; an empty list keeps the existing `- Skills: none.` / `- Agents: none. …` line;
+- `RuntimeWants` gains `extensions []CatalogExtension`: an installed skill gets a skill stub, an installed agent a
+  role stub, per runtime, merged with the core skills and roles in name order (I §4.2 plan order); extension agent
+  stubs get the reviewer form (claude `tools: Read, Grep, Glob, Bash`; codex TOML as for core roles); stub source
+  paths are the installed `docs/solomonar/...` paths; `name` and `description` come from the catalog file's
+  frontmatter;
+- `InitPlan` gains `extensions map[string]Extension` (nil records `{}`), recorded in the manifest;
+- `internal/cli` passes no extensions until 9.6 (call sites updated only).
+also (implementer, confirmed): wants ordered by extension name, then path; only the
+top-level `extension.json` is excluded; a stack-group extension without a non-empty decision is an error `render
+<name>: no decision for group <group>`; a decision given for `workflow`/`review` is ignored; unreadable files are
+`read extension <name>: <err>`; `emptyExtensions` folded into `extensionsBlock`. Known gap (not handled): an
+extension name equal to a core skill or role id would give two stubs the same path; the embedded catalog avoids it.
+Specs updated: I §4.2, §4.3 (installing, `applies_when`/`description`), §4.4 (`go` row), §4.6, §4.7; architecture §6.
+
+- [x] `ExtensionWants`: files, owners, rendering, manifest entries
+- [x] `AGENTS.md` extensions block in `CoreWants`
+- [x] extension skill and agent stubs in `RuntimeWants`; `InitPlan` records `extensions`
+
 ## Step 10: Interactive `init`
 
 - Stage 10.1 `[ ]` — Line prompts and multi-select (I §3.7)
