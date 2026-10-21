@@ -3,25 +3,53 @@ package cli
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 
 	"github.com/madalinpopa/solomonar/internal/git"
+	"github.com/madalinpopa/solomonar/internal/project"
 	"github.com/madalinpopa/solomonar/internal/task"
 )
 
-// defaultRemote stands in until the manifest names the remote and main branch (step 8).
+// defaultRemote and defaultMainBranch apply only when the worktree has no manifest (I §3.2).
 const (
 	defaultRemote     = "origin"
 	defaultMainBranch = "main"
 )
 
-func openStore(ctx context.Context, env Env, flags sharedFlags) (*task.Store, error) {
+// openStore opens the registry store with the remote and main branch the worktree's manifest names.
+func openStore(ctx context.Context, env Env, flags sharedFlags) (*task.Store, string, error) {
 	repo, err := openRepo(ctx, env, flags, flags.dir, "run inside a Git repository or pass -C <path>")
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return &task.Store{Git: repo, Remote: defaultRemote}, nil
+	settings, err := readProject(env, repo.Dir)
+	if err != nil {
+		return nil, "", err
+	}
+	return &task.Store{Git: repo, Remote: settings.Remote}, settings.MainBranch, nil
+}
+
+func readProject(env Env, dir string) (project.Project, error) {
+	framework, err := frameworkVersion(env.Assets)
+	if err != nil {
+		return project.Project{}, err
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return project.Project{}, fmt.Errorf("open worktree: %w", err)
+	}
+	defer root.Close()
+	manifest, err := project.ReadManifest(root, framework)
+	if err != nil {
+		return project.Project{}, err
+	}
+	if manifest == nil {
+		return project.Project{MainBranch: defaultMainBranch, Remote: defaultRemote}, nil
+	}
+	return manifest.Project, nil
 }
 
 // openRepo discovers the repository containing dir and checks the Git version.
