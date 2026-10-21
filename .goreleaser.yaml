@@ -1,0 +1,25 @@
+version: 2
+
+project_name: solomonar
+
+builds:
+  - main: .
+    env: [CGO_ENABLED=0]
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    # The CLI reads its version from the VCS stamp (AD-10), so no -X flags.
+    ldflags: [-s -w]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - formats: [tar.gz]
+
+checksum:
+  algorithm: sha256
+
+changelog:
+  use: github-native
+
+release:
+  prerelease: auto
