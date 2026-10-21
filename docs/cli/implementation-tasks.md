@@ -503,9 +503,36 @@ empty `adversarial_model` are not validated. I §3.6, I §4.7, I §8.4 updated t
 
 - [x] `Manifest` types, `DecodeManifest` with the version check first, `Encode` (I §4.7, AD-7, CLI-D19)
 - [x] Validation above, `manifest_invalid` texts, `Hash`, `ReadManifest`
-- Stage 8.2 `[ ]` — `Plan`/`Apply` with journal and rollback
-- Stage 8.3 `[ ]` — Core file plan, `AGENTS.md` and `docs/README.md` templates, adoption (CLI-D17)
-- Stage 8.4 `[ ]` — `init` command, registry creation after file apply, `--keep`/`--overwrite`/`--dry-run`,
+
+Decision (orchestrator, 2026-10-21, split further per the plan's rule): 8.2 apply and journal, 8.3 plan
+classification, 8.4 core file set and templates, 8.5 the `init` command.
+
+### Stage 8.2 — `Apply` with journal and rollback (`internal/project`) `[x]`
+
+Decisions (author, 2026-10-21): `Apply(ctx, root, plan) (*Journal, error)` instead of
+the architecture's `Apply(root, p) error`, because rollback must stay available until the registry CAS (AD-6,
+F-09); it writes only `create`, `update`, and `remove` changes, in plan order; each write is a temp file in the
+target's directory (`.<name>.solomonar-tmp`) renamed over the target; an update keeps the target's mode, a new file
+gets `0o644`; missing parent directories are created (`0o755`) and journaled; the journal holds each touched path's
+previous content and mode, or its absence; a failed or cancelled `Apply` (context checked before each change) rolls
+back what it applied and returns the error; `Journal.Rollback()` restores in reverse order, deletes created files and
+the directories it created when empty, and is safe to call twice; every path goes through the `os.Root` (I §4.5,
+architecture §8); `Plan.Conflicts()` returns the `conflict` changes in plan order; a plan that disagrees with the
+disk (`create` on an existing path, `update`/`remove` on a missing or non-regular one) is an error that rolls back;
+errors read `apply <path>: %w`, a failed rollback is joined, a failed `Apply` returns no journal; the written file
+gets its exact permission bits regardless of the umask; parent directories are created one level at a time, each
+journaled; entries that fail to restore stay in the journal for the next `Rollback`. Architecture §6, §8 updated to
+match.
+
+- [x] `Action`, `Change`, `Plan`, `Conflicts` (architecture §6)
+- [x] `Apply` with temp + rename, modes, directories, the journal, rollback on failure or cancellation
+- [x] `Journal.Rollback`; tests including a failing write midway and a rollback after a successful apply (F-09)
+
+- Stage 8.3 `[ ]` — Plan classification: `create`, `update`, `unchanged`, `unchanged (adopted)`, `keep`, `conflict`,
+  `skip` from the manifest base hash and the disk, `--keep`/`--overwrite`, base hash recording (I §3.3, I §4.5,
+  CLI-D17, F-02)
+- Stage 8.4 `[ ]` — Core file set, `AGENTS.md` and `docs/README.md` templates, `AGENTS.md` adoption (UC-4)
+- Stage 8.5 `[ ]` — `init` command, registry creation after file apply, `--keep`/`--overwrite`/`--dry-run`,
   F-02/F-09 (UC-2, UC-3, UC-4); outside a repository `init` keeps its own `not_a_repository` fix from UC-4
 
 ## Step 9: `init` with runtimes and catalog extensions
