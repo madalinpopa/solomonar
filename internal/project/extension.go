@@ -41,11 +41,7 @@ func ExtensionWants(assets fs.FS, installed []CatalogExtension, decisions map[st
 			if file == extensionMain(e) {
 				content, with = Render(content, e.Name, names, decision)
 			}
-			target := path.Join("docs/solomonar/skills", e.Name, file)
-			if e.Kind == "agent" {
-				target = path.Join("docs/solomonar/agents", file)
-			}
-			wants = append(wants, Want{Path: target, Owner: "ext:" + e.Name, Content: content})
+			wants = append(wants, Want{Path: installedPath(e, file), Owner: "ext:" + e.Name, Content: content})
 		}
 		entries[e.Name] = Extension{
 			State: "installed", Kind: e.Kind, Group: e.Group, Source: "catalog", Decision: decision, RenderedWith: with,
@@ -64,6 +60,14 @@ func extensionMain(e CatalogExtension) string {
 		return e.Name + ".md"
 	}
 	return "SKILL.md"
+}
+
+// installedPath is where an extension's catalog file is installed.
+func installedPath(e CatalogExtension, file string) string {
+	if e.Kind == "agent" {
+		return path.Join("docs/solomonar/agents", file)
+	}
+	return path.Join("docs/solomonar/skills", e.Name, file)
 }
 
 // extensionFiles lists the files an extension installs, relative to its catalog directory, sorted.
