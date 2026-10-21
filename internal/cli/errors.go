@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"syscall"
 
+	"github.com/madalinpopa/solomonar/internal/project"
 	"github.com/madalinpopa/solomonar/internal/task"
 )
 
@@ -35,8 +36,8 @@ func asCLIError(ctx context.Context, command string, err error) *Error {
 			Code: "interrupted", Exit: interruptExit(ctx), Message: "interrupted", Fix: "rerun", Err: err,
 		}
 	}
-	if rejection, ok := errors.AsType[*task.Rejection](err); ok {
-		return rejectionError(command, rejection)
+	if rejection, ok := rejectionError(command, err); ok {
+		return rejection
 	}
 	return &Error{Code: "unexpected_error", Exit: 1, Message: err.Error(), Err: err}
 }
@@ -52,13 +53,24 @@ func interruptExit(ctx context.Context) int {
 
 // rejectedAs names the rejected command with its arguments, as in "task show W-001 rejected".
 func rejectedAs(command string, err error) error {
-	if rejection, ok := errors.AsType[*task.Rejection](err); ok {
-		return rejectionError(command, rejection)
+	if rejection, ok := rejectionError(command, err); ok {
+		return rejection
 	}
 	return err
 }
 
-func rejectionError(command string, rejection *task.Rejection) *Error {
+// rejectionError finds a task or project rejection in err; both share one shape (architecture §6).
+func rejectionError(command string, err error) (*Error, bool) {
+	if rejection, ok := errors.AsType[*task.Rejection](err); ok {
+		return newRejectionError(command, *rejection, rejection), true
+	}
+	if rejection, ok := errors.AsType[*project.Rejection](err); ok {
+		return newRejectionError(command, task.Rejection(*rejection), rejection), true
+	}
+	return nil, false
+}
+
+func newRejectionError(command string, rejection task.Rejection, cause error) *Error {
 	exit := rejectionExit(rejection.Code)
 	message := command + " rejected"
 	if exit == 1 {
@@ -66,7 +78,7 @@ func rejectionError(command string, rejection *task.Rejection) *Error {
 	}
 	return &Error{
 		Code: rejection.Code, Exit: exit, Message: message,
-		Check: rejection.Check, Found: rejection.Found, Fix: rejection.Fix, Err: rejection,
+		Check: rejection.Check, Found: rejection.Found, Fix: rejection.Fix, Err: cause,
 	}
 }
 
@@ -74,7 +86,7 @@ func rejectionExit(code string) int {
 	switch code {
 	case "invalid_value", "owner_required":
 		return exitUsage
-	case "registry_invalid":
+	case "registry_invalid", "manifest_invalid":
 		return 1
 	case "cas_exhausted":
 		return 4
