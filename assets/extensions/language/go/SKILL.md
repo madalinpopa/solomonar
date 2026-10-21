@@ -29,8 +29,12 @@ Installed by `solomonar` when the project adopts Go (`language` group). The impl
 
 ### Context and concurrency
 
-- go/C-8 (must): A function that does I/O or can block takes `context.Context` as its first parameter and
-  passes it on; a context is never stored in a struct.
+Context convention: [Go Code Review Comments: Contexts](https://go.dev/wiki/CodeReviewComments#contexts).
+
+- go/C-8 (must): A project-controlled API that does cancellable I/O or blocking work takes `context.Context`
+  as its first parameter and propagates it. Preserve signatures imposed by interfaces, callbacks, and entry
+  points (e.g. `io.Reader.Read` or `main`); obtain or pass context where that contract permits and explain any
+  cancellation limit. Do not store context in a struct unless an imposed interface signature requires it.
 - go/C-9 (must): Every goroutine has an owner that can stop it and a path by which it ends.
 - go/C-10 (must): Each channel has one owner that closes it; no send on a channel that may be closed.
 - go/C-11 (should): A lock protects the smallest scope that keeps the invariant; no lock held across I/O.
