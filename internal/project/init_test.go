@@ -172,8 +172,12 @@ func TestInitPlanFailsWhenTheManifestCannotBeRead(t *testing.T) {
 func TestCheckChoices(t *testing.T) {
 	recorded := &Manifest{
 		Project:    ledger(),
-		Runtimes:   map[string]Runtime{"codex": {}, "claude": {}},
+		Runtimes:   map[string]Runtime{"codex": {}, "claude": {AdversarialModel: "opus"}},
 		Extensions: map[string]Extension{},
+	}
+	modelFix := func(runtime string) string {
+		return "change models with `solomonar runtime add " + runtime +
+			" --adversarial-model <model>`; init never changes choices"
 	}
 	runtimeFix := "change runtimes with `solomonar runtime add|remove`; init never changes choices"
 	tests := []struct {
@@ -210,6 +214,21 @@ func TestCheckChoices(t *testing.T) {
 			name: "extensions differ", requested: Requested{Extensions: []string{"tdd", "go"}},
 			found: "manifest extensions none; requested [go, tdd]",
 			fix:   "change extensions with `solomonar extension add|remove`; init never changes choices",
+		},
+		{name: "same model", requested: Requested{AdversarialModels: map[string]string{"claude": "opus"}}},
+		{
+			name: "model differs", requested: Requested{AdversarialModels: map[string]string{"claude": "sonnet"}},
+			found: `manifest adversarial_model claude "opus"; requested "sonnet"`, fix: modelFix("claude"),
+		},
+		{
+			name: "model absent from the manifest", requested: Requested{AdversarialModels: map[string]string{"codex": "o3"}},
+			found: `manifest adversarial_model codex none; requested "o3"`, fix: modelFix("codex"),
+		},
+		{
+			name:      "extensions checked before models",
+			requested: Requested{Extensions: []string{"go"}, AdversarialModels: map[string]string{"claude": "x"}},
+			found:     "manifest extensions none; requested [go]",
+			fix:       "change extensions with `solomonar extension add|remove`; init never changes choices",
 		},
 	}
 	for _, tt := range tests {
