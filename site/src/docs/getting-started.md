@@ -1,6 +1,6 @@
 ---
-title: Getting started
-description: Build the current CLI from source, find your way around the project, and see what you can use today.
+title: Getting started with the CLI
+description: Build Solomonar from source, check your CLI installation, and learn which parts of the spec-driven AI development workflow are available today.
 kind: Tutorial
 group: Start here
 order: 1
