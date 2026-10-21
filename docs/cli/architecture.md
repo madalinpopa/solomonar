@@ -448,6 +448,7 @@ the name, at most 100 characters per line), and nothing requires one (revive `ex
 | `task check` | `lint`, `test`, `security`: the commands CI runs. |
 | `task tools` | Installs golangci-lint v2.15.0 and govulncheck v1.9.0 into `.bin/`; skipped when the pinned versions are there. `task tools --force` rebuilds after a Go upgrade. |
 | `task clean` | Removes `bin/` and coverage output. |
+| `task release:patch`, `release:minor`, `release:major` | Fetch the tags, bump the latest stable `vX.Y.Z` (none counts as `v0.0.0`; prerelease tags are ignored), and after a confirmation tag `HEAD` and push the tag, which starts the release workflow. They refuse when `HEAD` is not on `origin/main` or the tag exists. `release:next` is `release:patch`. |
 
 `.golangci.yml` (v2 format) starts from the standard linters (errcheck, govet with all analyzers except
 `fieldalignment` and `shadow`, ineffassign, staticcheck, unused) and adds rules that encode this document:
