@@ -170,7 +170,7 @@ and the help data is `{"help": "<text>"}`. `data` per command is given in its us
 
 | Code | Meaning | Written |
 |---|---|---|
-| 0 | Success, including a no-op and success with warnings (for example a failed push) | as reported |
+| 0 | Success, including a no-op, a declined confirmation, and success with warnings (for example a failed push) | as reported |
 | 1 | Unexpected failure: I/O, Git error, corrupt object | nothing; a partial file write is rolled back |
 | 2 | Usage error: unknown command or flag, missing or malformed argument | nothing |
 | 3 | Rejected: a validation, ownership, transition, or fact check failed | nothing |
@@ -227,7 +227,8 @@ validation. The message names the field, and the fix is "inspect .solomonar/mani
   the default. In a text prompt or a confirmation, a final line without a newline at end of input counts as input
   closed.
 - A confirmation is `<question> [Y/n] ` or `[y/N] `, default capitalized; `y`, `yes`, `n`, `no` in any case; empty
-  gives the default; any other answer prints `  answer y or n` and asks again.
+  gives the default; any other answer prints `  answer y or n` and asks again. Declining the confirmation that
+  precedes a write prints `Cancelled; nothing was written.` on stdout and exits 0.
 - A multi-select lists one row per item, `  <pointer><box> <name>  <description>`: the pointer is `> ` on the
   cursor row and two spaces elsewhere, the box `[x]` or `[ ]`, the name padded to the widest; trailing spaces are
   trimmed, so an empty description leaves no padding. The cursor row reads `  > [x] claude  …`, the others
@@ -782,6 +783,8 @@ Runtimes that will run this project's sessions:
 
 Model for the adversarial reviewer in Claude Code, different from your main session model
 (blank = runtime default): opus
+Model for the adversarial reviewer in Codex, different from your main session model
+(blank = runtime default):
 
 Extensions, by decision type. A choice in a stack group is recorded as your approved decision in
 docs/decisions.md. Enter with nothing selected skips a group; add more later with
@@ -846,6 +849,34 @@ Next:
        Codex:       $solomonar Explore the next useful flow.
        Portable:    Use the solomonar skill to explore the next useful flow.
 ```
+
+Prompts: `init` prompts when stdin and stdout are terminals and neither `--yes` nor `--json` is set (3.7). Choices
+are prompted only without a manifest (a re-run takes them from it and asks none), each only when its flag was not
+given, in this order and with the texts above; each prompt's default is the one the flag would take (UC-2). One blank
+line separates each asked block: the name and objective, the runtimes, the models, the extensions paragraph, and
+each group.
+
+- `Project name [<default>]: `, then `Current objective, one line (optional): `;
+- `Runtimes that will run this project's sessions:` and a multi-select over `claude` and `codex` with the
+  descriptions above, the runtimes found on `PATH` marked;
+- without `--adversarial-model`, per selected runtime in the order claude, codex: `Model for the adversarial
+  reviewer in <Claude Code|Codex>, different from your main session model`, then `(blank = runtime default): `;
+  blank records no model; both prompts form one block, with no blank line between them;
+- when the catalog is not empty and `--ext` was not given: the extensions paragraph, then per group that has catalog
+  extensions, in 4.3 order, `<Group>:` (first letter capitalized) and a multi-select over its extensions sorted by
+  name, each described by its title plus ` (requires <a>, <b>)`, in catalog order, when it requires others; `go` is
+  marked when `go.mod` gives the default. An empty selection means no extension, not the `go.mod` default. A
+  selection that fails the 4.3 checks prints `  <found>; <fix>` (the flag form, such as `add --ext htmx`) right after
+  the last list, then asks every group again, each with its blank line and the previous selection marked, without
+  repeating the extensions paragraph.
+
+When the plan writes, has no conflict, and `--dry-run` is not set, `init` prints `Plan`, the plan lines, the registry
+line, and `Proceed? [Y/n] `, also on a re-run with a manifest; yes applies as with `--yes`, and no prints
+`Cancelled; nothing was written.` and exits 0, keeping warnings such as `jujutsu_detected`. One blank line follows
+the answer, before `Initialized …` or the cancel line. `Plan` is preceded by a blank line only when
+a choice was asked, also before an interactive `--dry-run` plan and the `file_conflict` plan text. `--dry-run` still
+prompts for choices, never for the confirmation. `--json` without `--yes` never prompts, even on a
+terminal, and stays `interactive_required`.
 
 Postconditions: the files exist uncommitted on main; each chosen group has an approved `P/D-n` entry; `workflow-state` exists as a root commit
 `state: initialize registry` containing `{"schema_version": 1, "tasks": {}}`; the manifest records every choice.
@@ -966,11 +997,12 @@ Exit 2. A no-op (UC-3) needs no confirmation; every other run does, including on
 registry is absent. `--dry-run` prints `Plan`, every file line, the registry line (`  registry   create
 refs/heads/workflow-state with an empty state.json`, or `  registry   unchanged refs/heads/workflow-state` with an
 existing registry), then, with no blank line, `Would initialize solomonar <fw> in <root>` and `  <counts>`, and
-writes nothing.
+writes nothing; on a terminal it still prompts for the choices (UC-1) but never for the confirmation.
 
 Checks run in this order: usage and values (`--runtime`: `unknown_runtime`, then `none` combined; the
 `--adversarial-model` syntax; `--ext` (`none` combined, then the 4.3 selection checks)); the repository
-(`not_a_repository`, UC-4) and the Git version; the manifest (`cli_outdated`, `manifest_invalid`); the runtime selection (requested, else the manifest's, else `PATH`) and the
+(`not_a_repository`, UC-4) and the Git version; the manifest (`cli_outdated`, `manifest_invalid`); on a terminal
+without a manifest, the choice prompts (UC-1); the runtime selection (requested, else the manifest's, else `PATH`) and the
 unselected-runtime model check; the recorded choices (`already_initialized`, UC-3), after which
 choices not given come from the manifest, else the worktree root's base name, `main`, and `origin`; the registry
 (absent: create; valid: reuse; invalid: `registry_exists_invalid`; newer: `cli_outdated`); the plan (`invalid_value`
