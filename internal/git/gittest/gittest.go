@@ -108,6 +108,16 @@ func NoGH(t *testing.T) string {
 	return dir
 }
 
+// PathWith sets PATH to a git wrapper plus an executable that does nothing per name, and returns it.
+func PathWith(t *testing.T, names ...string) string {
+	t.Helper()
+	dir := NoGH(t)
+	for _, name := range names {
+		writeScript(t, filepath.Join(dir, name), "exit 0")
+	}
+	return dir
+}
+
 func writeScript(t *testing.T, path, body string) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte("#!/bin/sh\n"+body+"\n"), 0o755); err != nil { //nolint:gosec // the script must be executable
