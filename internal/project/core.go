@@ -11,17 +11,14 @@ import (
 	"text/template"
 )
 
-const (
-	notesHeading    = "## Project notes"
-	emptyExtensions = "- Skills: none.\n- Agents: none. An installed agent is a specialist reviewer, " +
-		"required by triage when its \"applies when\" matches."
-)
+const notesHeading = "## Project notes"
 
 // Choices are the init answers the core templates render.
 type Choices struct {
 	Name             string
 	Objective        string
 	FrameworkVersion string
+	Extensions       []CatalogExtension
 }
 
 // CoreWants returns the framework files, AGENTS.md, and docs/README.md (I §4.1).
@@ -42,7 +39,7 @@ func CoreWants(assets fs.FS, c Choices) ([]Want, error) {
 	slices.SortFunc(wants, func(a, b Want) int { return cmp.Compare(a.Path, b.Path) })
 	data := map[string]string{
 		"FrameworkVersion": c.FrameworkVersion,
-		"Extensions":       emptyExtensions,
+		"Extensions":       extensionsBlock(c.Extensions),
 		"ProjectName":      c.Name,
 		"Objective":        c.Objective,
 	}
