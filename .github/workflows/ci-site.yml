@@ -7,6 +7,7 @@ on:
   pull_request:
     paths: ["site/**", "docs/logo/**", "docs/images/**", ".github/workflows/ci-site.yml"]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -26,6 +27,11 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Resolve the release version
+        id: release
+        run: echo "version=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' --exclude 'v*-*' 2>/dev/null || echo dev)" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-buildx-action@v4
       - name: Build and validate site image
         uses: docker/build-push-action@v7.4.0
@@ -33,6 +39,7 @@ jobs:
           context: .
           file: site/Dockerfile
           load: true
+          build-args: SITE_VERSION=${{ steps.release.outputs.version }}
           tags: ${{ env.IMAGE }}:sha-${{ github.sha }}
           cache-from: type=gha,scope=site
           cache-to: type=gha,mode=max,scope=site
