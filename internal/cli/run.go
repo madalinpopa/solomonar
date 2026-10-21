@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -22,12 +23,14 @@ type Env struct {
 	Assets      fs.FS
 }
 
+type runFunc func(ctx context.Context, env Env, flags sharedFlags, args []string) (output, error)
+
 type command struct {
 	name        string
 	summary     string
 	usage       string
 	description string
-	run         func(ctx context.Context, env Env, args []string) (output, error)
+	bind        func(fs *flag.FlagSet) runFunc // registers the command's own flags
 }
 
 func commands() []command {
@@ -37,7 +40,7 @@ func commands() []command {
 			summary:     "Print help for a command",
 			usage:       "solomonar help [<command>]",
 			description: "Print help for a command; '-h' on any command is equivalent.",
-			run:         runHelp,
+			bind:        withoutFlags(runHelp),
 		},
 		{
 			name:    "version",
@@ -45,9 +48,28 @@ func commands() []command {
 			usage:   "solomonar version",
 			description: "Print CLI, embedded framework, and project framework versions.\n" +
 				`Outside a project the project line reads "not initialized".`,
-			run: runVersion,
+			bind: withoutFlags(runVersion),
 		},
+		taskPlanCommand(),
+		taskShowCommand(),
 	}
+}
+
+func withoutFlags(run runFunc) func(*flag.FlagSet) runFunc {
+	return func(*flag.FlagSet) runFunc { return run }
+}
+
+// commandName joins a group word such as "task" with the subcommand that follows it.
+func commandName(args []string) (name string, rest []string) {
+	if len(args) == 0 {
+		return "", nil
+	}
+	name, rest = args[0], args[1:]
+	isGroup := slices.ContainsFunc(commands(), func(c command) bool { return strings.HasPrefix(c.name, name+" ") })
+	if isGroup && len(rest) > 0 && !strings.HasPrefix(rest[0], "-") {
+		return name + " " + rest[0], rest[1:]
+	}
+	return name, rest
 }
 
 func findCommand(name string) (command, bool) {
@@ -75,18 +97,20 @@ func dispatch(ctx context.Context, env Env, flags *sharedFlags) (string, output,
 	if err != nil {
 		return "", output{}, invalidUsage(err)
 	}
-	name := global.Arg(0)
+	name, rest := commandName(global.Args())
 	cmd, ok := findCommand(name)
 	if !ok {
 		return name, output{}, unknownCommand(name)
 	}
-	args, err := parseInterspersed(newFlagSet(name, flags), global.Args()[1:])
+	fs := newFlagSet(name, flags)
+	run := cmd.bind(fs)
+	args, err := parseInterspersed(fs, rest)
 	if errors.Is(err, flag.ErrHelp) {
 		return name, helpOutput(commandHelp(cmd)), nil
 	}
 	if err != nil {
 		return name, output{}, invalidUsage(err)
 	}
-	out, err := cmd.run(ctx, env, args)
+	out, err := run(ctx, env, *flags, args)
 	return name, out, err
 }
