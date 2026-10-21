@@ -238,6 +238,14 @@ type Choices struct{ Name, Objective, FrameworkVersion string }
 
 func CoreWants(assets fs.FS, c Choices) ([]Want, error)
 
+type Requested struct {
+	Name, MainBranch, Remote string
+	Runtimes, Extensions     []string
+}
+
+func (m *Manifest) CheckChoices(r Requested) error
+func InitPlan(root *os.Root, existing *Manifest, wants []Want, keep, overwrite []string, p Project, framework string) (Plan, *Manifest, error)
+
 type Journal struct{ /* each touched path's previous content and mode, or its absence */ }
 
 func Apply(ctx context.Context, root *os.Root, p Plan) (*Journal, error)
@@ -247,6 +255,9 @@ func (j *Journal) Rollback() error
 `Classify` applies I §4.5's rules and returns the plan with the manifest `files` entries for the wanted paths.
 `CoreWants` returns the core files from `framework/` as `docs/solomonar/`, then `AGENTS.md` and `docs/README.md`
 from `templates/`, rendered with `text/template`.
+`InitPlan` runs `Classify`, builds the manifest from its entries, and appends the manifest change last (I §4.5).
+`CheckChoices` rejects a given choice that differs from the manifest with `already_initialized` (UC-3); an empty
+string or nil list means not given.
 `Apply` returns its `Journal` so the caller can still roll back a successful apply until the registry CAS
 succeeds (AD-6, F-09).
 
