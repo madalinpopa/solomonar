@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -37,7 +38,7 @@ func validateValues(r *Record) error {
 		validateSHAs(r),
 		validateReferences(r),
 		validateAgents(r.ActiveAgents),
-		validateBlockers(r.Blockers),
+		validateBlockers(r.Blockers, r.LastBlocker),
 		validateNextAction(r.NextAction),
 	)
 }
@@ -85,11 +86,18 @@ func validateAgents(agents []Agent) error {
 	return nil
 }
 
-func validateBlockers(blockers []Blocker) error {
+func validateBlockers(blockers []Blocker, lastBlocker int) error {
+	if lastBlocker < 0 {
+		return fmt.Errorf("last_blocker %d is negative", lastBlocker)
+	}
 	seen := map[string]bool{}
 	for _, blocker := range blockers {
-		if !validBlockerID(blocker.ID) {
+		number, ok := blockerNumber(blocker.ID)
+		if !ok {
 			return fmt.Errorf("blocker ID %q is not B-<n>", blocker.ID)
+		}
+		if number > lastBlocker {
+			return fmt.Errorf("blocker ID %s is above last_blocker %d", blocker.ID, lastBlocker)
 		}
 		if seen[blocker.ID] {
 			return fmt.Errorf("blocker ID %s is not unique", blocker.ID)
@@ -196,6 +204,7 @@ func presentFields(r *Record) []string {
 	add("tier", r.Tier != nil)
 	add("active_agents", len(r.ActiveAgents) > 0)
 	add("blockers", len(r.Blockers) > 0)
+	add("last_blocker", r.LastBlocker != 0)
 	add("next_action", r.NextAction != nil)
 	add("pr", r.PR != "")
 	add("depends_on", len(r.DependsOn) > 0)
@@ -228,9 +237,13 @@ func validTaskID(id string) bool {
 	return ok && len(digits) >= 3 && allDigits(digits)
 }
 
-func validBlockerID(id string) bool {
+func blockerNumber(id string) (int, bool) {
 	digits, ok := strings.CutPrefix(id, "B-")
-	return ok && digits != "" && allDigits(digits)
+	if !ok || digits == "" || !allDigits(digits) {
+		return 0, false
+	}
+	number, err := strconv.Atoi(digits)
+	return number, err == nil
 }
 
 func allDigits(s string) bool {
