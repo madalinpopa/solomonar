@@ -7,7 +7,7 @@ its arguments, its interaction, and its output, written as use cases. Behavior t
 length and shape.
 
 CLI implementation has not started; `main.go` is a placeholder. The accepted
-[workflow-audit corrections](../reviews/2026-10-21-framework-cli-audit.html) are applied to these contracts and
+[workflow-audit corrections](../design/phase1-review-register.md#l-workflow-audit-corrections-2026-10-21) are applied to these contracts and
 the framework assets on 2026-10-21. Runtime and fault-injection acceptance tests remain implementation work.
 
 Contents: 1 Principles · 2 Command map · 3 Conventions · 4 Project choices and files · 5 Use cases: project setup ·

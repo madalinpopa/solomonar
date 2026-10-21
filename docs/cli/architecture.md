@@ -6,7 +6,7 @@ When the two differ, the interface spec wins for behavior and this document wins
 `AD-n`; questions still open are in section 13.
 
 This is an implementation contract; `main.go` remains a placeholder. The accepted workflow-audit fixes are
-recorded in the [updated HTML report](../reviews/2026-10-21-framework-cli-audit.html), with runtime verification
+recorded in the [review register](../design/phase1-review-register.md#l-workflow-audit-corrections-2026-10-21), with runtime verification
 kept separate from completion of the design changes.
 
 Contents: 1 Scope · 2 Analysis of the interface design · 3 Toolchain · 4 Architectural decisions · 5 Layout and

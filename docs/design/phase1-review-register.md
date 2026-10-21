@@ -275,7 +275,7 @@ Skipped: none. Pending: none. Section numbers unchanged.
 ## L. Workflow audit corrections (2026-10-21)
 
 The author accepted all findings and workflow suggestions from the
-[HTML audit](../reviews/2026-10-21-framework-cli-audit.html) on 2026-10-21. The changes below are **done in the
+workflow audit on 2026-10-21. The changes below are **done in the
 framework assets and CLI contracts**; the executable is still a placeholder. Runtime, CLI acceptance, and
 fault-injection tests are specified in [architecture §11](../cli/architecture.md#11-testing), not reported as run.
 Historical resolutions above remain evidence of their original decisions; this section supersedes their
@@ -300,6 +300,3 @@ rules and installed application packages, sync help pointing to portable source,
 increment 1 until later stack adoption is available. No new role, review tier, daemon, or runtime feature was
 added. Existing sound flows (prototype/spec confirmation, review correction loop, pause/cancel/handoff, CAS,
 closure, and the read-only dashboard) are retained and their report use cases marked as reviewed.
-
-Verification of the applied contracts and the updated HTML is recorded in the audit's evidence JSON. The
-original audit evidence and source hashes remain preserved alongside the post-change results.

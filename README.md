@@ -8,7 +8,7 @@ solomonar: in Romanian folklore, a wizard who learns every secret from a single 
 
 The framework contracts are defined; the CLI is not implemented yet. `main.go` currently prints `Hello World`.
 The commands below describe the [Phase 2 interface](docs/cli/interface.md), not a working release.
-The [workflow audit and applied changes](docs/reviews/2026-10-21-framework-cli-audit.html) track the design fixes.
+The [workflow audit corrections](docs/design/phase1-review-register.md#l-workflow-audit-corrections-2026-10-21) track the design fixes.
 
 ## How Solomonar works
 
@@ -21,7 +21,7 @@ Solomonar is a way of working, not a technology stack. The core holds only the m
 | Part | Contains |
 | - | - |
 | Core | Skills `solomonar` (your entry point), `prototype`, `spec`, `work-spec`. Agents `orchestrator`, `implementer`, and four language-agnostic reviewers: `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`. Always installed. |
-| Extensions | Skills with the rules of a language, library, or practice (for example `go`, `htmx`, `templ`, `tdd`), and agents that add a specialist reviewer. Added by the CLI; the process never depends on one. |
+| Extensions | Skills with the rules of a language, library, or practice (for example `go`, `htmx`, `templ`, `tdd`), and agents that add a specialist reviewer. Added by the CLI; the process never depends on one. Inside a task, the orchestrator applies an approved choice with `solomonar extension add\|remove --decision <ID>`. Draft extensions stay inactive until adopted. |
 
 ### Start every request with the `solomonar` skill
 
