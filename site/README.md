@@ -59,8 +59,8 @@ The workflow has `packages: write`; no registry password secret is needed for pu
 
 ## Content and sources
 
-- `src/index.njk`: the compact illustrated story in four chapters.
-- `src/docs/*.md`: tutorial, how-to, reference, and explanation pages.
+- `src/index.njk`: the illustrated story in four chapters, then the same chapters retold beside real repository artifacts (a spec, a prompt, the agent roster, a CLI rejection) and the `init` call to action. Keep those artifacts matching actual CLI output.
+- `src/docs/*.md`: documentation pages. `group` and `order` set the sidebar and reading order (Start here, Learn the framework, Guides, Reference, as listed in `site.groups`); `navTitle` is the short sidebar label.
 - `src/_includes/`: shared layouts; `src/_data/site.js`: shared navigation and metadata.
 - `src/assets/site.css` and `site.js`: themes, animation, responsive layout, and progressive enhancement.
 - `eleventy.config.js`: rendering, heading anchors, collections, logo reuse, and diagram embedding.
@@ -82,7 +82,7 @@ A container built with a subpath needs a matching proxy mount; the supplied Ngin
 
 ## Search and social previews
 
-The homepage focuses on **spec-driven development for AI coding agents**. Documentation pages cover distinct tasks: getting started, the framework, workflow examples, task execution, state tracking, configuration, CLI commands, troubleshooting, and the name's origin. Keep each page's front matter title and description specific to its content. Shared metadata lives in `src/_includes/base.njk` and `src/_data/site.js`.
+The homepage focuses on **spec-driven development for AI coding agents**. Documentation pages cover distinct tasks: getting started, installation, project setup, a first task, the framework, the task lifecycle, state tracking, the name's origin, workflow examples, troubleshooting, CLI commands, and project files. Keep each page's front matter title and description specific to its content. Shared metadata lives in `src/_includes/base.njk` and `src/_data/site.js`.
 
 Open Graph and X large-image cards use each page's title, description, and canonical URL, plus the shared `src/assets/social-card.png`. The card is a 1200 × 630 PNG; `social-card.svg` is its editable source, reusing the supplied dragon geometry. Export the SVG at those dimensions when updating the card. The PNG is referenced in HTML metadata and adds no image request to normal page loads.
 
