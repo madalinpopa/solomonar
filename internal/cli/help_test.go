@@ -10,10 +10,11 @@ import (
 const wantTopLevelHelp = `Usage: solomonar [global flags] <command> [flags] [args]
 
 Commands:
-  help        Print help for a command
-  version     Print CLI, embedded framework, and project framework versions
-  task plan   Plan a task under the next free ID
-  task show   Print the registry overview or one stored record
+  help            Print help for a command
+  version         Print CLI, embedded framework, and project framework versions
+  task plan       Plan a task under the next free ID
+  task register   Reserve a task for an orchestrator
+  task show       Print the registry overview or one stored record
 
 Global flags:
   -C <path>       Run as if started in <path>
