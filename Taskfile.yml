@@ -3,7 +3,7 @@ version: '3'
 set: [pipefail]
 
 vars:
-  MAIN: ./cmd/solomonar
+  MAIN: .
   BIN: '{{.ROOT_DIR}}/bin'
   TOOLS: '{{.ROOT_DIR}}/.bin'
   GOLANGCI_LINT_VERSION: v2.15.0

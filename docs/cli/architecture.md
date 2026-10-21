@@ -40,7 +40,7 @@ rejections, and exit code. The points below are where it affects the build, orde
 | F6 | The guard (UC-22) recognizes registry writes inside arbitrary shell commands. | Best effort, as the spec says: match `state.json` paths for file tools, `workflow-state` tokens for shell tools; a table test of real commands. | Adopted. |
 | F7 | `--runtime` defaults to "detected on `PATH`" also with `--yes`. | Keep; the plan and the JSON `choices` show the detected list. | No change. |
 | F8 | Interrupt handling is not specified. | Cancel the context; report whether the registry write happened. | Open, Q3. |
-| F9 | CLI-D8 (binary name) is still "deferred". | Root `main.go` (AD-13). | Proposed. |
+| F9 | CLI-D8 (binary name) was still "deferred". | Root `main.go` (AD-13). | Decided, CLI-D8 c; applied. |
 | F10 | `already_initialized` is reused for a rejected downgrade (UC-9). | `downgrade_rejected`. | Open, Q4. |
 
 Clarifications the implementation settles this way unless the spec says otherwise:
@@ -88,11 +88,11 @@ Section 10 enforces these with lint rules.
 | AD-10 | CLI version from `runtime/debug.ReadBuildInfo`: `go install …@vX.Y.Z` records the module version, and `go build` in a checkout stamps it from the Git tag (with `+dirty` for local changes). Framework version from the embedded `rules.md` header. | No version constant and no `-ldflags -X` to forget. | A hand-maintained `const Version`. |
 | AD-11 | Platforms: macOS and Linux. Windows is deferred. | Windows changes hook command quoting, path handling in the guard, and terminal detection; no user needs it yet. | Windows from the start. |
 | AD-12 | Distribution: `go install github.com/madalinpopa/solomonar@vX.Y.Z` now; release binaries built with `-trimpath` from a tag when there is a first release. | AD-10 makes both carry the right version without extra flags. A release tool is a build tool and stays out of `go.mod`. | Package managers before a first release. |
-| AD-13 | Proposed: the entry point is `main.go` at the module root, not `cmd/solomonar/main.go`; it also holds `//go:embed assets` and passes the tree to `cli.Run` in `Env`. | The repository holds one binary, which is the official layout for "a command with supporting packages" (go.dev/doc/modules/layout); the install path shortens to the module path; the `assets` package and its global disappear. | `cmd/solomonar/`: meant for repositories with several binaries. A `cmd` package holding the command handlers (the Cobra convention): in Go, `cmd/<name>` means a `main` package, so it misleads readers and `go install ./cmd/...`. |
+| AD-13 | The entry point is `main.go` at the module root, not `cmd/solomonar/main.go`; it also holds `//go:embed assets` and passes the tree to `cli.Run` in `Env`. | The repository holds one binary, which is the official layout for "a command with supporting packages" (go.dev/doc/modules/layout); the install path shortens to the module path; the `assets` package and its global disappear. | `cmd/solomonar/`: meant for repositories with several binaries. A `cmd` package holding the command handlers (the Cobra convention): in Go, `cmd/<name>` means a `main` package, so it misleads readers and `go install ./cmd/...`. |
 
 ## 5. Layout and packages
 
-Layout with AD-13 applied:
+Layout (AD-13):
 
 ```
 main.go                  signal context, //go:embed assets, cli.Run, os.Exit; nothing else
@@ -356,10 +356,9 @@ for Codex, the guard's real hook payloads) are verified only then.
 | Q2 | Adopt an unmanaged file whose content equals what the CLI would write (F4)? | Yes, as `unchanged`, recorded in the manifest. | `init` becomes restartable after a crash. |
 | Q3 | Exit code for an interrupted command (F8)? | 130, with "interrupted; nothing was written" or "interrupted after the registry write; push skipped". | Not in the I §3.5 table today. |
 | Q4 | Separate error code for a downgrade (F10)? | `downgrade_rejected`, exit 3. | Clients can tell it from a re-initialization. |
-| Q8 | Entry point at the module root (AD-13)? | Yes; then CLI-D8 is recorded as decided with this option. | Fixes the install path, the build target in `Taskfile.yml`, and step 1. |
 
 Resolved on 2026-10-21: Q1 as CLI-D16; Q5 as AD-11; Q6 as AD-12; Q7 by moving the interface spec to
-`docs/cli/interface.md`.
+`docs/cli/interface.md`; Q8 as AD-13 and CLI-D8 c.
 
 ## 14. Non-goals and deferred work
 
