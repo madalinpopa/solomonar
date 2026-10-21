@@ -69,6 +69,12 @@ The workflow has `packages: write`; no registry password secret is needed for pu
 
 All five README diagrams are embedded directly from `docs/images/`, preserving their geometry and labels. The site replaces their embedded palette/font styles with scoped theme tokens; manual light/dark selection updates the diagrams immediately. Original source files are not rewritten. Diagrams scroll horizontally at small widths so their labels remain readable.
 
+## Release version
+
+The homepage status line and the docs sidebar show the release from `src/_data/release.js`: `SITE_VERSION` when set (`vX.Y.Z` or `dev`), else the latest stable `vX.Y.Z` tag reachable from HEAD, else `dev`. Pre-release tags are ignored. The framework and the CLI share that version.
+
+The Docker build takes it as the `SITE_VERSION` build argument, defaulting to `dev`, because the build context has no Git history. [ci-site.yml](../.github/workflows/ci-site.yml) resolves the tag and passes it. The release workflow calls the site workflow after each release, so a new tag republishes the site; a release created with `GITHUB_TOKEN` triggers no other workflow on its own.
+
 ## URLs
 
 `SITE_ORIGIN` defaults to `https://solomonar.dev`; `SITE_BASE_PATH` defaults to `/`. Both are optional Docker build arguments. They determine canonical URLs, internal paths, and the sitemap. The domain root is the production target. Subpath generation remains available:
