@@ -1,6 +1,6 @@
 ---
-title: Behind the name
-description: The Romanian storm-rider, the stitched balaur, and the project's translation of a folktale into a working process.
+title: "Behind the name: Romanian folklore"
+description: Discover the Romanian folklore behind Solomonar, the stitched balaur logo, and how the book, spells, dragons, and reins map to its developer workflow.
 kind: Explanation
 group: Understand
 order: 5
