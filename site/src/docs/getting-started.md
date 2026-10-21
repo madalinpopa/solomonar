@@ -33,7 +33,7 @@ No model-provider API key is needed by the CLI itself.
 
 Read these in order. Each step ends where the next one starts.
 
-1. [Install the CLI]({{ '/docs/install/' | url }}): build the binary and check it runs.
+1. [Install the CLI]({{ '/docs/install/' | url }}): install the binary with Homebrew or build it, and check it runs.
 2. [Set up a project]({{ '/docs/set-up-a-project/' | url }}): run `solomonar init` in a repository and make the first commit.
 3. [Run your first task]({{ '/docs/first-task/' | url }}): start an agent session, prototype a flow, and take one task from specification to merge.
 4. [How the framework works]({{ '/docs/framework/' | url }}): the ideas behind what you just did.
