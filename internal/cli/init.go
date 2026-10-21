@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -20,6 +21,7 @@ type initFlags struct {
 	requested       project.Requested
 	objective       string
 	keep, overwrite []string
+	models          []string
 	yes, dryRun     bool
 	gitInit         bool
 }
@@ -67,6 +69,8 @@ type initRun struct {
 	gitInit      bool
 	firstCommit  bool
 	switchOrphan bool
+	runtimes     []string
+	models       map[string]string
 	warnings     []warning
 }
 
@@ -74,7 +78,8 @@ func initCommand() command {
 	return command{
 		name:    "init",
 		summary: "Install the framework core and create the registry",
-		usage: "solomonar init [<dir>] [--name <name>] [--objective <text>] [--runtime none] [--ext none]\n" +
+		usage: "solomonar init [<dir>] [--name <name>] [--objective <text>] [--runtime <claude|codex|none>]...\n" +
+			"                      [--ext none] [--adversarial-model <runtime>=<model>]...\n" +
 			"                      [--main-branch <name>] [--remote <name>] [--keep <path>]... [--overwrite <path>]...\n" +
 			"                      [--git-init] [-y|--yes] [--dry-run] [--json]",
 		description: "Install the framework core in the worktree containing <dir>, write .solomonar/manifest.json,\n" +
@@ -87,6 +92,10 @@ func initCommand() command {
 			fs.StringVar(&f.objective, "objective", "", "")
 			fs.Func("runtime", "", appendList(&f.requested.Runtimes))
 			fs.Func("ext", "", appendList(&f.requested.Extensions))
+			fs.Func("adversarial-model", "", func(value string) error {
+				f.models = append(f.models, value)
+				return nil
+			})
 			fs.StringVar(&f.requested.MainBranch, "main-branch", "", "")
 			fs.StringVar(&f.requested.Remote, "remote", "", "")
 			fs.Func("keep", "", func(path string) error {
@@ -119,10 +128,13 @@ func (f *initFlags) run(ctx context.Context, env Env, flags sharedFlags, args []
 		return output{}, unexpectedArgument(args[1])
 	}
 	var err error
-	if f.requested.Runtimes, err = available(f.requested.Runtimes, "--runtime", "runtime"); err != nil {
+	if f.requested.Runtimes, err = knownRuntimes(f.requested.Runtimes); err != nil {
 		return output{}, err
 	}
-	if f.requested.Extensions, err = available(f.requested.Extensions, "--ext", "extension"); err != nil {
+	if f.requested.AdversarialModels, err = adversarialModels(f.models); err != nil {
+		return output{}, err
+	}
+	if f.requested.Extensions, err = noExtensions(f.requested.Extensions); err != nil {
 		return output{}, err
 	}
 	dir := flags.dir
@@ -155,22 +167,123 @@ func (f *initFlags) run(ctx context.Context, env Env, flags sharedFlags, args []
 	return f.initialize(ctx, env, repo, gitInit, root, framework)
 }
 
-// available accepts only none until step 9; a given none requests an empty list.
-func available(values []string, flag, kind string) ([]string, error) {
+// knownRuntimes returns the given runtimes sorted and unique; a given none requests an empty list.
+func knownRuntimes(values []string) ([]string, error) {
+	if values == nil {
+		return nil, nil
+	}
+	for _, v := range values {
+		if v != "claude" && v != "codex" && v != "none" {
+			return nil, &project.Rejection{
+				Code:  "unknown_runtime",
+				Check: "--runtime names a known runtime",
+				Found: fmt.Sprintf("%q is not a runtime; known: claude, codex", v),
+				Fix:   "pass --runtime claude, codex, or none",
+			}
+		}
+	}
+	if !slices.Contains(values, "none") {
+		return slices.Compact(slices.Sorted(slices.Values(values))), nil
+	}
+	if i := slices.IndexFunc(values, func(v string) bool { return v != "none" }); i >= 0 {
+		return nil, &project.Rejection{
+			Code:  "invalid_value",
+			Check: "--runtime names runtimes or none",
+			Found: "none cannot be combined with " + values[i],
+			Fix:   "pass --runtime none alone",
+		}
+	}
+	return []string{}, nil
+}
+
+// adversarialModels maps each runtime to its model, the last given winning; nil when none is given.
+func adversarialModels(values []string) (map[string]string, error) {
+	if values == nil {
+		return nil, nil
+	}
+	models := map[string]string{}
+	for _, v := range values {
+		runtime, model, ok := strings.Cut(v, "=")
+		var found string
+		switch {
+		case !ok:
+			found = fmt.Sprintf(`%q has no "="`, v)
+		case runtime == "":
+			found = fmt.Sprintf("%q has an empty runtime", v)
+		case model == "":
+			found = fmt.Sprintf("%q has an empty model", v)
+		}
+		if found != "" {
+			return nil, &project.Rejection{
+				Code:  "invalid_value",
+				Check: "--adversarial-model is <runtime>=<model>",
+				Found: found,
+				Fix:   "pass --adversarial-model claude=<model>",
+			}
+		}
+		models[runtime] = model
+	}
+	return models, nil
+}
+
+// noExtensions accepts only none until stage 9.3; a given none requests an empty list.
+func noExtensions(values []string) ([]string, error) {
 	if values == nil {
 		return nil, nil
 	}
 	for _, v := range values {
 		if v != "none" {
 			return nil, &project.Rejection{
-				Code:  "unknown_" + kind,
-				Check: flag + " names an available " + kind,
+				Code:  "unknown_extension",
+				Check: "--ext names an available extension",
 				Found: fmt.Sprintf("%q is not available; available: none", v),
-				Fix:   "pass " + flag + " none",
+				Fix:   "pass --ext none",
 			}
 		}
 	}
 	return []string{}, nil
+}
+
+// selectRuntimes returns the requested runtimes, else the manifest's, else those found on PATH (UC-2).
+func selectRuntimes(requested []string, existing *project.Manifest) []string {
+	switch {
+	case requested != nil:
+		return requested
+	case existing != nil:
+		return slices.Sorted(maps.Keys(existing.Runtimes))
+	}
+	var found []string
+	for _, runtime := range []string{"claude", "codex"} {
+		if git.OnPath(runtime) {
+			found = append(found, runtime)
+		}
+	}
+	return found
+}
+
+// selectModels checks that every requested model names a selected runtime and fills in the manifest's.
+func selectModels(requested map[string]string, runtimes []string, existing *project.Manifest,
+) (map[string]string, error) {
+	for _, runtime := range slices.Sorted(maps.Keys(requested)) {
+		if !slices.Contains(runtimes, runtime) {
+			return nil, &project.Rejection{
+				Code:  "invalid_value",
+				Check: "--adversarial-model names a selected runtime",
+				Found: runtime + " is not selected",
+				Fix:   "add --runtime " + runtime + " or drop the model",
+			}
+		}
+	}
+	models := map[string]string{}
+	for _, runtime := range runtimes {
+		if existing != nil && existing.Runtimes[runtime].AdversarialModel != "" {
+			models[runtime] = existing.Runtimes[runtime].AdversarialModel
+		}
+		if model, ok := requested[runtime]; ok {
+			models[runtime] = model
+		}
+	}
+	return models, nil
 }
 
 // initialize plans against repo; with gitInit, repo is the directory git init turns into one (UC-4).
@@ -178,6 +291,11 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 	framework string,
 ) (output, error) {
 	existing, err := project.ReadManifest(root, framework)
+	if err != nil {
+		return output{}, err
+	}
+	runtimes := selectRuntimes(f.requested.Runtimes, existing)
+	models, err := selectModels(f.requested.AdversarialModels, runtimes, existing)
 	if err != nil {
 		return output{}, err
 	}
@@ -196,7 +314,7 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 	store := &task.Store{Git: repo, Remote: p.Remote}
 	r := initRun{
 		root: repo.Dir, framework: framework, mainBranch: p.MainBranch, gitInit: gitInit, firstCommit: gitInit,
-		warnings: jujutsuWarnings(root),
+		runtimes: runtimes, models: models, warnings: jujutsuWarnings(root),
 	}
 	if !gitInit {
 		if r.tip, err = existingRegistry(ctx, store); err != nil {
@@ -212,7 +330,16 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 	if err != nil {
 		return output{}, err
 	}
-	r.plan, _, err = project.InitPlan(root, existing, wants, f.keep, f.overwrite, p, nil, framework)
+	adapters, err := project.RuntimeWants(env.Assets, runtimes, models, framework)
+	if err != nil {
+		return output{}, err
+	}
+	manifestRuntimes := map[string]project.Runtime{}
+	for _, runtime := range runtimes {
+		manifestRuntimes[runtime] = project.Runtime{AdversarialModel: models[runtime]}
+	}
+	r.plan, _, err = project.InitPlan(root, existing, slices.Concat(wants, adapters), f.keep, f.overwrite, p,
+		manifestRuntimes, framework)
 	if err != nil {
 		return output{}, err
 	}
@@ -304,7 +431,7 @@ func (r initRun) apply(ctx context.Context, root *os.Root, store *task.Store) (o
 		registry = registryState{Ref: task.Ref, Commit: created.SHA, Action: "create", Pushed: new(created.Pushed)}
 	}
 	data := r.data(registry)
-	data.Next = []string{"git add AGENTS.md .solomonar docs", r.commitCommand()}
+	data.Next = []string{"git add " + strings.Join(r.generatedPaths(), " "), r.commitCommand()}
 	if r.switchOrphan {
 		data.Next = slices.Insert(data.Next, 0, "git switch --orphan "+r.mainBranch)
 	}
@@ -325,10 +452,44 @@ func (r initRun) apply(ctx context.Context, root *os.Root, store *task.Store) (o
 			step += "       " + line + "\n"
 		}
 	}
-	text += "\nNext:\n" + step +
-		"  2. Start a top-level session in " + r.root + ":\n" +
-		"       Use the solomonar skill to explore the next useful flow.\n"
+	text += "\nNext:\n" + step + r.sessionStep()
 	return output{data: data, text: text, warnings: slices.Concat(r.warnings, outputWarnings(created.Warnings))}, nil
+}
+
+// generatedPaths lists what the first commit adds, in the UC-2 order.
+func (r initRun) generatedPaths() []string {
+	paths := []string{"AGENTS.md"}
+	if slices.ContainsFunc(r.plan.Changes, func(c project.Change) bool {
+		return c.Path == "CLAUDE.md" && c.Action == project.ActionCreate
+	}) {
+		paths = append(paths, "CLAUDE.md")
+	}
+	if slices.Contains(r.runtimes, "claude") {
+		paths = append(paths, ".claude")
+	}
+	if slices.Contains(r.runtimes, "codex") {
+		paths = append(paths, ".agents", ".codex")
+	}
+	return append(paths, ".solomonar", "docs")
+}
+
+// sessionStep is the Next: step starting the top-level session in the selected runtimes (UC-1, UC-2).
+func (r initRun) sessionStep() string {
+	const explore = "Explore the next useful flow.\n"
+	claude, codex := slices.Contains(r.runtimes, "claude"), slices.Contains(r.runtimes, "codex")
+	switch {
+	case claude && codex:
+		return "  2. Start a top-level session in " + r.root + " with your selected outcome:\n" +
+			"       Claude Code: /solomonar " + explore +
+			"       Codex:       $solomonar " + explore +
+			"       Portable:    Use the solomonar skill to explore the next useful flow.\n"
+	case claude:
+		return "  2. Start a top-level Claude Code session in " + r.root + ":\n       /solomonar " + explore
+	case codex:
+		return "  2. Start a top-level Codex session in " + r.root + ":\n       $solomonar " + explore
+	}
+	return "  2. Start a top-level session in " + r.root + ":\n" +
+		"       Use the solomonar skill to explore the next useful flow.\n"
 }
 
 // initRepository runs git init in the planned root and points the store at the new repository (UC-4).
@@ -378,6 +539,7 @@ func (r initRun) data(registry registryState) initData {
 	}
 	return initData{
 		Project: r.root, FrameworkVersion: r.framework, Files: files, Registry: registry,
+		Choices: initChoices{Runtimes: r.runtimes, AdversarialModel: r.models},
 		GitInit: r.gitInit, FirstCommit: r.firstCommit,
 	}
 }
