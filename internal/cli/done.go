@@ -56,15 +56,15 @@ func (d *doneFlags) run(ctx context.Context, env Env, flags sharedFlags, args []
 	if err != nil {
 		return output{}, err
 	}
-	store, err := openStore(ctx, env, flags)
+	store, mainBranch, err := openStore(ctx, env, flags)
 	if err != nil {
-		return output{}, err
+		return output{}, rejectedAs("task done "+id, err)
 	}
-	out, err := d.doneTask(ctx, env, store, id, as)
+	out, err := d.doneTask(ctx, env, store, mainBranch, id, as)
 	return out, rejectedAs("task done "+id, err)
 }
 
-func (d *doneFlags) doneTask(ctx context.Context, env Env, store *task.Store, id, as string) (output, error) {
+func (d *doneFlags) doneTask(ctx context.Context, env Env, store *task.Store, mainBranch, id, as string) (output, error) {
 	var next string
 	if !d.dryRun {
 		worktree, err := task.Worktree(ctx, store.Git, "feature/"+id)
@@ -79,7 +79,7 @@ func (d *doneFlags) doneTask(ctx context.Context, env Env, store *task.Store, id
 		if before := reg.Tasks[id]; before != nil {
 			revision = before.Revision
 		}
-		result, err := reg.DoneTask(ctx, store.Git, id, as, defaultMainBranch, d.done, env.Now())
+		result, err := reg.DoneTask(ctx, store.Git, id, as, mainBranch, d.done, env.Now())
 		record = reg.Tasks[id]
 		return result, nil, err
 	})
@@ -92,7 +92,7 @@ func (d *doneFlags) doneTask(ctx context.Context, env Env, store *task.Store, id
 	}
 	specCommit, _, _ := strings.Cut(d.done.SpecRef, ":")
 	out.text = "Verified\n" +
-		fmt.Sprintf("  merge     %s is a merge commit reachable from %s\n", d.done.Merge[:8], defaultMainBranch) +
+		fmt.Sprintf("  merge     %s is a merge commit reachable from %s\n", d.done.Merge[:8], mainBranch) +
 		fmt.Sprintf("  revision  %s is contained in the merge\n", revision[:8]) +
 		fmt.Sprintf("  spec_ref  resolves; %s is the last spec(%s) commit merged\n", specCommit[:8], id) +
 		out.text + "Compact record\n  " + string(compact) + "\n" + next
