@@ -1135,4 +1135,40 @@ Specs updated: UC-1 (header), UC-4 (`git init` question, adoption and replace qu
 - [x] `AGENTS.md` adoption and replace questions; tests (scripted stdin, a non-repository directory, an existing
   `AGENTS.md`, declines, `--dry-run`)
 
-- Stage 10.4 `[ ]` — The grouped, summarized interactive plan (UC-1)
+### Stage 10.4 — The grouped, summarized interactive plan (`internal/cli`; UC-1) `[x]`
+
+Decisions (author, 2026-10-21): only the interactive plan before `Proceed?` is grouped; `--dry-run` (interactive or
+not), the `file_conflict` plan, and JSON keep every file.
+
+Decisions (author, 2026-10-21; orchestrator proposals confirmed):
+- groups, in this order, each a header at two spaces followed by its lines at four, empty groups omitted: `git`
+  (`init -b <main-branch>`), `framework <fw>` (owners `core`, `core+notes`, `seed`), `extensions` (`ext:*`),
+  `decisions (approved, selected by you)` (`decision`), `runtime claude`, `runtime codex` (`runtime:*`), `registry`,
+  `manifest`;
+- a line is `    <action padded to 9>  <path>`, and `  <note>` after the path padded to the widest path with a note
+  in its group; within a group the plan order is kept;
+- collapsing: a set of lines collapses into one only when all share one action and none has a reason; otherwise each
+  file gets its line (reasons as in the flat plan):
+  - framework: `docs/solomonar/agents/ (<n> roles)`; each `docs/solomonar/skills/<s>/ (<files, comma-joined, sorted>)`;
+  - claude: `.claude/skills/ (<n> skill stubs: <c> core, <e> extensions)` (`: <c> core` alone without extensions),
+    `.claude/agents/ (<n> role stubs[: <c> core, <e> extensions][; adversarial-reviewer model <m>])`; codex:
+    `.agents/skills/ (<n> skill stubs: …; solomonar/agents/openai.yaml)`, `.codex/agents/ (<n> role stubs[…][;
+    adversarial-reviewer model <m>])`;
+  - extensions: one line per file, the main file noted `rendered with: <a>, <b>` when not empty;
+  - decisions: `docs/decisions.md` noted `<ID> <group>: <names> · …` and each group document noted `<group>: <names>
+    (<ID>) · …` for the entries this run records; an `unchanged` document gets no note;
+- `registry` holds `    create  refs/heads/workflow-state with an empty state.json` or `    unchanged
+  refs/heads/workflow-state` (same verb padding); `manifest` holds the manifest line;
+- the UC-1 example is aligned to this form (its `.claude/settings.json`/`.codex/hooks.json` lines stay: the spec
+  keeps the final behavior with the guard hook).
+also (implementer, confirmed): `project-ext:*` also goes to `extensions`; a collapsed
+line takes its set's first plan position; framework sets count core-owned files only; singular counts for 1; a skill
+stub label always shows `: <c> core`, a role stub label shows the split only when an extension role exists; the model
+note goes on any role set whose runtime has a model; `.agents/skills/` counts only `<id>/SKILL.md` and lists the other
+files after `;`; notes join with `; `, reason first; the git line is `    init       -b <main-branch>`;
+`initRun.renderedWith` carries the manifest entries' `RenderedWith`; `plan` fills the run directly.
+Specs updated: I §3.3, UC-1 (plan block, Proceed paragraph, grouped-plan rules).
+
+- [x] grouping and collapsing; interactive `Proceed?` uses it
+- [x] tests (UC-1-like plan text, a conflict-free plan with keep/skip/adopted reasons, extensions and decisions
+  notes, both runtimes with models)
