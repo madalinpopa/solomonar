@@ -62,6 +62,7 @@ func TestProjectRejectionExitFollowsCode(t *testing.T) {
 	}{
 		{code: "manifest_invalid", exit: 1, message: "task move failed"},
 		{code: "cli_outdated", exit: 3, message: "task move rejected"},
+		{code: "invalid_value", exit: 2, message: "task move rejected"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.code, func(t *testing.T) {
