@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/madalinpopa/solomonar/internal/git"
 	"github.com/madalinpopa/solomonar/internal/project"
@@ -27,16 +28,16 @@ type initFlags struct {
 }
 
 type initData struct {
-	Project          string        `json:"project"`
-	FrameworkVersion string        `json:"framework_version"`
-	Choices          initChoices   `json:"choices"`
-	Decisions        []string      `json:"decisions"`
-	Files            []initFile    `json:"files"`
-	Registry         registryState `json:"registry"`
-	GitInit          bool          `json:"git_init"`
-	FirstCommit      bool          `json:"first_commit_required"`
-	Next             []string      `json:"next,omitzero"`
-	DryRun           bool          `json:"dry_run,omitzero"`
+	Project          string             `json:"project"`
+	FrameworkVersion string             `json:"framework_version"`
+	Choices          initChoices        `json:"choices"`
+	Decisions        []project.Decision `json:"decisions"`
+	Files            []initFile         `json:"files"`
+	Registry         registryState      `json:"registry"`
+	GitInit          bool               `json:"git_init"`
+	FirstCommit      bool               `json:"first_commit_required"`
+	Next             []string           `json:"next,omitzero"`
+	DryRun           bool               `json:"dry_run,omitzero"`
 }
 
 type initChoices struct {
@@ -71,6 +72,8 @@ type initRun struct {
 	switchOrphan bool
 	runtimes     []string
 	models       map[string]string
+	extensions   []project.CatalogExtension
+	decisions    []project.Decision
 	warnings     []warning
 }
 
@@ -79,7 +82,7 @@ func initCommand() command {
 		name:    "init",
 		summary: "Install the framework core and create the registry",
 		usage: "solomonar init [<dir>] [--name <name>] [--objective <text>] [--runtime <claude|codex|none>]...\n" +
-			"                      [--ext none] [--adversarial-model <runtime>=<model>]...\n" +
+			"                      [--ext <name|none>]... [--adversarial-model <runtime>=<model>]...\n" +
 			"                      [--main-branch <name>] [--remote <name>] [--keep <path>]... [--overwrite <path>]...\n" +
 			"                      [--git-init] [-y|--yes] [--dry-run] [--json]",
 		description: "Install the framework core in the worktree containing <dir>, write .solomonar/manifest.json,\n" +
@@ -134,7 +137,11 @@ func (f *initFlags) run(ctx context.Context, env Env, flags sharedFlags, args []
 	if f.requested.AdversarialModels, err = adversarialModels(f.models); err != nil {
 		return output{}, err
 	}
-	if f.requested.Extensions, err = noExtensions(f.requested.Extensions); err != nil {
+	catalog, err := project.LoadCatalog(env.Assets)
+	if err != nil {
+		return output{}, err
+	}
+	if f.requested.Extensions, err = requestedExtensions(catalog, f.requested.Extensions); err != nil {
 		return output{}, err
 	}
 	dir := flags.dir
@@ -164,7 +171,7 @@ func (f *initFlags) run(ctx context.Context, env Env, flags sharedFlags, args []
 		return output{}, fmt.Errorf("open worktree: %w", err)
 	}
 	defer root.Close()
-	return f.initialize(ctx, env, repo, gitInit, root, framework)
+	return f.initialize(ctx, env, repo, gitInit, root, framework, catalog)
 }
 
 // knownRuntimes returns the given runtimes sorted and unique; a given none requests an empty list.
@@ -226,22 +233,47 @@ func adversarialModels(values []string) (map[string]string, error) {
 	return models, nil
 }
 
-// noExtensions accepts only none until stage 9.3; a given none requests an empty list.
-func noExtensions(values []string) ([]string, error) {
+// requestedExtensions resolves the given extensions; a given none requests an empty list.
+func requestedExtensions(catalog project.Catalog, values []string) ([]string, error) {
 	if values == nil {
 		return nil, nil
 	}
-	for _, v := range values {
-		if v != "none" {
-			return nil, &project.Rejection{
-				Code:  "unknown_extension",
-				Check: "--ext names an available extension",
-				Found: fmt.Sprintf("%q is not available; available: none", v),
-				Fix:   "pass --ext none",
-			}
+	if !slices.Contains(values, "none") {
+		return catalog.Resolve(values)
+	}
+	if i := slices.IndexFunc(values, func(v string) bool { return v != "none" }); i >= 0 {
+		return nil, &project.Rejection{
+			Code:  "invalid_value",
+			Check: "--ext names extensions or none",
+			Found: "none cannot be combined with " + values[i],
+			Fix:   "pass --ext none alone",
 		}
 	}
 	return []string{}, nil
+}
+
+// selectExtensions returns the requested extensions, else the manifest's, else go for a go.mod (UC-2).
+func selectExtensions(catalog project.Catalog, requested []string, existing *project.Manifest, root *os.Root,
+) ([]project.CatalogExtension, error) {
+	names := requested
+	if names == nil && existing != nil {
+		names = slices.Sorted(maps.Keys(existing.Extensions))
+	}
+	if names == nil {
+		info, err := root.Lstat("go.mod")
+		if _, ok := catalog["go"]; ok && err == nil && info.Mode().IsRegular() {
+			names = []string{"go"}
+		}
+	}
+	selected := make([]project.CatalogExtension, 0, len(names))
+	for _, name := range names {
+		e, ok := catalog[name]
+		if !ok {
+			return nil, fmt.Errorf("read extension %s: not in the catalog", name)
+		}
+		selected = append(selected, e)
+	}
+	return selected, nil
 }
 
 // selectRuntimes returns the requested runtimes, else the manifest's, else those found on PATH (UC-2).
@@ -288,7 +320,7 @@ func selectModels(requested map[string]string, runtimes []string, existing *proj
 
 // initialize plans against repo; with gitInit, repo is the directory git init turns into one (UC-4).
 func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, gitInit bool, root *os.Root,
-	framework string,
+	framework string, catalog project.Catalog,
 ) (output, error) {
 	existing, err := project.ReadManifest(root, framework)
 	if err != nil {
@@ -306,6 +338,10 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 		}
 		recorded = existing.Project
 	}
+	extensions, err := selectExtensions(catalog, f.requested.Extensions, existing, root)
+	if err != nil {
+		return output{}, err
+	}
 	p := project.Project{
 		Name:       cmp.Or(f.requested.Name, recorded.Name, filepath.Base(repo.Dir)),
 		MainBranch: cmp.Or(f.requested.MainBranch, recorded.MainBranch, defaultMainBranch),
@@ -314,7 +350,7 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 	store := &task.Store{Git: repo, Remote: p.Remote}
 	r := initRun{
 		root: repo.Dir, framework: framework, mainBranch: p.MainBranch, gitInit: gitInit, firstCommit: gitInit,
-		runtimes: runtimes, models: models, warnings: jujutsuWarnings(root),
+		runtimes: runtimes, models: models, extensions: extensions, warnings: jujutsuWarnings(root),
 	}
 	if !gitInit {
 		if r.tip, err = existingRegistry(ctx, store); err != nil {
@@ -324,23 +360,7 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 			return output{}, err
 		}
 	}
-	wants, err := project.CoreWants(env.Assets, project.Choices{
-		Name: p.Name, Objective: f.objective, FrameworkVersion: framework,
-	})
-	if err != nil {
-		return output{}, err
-	}
-	adapters, err := project.RuntimeWants(env.Assets, runtimes, models, framework, nil)
-	if err != nil {
-		return output{}, err
-	}
-	manifestRuntimes := map[string]project.Runtime{}
-	for _, runtime := range runtimes {
-		manifestRuntimes[runtime] = project.Runtime{AdversarialModel: models[runtime]}
-	}
-	r.plan, _, err = project.InitPlan(root, existing, slices.Concat(wants, adapters), f.keep, f.overwrite, p,
-		manifestRuntimes, nil, project.Decisions{}, framework)
-	if err != nil {
+	if r.plan, r.decisions, err = f.plan(env, root, existing, p, r); err != nil {
 		return output{}, err
 	}
 	if conflicts := r.plan.Conflicts(); len(conflicts) > 0 {
@@ -358,6 +378,37 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 		}
 	}
 	return r.apply(ctx, root, store)
+}
+
+// plan wants the core, extension, and adapter files, then decision documents and the manifest.
+func (f *initFlags) plan(env Env, root *os.Root, existing *project.Manifest, p project.Project, r initRun,
+) (project.Plan, []project.Decision, error) {
+	decisions, err := project.PlanDecisions(root, existing, r.extensions, env.Now().Format(time.DateOnly))
+	if err != nil {
+		return project.Plan{}, nil, err
+	}
+	core, err := project.CoreWants(env.Assets, project.Choices{
+		Name: p.Name, Objective: f.objective, FrameworkVersion: r.framework,
+		Extensions: r.extensions, Documents: decisions.Index,
+	})
+	if err != nil {
+		return project.Plan{}, nil, err
+	}
+	extensions, entries, err := project.ExtensionWants(env.Assets, r.extensions, decisions.ByGroup)
+	if err != nil {
+		return project.Plan{}, nil, err
+	}
+	adapters, err := project.RuntimeWants(env.Assets, r.runtimes, r.models, r.framework, r.extensions)
+	if err != nil {
+		return project.Plan{}, nil, err
+	}
+	runtimes := map[string]project.Runtime{}
+	for _, runtime := range r.runtimes {
+		runtimes[runtime] = project.Runtime{AdversarialModel: r.models[runtime]}
+	}
+	plan, _, err := project.InitPlan(root, existing, slices.Concat(core, extensions, adapters), f.keep, f.overwrite,
+		p, runtimes, entries, decisions, r.framework)
+	return plan, decisions.Records, err
 }
 
 // unbornMain reports whether the main branch has no commit and HEAD points elsewhere (UC-4).
@@ -407,7 +458,8 @@ func existingRegistry(ctx context.Context, store *task.Store) (string, error) {
 }
 
 func writes(c project.Change) bool {
-	return c.Action == project.ActionCreate || c.Action == project.ActionUpdate || c.Action == project.ActionRemove
+	return c.Action == project.ActionCreate || c.Action == project.ActionUpdate || c.Action == project.ActionAppend ||
+		c.Action == project.ActionRemove
 }
 
 // apply rolls the files back until the registry compare-and-swap succeeds (AD-6, F-09).
@@ -537,9 +589,13 @@ func (r initRun) data(registry registryState) initData {
 	for _, c := range r.plan.Changes {
 		files = append(files, initFile{Path: c.Path, Action: string(c.Action), Owner: c.Owner, Reason: c.Reason})
 	}
+	extensions := map[string][]string{}
+	for _, e := range r.extensions {
+		extensions[e.Group] = append(extensions[e.Group], e.Name)
+	}
 	return initData{
-		Project: r.root, FrameworkVersion: r.framework, Files: files, Registry: registry,
-		Choices: initChoices{Runtimes: r.runtimes, AdversarialModel: r.models},
+		Project: r.root, FrameworkVersion: r.framework, Files: files, Registry: registry, Decisions: r.decisions,
+		Choices: initChoices{Runtimes: r.runtimes, Extensions: extensions, AdversarialModel: r.models},
 		GitInit: r.gitInit, FirstCommit: r.firstCommit,
 	}
 }
@@ -570,20 +626,20 @@ func planLines(changes []project.Change) string {
 // counts reads "<n> file(s) <action>, <n> <action>, …" over the actions that occur.
 func counts(changes []project.Change) string {
 	words := []struct {
-		action project.Action
-		word   string
+		actions []project.Action
+		word    string
 	}{
-		{project.ActionCreate, "created"},
-		{project.ActionUpdate, "updated"},
-		{project.ActionKeep, "kept"},
-		{project.ActionUnchanged, "unchanged"},
-		{project.ActionSkip, "skipped"},
+		{[]project.Action{project.ActionCreate}, "created"},
+		{[]project.Action{project.ActionUpdate, project.ActionAppend}, "updated"},
+		{[]project.Action{project.ActionKeep}, "kept"},
+		{[]project.Action{project.ActionUnchanged}, "unchanged"},
+		{[]project.Action{project.ActionSkip}, "skipped"},
 	}
 	var parts []string
 	for _, w := range words {
 		n := 0
 		for _, c := range changes {
-			if c.Action == w.action {
+			if slices.Contains(w.actions, c.Action) {
 				n++
 			}
 		}
