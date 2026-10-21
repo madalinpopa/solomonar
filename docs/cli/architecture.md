@@ -1,6 +1,6 @@
 # Solomonar CLI v0.1: architecture
 
-Status: draft, 2026-10-21. How the `solomonar` binary is built. The interface (commands, flags, output, exit codes,
+Status: accepted, 2026-10-21. How the `solomonar` binary is built. The interface (commands, flags, output, exit codes,
 validation) is fixed by [the interface spec](interface.md) (cited as `I §n`); this document does not restate it.
 When the two differ, the interface spec wins for behavior and this document wins for structure. Decisions here are
 `AD-n`; questions still open are in section 13.
@@ -53,8 +53,9 @@ Clarifications the implementation settles this way unless the spec says otherwis
 ## 3. Toolchain
 
 - **Go 1.27.3**, the latest stable patch (go.dev/doc/devel/release, 2026-10-19), as `go.mod` declares.
-- **No module dependencies** in increments 1 and 2 (AD-1). Development tools are pinned in `Taskfile.yml`
-  (section 10) and never enter `go.mod`.
+- **No production dependencies** in increments 1 and 2 (AD-1). The only module dependency is test-only:
+  `github.com/stretchr/testify` v1.12.1, packages `assert` and `require` (AD-14), added with the first test.
+  Development tools are pinned in `Taskfile.yml` (section 10) and never enter `go.mod`.
 
 | Need | Standard library | Note |
 |---|---|---|
@@ -76,7 +77,7 @@ Section 10 enforces these with lint rules.
 
 | ID | Decision | Rationale | Rejected alternative |
 |---|---|---|---|
-| AD-1 | Zero module dependencies for increments 1 and 2. | The standard library covers every need in section 3; the framework treats each dependency as a decision (rules §3). | Cobra or Kong (AD-2); go-git (AD-3); a prompt library (CLI-D5). |
+| AD-1 | No production dependencies for increments 1 and 2; the binary links only the standard library. | The standard library covers every need in section 3; the framework treats each dependency as a decision (rules §3). | Cobra or Kong (AD-2); go-git (AD-3); a prompt library (CLI-D5). |
 | AD-2 | `flag.FlagSet` per leaf command, a static command table, hand-written help, and an interspersed-arguments helper (about 40 lines). | The interface fixes every help line, error envelope, and exit code, so a framework's generated help and error handling would be overridden, not used. The tree is two levels deep with one alias. | Cobra: interspersed flags for free, but pflag, `SilenceErrors`/`SilenceUsage`, custom exit mapping, and a dependency for about 20 commands. Reconsider only for shell completion. |
 | AD-3 | Git and `gh` through their executables, never a Go Git library. | Atomic `update-ref <new> <old>` and `git worktree list --porcelain` are the contract (rules §7); the user's Git configuration and identity apply; Git ≥ 2.40 is already required. | go-git: no worktree parity, a second implementation of the swap semantics, a large dependency. |
 | AD-4 | Commands return data or a typed error; one renderer writes human or JSON form; `main` alone calls `os.Exit`. | One place enforces the envelope (I §3.4) and the exit table (I §3.5); packages stay testable. | Printing inside domain code: the two output forms would drift. |
@@ -89,6 +90,7 @@ Section 10 enforces these with lint rules.
 | AD-11 | Platforms: macOS and Linux. Windows is deferred. | Windows changes hook command quoting, path handling in the guard, and terminal detection; no user needs it yet. | Windows from the start. |
 | AD-12 | Distribution: `go install github.com/madalinpopa/solomonar@vX.Y.Z` now; release binaries built with `-trimpath` from a tag when there is a first release. | AD-10 makes both carry the right version without extra flags. A release tool is a build tool and stays out of `go.mod`. | Package managers before a first release. |
 | AD-13 | The entry point is `main.go` at the module root, not `cmd/solomonar/main.go`; it also holds `//go:embed assets` and passes the tree to `cli.Run` in `Env`. | The repository holds one binary, which is the official layout for "a command with supporting packages" (go.dev/doc/modules/layout); the install path shortens to the module path; the `assets` package and its global disappear. | `cmd/solomonar/`: meant for repositories with several binaries. A `cmd` package holding the command handlers (the Cobra convention): in Go, `cmd/<name>` means a `main` package, so it misleads readers and `go install ./cmd/...`. |
+| AD-14 | Tests use testify: `require` when the test cannot continue after a failure (errors, setup), `assert` for the remaining checks. `mock` and `suite` are not used. | Author decision, 2026-10-21. Shorter, uniform assertions with readable diffs (`assert.JSONEq` for the `--json` envelopes). Without `mock` and `suite`, tests keep real repositories and plain test functions (section 11). | The standard `testing` package alone. |
 
 ## 5. Layout and packages
 
@@ -297,7 +299,9 @@ the name, at most 100 characters per line), and nothing requires one (revive `ex
 
 | Rule | Encodes |
 |---|---|
-| depguard `stdlib-only`: only the standard library and this module | AD-1 |
+| depguard `stdlib-only`: only the standard library and this module outside tests | AD-1 |
+| depguard `tests`: tests may also import testify `assert` and `require`, never `mock` or `suite` | AD-14 |
+| testifylint (all checkers): `require` for errors, argument order, specific assertions | AD-14 |
 | depguard `banned`: no `reflect`, `unsafe`, `log`, `log/slog` outside tests | Section 3 |
 | depguard `exec-only-in-git`: `os/exec` only in `internal/git` | AD-3 |
 | depguard `nothing-imports-cli`, `task-without-project`, `git-is-a-leaf` | Section 5 dependency direction |
@@ -323,10 +327,11 @@ the name, at most 100 characters per line), and nothing requires one (revive `ex
 | Git facts | Fact checks (I §8.3), `task status` facts and drift (I §9) | Real repositories in `t.TempDir()` built by helpers (`newRepo`, `commit`, `worktree`), isolated with `t.Setenv("GIT_CONFIG_GLOBAL", …)` and author and committer variables. |
 | Concurrency | The swap loop (UC-21) | Two goroutines register against one repository; both succeed with distinct IDs; run with `-race`. A second test: re-validation rejects a concurrent claim of the same planned ID. |
 | Project files | Plans, conflicts, the upgrade table (UC-9), `With` sections, adapters | `fstest.MapFS` as the catalog; temp directories as projects; assert on `Plan` values, then on files after `Apply`; rollback tested with a write that fails midway. |
-| Use cases | Every UC of the increment, human and JSON forms, exit codes | In-process `cli.Run` with buffers, a fixed clock, and `os.DirFS` of `assets/`; JSON compared structurally; a few human outputs as golden files in `testdata/`, refreshed with `-update`. |
+| Use cases | Every UC of the increment, human and JSON forms, exit codes | In-process `cli.Run` with buffers, a fixed clock, and `os.DirFS` of `assets/`; JSON compared with `assert.JSONEq`; a few human outputs as golden files in `testdata/`, refreshed with `-update`. |
 | Prompts | Line prompts, `interactive_required` | `Env.Interactive` and a `strings.Reader` as stdin. |
 
-Tests require `git` ≥ 2.40 on `PATH` and fail with that message otherwise. `gh` is never called in tests:
+Assertions use testify (AD-14); test helpers that build repositories take `t`, call `t.Helper()`, and use
+`require`. Tests require `git` ≥ 2.40 on `PATH` and fail with that message otherwise. `gh` is never called in tests:
 `--no-forge`, or a fake `gh` script placed first on `PATH`.
 
 Deferred: transcript tests (`rsc.io/script` or `testscript`). The use cases are transcripts, so they would fit,
@@ -338,7 +343,7 @@ Increment 1 of I §10: `init`, every `task` command, `version`, `help`. Each ste
 
 | Step | Objective and scope | Acceptance criteria | Tests |
 |---|---|---|---|
-| 1 | **Skeleton.** `main.go` (AD-13), `cli.Run`, command table, interspersed parsing, shared flags, help, `version`, `cli.Error`, envelope, exit codes. | `solomonar version` prints UC-24 outside a project; `solomonar nope` exits 2; `--json` prints one envelope; `-h` on any command prints its help. | Use-case tests for UC-24, usage errors, envelope shape. |
+| 1 | **Skeleton.** `main.go` (AD-13), `cli.Run`, command table, interspersed parsing, shared flags, help, `version`, `cli.Error`, envelope, exit codes; testify enters `go.mod` with the first test. | `solomonar version` prints UC-24 outside a project; `solomonar nope` exits 2; `--json` prints one envelope; `-h` on any command prints its help. | Use-case tests for UC-24, usage errors, envelope shape. |
 | 2 | **Git runner.** `internal/git`: run with context and stdin, `-v` trace, repository discovery from `-C` and worktrees, Git version check. | The main checkout and a feature worktree resolve the same common directory; Git < 2.40 is reported. | Temp repositories with a worktree. |
 | 3 | **Registry model and rules.** `task` types, strict decoding, validation, I §8.1 and §8.2 as tables, CLI-D16 invariant, field rules, ID allocation. No Git. | Every row of I §8.1 and §8.2 is accepted or rejected with its I §8.4 code. | Table tests only. |
 | 4 | **Store, `task plan`, `task show`.** Swap loop, commit subjects (I §8.5), push with warning; registry creation as a function (used by tests now, by `init` in step 8). | UC-11, UC-16 (`show`), UC-21 pass; a lost swap re-validates; a newer `schema_version` is `cli_outdated`; a cancel before the swap writes nothing, a cancel during the push exits 0 with `push_interrupted`. | Concurrency test with `-race`; push to a bare remote and to a missing one; cancellation through the test's context. |

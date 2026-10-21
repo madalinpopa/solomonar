@@ -29,6 +29,7 @@ linters:
     - predeclared
     - revive
     - tagliatelle
+    - testifylint
     - thelper
     - unconvert
     - unparam
@@ -41,9 +42,18 @@ linters:
       rules:
         stdlib-only:
           list-mode: strict
+          files: ["$all", "!$test"]
           allow:
             - $gostd
             - github.com/madalinpopa/solomonar
+        tests:
+          list-mode: strict
+          files: ["$test"]
+          allow:
+            - $gostd
+            - github.com/madalinpopa/solomonar
+            - github.com/stretchr/testify/assert
+            - github.com/stretchr/testify/require
         banned:
           list-mode: lax
           files: ["$all", "!$test"]
@@ -160,6 +170,9 @@ linters:
       case:
         rules:
           json: snake
+
+    testifylint:
+      enable-all: true
 
   exclusions:
     generated: strict
