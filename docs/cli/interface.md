@@ -775,6 +775,7 @@ Postconditions: the files exist uncommitted on main; each chosen group has an ap
 }
 ```
 
+`choices.runtimes` is sorted; `choices.adversarial_model` maps each runtime with a model to it (`{runtime: model}`).
 `reason` appears in a `files` item only when the change has one. `decisions` is `[]` when no stack decision is made.
 `git_init` (the plan runs `git init`, UC-4) and `first_commit_required` (empty repository, UC-4) are always present.
 `registry.commit` is the tip and `registry.pushed` is `false` when the registry is `unchanged`. With `--dry-run` the
@@ -805,6 +806,20 @@ may contain commas. A relative `<dir>` is joined to `-C`, an absolute one is use
 root of the worktree containing `<dir>`. The help's usage ends `[--git-init] [-y|--yes] [--dry-run] [--json]`, and its
 description ends `--git-init runs git init -b <main-branch> when <dir> is not a repository.`
 
+`--runtime` takes `claude`, `codex`, or `none`. Another value is `unknown_runtime` (exit 2, `init rejected`), check
+`--runtime names a known runtime`, found `"<v>" is not a runtime; known: claude, codex`, fix `pass --runtime claude,
+codex, or none`; `none` beside another value is `invalid_value`, check `--runtime names runtimes or none`, found `none
+cannot be combined with <v>`, fix `pass --runtime none alone`. Without `--runtime`, a project with a manifest keeps
+its runtimes; otherwise the default is each of `claude`, `codex` whose executable is found on `PATH`.
+
+`--adversarial-model <runtime>=<model>` takes one value per flag (no comma splitting) and is recorded as
+`runtimes.<r>.adversarial_model` (4.7); a runtime given twice keeps the last value. A value without `=` or with an
+empty side is `invalid_value`, check `--adversarial-model is <runtime>=<model>`, found `"<v>" has no "="`, `"<v>" has
+an empty runtime`, or `"<v>" has an empty model`, fix `pass --adversarial-model claude=<model>`. A runtime not
+selected, an unknown name included, is `invalid_value`, check `--adversarial-model names a selected runtime`, found
+`<r> is not selected`, fix `add --runtime <r> or drop the model` naming that runtime. Models start from the
+manifest's models for the selected runtimes, with the requested ones applied on top.
+
 ```
 $ solomonar init --runtime claude --ext go,tdd --objective "Track shared household expenses" --yes
 Initialized solomonar 0.1.0 in /work/ledger
@@ -822,7 +837,19 @@ The warning goes to stderr. The success form is `Initialized solomonar <fw> in <
 `  registry  refs/heads/workflow-state @ <sha>` (`  registry  refs/heads/workflow-state @ <tip> unchanged`, with no
 `pushed` line, when an existing registry is reused), `  pushed    <remote>/workflow-state` when pushed, a blank
 line, and `Next:`: step 1 is `git add <generated paths> && git commit -m "chore: initialize solomonar <fw>"`, step 2
-the top-level session start.
+the top-level session start. The paths are `AGENTS.md`, then `CLAUDE.md` (only when this run creates it), `.claude`
+(claude), `.agents` and `.codex` (codex), then `.solomonar docs`. Step 2 depends on the runtimes:
+
+- claude only: `  2. Start a top-level Claude Code session in <root>:`, then
+  `       /solomonar Explore the next useful flow.`;
+- codex only: `  2. Start a top-level Codex session in <root>:`, then
+  `       $solomonar Explore the next useful flow.`;
+- both (UC-1): `  2. Start a top-level session in <root> with your selected outcome:`, then
+  `       Claude Code: /solomonar Explore the next useful flow.`,
+  `       Codex:       $solomonar Explore the next useful flow.`, and
+  `       Portable:    Use the solomonar skill to explore the next useful flow.`;
+- none: `  2. Start a top-level session in <root>:`, then
+  `       Use the solomonar skill to explore the next useful flow.`
 A failed push is a warning, exit 0 (F-09).
 
 Without a terminal and without `--yes`:
@@ -840,8 +867,10 @@ refs/heads/workflow-state with an empty state.json`, or `  registry   unchanged 
 existing registry), then, with no blank line, `Would initialize solomonar <fw> in <root>` and `  <counts>`, and
 writes nothing.
 
-Checks run in this order: usage and values; the repository (`not_a_repository`, UC-4) and the Git version; the
-manifest (`cli_outdated`, `manifest_invalid`); the recorded choices (`already_initialized`, UC-3), after which
+Checks run in this order: usage and values (`--runtime`: `unknown_runtime`, then `none` combined; the
+`--adversarial-model` syntax; `--ext`); the repository (`not_a_repository`, UC-4) and the Git version; the manifest
+(`cli_outdated`, `manifest_invalid`); the runtime selection (requested, else the manifest's, else `PATH`) and the
+unselected-runtime model check; the recorded choices (`already_initialized`, UC-3), after which
 choices not given come from the manifest, else the worktree root's base name, `main`, and `origin`; the registry
 (absent: create; valid: reuse; invalid: `registry_exists_invalid`; newer: `cli_outdated`); the plan (`invalid_value`
 from `--keep`/`--overwrite`) and its conflicts (`file_conflict`); `--dry-run`; the confirmation; the file apply; the
@@ -873,14 +902,17 @@ error: init rejected (already_initialized)
 nothing was written
 ```
 
-Exit 3. The first differing choice is reported, in the order name, main branch, remote, runtimes, extensions, with
-no check line. Found is `manifest <field> <value>; requested <value>` with the field `name`, `main_branch`, `remote`,
-`runtimes`, or `extensions`; strings are quoted (`manifest name "ledger"; requested "billing"`), lists are sorted
-(`[go, tdd]`), and an empty list is `none`. Runtimes and extensions are compared as sets, sorted with duplicates
-dropped; a list given as `none` counts as given and is compared (`manifest extensions [go]; requested none`); only a
-choice not given is filled from the manifest. The fix is `rerun without --name; init never changes choices` (likewise
-`--main-branch`, `--remote`), ``change runtimes with `solomonar runtime add|remove`; init never changes choices``, or
-``change extensions with `solomonar extension add|remove`; init never changes choices``. `--objective` is not a
+Exit 3. The first differing choice is reported, in the order name, main branch, remote, runtimes, extensions,
+adversarial models, with no check line. Found is `manifest <field> <value>; requested <value>` with the field `name`,
+`main_branch`, `remote`, `runtimes`, or `extensions`; strings are quoted (`manifest name "ledger"; requested
+"billing"`), lists are sorted (`[go, tdd]`), and an empty list is `none`. Runtimes and extensions are compared as
+sets, sorted with duplicates dropped; a list given as `none` counts as given and is compared (`manifest extensions
+[go]; requested none`); only a choice not given is filled from the manifest. A given adversarial model that differs
+from the manifest's is found as `manifest adversarial_model <r> "<v>"; requested "<v>"`, with `none` for an absent
+model. The fix is `rerun without --name; init never changes choices` (likewise `--main-branch`, `--remote`),
+``change runtimes with `solomonar runtime add|remove`; init never changes choices``, ``change extensions with
+`solomonar extension add|remove`; init never changes choices``, or ``change models with `solomonar runtime add
+<runtime> --adversarial-model <model>`; init never changes choices``. `--objective` is not a
 recorded choice and is ignored on a re-run (`docs/README.md` is a seed).
 
 A managed file edited since installation whose offered content is unchanged is shown as `keep` and is not a
