@@ -16,7 +16,7 @@ type versionData struct {
 	RegistrySchema   *int    `json:"registry_schema"`
 }
 
-func runVersion(_ context.Context, env Env, args []string) (output, error) {
+func runVersion(_ context.Context, env Env, _ sharedFlags, args []string) (output, error) {
 	if len(args) > 0 {
 		return output{}, unexpectedArgument(args[0])
 	}
