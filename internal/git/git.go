@@ -22,6 +22,12 @@ type Repo struct {
 // ErrNotFound is the error of a command whose executable is not on PATH.
 var ErrNotFound = exec.ErrNotFound
 
+// OnPath reports whether program's executable is found on PATH.
+func OnPath(program string) bool {
+	_, err := exec.LookPath(program)
+	return err == nil
+}
+
 // Error is a git or gh command that failed.
 type Error struct {
 	Program  string
