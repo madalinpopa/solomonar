@@ -217,6 +217,12 @@ func presentFields(r *Record) []string {
 	return present
 }
 
+func statuses() []Status {
+	return []Status{
+		StatusPlanned, StatusReserved, StatusRunning, StatusBlocked, StatusPaused, StatusCancelled, StatusDone,
+	}
+}
+
 func stages() []Stage {
 	return []Stage{
 		StageSetup, StageSpecification, StageImplementation, StageSpecializedReview,
