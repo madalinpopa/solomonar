@@ -103,8 +103,11 @@ behavior.
 
 - The CLI locates the repository with `git rev-parse --git-common-dir`, so it works from the main checkout or any
   feature worktree. The registry ref is shared by all worktrees.
-- Project settings (main branch, remote) come from `.solomonar/manifest.json` in the current worktree; defaults
-  are `main` and `origin`.
+- Project settings (main branch, remote) come from `.solomonar/manifest.json` in the current worktree root;
+  defaults are `main` and `origin`, used only when the manifest is absent. Task commands read it after locating
+  the repository and checking Git, before the registry: a newer manifest is `cli_outdated` (exit 3), an invalid
+  one `manifest_invalid` (exit 1), under the command's usual label (`task move W-001 rejected` or `failed`), and
+  nothing is written.
 - A command that needs the repository fails outside one with `not_a_repository` (exit 3), message
   `<absolute path> is not a Git repository`, fix "run inside a Git repository or pass -C <path>".
 - Requirements: Git 2.40 or later, otherwise `git_too_old` (exit 1, fix "install git 2.40 or later"); `gh`
@@ -2006,6 +2009,7 @@ rejection) unless the command was cancelled; any other Git failure is `unexpecte
 | `not_a_repository` | 3 | `-C` or the working directory is not in a Git repository | run inside a Git repository or pass `-C <path>` |
 | `not_initialized` | 3 | No `refs/heads/workflow-state` | `solomonar init` |
 | `registry_invalid` | 1 | `state.json` fails the schema | inspect with `git show refs/heads/workflow-state:state.json`; never edit it by hand |
+| `manifest_invalid` | 1 | `.solomonar/manifest.json` fails strict decoding or the 4.7 validation | inspect .solomonar/manifest.json; never edit it by hand |
 | `task_not_found` | 3 | Unknown ID | `solomonar task show` |
 | `not_planned` | 3 | `register <ID>` on a non-planned record | `solomonar task show <ID>; resume the task instead` |
 | `not_registered` | 3 | `task handoff` on a `planned` task; found `<ID> is planned` | `solomonar task register <ID> --title <title> --owner <new-owner>` |
