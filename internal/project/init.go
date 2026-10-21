@@ -21,18 +21,21 @@ type Requested struct {
 
 // InitPlan plans init's files and builds the manifest, whose change comes last (I §4.7).
 func InitPlan(root *os.Root, existing *Manifest, wants []Want, keep, overwrite []string, p Project,
-	framework string,
+	runtimes map[string]Runtime, framework string,
 ) (Plan, *Manifest, error) {
 	plan, files, err := Classify(root, existing, wants, keep, overwrite)
 	if err != nil {
 		return Plan{}, nil, err
 	}
 	files[ManifestPath] = File{Owner: "manifest"}
+	if runtimes == nil {
+		runtimes = map[string]Runtime{}
+	}
 	manifest := &Manifest{
 		SchemaVersion:    ManifestSchemaVersion,
 		FrameworkVersion: framework,
 		Project:          p,
-		Runtimes:         map[string]Runtime{},
+		Runtimes:         runtimes,
 		Extensions:       map[string]Extension{},
 		Files:            files,
 	}
