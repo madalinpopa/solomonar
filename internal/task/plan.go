@@ -1,13 +1,14 @@
 package task
 
 import (
+	"cmp"
 	"fmt"
 	"time"
 )
 
 // Plan adds a planned task under the next free ID and returns the ID and the commit subject.
 func (r *Registry) Plan(title string, dependsOn []string, related string, now time.Time) (id, subject string, err error) {
-	if err := r.checkReferences(dependsOn, related); err != nil {
+	if err := cmp.Or(checkTitle(title), r.checkReferences(dependsOn, related)); err != nil {
 		return "", "", err
 	}
 	id = nextTaskID(r)
