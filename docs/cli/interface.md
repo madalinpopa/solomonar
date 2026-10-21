@@ -1270,7 +1270,7 @@ The header is `<ID>  <from status/stage> → <to>`, or `<ID>  <status>/<stage>` 
 A detail line follows for every changed field other than status and stage, in record order, labels aligned two
 spaces past the longest label: `spec <path> (found in <worktree>)`, `revision <sha> (on feature/<ID>)`, `tier <n>:
 <meaning>` (0 `no review stages`, 1 `specialists only`, 2 `specialists, then adversarial`), `agents <id> <role>, …`
-or `agents none`, `pr <value>`, `next <actor>: <action>`; then the subject and the registry line. The `spec` line
+or `agents none`, `next <actor>: <action>`, `pr <value>`; then the subject and the registry line. The `spec` line
 reads `(found in <worktree>)` when the spec is in the worktree, and `(found at <short revision>)` when it is found
 only at the recorded revision.
 
@@ -1378,10 +1378,22 @@ W-001  blocked/implementation → running/implementation
   registry @ 4f6a8c0e2b4d6f8a1c3e5b7d9f0a2c4e6b8d1f3a
 ```
 
+`--json` data has the `task move` shape: `{"id": "W-001", "from": {"status": "running", "stage": "implementation"},
+"to": {"status": "blocked", "stage": "implementation"}, "changed": ["status", "blockers", "next_action"], "record":
+{ }, "commit": "<sha>", "pushed": true}` for the block above; `changed` lists `blockers` (never `last_blocker`) in
+record order, with `status` and `next_action` when they change.
+
 Rules: blocker IDs are `B-n`, stable within the task, never reused (the record's `last_blocker` holds the
 highest `n` issued); `--kind decision` requires `--ref <ID>/D-n`; `--summary` is at most 80 characters;
-`--status blocked` requires at least one open blocker after the write; `unblock --status` accepts only the prior
-status (8.1).
+`block --status` accepts only `blocked` (anything else is `invalid_value`, fix `pass --status blocked, or use task
+move`); `--status blocked` requires at least one open blocker after the write; `unblock --status` accepts only the
+prior status (8.1); unblocking the last open blocker of a `blocked` task without `--status`, or with `--status
+blocked`, is `blockers_required` (exit 3, check `a blocked task needs an open blocker`, found `no open blocker`, fix
+`pass --status <prior status>`, e.g. `pass --status running`): the CLI never picks the status. An ID
+that is not an open blocker of the task, unknown or malformed, is `blocker_not_found` (exit 3, found `<blocker ID>
+is not an open blocker of <ID>`, fix `solomonar task show <ID>`). Both commands check, in order, that the task
+exists, `done_final`, and ownership (`--as` / `SOLOMONAR_OWNER`, as `task move`), then apply the blocker change and
+the `--status`/`--next` shorthand as one validated write.
 
 ### UC-16 Inspect state
 
@@ -1722,8 +1734,8 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `spec_required` | 3 | `implementation` without `spec` | pass `--spec` |
 | `spec_not_found` | 3 | The spec is neither a regular file in the `feature/<ID>` worktree nor a blob at the recorded revision; found names where it looked (`<spec> is not in the feature/<ID> worktree or at the recorded revision`, or only the one present), or `no worktree on feature/<ID> and no recorded revision to look for <spec>` | commit the work spec in the worktree |
 | `next_required` | 3 | Pause or cancel without `--next` | pass `--next <actor>:<action>` |
-| `blockers_required` | 3 | `blocked` without an open blocker | `task block` first, or pass `--status blocked` to it |
-| `blocker_not_found` | 3 | Unknown blocker ID | `task show <ID>` |
+| `blockers_required` | 3 | `blocked` without an open blocker, including after the last `unblock` | `task block` first, or pass `--status blocked` to it; on `unblock`, pass `--status <prior status>` |
+| `blocker_not_found` | 3 | The ID is not an open blocker of the task (unknown or malformed); found `<blocker ID> is not an open blocker of <ID>` | `solomonar task show <ID>` |
 | `blockers_open` | 3 | `task done` with open blockers | `task unblock` |
 | `cancelled_requires_flag` | 3 | Resuming a cancelled task without the flag | `--resume-cancelled`, on the user's instruction |
 | `handoff_same_owner` | 3 | Handoff to the current owner | - |
@@ -1754,7 +1766,7 @@ previous tip.
 |---|---|
 | `task plan` | `plan "<title>"` |
 | `task register` | `registered by <owner>` |
-| `task move` | every changed field, comma-separated, in record order (the order of the JSON `changed` list): `status <status>`, `stage <stage>`, `spec <path>`, `revision <short 7>`, `tier <n>`, `agents <id> <id>…` (space-separated) or `agents none` when cleared, `pr <value as stored>`, `next <actor>` |
+| `task move` | every changed field, comma-separated, in record order (the order of the JSON `changed` list): `status <status>`, `stage <stage>`, `spec <path>`, `revision <short 7>`, `tier <n>`, `agents <id> <id>…` (space-separated) or `agents none` when cleared, `next <actor>`, `pr <value as stored>` |
 | `task block` | `block B-n <kind>` |
 | `task unblock` | `unblock B-n` |
 | `task handoff` | `handoff <old> -> <new>` |
