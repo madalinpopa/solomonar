@@ -850,8 +850,13 @@ Next:
        Portable:    Use the solomonar skill to explore the next useful flow.
 ```
 
-Prompts: `init` prompts when stdin and stdout are terminals and neither `--yes` nor `--json` is set (3.7). Choices
-are prompted only without a manifest (a re-run takes them from it and asks none), each only when its flag was not
+Prompts: `init` prompts when stdin and stdout are terminals and neither `--yes` nor `--json` is set (3.7). It first
+prints the header `solomonar <cli version> · framework <fw> · <dir> (git, branch <b>)` and a blank line: `<cli
+version>` as `solomonar version` prints it, `<dir>` the worktree root (outside a repository, the absolute target
+directory as given, symlinks not resolved, the path `not_a_repository` names), `<b>` the current branch (also
+unborn); `(git, detached HEAD)` when detached, `(not a Git repository)` outside one. The header is printed on every
+prompting run, including a re-run that ends `Already initialized …`, but not when opening the repository fails with
+an error other than `not_a_repository`. Choices are prompted only without a manifest (a re-run takes them from it and asks none), each only when its flag was not
 given, in this order and with the texts above; each prompt's default is the one the flag would take (UC-2). One blank
 line separates each asked block: the name and objective, the runtimes, the models, the extensions paragraph, and
 each group.
@@ -1085,7 +1090,9 @@ error: /work/ledger is not a Git repository (not_a_repository)
   fix: run `git init -b main` first, or rerun with --git-init
 ```
 
-Interactively, the same condition asks `Initialize a Git repository here with main branch "main"? [y/N]`.
+Interactively, without `--git-init`, the same condition asks `Initialize a Git repository here with main branch
+"<main-branch>"? [y/N]` (default No): yes continues exactly as `--git-init`; no ends its block with a blank line,
+then prints `Cancelled; nothing was written.` and exits 0 (3.7). This question is its own block.
 
 Non-interactively, `--git-init` plans against `<dir>` as the root (it must exist), with no manifest check against
 Git and the registry `create`; the plan's first line is `  git        init -b <main-branch>` (`"git_init": true`).
@@ -1102,6 +1109,14 @@ Existing unmanaged `AGENTS.md`: the default is adoption, the existing content mo
 AGENTS.md exists and is not managed by solomonar.
   Adopt it: write the framework part above "## Project notes" and move the current content into that section? [Y/n]
 ```
+
+Interactively, an unmanaged `AGENTS.md` planned for adoption and not named by `--overwrite` asks this question
+(default Yes) before the plan display, unless the plan has other conflicts: then `file_conflict` is reported as
+non-interactively. No asks `  Replace it with the framework template, discarding its content? [y/N]` in the same
+block, with no blank line between them: yes plans again as with `--overwrite AGENTS.md`; no ends the block with a
+blank line, then prints `Cancelled; nothing was written.` and exits 0, keeping warnings such as
+`jujutsu_detected`. `--dry-run` asks neither and shows the adoption. The adoption block and the `git init` question
+are separate blocks, each separated by a blank line (UC-1).
 
 Non-interactively, adoption is the default with `--yes`; `--overwrite AGENTS.md` on this unmanaged file writes the
 full template and discards the old content; `--keep AGENTS.md` is rejected, because the framework cannot run without
