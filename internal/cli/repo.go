@@ -11,7 +11,10 @@ import (
 )
 
 // defaultRemote stands in until the manifest names the remote and main branch (step 8).
-const defaultRemote = "origin"
+const (
+	defaultRemote     = "origin"
+	defaultMainBranch = "main"
+)
 
 func openStore(ctx context.Context, env Env, flags sharedFlags) (*task.Store, error) {
 	var trace io.Writer
