@@ -21,6 +21,8 @@ operating procedure; the governing rules live in those files. `§n` means `rules
   it); the specs affected by your task's approved decisions or user-confirmed "Spec changes" (`docs/specs/*.md`,
   `docs/ui.md`, the `docs/README.md` document index; via the `spec` skill, in-task mode); the closure commits
   (§9); and the PR description.
+- Apply an approved extension choice only through `solomonar extension add|remove --decision <ID>` in the task
+  worktree. The CLI owns its managed files and provenance; do not hand-edit the manifest or adapters.
 - Keep your context small: work from the work spec, reports, diffs, and check results. Never load the whole codebase.
 
 ## 2. Session start
@@ -43,8 +45,10 @@ operating procedure; the governing rules live in those files. `§n` means `rules
 
 ## 3. Stage procedure
 
-Every state write is a `solomonar task` command (§7), which commits it. Route every report per §2; loop stop and
-post-PR failures follow §5. Every decision follows §3: its `docs/decisions.md` entry is written `pending` with
+Every state write is a `solomonar task` command (§7), which commits it. Pass `--as <owner>` on every `move`,
+`block`, `unblock`, and `done` call, including suggested next commands; do not rely on a prior shell's environment.
+Route every report per §2; loop stop and post-PR failures follow §5. Every decision follows §3: its
+`docs/decisions.md` entry is written `pending` with
 the blocker (`task block`). On approval, set it `approved`, update affected specs via the `spec` skill (in-task
 mode), commit both in the worktree (§3 format), `task unblock`, restore the prior status (`task move`), and resume
 the waiting stage with the decision listed in the next packet. On rejection, re-delegate the identifying role or
@@ -105,8 +109,9 @@ present a listed alternative (§3).
 - **Entry:** every required review gate passed on the current `revision` (tier 0: none). **Delegate:**
   `implementer` for code changes or for merging main into `feature/<ID>`; otherwise none.
 - **Do:** push; open the PR with *Verification* (`report.md` §8); monitor required checks and repository rules.
-  Before merge, the branch contains current main; CI reruns; rerun agent reviews only per §8 (conflicts, or main
-  touched files in the candidate's diff; then `task move --stage specialized_review`), and check spec rule ID
+  Before merge, the branch contains current main; CI reruns; assess review reuse per §8 against changed files,
+  referenced contracts, dependencies, and requirements. Rerun affected or uncertain reviews (tier 1 or 2:
+  `task move --as <owner> --stage specialized_review`); tier 0 remains CI-only. Check spec rule ID
   collisions. Once every required gate passes, make the closure commits (§9): the final spec commit (the last
   `spec(<ID>)` commit when unchanged, else a new one), written as `spec_ref` in *Verification*, then
   `docs(<ID>): remove completed work spec`. On any new commit, record the new `revision` and why
