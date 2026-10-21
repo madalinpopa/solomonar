@@ -17,15 +17,23 @@ const (
 )
 
 func openStore(ctx context.Context, env Env, flags sharedFlags) (*task.Store, error) {
+	repo, err := openRepo(ctx, env, flags, flags.dir, "run inside a Git repository or pass -C <path>")
+	if err != nil {
+		return nil, err
+	}
+	return &task.Store{Git: repo, Remote: defaultRemote}, nil
+}
+
+// openRepo discovers the repository containing dir and checks the Git version.
+func openRepo(ctx context.Context, env Env, flags sharedFlags, dir, fix string) (*git.Repo, error) {
 	var trace io.Writer
 	if flags.verbose {
 		trace = env.Stderr
 	}
-	repo, err := git.Discover(ctx, flags.dir, trace)
+	repo, err := git.Discover(ctx, dir, trace)
 	if errors.Is(err, git.ErrNotRepository) {
 		return nil, &Error{
-			Code: "not_a_repository", Exit: 3, Message: absDir(flags.dir) + " is not a Git repository",
-			Fix: "run inside a Git repository or pass -C <path>", Err: err,
+			Code: "not_a_repository", Exit: 3, Message: absDir(dir) + " is not a Git repository", Fix: fix, Err: err,
 		}
 	}
 	if err != nil {
@@ -36,7 +44,7 @@ func openStore(ctx context.Context, env Env, flags sharedFlags) (*task.Store, er
 	} else if err != nil {
 		return nil, err
 	}
-	return &task.Store{Git: repo, Remote: defaultRemote}, nil
+	return repo, nil
 }
 
 func absDir(dir string) string {
