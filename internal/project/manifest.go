@@ -110,39 +110,92 @@ func Hash(content []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func checkVersions(data []byte, framework string) error {
-	var header struct {
-		SchemaVersion    jsontext.Value `json:"schema_version"`
-		FrameworkVersion jsontext.Value `json:"framework_version"`
+// ManifestVersions reads the manifest's schema and framework versions without the newer-than checks.
+func ManifestVersions(data []byte) (schema int, framework string, err error) {
+	header, err := decodeHeader(data)
+	if err != nil {
+		return 0, "", err
 	}
+	if schema, err = header.schema(); err != nil {
+		return 0, "", err
+	}
+	if framework, err = header.framework(); err != nil {
+		return 0, "", err
+	}
+	return schema, framework, nil
+}
+
+// NewerFramework reports whether the project framework version is newer than the shipped one.
+func NewerFramework(project, shipped string) (bool, error) {
+	projectParts, ok := parseVersion(project)
+	if !ok {
+		return false, fmt.Errorf("compare framework versions: project version %q is not major.minor.patch", project)
+	}
+	shippedParts, ok := parseVersion(shipped)
+	if !ok {
+		return false, fmt.Errorf("compare framework versions: embedded version %q is not major.minor.patch", shipped)
+	}
+	return slices.Compare(projectParts, shippedParts) > 0, nil
+}
+
+type versionHeader struct {
+	SchemaVersion    jsontext.Value `json:"schema_version"`
+	FrameworkVersion jsontext.Value `json:"framework_version"`
+}
+
+func decodeHeader(data []byte) (versionHeader, error) {
+	var header versionHeader
 	if err := json.Unmarshal(data, &header, jsontext.AllowDuplicateNames(true)); err != nil {
-		return invalidManifest("decode manifest.json: %v", err)
+		return versionHeader{}, invalidManifest("decode manifest.json: %v", err)
 	}
-	if header.SchemaVersion == nil {
-		return invalidManifest("schema_version is missing")
+	return header, nil
+}
+
+func (h versionHeader) schema() (int, error) {
+	if h.SchemaVersion == nil {
+		return 0, invalidManifest("schema_version is missing")
 	}
 	var schema int
-	if err := json.Unmarshal(header.SchemaVersion, &schema); err != nil || schema < 1 {
-		return invalidManifest("schema_version %s is not a positive integer", header.SchemaVersion)
+	if err := json.Unmarshal(h.SchemaVersion, &schema); err != nil || schema < 1 {
+		return 0, invalidManifest("schema_version %s is not a positive integer", h.SchemaVersion)
+	}
+	return schema, nil
+}
+
+func (h versionHeader) framework() (string, error) {
+	if h.FrameworkVersion == nil {
+		return "", invalidManifest("framework_version is missing")
+	}
+	var version string
+	err := json.Unmarshal(h.FrameworkVersion, &version)
+	if _, ok := parseVersion(version); err != nil || !ok {
+		return "", invalidManifest("framework_version %s is not major.minor.patch", h.FrameworkVersion)
+	}
+	return version, nil
+}
+
+func checkVersions(data []byte, framework string) error {
+	header, err := decodeHeader(data)
+	if err != nil {
+		return err
+	}
+	schema, err := header.schema()
+	if err != nil {
+		return err
 	}
 	if schema > ManifestSchemaVersion {
 		return outdated("manifest schema version",
 			fmt.Sprintf("manifest schema %d, this CLI supports %d", schema, ManifestSchemaVersion))
 	}
-	if header.FrameworkVersion == nil {
-		return invalidManifest("framework_version is missing")
+	version, err := header.framework()
+	if err != nil {
+		return err
 	}
-	var version string
-	err := json.Unmarshal(header.FrameworkVersion, &version)
-	project, ok := parseVersion(version)
-	if err != nil || !ok {
-		return invalidManifest("framework_version %s is not major.minor.patch", header.FrameworkVersion)
+	newer, err := NewerFramework(version, framework)
+	if err != nil {
+		return err
 	}
-	shipped, ok := parseVersion(framework)
-	if !ok {
-		return fmt.Errorf("compare framework versions: embedded version %q is not major.minor.patch", framework)
-	}
-	if slices.Compare(project, shipped) > 0 {
+	if newer {
 		return outdated("manifest framework version",
 			fmt.Sprintf("manifest framework %s, this CLI ships %s", version, framework))
 	}
