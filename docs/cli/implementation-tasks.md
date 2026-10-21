@@ -622,9 +622,69 @@ Decisions (author, 2026-10-21):
 
 - [x] `InitPlan`: `Classify`, the manifest built from its entries, the manifest change (I §4.7, AD-6)
 - [x] `CheckChoices` and `already_initialized` (UC-3)
-- Stage 8.6 `[ ]` — `init` command: flags, check order, registry check and creation after file apply, rollback until
-  the CAS (F-09), `--keep`/`--overwrite`/`--dry-run`/`--yes`, `interactive_required`, `file_conflict`,
-  `registry_exists_invalid`, human and JSON output, `Next:` (UC-2, UC-3, non-interactive UC-4)
+
+### Stage 8.6 — `init` command (`internal/cli`; UC-2, UC-3, non-interactive UC-4) `[x]`
+
+Decisions (author, 2026-10-21):
+- usage `solomonar init [<dir>] [--name <name>] [--objective <text>] [--runtime none] [--ext none] [--main-branch
+  <name>] [--remote <name>] [--keep <path>]... [--overwrite <path>]... [-y|--yes] [--dry-run] [--json]`; `<dir>`
+  resolves against `-C`; files are written at the worktree root found from it; `--runtime`/`--ext` are repeatable
+  and comma-separated; `--adversarial-model` (9.1) and `--git-init` (8.7) are not registered yet;
+- step-8 values: any `--runtime` value but `none` is `unknown_runtime`, any `--ext` value but `none` is
+  `unknown_extension`, both exit 2, message `init rejected`, check `--runtime names an available runtime` / `--ext
+  names an available extension`, found `"<v>" is not available; available: none`, fix `pass --runtime none` /
+  `pass --ext none`; given `none` is an empty requested list, not given is nil;
+- check order: usage and values; repository (`not_a_repository`, fix ``run `git init -b <main-branch>` first``,
+  completed in 8.7), Git version; manifest (`cli_outdated`, `manifest_invalid`); `CheckChoices`
+  (`already_initialized`), then unspecified name, main branch, remote come from the manifest, else the worktree root's
+  base name, `main`, `origin`; the registry: absent → `create`, valid → `unchanged`, `registry_invalid` →
+  `registry_exists_invalid` (exit 3, check `an existing workflow-state holds a valid registry`, the registry's found,
+  fix `inspect with git show refs/heads/workflow-state:state.json; the CLI never overwrites a registry`),
+  `cli_outdated` as is; `CoreWants` and `InitPlan` (`invalid_value` from `--keep`/`--overwrite`); conflicts
+  (`file_conflict`); `--dry-run`; confirmation; `Apply`; `task.Store.Create` with the chosen remote when the
+  registry is absent; on any failure before the CAS succeeds (a failed create, cancellation) `Journal.Rollback` and
+  the error (`interrupted` 130/143 or `unexpected_error`), the rollback error joined; a failed push is the store's
+  warning, exit 0 (F-09);
+- `file_conflict` (exit 4): stdout carries `Plan` and one line per conflict; message `init found <n> conflict(s)`,
+  check `no planned file conflicts with the project's files`, found `<n> conflict(s): <p1>, <p2>`, fix `rerun with
+  --keep <path> to keep the project's file, or --overwrite <path> to replace it`; `render` writes `out.text` on
+  failure too (JSON keeps `data` absent);
+- confirmation: needed only when the plan creates or updates a file or creates the registry; without `--yes` that is
+  `interactive_required` (exit 2), message `init needs a confirmation`, fix `pass --yes to accept the plan, or
+  --dry-run to print it`;
+- human output, plan lines `  <action padded to 9>  <path>` plus, when the change has a reason, two spaces and the
+  reason with paths padded to the widest path that has a reason; the registry line `  registry   create
+  refs/heads/workflow-state with an empty state.json` or `  registry   unchanged refs/heads/workflow-state`; counts
+  `<n> file(s) <first action>, <n> <action>, …` over the non-zero actions in the order created, updated, kept,
+  unchanged, skipped (the manifest counts);
+  - success: `Initialized solomonar <fw> in <root>`, `  <counts>`, `  registry  refs/heads/workflow-state @ <sha>`
+    (`… unchanged` when reused), `  pushed    <remote>/workflow-state` when pushed, a blank line, `Next:`, `  1. git add
+    AGENTS.md .solomonar docs && git commit -m "chore: initialize solomonar <fw>"`, `  2. Start a top-level session in
+    <root>:`, `       Use the solomonar skill to explore the next useful flow.`; warnings on stderr;
+  - nothing to write and the registry reused: `Already initialized with solomonar <fw>; nothing to do.`, `  <counts> ·
+    registry refs/heads/workflow-state unchanged`, ``  Change choices with `solomonar runtime|extension add|remove`;
+    move versions with `solomonar upgrade`.``;
+  - `--dry-run`: `Plan`, every file line, the registry line, then `Would initialize solomonar <fw> in <root>` and
+    `  <counts>`;
+- JSON data `{"project", "framework_version", "choices": {"runtimes": [], "extensions": {}, "adversarial_model": {}},
+  "decisions": [], "files": [{"path", "action", "owner", "reason"?}], "registry": {"ref", "commit", "action",
+  "pushed"}, "next": ["git add AGENTS.md .solomonar docs", "git commit -m \"chore: initialize solomonar <fw>\""]}`;
+  `registry.commit` is the tip when unchanged; with `--dry-run` `"dry_run": true`, `registry` `{"ref", "action"}`,
+  no `next`; a no-op has `next` `[]`.
+- also: a reused registry reads `  registry  refs/heads/workflow-state @ <tip> unchanged` with no `pushed` line and
+  JSON `pushed` `false`; `--dry-run` shows `  registry   unchanged refs/heads/workflow-state` for an existing
+  registry, no blank line before `Would initialize …`; counts are singular for one and only the first carries
+  `file`/`files`; the no-op form needs the registry to exist and no create, update, or remove (otherwise the normal
+  path and the confirmation); `--runtime`/`--ext` split on commas, `--keep`/`--overwrite` take one path per flag; a
+  relative `<dir>` joins `-C`, an absolute one is used as is; `openRepo(ctx, env, flags, dir, fix)` is shared with
+  `openStore`; `registry_exists_invalid` is a `task.Rejection`, `unknown_*` a `project.Rejection`; the stage ran to
+  about 900 lines, accepted by the author. I §3.3, UC-1, UC-2, UC-3, architecture §7, §8 updated to match.
+
+- [x] `init` in the command table and help; flags, values, check order, the registry, apply, rollback until the CAS
+- [x] human and JSON output, `file_conflict` with the plan on stdout, `interactive_required`
+- [x] tests: UC-2 core-only, UC-3 no-op and `already_initialized`, an interrupted init completed by adoption, F-02
+  `keep`, conflicts with `--keep`/`--overwrite`, `registry_exists_invalid`, `--dry-run`, F-09 (a failing manifest
+  write creates no ref; a failing CAS restores every file; a failing push warns, exit 0)
 - Stage 8.7 `[ ]` — `--git-init` (moved from 10.2), the `not_a_repository` fix of UC-4, an empty repository's
   `Next:`, the `.jj/` warning (UC-4)
 - Stage 8.8 `[ ]` — task commands read `main_branch` and `remote` from the manifest (architecture §7 step 2)
