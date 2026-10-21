@@ -343,7 +343,27 @@ the `--merge` fix is `git rev-parse <value>`. UC-20, I §8.3, I §8.4, I §9.1, 
 - [x] `spec_ref` checks: `spec_ref_invalid`, `spec_ref_not_final` with the derived `spec_ref` (I §8.3, C14)
 - [x] `Registry.DoneTask`: state and flag checks above, compact record, subject (UC-20, rules §7, §9)
 
-- Stage 6.5 `[ ]` — `task done` command (UC-20)
+### Stage 6.5 — `task done` command (UC-20) `[x]`
+
+Decisions (author, 2026-10-21): JSON `changed` lists every record field that differs between the record before and
+the compact record (added, changed, or removed), in record order; the human `Compact record` block is the record
+as indented JSON (two spaces, record field order), each line prefixed by two spaces.
+
+Decisions (author, 2026-10-21): `--as` resolves like `task move`; usage errors before
+the store opens, in this order: `task ID is required`, `--merge is required`, `--spec-ref is required`, `--summary
+is required`; rejections read `task done <ID> rejected`; the human form is the UC-20 example: `Verified` with the
+lines `merge     <m8> is a merge commit reachable from <main>`, `revision  <r8> is contained in the merge`,
+`spec_ref  resolves; <s8> is the last spec(<ID>) commit merged`, then the `task move` header, the subject, the
+registry line, `Compact record`, and, when a worktree has `feature/<ID>` checked out, `Next: delete the worktree
+only after confirming it holds no uncommitted or unmerged work:` and `  git worktree remove <path>` (the
+conventional sibling path in the `task register` form, otherwise the worktree's absolute path); `--dry-run` prints
+`Verified`, `Would complete ` before the header, the subject, and `Compact record`, without the registry line and
+the `Next:` lines; `--json` has the `task move` shape (`record` is the compact record), with the `changed` above; `changed` leaves out `last_blocker` and `updated_at` like the other
+commands; a `done` record gets no detail lines; the worktree lookup for `Next:` runs before the write; `task.Worktree`
+exports the worktree lookup. UC-20 updated to match.
+
+- [x] `task done <ID> --merge --spec-ref --summary [--as] [--json] [--dry-run]` in the command table and help
+- [x] UC-20 human output, `--dry-run`, JSON, rejections end to end, `merge_not_merge_commit` on a squash
 
 ## Step 7: `task status`
 
