@@ -75,7 +75,7 @@ if (story) {
 }
 
 // Code examples remain readable when clipboard access or JavaScript is unavailable.
-if (navigator.clipboard) document.querySelectorAll("pre:has(code)").forEach((pre) => {
+if (navigator.clipboard) document.querySelectorAll(".doc-content pre:has(code), pre.copyable").forEach((pre) => {
   const button = document.createElement("button");
   button.className = "copy-button";
   button.type = "button";
