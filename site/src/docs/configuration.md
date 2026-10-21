@@ -1,6 +1,6 @@
 ---
-title: Configuration and files
-description: Understand the portable project layout, runtime adapters, and the small set of CLI controls.
+title: Configuration and runtime adapters
+description: Reference Solomonar environment variables, specification files, project layout, and planned runtime adapters for Claude Code and Codex.
 kind: Reference
 group: Understand
 order: 4
