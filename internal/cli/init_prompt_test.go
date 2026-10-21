@@ -58,6 +58,11 @@ func screen(t *testing.T, out string) string {
 	}
 }
 
+// repoHeader is the header of an interactive init in dir on branch main.
+func repoHeader(dir string) string {
+	return "solomonar devel · framework 0.1.0 · " + dir + " (git, branch main)\n\n"
+}
+
 const extensionsIntro = "\nExtensions, by decision type. A choice in a stack group is recorded as your approved decision in\n" +
 	"docs/decisions.md. Enter with nothing selected skips a group; add more later with\n" +
 	"`solomonar extension add`.\n"
@@ -74,7 +79,7 @@ func TestInteractiveInitUC1(t *testing.T) {
 	transcript := screen(t, got.stdout)
 	prompts, rest, ok := strings.Cut(transcript, "Plan\n")
 	require.True(t, ok, transcript)
-	assert.Equal(t, "Project name ["+filepath.Base(dir)+"]: Current objective, one line (optional): \n"+
+	assert.Equal(t, repoHeader(dir)+"Project name ["+filepath.Base(dir)+"]: Current objective, one line (optional): \n"+
 		"Runtimes that will run this project's sessions:\n"+
 		"    [x] claude  Claude Code: CLAUDE.md import, .claude/skills, .claude/agents, state guard hook\n"+
 		"    [x] codex   Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook\n"+
@@ -127,7 +132,7 @@ func TestInteractiveInitAsksOnlyForMissingFlags(t *testing.T) {
 
 			require.Equal(t, 0, got.exit, got.stderr)
 			prompts := strings.ReplaceAll(tt.prompts, "<base>", filepath.Base(dir))
-			assert.True(t, strings.HasPrefix(screen(t, got.stdout), prompts+"Plan\n"), got.stdout)
+			assert.True(t, strings.HasPrefix(screen(t, got.stdout), repoHeader(dir)+prompts+"Plan\n"), got.stdout)
 			assert.Contains(t, got.stdout, "Proceed? [Y/n] \nInitialized solomonar 0.1.0 in ")
 		})
 	}
@@ -139,7 +144,7 @@ func TestInteractiveInitRerunAsksNoChoices(t *testing.T) {
 	got := runInteractive(t, repoAssets(t), dir, "", "init")
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.True(t, strings.HasPrefix(got.stdout, "Already initialized with solomonar 0.1.0; nothing to do.\n"),
+	assert.True(t, strings.HasPrefix(got.stdout, repoHeader(dir)+"Already initialized with solomonar 0.1.0; nothing to do.\n"),
 		got.stdout)
 }
 
@@ -176,7 +181,7 @@ func TestInteractiveInitDeclinedWritesNothing(t *testing.T) {
 		"init", "--name", "ledger", "--objective", "Track", "--runtime", "none", "--ext", "none")
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.True(t, strings.HasPrefix(got.stdout, "Plan\n"), got.stdout)
+	assert.True(t, strings.HasPrefix(got.stdout, repoHeader(dir)+"Plan\n"), got.stdout)
 	assert.True(t, strings.HasSuffix(got.stdout,
 		"  registry   create refs/heads/workflow-state with an empty state.json\n"+
 			"Proceed? [Y/n] \nCancelled; nothing was written.\n"), got.stdout)
@@ -192,13 +197,13 @@ func TestInteractiveInitDryRunAsksChoicesWithoutConfirmation(t *testing.T) {
 
 	require.Equal(t, 0, got.exit, got.stderr)
 	transcript := screen(t, got.stdout)
-	assert.True(t, strings.HasPrefix(transcript,
+	assert.True(t, strings.HasPrefix(transcript, repoHeader(dir)+
 		"Project name ["+filepath.Base(dir)+"]: Current objective, one line (optional): \n"+
-			"Runtimes that will run this project's sessions:\n"+
-			"    [ ] claude  Claude Code: CLAUDE.md import, .claude/skills, .claude/agents, state guard hook\n"+
-			"    [ ] codex   Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook\n"+
-			extensionsIntro+
-			"\nLanguage:\n    [ ] go  Go language rules\n\nPlan\n"), transcript)
+		"Runtimes that will run this project's sessions:\n"+
+		"    [ ] claude  Claude Code: CLAUDE.md import, .claude/skills, .claude/agents, state guard hook\n"+
+		"    [ ] codex   Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook\n"+
+		extensionsIntro+
+		"\nLanguage:\n    [ ] go  Go language rules\n\nPlan\n"), transcript)
 	assert.Contains(t, transcript, "\nWould initialize solomonar 0.1.0 in "+dir+"\n")
 	assert.NotContains(t, transcript, "Proceed?")
 	assertNothingWritten(t, dir, before, tip)
@@ -230,5 +235,166 @@ func TestInteractiveInitFailsOnClosedInput(t *testing.T) {
 
 	assert.Equal(t, 1, got.exit)
 	assert.Contains(t, got.stderr, "read answer: input closed")
+	assertNothingWritten(t, dir, before, tip)
+}
+
+// givenChoices answers every init choice by flag, so only the 10.3 questions and Proceed? remain.
+func givenChoices(extra ...string) []string {
+	return slices.Concat([]string{"init", "--name", "ledger", "--objective", "Track", "--runtime", "none", "--ext", "none"},
+		extra)
+}
+
+func TestInteractiveInitHeaderNamesTheRepositoryState(t *testing.T) {
+	tests := []struct {
+		name  string
+		setup func(t *testing.T) string
+		args  []string
+		where string
+	}{
+		{name: "branch", setup: committedRepo, where: "(git, branch main)"},
+		{name: "unborn branch", setup: unbornFeatureRepo, where: "(git, branch feature)"},
+		{name: "detached HEAD", setup: func(t *testing.T) string {
+			t.Helper()
+			dir := committedRepo(t)
+			gittest.Git(t, dir, "switch", "--detach")
+			return dir
+		}, where: "(git, detached HEAD)"},
+		{name: "not a repository", setup: plainDir, args: []string{"--git-init"}, where: "(not a Git repository)"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := tt.setup(t)
+			gittest.NoGH(t)
+
+			got := runInteractive(t, repoAssets(t), dir, "", givenChoices(append(tt.args, "--dry-run")...)...)
+
+			require.Equal(t, 0, got.exit, got.stderr)
+			assert.True(t, strings.HasPrefix(got.stdout,
+				"solomonar devel · framework 0.1.0 · "+dir+" "+tt.where+"\n\nPlan\n"), got.stdout)
+		})
+	}
+}
+
+func TestInteractiveInitOutsideRepositoryAsksToInitializeGit(t *testing.T) {
+	tests := []struct {
+		name   string
+		args   []string
+		input  string
+		prompt string
+		branch string
+	}{
+		{
+			name: "default main branch", input: "y\ny\n", branch: "main",
+			prompt: "Initialize a Git repository here with main branch \"main\"? [y/N] \n",
+		},
+		{
+			name: "named main branch", args: []string{"--main-branch", "trunk"}, input: "y\ny\n", branch: "trunk",
+			prompt: "Initialize a Git repository here with main branch \"trunk\"? [y/N] \n",
+		},
+		{name: "--git-init given", args: []string{"--git-init"}, input: "y\n", branch: "main"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := plainDir(t)
+
+			got := runInteractive(t, repoAssets(t), dir, tt.input, givenChoices(tt.args...)...)
+
+			require.Equal(t, 0, got.exit, got.stderr)
+			assert.True(t, strings.HasPrefix(got.stdout,
+				"solomonar devel · framework 0.1.0 · "+dir+" (not a Git repository)\n\n"+tt.prompt+
+					"Plan\n  git        init -b "+tt.branch+"\n"), got.stdout)
+			assert.Contains(t, got.stdout, "Proceed? [Y/n] \nInitialized solomonar 0.1.0 in "+dir+"\n")
+			assert.Contains(t, got.stdout, "  1. First commit required before task worktrees:\n")
+			assert.Equal(t, "refs/heads/"+tt.branch, gittest.Git(t, dir, "symbolic-ref", "HEAD"))
+			assert.Equal(t, tt.branch, manifestOf(t, dir).Project.MainBranch)
+		})
+	}
+}
+
+func TestInteractiveInitDeclinedGitInitWritesNothing(t *testing.T) {
+	dir := plainDir(t)
+
+	got := runInteractive(t, repoAssets(t), dir, "n\n", givenChoices()...)
+
+	require.Equal(t, 0, got.exit, got.stderr)
+	assert.Equal(t, "solomonar devel · framework 0.1.0 · "+dir+" (not a Git repository)\n\n"+
+		"Initialize a Git repository here with main branch \"main\"? [y/N] \n"+
+		"Cancelled; nothing was written.\n", got.stdout)
+	assert.NoDirExists(t, filepath.Join(dir, ".git"))
+	assert.Empty(t, tree(t, dir))
+}
+
+const (
+	adoptQuestion = "AGENTS.md exists and is not managed by solomonar.\n" +
+		"  Adopt it: write the framework part above \"## Project notes\" and move the current content into " +
+		"that section? [Y/n] "
+	replaceQuestion = "  Replace it with the framework template, discarding its content? [y/N] "
+)
+
+func TestInteractiveInitAsksToAdoptAgentsMD(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    []string
+		input   string
+		prompts string
+		plan    string
+		adopted bool
+	}{
+		{
+			name: "adopt", input: "\ny\n", prompts: adoptQuestion + "\n", adopted: true,
+			plan: "  update     AGENTS.md  adopted; existing content moved under \"## Project notes\"\n",
+		},
+		{
+			name: "replace", input: "n\ny\ny\n", prompts: adoptQuestion + replaceQuestion + "\n",
+			plan: "  update     AGENTS.md\n",
+		},
+		{
+			name: "--overwrite AGENTS.md", args: []string{"--overwrite", "AGENTS.md"}, input: "y\n",
+			plan: "  update     AGENTS.md\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := committedRepo(t)
+			gittest.NoGH(t)
+			writeFile(t, dir, "AGENTS.md", "# Our agents\n")
+
+			got := runInteractive(t, repoAssets(t), dir, tt.input, givenChoices(tt.args...)...)
+
+			require.Equal(t, 0, got.exit, got.stderr)
+			assert.True(t, strings.HasPrefix(got.stdout, repoHeader(dir)+tt.prompts+"Plan\n"), got.stdout)
+			assert.Contains(t, got.stdout, tt.plan)
+			agents := tree(t, dir)["AGENTS.md"]
+			assert.Equal(t, tt.adopted, strings.Contains(agents, "## Project notes\n\n# Our agents\n"), agents)
+			assert.Equal(t, tt.adopted, strings.Contains(agents, "# Our agents"), agents)
+		})
+	}
+}
+
+func TestInteractiveInitDryRunShowsAdoptionWithoutAsking(t *testing.T) {
+	dir := committedRepo(t)
+	gittest.NoGH(t)
+	writeFile(t, dir, "AGENTS.md", "# Our agents\n")
+	before, tip := tree(t, dir), refTip(t, dir)
+
+	got := runInteractive(t, repoAssets(t), dir, "", givenChoices("--dry-run")...)
+
+	require.Equal(t, 0, got.exit, got.stderr)
+	assert.True(t, strings.HasPrefix(got.stdout, repoHeader(dir)+"Plan\n"), got.stdout)
+	assert.Contains(t, got.stdout,
+		"  update     AGENTS.md  adopted; existing content moved under \"## Project notes\"\n")
+	assertNothingWritten(t, dir, before, tip)
+}
+
+func TestInteractiveInitDeclinedAdoptionAndReplaceWritesNothing(t *testing.T) {
+	dir := committedRepo(t)
+	gittest.NoGH(t)
+	writeFile(t, dir, "AGENTS.md", "# Our agents\n")
+	before, tip := tree(t, dir), refTip(t, dir)
+
+	got := runInteractive(t, repoAssets(t), dir, "n\nn\n", givenChoices()...)
+
+	require.Equal(t, 0, got.exit, got.stderr)
+	assert.Equal(t, repoHeader(dir)+adoptQuestion+replaceQuestion+"\nCancelled; nothing was written.\n", got.stdout)
 	assertNothingWritten(t, dir, before, tip)
 }
