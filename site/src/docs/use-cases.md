@@ -125,7 +125,7 @@ Add no dependency or new export format.
 
 **Situation:** you want to remember CSV export for later, then work on independent outcomes in separate sessions.
 
-**Terminal — in an initialized project:**
+**Terminal, in an initialized project:**
 
 ```sh
 solomonar task plan --title "Export expenses as CSV"
@@ -155,7 +155,7 @@ solomonar task plan --title "Export expenses as CSV" --depends-on W-001
 
 The orchestrator presents the options and records a decision such as `W-001/D-1`, a blocker, and the next action for you. Dependent work waits; independent authorized work can continue.
 
-**Agent prompt — in the session that requested the decision:**
+**Agent prompt, in the session that requested the decision:**
 
 ```text
 For W-001/D-1, I approve the proposed SQLite option for local persistence.
@@ -170,7 +170,7 @@ This is an illustrative answer: use the option and decision ID actually presente
 
 **Situation:** CSV export passed review, but another task changed a shared policy function from returning a string to returning an object. The two tasks edited different files.
 
-**Agent prompt — to the owning orchestrator:**
+**Agent prompt, to the owning orchestrator:**
 
 ```text
 Main changed the policy result used by this exporter. Integrate current
@@ -188,7 +188,7 @@ Required reviewers examine the same stable candidate. A correction creates a new
 
 **Situation:** you need to stop while CSV export is being implemented.
 
-**Agent prompt — in its current session:**
+**Agent prompt, in its current session:**
 
 ```text
 Pause W-001. Preserve the current work and record what remains to do.
@@ -196,7 +196,7 @@ Pause W-001. Preserve the current work and record what remains to do.
 
 On a later visit, inspect the stored record:
 
-**Terminal — in the same initialized project:**
+**Terminal, in the same initialized project:**
 
 ```sh
 solomonar task show W-001
@@ -221,7 +221,7 @@ If ownership must change, explicitly request the handoff and confirm the previou
 
 The orchestrator keeps the final work specification in a dedicated spec commit, records its `spec_ref` in the PR, then makes a separate commit removing the active work-spec file. The PR merges with a **merge commit** so both remain in history. Only after the merge is verified does `task done` write `done / complete`.
 
-**Check the result — in the terminal:**
+**Check the result in the terminal:**
 
 ```sh
 solomonar task show W-001
