@@ -266,6 +266,7 @@ type CatalogExtension struct {
 
 type Catalog map[string]CatalogExtension
 
+func Groups() []string
 func LoadCatalog(assets fs.FS) (Catalog, error)
 func (c Catalog) Resolve(names []string) ([]string, error)
 func Render(content []byte, self string, installed []string, decision string) ([]byte, []string)
@@ -318,6 +319,7 @@ manifest built from the entries, and appends the manifest change last (I §4.5);
 `create` or `append` per document, `unchanged` for the existing manifest's `decision` files on a re-run; `Records`
 feeds the JSON `decisions` (I §5 UC-1), `ByGroup` the `ExtensionWants` decisions, `Index` the README lines for the
 documents it creates (`Choices.Documents`).
+`Groups` lists the extension groups in I §4.3 order.
 `LoadCatalog` decodes and checks every `extensions/<group>/<name>/extension.json` (I §4.3, a defect is `read catalog
 <dir>: …`), `Resolve` returns the sorted unique selection or the first of its three rejections, and `Render` keeps
 the satisfied `## With` sections, adds the provenance line, and returns the kept names (`rendered_with`).
