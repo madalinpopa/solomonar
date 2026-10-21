@@ -65,6 +65,7 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
   # A release made with GITHUB_TOKEN triggers no other workflow, so the site is rebuilt here with the new version.
   site:
