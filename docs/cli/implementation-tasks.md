@@ -68,7 +68,22 @@ Stage 3.1 does not include the transition rules or the `reserved`-at-`setup` inv
       `tier_required`; a stage changes only while `running` (`reserved` only at `setup`)
 - [x] Invariant: `reserved` exactly while at `setup` (CLI-D16)
 - [x] Allowed next statuses and stages from the same tables, for `allowed_next` (AD-8, I §9.3)
-- Stage 3.3 `[ ]` — Field rules, ID allocation, blocker IDs
+### Stage 3.3 — ID allocation and flag values `[x]`
+
+Decision (author, 2026-10-21): blocker IDs are never reused because the record's `last_blocker` holds the
+highest number issued (rules §7, I UC-15). `--next` and `--agent` split at the first `:`; `--pr` is a positive
+number or an `https://` URL, stored as given; `--agent` roles are checked against installed roles in stage 5.2.
+
+- [x] Next task ID: highest `W-NNN` plus one, at least three digits (I UC-11)
+- [x] `last_blocker` in the record: decoding, validation, next blocker ID `B-n` (I UC-15)
+- [x] Flag value parsing: `--agent <id>:<role>` and `none`, `--next <actor>:<action>`, `--tier <0|1|2>`,
+      `--revision` full SHA, `--pr <url|number>`, blocker `--kind`, `--ref`, `--summary` (I §8.4
+      `invalid_value`, `revision_not_full_sha`)
+
+### Stage 3.4 — `Record.Move` and field rules `[ ]`
+
+- [ ] `Move` input applied to a copy, then `checkTransition`; `changed` fields; `updated_at` from the clock
+- [ ] Field rules of I §8.2 and `spec_required`, `revision_required`, `next_required`, `blockers_required`
 
 ## Step 4: Store, `task plan`, `task show`
 
