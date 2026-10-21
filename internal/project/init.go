@@ -22,12 +22,21 @@ type Requested struct {
 
 // InitPlan plans init's files and builds the manifest, whose change comes last (I §4.7).
 func InitPlan(root *os.Root, existing *Manifest, wants []Want, keep, overwrite []string, p Project,
-	runtimes map[string]Runtime, extensions map[string]Extension, framework string,
+	runtimes map[string]Runtime, extensions map[string]Extension, decisions Decisions, framework string,
 ) (Plan, *Manifest, error) {
 	plan, files, err := Classify(root, existing, wants, keep, overwrite)
 	if err != nil {
 		return Plan{}, nil, err
 	}
+	for i, c := range plan.Changes {
+		if c.Path == "docs/README.md" && c.Action == ActionSkip && len(decisions.Index) > 0 {
+			if plan.Changes[i], err = indexReadme(root, c, decisions.Index); err != nil {
+				return Plan{}, nil, err
+			}
+		}
+	}
+	plan.Changes = append(plan.Changes, decisions.Changes...)
+	maps.Copy(files, decisions.Files)
 	files[ManifestPath] = File{Owner: "manifest"}
 	if runtimes == nil {
 		runtimes = map[string]Runtime{}
@@ -59,6 +68,19 @@ func InitPlan(root *os.Root, existing *Manifest, wants []Want, keep, overwrite [
 	}
 	plan.Changes = append(plan.Changes, change)
 	return plan, manifest, nil
+}
+
+// indexReadme adds the index lines to a present README's documents section, or says where they go.
+func indexReadme(root *os.Root, skip Change, index []string) (Change, error) {
+	content, _, err := readDocument(root, skip.Path)
+	if err != nil {
+		return Change{}, err
+	}
+	if added, ok := addDocuments(content, index); ok {
+		return Change{Path: skip.Path, Action: ActionAppend, Owner: skip.Owner, Content: added}, nil
+	}
+	skip.Reason = `exists; add under "` + documentsHeading + `": ` + strings.Join(index, "; ")
+	return skip, nil
 }
 
 // CheckChoices rejects the first requested choice that differs from the manifest (UC-3).
