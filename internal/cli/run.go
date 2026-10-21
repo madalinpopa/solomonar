@@ -51,6 +51,7 @@ func commands() []command {
 			bind: withoutFlags(runVersion),
 		},
 		taskPlanCommand(),
+		taskRegisterCommand(),
 		taskShowCommand(),
 	}
 }
