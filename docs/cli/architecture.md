@@ -271,8 +271,8 @@ invalid one is rejected without touching either the registry or project files (I
   Unexpected failures are wrapped with `%w` and context (`read workflow-state: %w`) and become exit 1.
 - Each error is reported once, by `cli`; packages never log. `errors.As` is used only in `cli`. No error hierarchy
   beyond these types.
-- Git failures carry the command, exit status, and trimmed stderr; with `-v` the command line is traced before it
-  runs.
+- Git and `gh` failures carry the command, exit status, and trimmed stderr; with `-v` the command line is traced
+  before it runs, as `+ git …` or `+ gh …` (I §3.1).
 - Cancellation (CLI-D18): one context from `signal.NotifyContext(os.Interrupt, syscall.SIGTERM)`; after it is
   done, `main` calls `stop()` so a second signal ends the process. Local Git commands run without a time limit;
   `git push` and `gh` get 30 seconds each. Before the registry swap, cancellation rolls back `Apply` and exits
