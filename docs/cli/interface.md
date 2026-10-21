@@ -109,7 +109,7 @@ behavior.
   `<absolute path> is not a Git repository`, fix "run inside a Git repository or pass -C <path>".
 - Requirements: Git 2.40 or later, otherwise `git_too_old` (exit 1, fix "install git 2.40 or later"); `gh`
   optional. A colocated Jujutsu repository (`.jj/`) is a warning: v0.1 is Git-only (C6), and jj commands must not
-  be used on `workflow-state`.
+  be used on `workflow-state`. In v0.1 only `init` reports it (`jujutsu_detected`, UC-4) until `doctor` exists.
 
 ### 3.3 Human output
 
@@ -121,7 +121,8 @@ behavior.
   would write is adopted into the manifest and shown as `unchanged  <path>  adopted` (CLI-D17).
 - A plan line is `  <action padded to 9>  <path>`; when the change has a reason, two spaces and the reason follow,
   with paths padded to the widest path that has a reason. `init`'s registry line is `  registry   create
-  refs/heads/workflow-state with an empty state.json` or `  registry   unchanged refs/heads/workflow-state`.
+  refs/heads/workflow-state with an empty state.json` or `  registry   unchanged refs/heads/workflow-state`; with
+  `--git-init` the plan's first line is `  git        init -b <main-branch>` (UC-4).
 - A counts line is `<n> file(s) <first action>, <n> <action>, …` over the non-zero actions in the order created,
   updated, kept, unchanged, skipped; the manifest counts. Only the first count carries `file` (one) or `files`
   (`1 file created, 17 unchanged, 1 skipped`); a conflict count is `1 conflict` or `<n> conflicts`.
@@ -729,11 +730,14 @@ Postconditions: the files exist uncommitted on main; each chosen group has an ap
   "decisions": [{"id": "P/D-1", "group": "language", "selected": ["go"]}, {"id": "P/D-2", "group": "frontend", "selected": ["htmx", "templ"]}, {"id": "P/D-3", "group": "testing", "selected": ["tdd"]}],
   "files": [{"path": "AGENTS.md", "action": "create", "owner": "core+notes"}],
   "registry": {"ref": "refs/heads/workflow-state", "commit": "3a5c0d7e9f1b2a4c6d8e0f1a3b5c7d9e1f2a4b6c", "action": "create", "pushed": true},
+  "git_init": false,
+  "first_commit_required": false,
   "next": ["git add AGENTS.md CLAUDE.md .claude .agents .solomonar docs", "git commit -m \"chore: initialize solomonar 0.1.0\""]
 }
 ```
 
 `reason` appears in a `files` item only when the change has one. `decisions` is `[]` when no stack decision is made.
+`git_init` (the plan runs `git init`, UC-4) and `first_commit_required` (empty repository, UC-4) are always present.
 `registry.commit` is the tip and `registry.pushed` is `false` when the registry is `unchanged`. With `--dry-run` the
 data adds `"dry_run": true`, `registry` is `{"ref", "action"}`, and `next` is absent; a no-op (UC-3) has
 `"next": []`.
@@ -759,7 +763,8 @@ solomonar init [<dir>]
 
 `--runtime` and `--ext` split their values on commas; `--keep` and `--overwrite` take one path per flag, so a path
 may contain commas. A relative `<dir>` is joined to `-C`, an absolute one is used as is; the files are written at the
-root of the worktree containing `<dir>`.
+root of the worktree containing `<dir>`. The help's usage ends `[--git-init] [-y|--yes] [--dry-run] [--json]`, and its
+description ends `--git-init runs git init -b <main-branch> when <dir> is not a repository.`
 
 ```
 $ solomonar init --runtime claude --ext go,tdd --objective "Track shared household expenses" --yes
@@ -877,6 +882,15 @@ error: /work/ledger is not a Git repository (not_a_repository)
 
 Interactively, the same condition asks `Initialize a Git repository here with main branch "main"? [y/N]`.
 
+Non-interactively, `--git-init` plans against `<dir>` as the root (it must exist), with no manifest check against
+Git and the registry `create`; the plan's first line is `  git        init -b <main-branch>` (`"git_init": true`).
+The plan counts as a write, so it needs the confirmation or `--yes`; `--dry-run` never runs `git init`. After the
+confirmation `init` runs `git init -b <main-branch> <dir>`, then applies the files and creates the registry as in
+UC-2. A failure after `git init` rolls back the files but leaves the new `.git`; a re-run adopts the files
+(architecture §8). A failing `git init` is `unexpected_error` reading `git init: <git error>` (exit 1), with nothing
+written. A `file_conflict` under `--git-init` prints only the conflict lines, with no `git` line, like any conflict.
+Inside a repository `--git-init` is ignored.
+
 Existing unmanaged `AGENTS.md`: the default is adoption, the existing content moved under `## Project notes`:
 
 ```
@@ -902,12 +916,25 @@ Existing `CLAUDE.md` without `@AGENTS.md`: never modified (G10):
   skip      CLAUDE.md   exists; add this line so Claude Code loads the framework:  @AGENTS.md
 ```
 
-Other cases: an existing `docs/README.md` is `skip` (seed, project-owned); an empty repository with no commit on
-`main` initializes, and `Next` explicitly says "First commit required before task worktrees" and prints the
-commands to commit only the generated paths on the configured main branch. `doctor` reports the same missing
-baseline. An existing application whose commands are not recorded is not an empty repository: discover them
-without adding a new application baseline. A `.jj/` directory
-prints `warning: Jujutsu detected; v0.1 supports Git only. Never run jj commands on workflow-state.`
+Other cases: an existing `docs/README.md` is `skip` (seed, project-owned). An empty repository, where
+`refs/heads/<main-branch>` has no commit (always after `--git-init`), initializes; `Next:` step 1 is
+`  1. First commit required before task worktrees:` followed by the command lines indented seven spaces, committing
+only the generated paths on the main branch (`"first_commit_required": true`; `next` lists the same commands):
+
+```
+Next:
+  1. First commit required before task worktrees:
+       git switch --orphan main
+       git add AGENTS.md .solomonar docs && git commit -m "chore: initialize solomonar 0.1.0"
+```
+
+`git switch --orphan <main-branch>` comes first only when HEAD is not on `<main-branch>`; a detached HEAD counts as
+not on it. `doctor` reports the same
+missing baseline. An existing application whose commands are not recorded is not an empty repository: discover them
+without adding a new application baseline. A `.jj/` directory at the worktree root adds the warning
+`jujutsu_detected`, `warning: Jujutsu detected; v0.1 supports Git only. Never run jj commands on workflow-state.`
+(stderr, or the envelope's warnings), on every successful outcome, including `--dry-run` and the no-op; it comes
+before the registry's warnings (such as the no-remote warning).
 
 ### UC-5 Add, list, or remove a runtime
 
