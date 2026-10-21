@@ -12,6 +12,7 @@ const wantTopLevelHelp = `Usage: solomonar [global flags] <command> [flags] [arg
 Commands:
   help            Print help for a command
   version         Print CLI, embedded framework, and project framework versions
+  task move       Apply a validated status, stage, or field change
   task plan       Plan a task under the next free ID
   task register   Reserve a task for an orchestrator
   task show       Print the registry overview or one stored record
