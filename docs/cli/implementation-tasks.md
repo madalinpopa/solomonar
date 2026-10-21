@@ -1030,6 +1030,42 @@ Specs updated: I §3.3 (counts), UC-1 (JSON), UC-2 (`--ext`, defaults, check ord
 
 ## Step 10: Interactive `init`
 
-- Stage 10.1 `[ ]` — Line prompts and multi-select (I §3.7)
+### Stage 10.1 — Prompts: text, confirmation, key-driven multi-select (`internal/cli`, `main`; I §3.7, CLI-D5) `[x]`
+
+Decisions (author, 2026-10-21):
+- CLI-D5: text prompts and confirmations stay line-based; the multi-select is key-driven: ↑/↓ move, Space toggles,
+  Enter accepts (the number-typing form is dropped);
+- raw terminal mode comes from `golang.org/x/term` (`term.MakeRaw`/`term.Restore`), an AD-1 exception: the only
+  production dependency besides the standard library; depguard allows it.
+
+Decisions (author, 2026-10-21; orchestrator proposals confirmed):
+- `Env` gains `RawMode func() (restore func(), err error)`; `main` sets it from `term.MakeRaw(int(os.Stdin.Fd()))`;
+  tests inject a no-op; prompts run only when `Env.Interactive` (unchanged rule, I §3.7);
+- a `prompter` over `Env` (one `bufio.Reader` on `Stdin` shared by every prompt, `Stdout` for output):
+  - `text(label, def)`: prints `<label> [<def>]: `, or `<label>: ` when `def` is empty; the answer is trimmed, empty
+    gives `def`;
+  - `confirm(question, def)`: prints `<question> [Y/n] ` or `[y/N] `; `y`, `yes`, `n`, `no` in any case; empty gives
+    the default; anything else prints `  answer y or n` and asks again;
+  - `choose(items, selected)` with items `{name, description}`: in raw mode, lines `  > [x] <name>  <description>`
+    (`>` on the cursor row, two spaces elsewhere; names padded to the widest), then `  ↑/↓ move · Space toggle · Enter
+    accept`; keys: `ESC [ A`/`k` up, `ESC [ B`/`j` down (clamped, no wrap), Space toggles, `a` selects all, `n`
+    selects none, Enter (`\r` or `\n`) accepts, any other key is ignored; output uses `\r\n` (raw mode turns off
+    output processing); a redraw moves up over the list (`ESC [ <n> A`, `\r`, `ESC [ J`) and reprints; on accept the
+    list is redrawn once without the cursor marker and without the help line; the terminal is restored on every
+    return path;
+- end of input on any prompt is an unexpected error `read answer: input closed` (exit 1); Ctrl-C (byte 3) in the
+  multi-select returns `context.Canceled`, so the command ends `interrupted` (exit 130, I §3.5); in line prompts the
+  terminal is not raw and SIGINT follows CLI-D18;
+- no command uses the prompts until 10.2.
+also (implementer, confirmed): `golang.org/x/term v0.47.0` (`x/sys v0.49.0` indirect);
+`choose(items []choice, selected []string) ([]string, error)` works on names and returns the marked ones in item order
+(`[]` when none); rows keep the pointer column (two spaces when not on the cursor, so accepted rows read `    [x] …`)
+and trim trailing spaces; malformed escape sequences are ignored; a final line without a newline is input closed;
+Ctrl-C prints nothing; other read errors are `read answer: <err>`; `RawMode` errors pass through unwrapped (`main`
+adds `raw terminal:`); `choose` requires `Env.RawMode` (10.2 calls it only when interactive).
+Specs updated: I §3.7, UC-1 transcript, CLI-D5; architecture AD-1, §2, §3, §5 (`main`, `Env`), lint and test tables.
+
+- [x] `golang.org/x/term`, depguard, `Env.RawMode` in `main`
+- [x] `text`, `confirm`, `choose` with tests over byte streams (keys, redraws, defaults, re-ask, EOF, Ctrl-C)
 - Stage 10.2 `[ ]` — Interactive `init`, `AGENTS.md` adoption, the `git init` question, `interactive_required`
   (UC-1, UC-4)
