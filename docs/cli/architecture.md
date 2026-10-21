@@ -218,7 +218,7 @@ in disguise. `cli` recognizes both with `errors.As` and maps codes to exit class
 
 ```go
 // internal/project
-type Action string // create, update, unchanged, keep, remove, conflict, skip (I §3.3)
+type Action string // create, update, append (ActionAppend), unchanged, keep, remove, conflict, skip (I §3.3)
 
 type Change struct {
 	Path    string
@@ -243,6 +243,7 @@ func Classify(root *os.Root, m *Manifest, wants []Want, keep, overwrite []string
 type Choices struct {
 	Name, Objective, FrameworkVersion string
 	Extensions                        []CatalogExtension
+	Documents                         []string // README index lines (I §4.3)
 }
 
 func CoreWants(assets fs.FS, c Choices) ([]Want, error)
@@ -267,6 +268,21 @@ func Render(content []byte, self string, installed []string, decision string) ([
 func ExtensionWants(assets fs.FS, installed []CatalogExtension, decisions map[string]string) ([]Want,
 	map[string]Extension, error)
 
+type Decision struct {
+	ID, Group string
+	Selected  []string
+}
+
+type Decisions struct {
+	Changes []Change
+	Files   map[string]File
+	Records []Decision
+	ByGroup map[string]string
+	Index   []string
+}
+
+func PlanDecisions(root *os.Root, existing *Manifest, installed []CatalogExtension, date string) (Decisions, error)
+
 type Requested struct {
 	Name, MainBranch, Remote string
 	Runtimes, Extensions     []string
@@ -275,7 +291,8 @@ type Requested struct {
 
 func (m *Manifest) CheckChoices(r Requested) error
 func InitPlan(root *os.Root, existing *Manifest, wants []Want, keep, overwrite []string, p Project,
-	runtimes map[string]Runtime, extensions map[string]Extension, framework string) (Plan, *Manifest, error)
+	runtimes map[string]Runtime, extensions map[string]Extension, decisions Decisions,
+	framework string) (Plan, *Manifest, error)
 
 type Journal struct{ /* each touched path's previous content and mode, or its absence */ }
 
@@ -290,7 +307,13 @@ from `templates/`, rendered with `text/template`, with the `AGENTS.md` extension
 `RuntimeWants` returns the adapter stubs of I §4.2 per runtime, in the order `claude`, `codex`, extension skills and
 agents sorted with the core ones; a `CreateOnly` want (`CLAUDE.md`) present and unmanaged is `skip`, never a conflict,
 and `InitPlan` records `runtimes` and `extensions` (nil records `{}`) in the manifest.
-`InitPlan` runs `Classify`, builds the manifest from its entries, and appends the manifest change last (I §4.5).
+`InitPlan` runs `Classify`, puts the `decisions` changes after the classified wants, merges their files into the
+manifest built from the entries, and appends the manifest change last (I §4.5); it turns a present `docs/README.md`
+`skip` into `append` with `decisions.Index` under `## Documents`, or keeps the `skip` with the reason (I §4.3).
+`PlanDecisions` plans one `P/D-<n>` entry per stack group of the selection and the group document lines (I §4.3):
+`create` or `append` per document, `unchanged` for the existing manifest's `decision` files on a re-run; `Records`
+feeds the JSON `decisions` (I §5 UC-1), `ByGroup` the `ExtensionWants` decisions, `Index` the README lines for the
+documents it creates (`Choices.Documents`).
 `LoadCatalog` decodes and checks every `extensions/<group>/<name>/extension.json` (I §4.3, a defect is `read catalog
 <dir>: …`), `Resolve` returns the sorted unique selection or the first of its three rejections, and `Render` keeps
 the satisfied `## With` sections, adds the provenance line, and returns the kept names (`rendered_with`).
@@ -365,9 +388,10 @@ keeps `data` absent.
   init recovers by adopting identical files and preserving an existing registry (I UC-3).
 - Files: every project path goes through one `os.Root` opened at the worktree root. Nothing outside the repository
   is written except Git's own objects and refs.
-  - `Apply` acts only on `create`, `update`, and `remove`, in plan order, checking the context before each change. A
-    plan that disagrees with the disk is an error: `create` on an existing path, or `update`/`remove` on a missing or
-    non-regular path (checked with `Lstat`).
+  - `Apply` acts only on `create`, `update`, `append`, and `remove`, in plan order, checking the context before each
+    change; `append` writes the full new content, as `update` does. A plan that disagrees with the disk is an error:
+    `create` on an existing path, or `update`/`append`/`remove` on a missing or non-regular path (checked with
+    `Lstat`).
   - Each write is a temp file `.<name>.solomonar-tmp` in the target's directory, chmodded to its exact mode
     (permission bits only, independent of the umask), then renamed over the target; updates keep their mode, new
     files get `0o644`. Missing parent directories are created `0o755` one level at a time, each journaled.
