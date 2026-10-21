@@ -50,6 +50,14 @@ func interruptExit(ctx context.Context) int {
 	return 128 + int(syscall.SIGINT)
 }
 
+// rejectedAs names the rejected command with its arguments, as in "task show W-001 rejected".
+func rejectedAs(command string, err error) error {
+	if rejection, ok := errors.AsType[*task.Rejection](err); ok {
+		return rejectionError(command, rejection)
+	}
+	return err
+}
+
 func rejectionError(command string, rejection *task.Rejection) *Error {
 	exit := rejectionExit(rejection.Code)
 	message := command + " rejected"
