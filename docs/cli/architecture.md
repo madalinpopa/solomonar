@@ -234,6 +234,10 @@ type Want struct {
 
 func Classify(root *os.Root, m *Manifest, wants []Want, keep, overwrite []string) (Plan, map[string]File, error)
 
+type Choices struct{ Name, Objective, FrameworkVersion string }
+
+func CoreWants(assets fs.FS, c Choices) ([]Want, error)
+
 type Journal struct{ /* each touched path's previous content and mode, or its absence */ }
 
 func Apply(ctx context.Context, root *os.Root, p Plan) (*Journal, error)
@@ -241,6 +245,8 @@ func (j *Journal) Rollback() error
 ```
 
 `Classify` applies I §4.5's rules and returns the plan with the manifest `files` entries for the wanted paths.
+`CoreWants` returns the core files from `framework/` as `docs/solomonar/`, then `AGENTS.md` and `docs/README.md`
+from `templates/`, rendered with `text/template`.
 `Apply` returns its `Journal` so the caller can still roll back a successful apply until the registry CAS
 succeeds (AD-6, F-09).
 
