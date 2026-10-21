@@ -1,6 +1,6 @@
 ---
 name: work-spec
-description: Prepares or refines the specification of one registered task (feature, bug fix, refactor, or technical task) in `docs/work/<ID>-<slug>.md`, before or during its implementation. Use it in a task's `specification` stage, or when that task's scope or acceptance criteria must change. Do not use it to maintain the application specifications (use `spec`) or for prototyping (use `prototype`).
+description: Prepares or refines one registered task's work specification in `docs/work/`, before implementation or when its scope or acceptance criteria change. Use from the orchestrator in the task worktree; use `spec` for application-wide behavior and `prototype` for discovery.
 ---
 
 # Work-spec skill
@@ -35,14 +35,16 @@ Load only what the change touches:
    (slug: kebab-case of the title, e.g. `docs/work/W-001-login.md`). If `docs/work/<ID>-*.md` exists, refine it
    instead of replacing it. Read `docs/solomonar/skills/work-spec/template.md` only when creating the file.
 2. Determine the change type and the authorized outcome; state it in one or two sentences under "Outcome and
-   scope", with its boundaries. No authorized outcome is a blocking question. If no runnable application
-   baseline exists, apply section 5's baseline rule.
+   scope", with its boundaries. No authorized outcome is a blocking question. For the first executable outcome,
+   apply section 5's baseline rule; documentation-only work does not need a runnable application.
 3. Identify the context: rule IDs, sections, contracts, code paths, prototype references
    (`<full commit SHA>:prototype/<entry file>, flow <flow-id>`). Cite them; never copy their content.
 4. Draft the acceptance criteria (section 4).
 5. List the constraints: approved decisions (`W-001/D-n`) and global rules that bind the change, by ID or path.
    List the checks that verify the ACs, by AC ID: commands from `docs/README.md` or named scenarios, with known
-   verification limits. A command not established there is a limit, never a guess.
+   verification limits. Discover missing commands from repository scripts, manifests, or existing instructions;
+   cite the source and the check needed to verify them. Until verified, a command remains "not established",
+   a verification limit rather than a guessed result or evidence that the application does not exist.
 6. List open questions relevant to this change only:
    `W-001/Q-n · <question> · blocking | non-blocking · needs decision: yes|no`. Reuse an existing canonical
    `<capability>/Q-n` ID instead of a new one. Blocking = the answer changes the scope, an AC, or the chosen
@@ -98,10 +100,12 @@ Implementation is ready when all hold:
 
 - The gate can pass from existing instructions and approvals. Never ask for a confirmation the user has already
   given; never add a ceremonial approval. Non-blocking questions do not fail the gate.
-- If no runnable application baseline exists (no product code, or run commands "not established" in
-  `docs/README.md`), the scope must include the smallest runnable baseline as the first executable work. Any
-  architecture or dependency approval it needs (language, framework, storage) is a blocking
-  `needs decision: yes` question.
+- When the authorized outcome introduces the first executable functionality and no runnable application baseline
+  exists, include only the smallest baseline needed for that outcome. Any architecture or dependency approval it
+  needs is a blocking `needs decision: yes` question. Unknown run commands alone do not mean the baseline is
+  absent: inspect the existing application and record command discovery and verification limits. Do not add a new
+  application baseline to brownfield maintenance or documentation-only work. A missing check blocks readiness
+  only when it leaves an AC without a viable verification method.
 - Output, at the end of the run: `Readiness: READY` or
   `Readiness: NOT READY (<failing criteria; blocking question IDs>)` (e.g.
   `Readiness: NOT READY (Decisions; W-001/Q-1)`). The verdict is never written into the work spec.
