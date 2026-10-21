@@ -403,7 +403,42 @@ architecture §8 updated to match.
 - [x] Forge facts: `gh pr view feature/<ID> --json number,url,state,mergeCommit,statusCheckRollup`, the `checks`
       summary, `forge_unavailable`, `--no-forge`; tests with a fake `gh` on `PATH` (architecture §11)
 
-- Stage 7.2 `[ ]` — Drift, `allowed_next` (domain, I §9.2, I §9.3)
+### Stage 7.2 — Drift and `allowed_next` (domain) `[x]`
+
+Decisions (author, 2026-10-21): `allowed_next` follows a per-status rule, every command with `--as <owner>` from the
+record, never `task handoff` (user instruction only): `planned` → `task register <ID> --title <title> --owner
+<owner>`; `reserved` (stage `setup`) → `task move --status running --stage specification`, block, pause, cancel;
+`running` → the stage moves of I §8.2 allowed by the tier in stage order (back moves with `--next
+<actor>:<action>`, required flags that are not recorded as placeholders: `--spec <path>`, `--revision <full-sha>`,
+`--tier <n>`), at `integration` `task done`, then block, pause, cancel; `blocked` → `task unblock <ID> <B-n>` per
+open blocker (the last one with `--status <prior>`), block, cancel; `paused` → `task move --status <prior>`, cancel;
+`cancelled` → `task move --status <prior> --resume-cancelled`; `done` → none. `task done` fills `--merge` with the
+merge commit when merged and keeps `--spec-ref <PR "Final specification" line>` (C14 a; I §9.3 corrected); when the
+branch is merged and the record is not done, `allowed_next` lists only `task done`.
+
+Decisions (author, 2026-10-21): drift entries are `{"code", "message"}` with the
+messages below; the I §9.2 suggested commands become `allowed_next` entries or stay as guidance in the table, not
+in the output; drift applies to `reserved`, `running`, `blocked`, `paused`; `planned`, `cancelled`, and `done` get
+only `owned_by_other` when they have an owner; drift order follows the I §9.2 table. Messages:
+`branch_missing` `feature/<ID> does not exist` (status `running` past `setup`); `worktree_missing` `feature/<ID> has
+no worktree`; `head_ahead_of_revision` `HEAD is <n> commit(s) past the recorded revision`;
+`revision_not_on_branch` `<revision short 8> is not on feature/<ID>` (`contains_revision` false);
+`dirty_worktree` `<n> uncommitted path(s); preserve them (rules §10)`; `spec_missing` `<spec> is not in the
+worktree or at the revision` (both spec facts false); `blocked_without_blockers` `blocked without an open blocker`;
+`tier_missing` `stage <stage> needs a tier`; `merged_not_done` `feature/<ID> is merged into <main> but the record is
+not done`; `pr_not_recorded` `gh shows PR #<n> for feature/<ID>; the record has none`; `pr_mismatch` `the record
+has PR <pr>; gh shows #<n> for feature/<ID>` (a recorded number or URL that matches the PR's number or URL is no
+mismatch); `owned_by_other` `SOLOMONAR_OWNER is <x>; <ID> is owned by <owner>`. Placeholders are written
+`<actor>:<action>`, `<kind>`, `<text>`, `<path>`, `<full-sha>`, `<n>`, `<prior>` resolved to the prior status,
+`<one sentence>`; a blocker ID and the prior status are filled from the record; `task unblock <ID> --as <owner>
+<B-n>` (`--as` after the ID, as UC-15), `--status <prior>` only on the single open blocker's line; `blocked` without
+an open blocker lists block and cancel; a missing tier at `specialized_review` or later lists only back moves;
+`--spec <path>` only on the forward move into `implementation`; `integration` without a tier gets `--tier 0`;
+`--merge` filled only when the merge commit is known; the function is `DriftOf` (the type is `Drift`);
+`compareStages` is shared with `transition.go`. I §9.2, I §9.3, UC-16 updated to match.
+
+- [x] `DriftOf(id, main, record, facts, envOwner)`: the I §9.2 rows with the messages above
+- [x] `AllowedNext(id, record, facts)`: the rule above, as command strings (I §9.3)
 - Stage 7.3 `[ ]` — `task status` command, rendering (UC-16 status, UC-17)
 
 ## Step 8: `init`, non-interactive, core only
