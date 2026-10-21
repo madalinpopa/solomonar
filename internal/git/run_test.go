@@ -74,3 +74,37 @@ func TestRunWithoutTraceSucceeds(t *testing.T) {
 
 	require.NoError(t, err)
 }
+
+func TestRunGHReturnsStdoutAndTraces(t *testing.T) {
+	gittest.FakeGH(t, `{"number": 42}`+"\n", "", 0)
+	var trace strings.Builder
+	repo := &git.Repo{Dir: t.TempDir(), Trace: &trace}
+
+	out, err := repo.RunGH(t.Context(), "pr", "view", "feature/W-001")
+
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"number": 42}`, out)
+	assert.Equal(t, "+ gh pr view feature/W-001\n", trace.String())
+}
+
+func TestRunGHFailureReturnsErrorWithExitStatusAndStderr(t *testing.T) {
+	gittest.FakeGH(t, "", "no pull requests found for branch \"feature/W-001\"\n", 1)
+	repo := &git.Repo{Dir: t.TempDir()}
+
+	_, err := repo.RunGH(t.Context(), "pr", "view", "feature/W-001")
+
+	gitErr, ok := errors.AsType[*git.Error](err)
+	require.True(t, ok, "want *git.Error, got %v", err)
+	assert.Equal(t, 1, gitErr.ExitCode)
+	assert.Equal(t, `gh pr view feature/W-001: exit status 1: no pull requests found for branch "feature/W-001"`, err.Error())
+	assert.NotErrorIs(t, err, git.ErrNotFound)
+}
+
+func TestRunGHWithoutGHOnPathIsNotFound(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	repo := &git.Repo{Dir: t.TempDir()}
+
+	_, err := repo.RunGH(t.Context(), "pr", "view", "feature/W-001")
+
+	require.ErrorIs(t, err, git.ErrNotFound)
+}
