@@ -232,6 +232,9 @@ func positionText(p task.Position) string {
 }
 
 func moveDetails(id string, result task.MoveResult, record *task.Record) []detail {
+	if record.Status == task.StatusDone {
+		return nil // task done prints the compact record instead
+	}
 	var details []detail
 	for _, field := range result.Changed {
 		switch field {
