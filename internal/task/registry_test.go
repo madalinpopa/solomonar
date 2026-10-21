@@ -18,7 +18,7 @@ const activeRecord = `{"title": "Login", "status": "blocked", "stage": "implemen
 	"owner": "orchestrator-1", "branch": "feature/W-001", "spec": "docs/work/W-001-login.md",
 	"revision": "` + sha + `", "tier": 2, "active_agents": [{"id": "impl-1", "role": "implementer"}],
 	"blockers": [{"id": "B-1", "kind": "decision", "summary": "Session storage", "ref": "W-001/D-1"}],
-	"next_action": {"actor": "user", "action": "Decide W-001/D-1: session storage"},
+	"last_blocker": 1, "next_action": {"actor": "user", "action": "Decide W-001/D-1: session storage"},
 	"updated_at": "2026-01-15T10:00:00Z"}`
 
 const doneRecord = `{"title": "Login", "status": "done", "stage": "complete",
@@ -46,6 +46,7 @@ func TestDecodeAcceptsValidRecords(t *testing.T) {
 		{name: "active", id: "W-001", record: activeRecord},
 		{name: "done", id: "W-001", record: doneRecord},
 		{name: "four digit id", id: "W-1000", record: plannedRecord},
+		{name: "cleared blockers", id: "W-001", record: replace(activeRecord, `"last_blocker": 1`, `"last_blocker": 3`)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -109,6 +110,11 @@ func TestDecodeRejectsInvalidRecord(t *testing.T) {
 		{name: "unknown blocker kind", record: replace(activeRecord, `"decision"`, `"mood"`), found: "kind"},
 		{name: "duplicate blocker id", record: replace(activeRecord, `"blockers": [`, `"blockers": [{"id": "B-1", "kind": "check", "summary": "CI"}, `), found: "B-1"},
 		{name: "bad blocker id", record: replace(activeRecord, `"B-1"`, `"B1"`), found: "B1"},
+		{name: "blocker above last_blocker", record: replace(activeRecord, `"B-1"`, `"B-2"`), found: "last_blocker"},
+		{name: "blockers without last_blocker", record: replace(activeRecord, `"last_blocker": 1,`, ""), found: "last_blocker"},
+		{name: "negative last_blocker", record: replace(activeRecord, `"last_blocker": 1`, `"last_blocker": -1`), found: "last_blocker"},
+		{name: "planned with last_blocker", record: replace(plannedRecord, `"status": "planned",`, `"status": "planned", "last_blocker": 1,`), found: "last_blocker"},
+		{name: "done with last_blocker", record: replace(doneRecord, `"status": "done",`, `"status": "done", "last_blocker": 1,`), found: "last_blocker"},
 		{name: "tier out of range", record: replace(activeRecord, `"tier": 2`, `"tier": 3`), found: "tier"},
 		{name: "short revision", record: replace(activeRecord, sha, "0123456"), found: "revision"},
 		{name: "short merge commit", record: replace(doneRecord, `"merge_commit": "`+sha, `"merge_commit": "0123456`), found: "merge_commit"},
