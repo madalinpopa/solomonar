@@ -1,11 +1,13 @@
 package task
 
 import (
+	"context"
 	"maps"
 	"slices"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,6 +52,28 @@ func moveRefBehind(t *testing.T, store *Store) {
 	competitor := &Store{Git: store.Git}
 	_, err := competitor.Update(t.Context(), addTask("competing"))
 	require.NoError(t, err)
+}
+
+func storeWithRemote(t *testing.T) (*Store, string) {
+	t.Helper()
+	store := createdStore(t)
+	remote := gittest.NewBareRemote(t)
+	gittest.Git(t, store.Git.Dir, "remote", "add", "origin", remote)
+	store.Remote = "origin"
+	return store, remote
+}
+
+// cancelBefore cancels when the store is about to run the named git subcommand.
+type cancelBefore struct {
+	subcommand string
+	cancel     context.CancelFunc
+}
+
+func (c cancelBefore) Write(p []byte) (int, error) {
+	if strings.HasPrefix(string(p), "+ git "+c.subcommand+" ") {
+		c.cancel()
+	}
+	return len(p), nil
 }
 
 func TestReadWithoutRefIsNotInitialized(t *testing.T) {
@@ -205,4 +229,62 @@ func TestUpdateWithUnreachableRemoteWarnsAndKeepsCommit(t *testing.T) {
 	assert.Equal(t, "push_failed", commit.Warnings[0].Code)
 	assert.True(t, strings.HasPrefix(commit.Warnings[0].Message, "git push origin workflow-state failed: "))
 	assert.Equal(t, commit.SHA, tip(t, store))
+}
+
+func TestUpdateCancelledBeforeSwapWritesNothing(t *testing.T) {
+	store := createdStore(t)
+	before := tip(t, store)
+	ctx, cancel := context.WithCancel(t.Context())
+
+	_, err := store.Update(ctx, func(reg *Registry) (string, error) {
+		cancel()
+		return addTask("Login")(reg)
+	})
+
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Equal(t, before, tip(t, store))
+}
+
+func TestCreateCancelledBeforeSwapWritesNothing(t *testing.T) {
+	store := newStore(t)
+	ctx, cancel := context.WithCancel(t.Context())
+	store.Git.Trace = cancelBefore{subcommand: "commit-tree", cancel: cancel}
+
+	_, err := store.Create(ctx)
+
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Empty(t, gittest.Git(t, store.Git.Dir, "for-each-ref", Ref))
+}
+
+func TestCancelAfterSwapKeepsCommitAndWarnsPushInterrupted(t *testing.T) {
+	for _, subcommand := range []string{"update-ref", "push"} {
+		t.Run(subcommand, func(t *testing.T) {
+			store, remote := storeWithRemote(t)
+			ctx, cancel := context.WithCancel(t.Context())
+			store.Git.Trace = cancelBefore{subcommand: subcommand, cancel: cancel}
+
+			commit, err := store.Update(ctx, addTask("Login"))
+			require.NoError(t, err)
+
+			assert.Equal(t, commit.SHA, tip(t, store))
+			assert.False(t, commit.Pushed)
+			assert.Equal(t, []Warning{{
+				Code:    "push_interrupted",
+				Message: "push to origin interrupted; the registry commit is kept locally",
+			}}, commit.Warnings)
+			assert.Empty(t, gittest.Git(t, remote, "for-each-ref", Ref))
+		})
+	}
+}
+
+func TestPushTimeoutWarnsPushFailed(t *testing.T) {
+	store, _ := storeWithRemote(t)
+	ctx, cancel := context.WithDeadline(t.Context(), time.Unix(0, 0))
+	defer cancel()
+
+	warning := store.pushRef(ctx)
+
+	require.NotNil(t, warning)
+	assert.Equal(t, "push_failed", warning.Code)
+	assert.Contains(t, warning.Message, "context deadline exceeded")
 }
