@@ -36,8 +36,15 @@ flags.
 
 ## Step 2: Git runner
 
-- Stage 2.1 `[ ]` — `internal/git`: run with context and stdin, `-v` trace, errors with stderr, repository
-  discovery from `-C` and worktrees, Git ≥ 2.40 check
+### Stage 2.1 — `internal/git` runner and discovery `[x]`
+
+- [x] `git.Repo` and `Run`/`RunInput` with context, stdin, trimmed stdout, errors carrying args, exit status,
+      stderr (AD-3, §8)
+- [x] `-v` trace of each command line to an injected writer (I §3.1)
+- [x] `Discover` from a directory (`-C` or the working directory): worktree root and absolute common
+      directory; `ErrNotRepository` (I §3.2)
+- [x] Git version parsing and the 2.40 minimum
+- [x] Test helpers: isolated temp repositories with commits and a feature worktree (§11)
 
 ## Step 3: Registry model and rules (no Git)
 
