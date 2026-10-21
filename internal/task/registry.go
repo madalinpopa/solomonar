@@ -128,6 +128,15 @@ func (r *Registry) Encode() ([]byte, error) {
 	return append(data, '\n'), nil
 }
 
+// Encode writes the record as it appears in state.json, at the top level.
+func (r *Record) Encode() ([]byte, error) {
+	data, err := json.Marshal(r, json.Deterministic(true), jsontext.WithIndent("  "))
+	if err != nil {
+		return nil, fmt.Errorf("encode record: %w", err)
+	}
+	return append(data, '\n'), nil
+}
+
 func checkSchemaVersion(data []byte) error {
 	var header struct {
 		SchemaVersion jsontext.Value `json:"schema_version"`
