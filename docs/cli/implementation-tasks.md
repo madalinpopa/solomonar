@@ -941,6 +941,61 @@ Specs updated: I §4.2, §4.3 (installing, `applies_when`/`description`), §4.4 
 - [x] `AGENTS.md` extensions block in `CoreWants`
 - [x] extension skill and agent stubs in `RuntimeWants`; `InitPlan` records `extensions`
 
+### Stage 9.5 — Decisions and their documents (`internal/project`; I §4.3 Decision recording, §4.5, rules §3) `[x]`
+
+Decisions (author, 2026-10-21):
+- entry titles are fixed per group: `language` Programming languages, `architecture` Architecture style, `frontend`
+  Frontend technologies, `backend` Backend technologies, `persistence` Persistence technologies, `testing` Testing
+  practice, `operations` Build and deployment;
+- step-9 limitation (task list only): `init` only appends; numbering continues after the highest `P/D-n` already in
+  `docs/decisions.md`, and an approved entry for the same group is not superseded (superseding comes with
+  `extension add|remove`, increment 2).
+
+Decisions (author, 2026-10-21; orchestrator proposals confirmed):
+- `PlanDecisions(root *os.Root, existing *Manifest, installed []CatalogExtension, date string) (Decisions, error)`
+  with `Decisions{Changes []Change; Files map[string]File; Records []Decision; ByGroup map[string]string; Index
+  []string}` and `Decision{ID, Group string; Selected []string}` (JSON `id`, `group`, `selected`, I §5 UC-1);
+- one new entry per stack group of the selection, in I §4.3 group order, `P/D-<n>` numbered from the highest
+  `## P/D-<n>:` heading in `docs/decisions.md` (0 when absent) plus one; a group whose decision the existing
+  manifest already records takes that ID and adds nothing (re-run, UC-3);
+- entry (rules §3 format), separated from what precedes it by one blank line:
+  `## P/D-<n>: <title>` / blank / `- Status: approved` / `- Selected option: <a>, <b>` / `- Rejected options: none` /
+  ``- Scope: project; <group> extensions `<a>`, `<b>` `` / ``- Rationale: selected by the user with `solomonar init` ``
+  / `- Date: <date>` / ``- References: `<installed main file>`, …`` (names sorted; the skill `SKILL.md` or the agent
+  file path from 9.4);
+- group documents: `architecture` → `docs/architecture.md`, every other stack group → `docs/stack.md`; one line per
+  group `- <group>: <a>, <b> (P/D-<n>)`, in group order;
+- a created document starts with a title and a blank line (`# Decisions`, `# Stack`, `# Architecture`) and is
+  `create`; an existing regular file gets the new content appended (after a newline when it lacks one) and is the new
+  action `append` (`ActionAppend`, applied like `update` with the full new content); a present non-regular file is an
+  unexpected error `read <path>: not a regular file`; owner `decision`, manifest `{"owner": "decision", "entries":
+  [IDs it holds from this and earlier runs of the manifest]}`; on a re-run the existing manifest's `decision` files are
+  carried over and planned `unchanged` without reading them;
+- `Index` lists the README lines for the documents this plan creates, in the order decisions, stack, architecture:
+  ``- `docs/decisions.md`: decision entries and their status``, ``- `docs/stack.md`: technologies and practices, with
+  the decisions that adopted them``, ``- `docs/architecture.md`: structure and contracts, with the decisions that
+  adopted them``; `Choices.Documents []string` adds them to the created README's "Documents" list (after the existing
+  items); for a present README (seed `skip`), `InitPlan` turns the skip into `append` when the file has a line
+  `## Documents`, inserting the lines after the section's last `- ` line (or after the heading and a blank line when
+  it has none), and otherwise keeps `skip` with reason `exists; add under "## Documents": <line>; <line>`;
+- `InitPlan` takes the `Decisions` value (after `extensions`), puts its changes after the classified wants and before
+  the manifest, and merges its files into the manifest.
+also (implementer, confirmed): appending adds a missing final newline, then (decisions.md
+only) a blank line unless the file already ends with one; stack/architecture lines follow directly; README insertion
+adds no blank lines after existing items, and in an item-less section ensures a blank line before and (when text
+follows) after the lines; a non-regular `docs/README.md` with index lines is `read docs/README.md: not a regular
+file`; on a re-run a group's ID comes from the first extension (name order) whose manifest entry has a `decision`, any
+ID accepted; a document with nothing to add and no record gets no change; `entries` are carried IDs then new ones;
+numbering counts only `## P/D-<digits>:` lines; `installedPath` shared with `ExtensionWants`. Open for 9.6: the
+counts line (I §3.3) has no bucket for `append` (proposal: count it as updated). Size: ~630 lines (moderate overrun).
+Specs updated: I §3.3 (`append`), §4.3 (titles, numbering, entries, documents, README index), §4.5 (`decision`,
+`seed`, re-run), UC-3; architecture §6, §8.
+
+- [x] `PlanDecisions`: numbering, entries, documents, re-run carry-over, `ActionAppend`
+- [x] README index lines (created and present README); `InitPlan` integration
+
+### Stage 9.6 — `init --ext` (`internal/cli`; UC-2, UC-3, I §4.3) `[ ]`
+
 ## Step 10: Interactive `init`
 
 - Stage 10.1 `[ ]` — Line prompts and multi-select (I §3.7)
