@@ -57,3 +57,17 @@ Reduced-motion rules disable animation and initialize playback as paused. The st
 - Compose configuration validates. CI builds and checks the image before publishing SHA and `latest` tags, and skips publishing for pull requests.
 
 GHCR publication, Linux amd64 execution on GitHub's runner, DNS, HTTPS, and Dokploy deployment require the corresponding remote workflow and server; they were configured and documented, not executed locally. Local previews remain available on ports 4173 (authoring) and 4180 (Nginx container).
+
+## Framework use-case page
+
+Added on 2026-10-21, using the supplied `2026-10-21-framework-cli-audit.html` and `2026-10-21-framework-cli-evidence.json` as editorial sources. Their historical CLI execution results are not treated as current command availability or acceptance tests. Examples were checked against the current framework skills, roles, rules, and CLI command table.
+
+- Ten scenarios use a clearly fictional expense project: discovery, product rules, a first runnable slice, a bug fix, scoped maintenance, parallel tasks, decisions, integration checks, recovery, and closure/regressions.
+- Agent prompts and terminal commands have distinct labels. Installation prerequisites and planned commands remain explicit. No framework or CLI behavior was changed.
+- The page is discoverable from the framework page, Getting Started, the shared sidebar, previous/next reading, and the generated sitemap. All ten contents links resolve.
+- Tested at widths 320, 390, 768, and 1440 with no page overflow. Plain-text prompt blocks wrap; at 390 px all eleven prompt blocks fit their scrolling containers without horizontal overflow.
+- Inspected dark and light themes, a concrete example anchor, and copy-button success feedback. No browser warnings or errors were observed.
+- Screenshots: `.cache/qa/use-cases-dark.png`, `use-cases-light.png`, `use-cases-example-dark.png`, and `use-cases-mobile-light.png`. They are ignored local evidence.
+- Root and `/solomonar/` builds pass static checks for 11 HTML pages. The root output is approximately 1112 KB. The updated Docker image builds and checks successfully; Nginx serves the new page and sitemap entry with HTTP 200.
+
+The original visual direction and earlier verification limits remain applicable. Final result for this addition: passed.
