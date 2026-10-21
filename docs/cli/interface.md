@@ -200,8 +200,11 @@ in 8.4; project commands use `not_a_repository`, `not_initialized`,
 `cli_outdated` (exit 3, CLI-D19): the manifest's `framework_version` or `schema_version`, or the registry's
 `schema_version`, is newer than this CLI supports. The CLI checks the versions before decoding either file
 strictly, so a newer project is never reported as `manifest_invalid` or `registry_invalid`. Every command that reads
-the manifest or the registry rejects with it and writes nothing, with the fix "install solomonar <version> or
-later". `version` still prints both versions, and `doctor` reports it as a `fail`.
+the manifest or the registry rejects with it and writes nothing, with the fix "install a newer solomonar release".
+`version` still prints both versions, and `doctor` reports it as a `fail`.
+
+`manifest_invalid` (exit 1, like `registry_invalid`): `.solomonar/manifest.json` fails strict decoding or the 4.7
+validation. The message names the field, and the fix is "inspect .solomonar/manifest.json; never edit it by hand".
 
 ### 3.7 Prompts
 
@@ -536,6 +539,38 @@ A project draft entry, before adoption, looks like:
 
 Here `applies_when` is not set yet; `extension add money --applies-when "A change handles monetary amounts"`
 must supply it or prompt before adoption. Draft authoring does not create a decision or active rules.
+
+Validation, in order, reporting the first failure:
+
+- Versions first, before strict decoding: `schema_version` must be present and a positive integer; above 1 it is
+  `cli_outdated` (3.6), found `manifest schema <n>, this CLI supports 1`. Only then is `framework_version` checked:
+  it must be `major.minor.patch`, and newer than the CLI's embedded framework it is `cli_outdated`, found
+  `manifest framework <v>, this CLI ships <v>`. Versions compare numerically per part (`0.10.0` is newer than
+  `0.2.0`). So a newer schema wins over a malformed `framework_version` or unknown members; a malformed version is
+  `manifest_invalid`.
+- Strict decoding: unknown members and duplicate keys are rejected.
+- `project.name`, `main_branch`, and `remote` are non-empty; `runtimes`, `extensions`, and `files` are present
+  (`{}` is allowed, `null` or missing is rejected).
+- `runtimes` keys are `claude` or `codex`, each value `{}` or `{"adversarial_model": ...}`.
+- Extension names match `[a-z][a-z0-9-]*`; `state` is `installed` or `draft`, `kind` `skill` or `agent`, `group`
+  one of the nine 4.3 groups, `source` `catalog` or `path`; only a `path` source has `path`, a clean repo-relative
+  directory. An installed stack-group extension has `decision` `P/D-<n>`; a `workflow` or `review` extension and a
+  draft have none. Drafts have no `rendered_with`; `rendered_with` names known extensions.
+- `files` keys are clean repo-relative paths. `owner` is `core`, `ext:<name>`, `project-ext:<name>`, `decision`,
+  `core+notes`, `runtime:<name>`, `seed`, or `manifest`, with `<name>` a known extension or runtime. `core`, `ext:`,
+  `project-ext:`, `core+notes`, and `runtime:` files have `sha256` (64 lowercase hex), except a runtime entry file,
+  which has `entry` instead; `decision` files have `entries` (`P/D-<n>`); `seed` and `manifest` files have neither.
+
+Runtimes, extensions, and files are each checked in sorted key order. "Known" means a key in this manifest. Not
+validated: whether an `ext:` or `project-ext:` owner matches a `catalog` or `path` source, whether `requires` and
+`conflicts` name known extensions, duplicate `entries`, and an empty `adversarial_model`.
+
+Any other failure is `manifest_invalid` (exit 1) with check `manifest schema`, a found text naming the field (e.g.
+`project.remote is missing`, `extensions.go.decision is missing`, `extensions.go.group "web" is not one of
+language, ...`, `files.<path>.owner "<v>" is not an ownership class`, `files.<path>.sha256 is missing`), and the fix
+"inspect .solomonar/manifest.json; never edit it by hand". The CLI writes the manifest canonically: struct field
+order, sorted map keys, two-space indent, trailing newline. A project extension's `requires`, `conflicts`, and
+`paths` keep an empty `[]` when present, as a draft encodes them, and are omitted when absent.
 
 ## 5. Use cases: project setup
 
@@ -1863,7 +1898,7 @@ rejection) unless the command was cancelled; any other Git failure is `unexpecte
 | `unknown_command` | 2 | No command, a command group alone, or an unknown command or subcommand | run solomonar help |
 | `invalid_usage` | 2 | Unknown flag, missing required flag, or unexpected argument | run solomonar help |
 | `cas_exhausted` | 4 | Lost the compare-and-swap 5 times | retry |
-| `cli_outdated` | 3 | Registry or manifest written by a newer CLI | install solomonar `<version>` or later |
+| `cli_outdated` | 3 | Registry or manifest written by a newer CLI | install a newer solomonar release |
 | `git_too_old` | 1 | Git older than 2.40 | install git 2.40 or later |
 | `unexpected_error` | 1 | I/O, Git error, corrupt object (3.5) | - |
 | `interrupted` | 130, 143 | Signal before the compare-and-swap | rerun (the error form already states nothing was written) |
