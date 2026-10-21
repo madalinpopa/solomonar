@@ -51,8 +51,8 @@ Clarifications the implementation settles this way unless the spec says otherwis
 
 - "Active" for `owner_in_use` means `reserved`, `running`, `blocked`, `paused`.
 - A plan followed by a prompt goes to stderr, so stdout carries only results; `--dry-run` plans go to stdout.
-- `spec_ref_not_final` matches commit subjects from `git log --format=%H%x00%s`, never `--grep`, which also
-  matches body lines.
+- `spec_ref_not_final` takes the first `spec(<ID>):` subject in `git log --topo-order --format="%H %s" <merge>^2`
+  (topological order, not commit date), never `--grep`, which also matches body lines.
 
 ## 3. Toolchain
 
