@@ -18,16 +18,17 @@ type helpData struct {
 	Help string `json:"help"`
 }
 
-func runHelp(_ context.Context, _ Env, args []string) (output, error) {
-	if len(args) > 1 {
-		return output{}, unexpectedArgument(args[1])
+func runHelp(_ context.Context, _ Env, _ sharedFlags, args []string) (output, error) {
+	name, rest := commandName(args)
+	if len(rest) > 0 {
+		return output{}, unexpectedArgument(rest[0])
 	}
-	if len(args) == 0 {
+	if name == "" {
 		return helpOutput(topLevelHelp()), nil
 	}
-	cmd, ok := findCommand(args[0])
+	cmd, ok := findCommand(name)
 	if !ok {
-		return output{}, unknownCommand(args[0])
+		return output{}, unknownCommand(name)
 	}
 	return helpOutput(commandHelp(cmd)), nil
 }
