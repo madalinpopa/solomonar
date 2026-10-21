@@ -280,7 +280,7 @@ Verification section (`report.md` §8).
   liveness), `blockers`, `pr` once opened.
 - Optional: `depends_on`, `related_task`, `session_ref`, evidence references. Omit empty optional fields.
 - Blocker: `{id, kind, summary, ref?}`, kind ∈ `decision` | `dependency` | `check` | `environment`. Blocker
-  IDs stay stable within the task.
+  IDs stay stable within the task and are never reused: `last_blocker` holds the highest number issued.
 - `next_action`: `{actor, action}`, e.g. `{"actor":"user","action":"Decide W-001/D-1: session storage"}`.
 - Use full SHAs and RFC 3339 UTC timestamps. Never store logs, secrets, or machine-specific paths in state.
 - Never store a fact Git can derive (worktree path, HEAD, dirty files, PR or check state); `task status` reads
