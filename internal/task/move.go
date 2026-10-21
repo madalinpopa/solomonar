@@ -217,7 +217,7 @@ func required(code, check, found, fix string) *Rejection {
 	return &Rejection{Code: code, Check: check, Found: found, Fix: fix}
 }
 
-// changedFields lists the move fields that differ, in record field order.
+// changedFields lists the written fields that differ, in record field order.
 func changedFields(before, after *Record) []string {
 	changed := []string{}
 	add := func(name string, differs bool) {
@@ -231,8 +231,9 @@ func changedFields(before, after *Record) []string {
 	add("revision", before.Revision != after.Revision)
 	add("tier", !samePointee(before.Tier, after.Tier))
 	add("active_agents", !slices.Equal(before.ActiveAgents, after.ActiveAgents))
-	add("pr", before.PR != after.PR)
+	add("blockers", !slices.Equal(before.Blockers, after.Blockers))
 	add("next_action", !samePointee(before.NextAction, after.NextAction))
+	add("pr", before.PR != after.PR)
 	return changed
 }
 
