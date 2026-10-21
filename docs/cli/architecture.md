@@ -119,7 +119,7 @@ Taskfile.yml  .golangci.yml  .goreleaser.yaml  go.mod
 | `internal/cli` | Everything the user sees: argument parsing, help, prompts, human tables, JSON envelope, mapping errors to exit codes, `doctor` and `guard` assembly. One file per command group (`task.go`, `init.go`, `extension.go`, …). | The only package that knows about terminals and output forms; `task` and `project` never print. |
 | `internal/task` | The registry's meaning: `Registry`, `Record`, statuses, stages, tiers, blockers; the rules of I §8; fact checks of I §8.3; `Status` facts and drift of I §9; the swap loop. | The core domain with real invariants; most rule tests live here. |
 | `internal/project` | The project's files: manifest, ownership classes, plan/apply, catalog loading, extension rendering, adapter stubs, `AGENTS.md` sections, decision entries. | Different data (files, not records), different failures (conflicts, not rejections), different tests (file trees). |
-| `internal/git` | Running `git` and `gh`: context, working directory, stdin, trimmed output, errors with stderr, `-v` trace. Typed helpers only where used twice. | Both `task` and `project` need it; `exec` details and tracing stay in one place. |
+| `internal/git` | Running `git` and `gh`: context, working directory, stdin, trimmed output, errors with stderr, `-v` trace. Typed helpers only where used twice. `OnPath(program string) bool` is the `PATH` lookup for runtime detection (only `git` may import `os/exec`, AD-3). | Both `task` and `project` need it; `exec` details and tracing stay in one place. |
 | `internal/dashboard` | `net/http` handlers for `/`, `/api/state`, `/api/status/<ID>`, and the embedded page. | HTTP is a distinct boundary; deferred to increment 3. |
 
 Dependency direction; nothing imports `cli`, `git` imports no internal package, and `.golangci.yml` enforces all
@@ -250,6 +250,7 @@ func ManifestVersions(data []byte) (schema int, framework string, err error)
 type Requested struct {
 	Name, MainBranch, Remote string
 	Runtimes, Extensions     []string
+	AdversarialModels        map[string]string
 }
 
 func (m *Manifest) CheckChoices(r Requested) error
@@ -270,8 +271,8 @@ from `templates/`, rendered with `text/template`.
 `InitPlan` runs `Classify`, builds the manifest from its entries, and appends the manifest change last (I §4.5).
 `ManifestVersions` reads the manifest's `schema_version` and `framework_version` with the header validation and no
 newer-than check; the strict decoder builds on it, and `version` calls it alone (UC-24).
-`CheckChoices` rejects a given choice that differs from the manifest with `already_initialized` (UC-3); an empty
-string or nil list means not given.
+`CheckChoices` rejects a given choice that differs from the manifest with `already_initialized` (UC-3), adversarial
+models after extensions; an empty string, nil list, or nil map means not given.
 `Apply` returns its `Journal` so the caller can still roll back a successful apply until the registry CAS
 succeeds (AD-6, F-09).
 
