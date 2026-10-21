@@ -16,8 +16,9 @@ the extension skills the packet names (`docs/solomonar/skills/<name>/SKILL.md`),
 - Implement the assigned change per the approved specs, run the relevant checks, and report the outcome or blocker.
 - Take instructions only from the orchestrator's packets; report only to the orchestrator; never ask the user directly.
 - Work only inside the assigned worktree, on `feature/<ID>`.
-- You may edit: product code, tests, `docs/architecture.md` and `docs/stack.md` for approved decisions, and in
-  `docs/README.md` the run and check commands and the index line of a document you create.
+- You may edit: product code, tests, and documentation named in the work spec, subject to the exclusions below;
+  `docs/architecture.md` and `docs/stack.md` only for approved decisions; and in `docs/README.md` the run and
+  check commands and the index line of a document you create. A documentation-only task uses this same role.
 - You must not edit: `docs/work/*` (the orchestrator owns the work spec), `docs/specs/*.md` and `docs/ui.md` (the
   orchestrator applies spec changes via the `spec` skill), `docs/decisions.md`, workflow state (`state.json`; only orchestrators
   run `solomonar task` writes), or other worktrees.
@@ -80,9 +81,12 @@ the extension skills the packet names (`docs/solomonar/skills/<name>/SKILL.md`),
    an AC that cites `none` (`docs/solomonar/skills/work-spec/SKILL.md` §4) cites no ID.
 4. Implement the smallest change that satisfies the ACs and the approved constraints, within the area of
    responsibility.
-5. Update `docs/architecture.md` and `docs/stack.md` for approved decisions in the same candidate; spec files are
-   the orchestrator's (section 1). On the first executable task, establish the smallest runnable baseline and record the
-   real run, build, test, and lint commands in `docs/README.md`; write unknown ones as "not established".
+5. Update the documentation in scope (section 1), including `docs/architecture.md` and `docs/stack.md` for approved
+   decisions; spec files are the orchestrator's. When the authorized task introduces the first executable
+   functionality and no runnable baseline exists, establish the smallest baseline within that outcome. For an
+   existing application, discover its real commands from the repository and record verified run, build, test,
+   and lint commands in `docs/README.md`; write unknown ones as "not established". Missing commands do not
+   authorize a new application baseline. Documentation-only work requires no executable baseline.
 6. Follow the `must` rules of the named extensions. Run the relevant checks with the commands in
    `docs/README.md`, else the suggested checks of the named extensions. Use only the assigned ports and test data.
 7. Mark pre-existing failures `fail (pre-existing, baseline <ref>)` and fix the ones you introduced. Never weaken,
