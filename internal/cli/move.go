@@ -88,11 +88,9 @@ func (m *moveFlags) run(ctx context.Context, env Env, flags sharedFlags, args []
 	case !m.hasField():
 		return output{}, invalidUsage(errors.New("at least one field flag is required"))
 	}
-	as := cmp.Or(m.as, env.Getenv("SOLOMONAR_OWNER"))
-	if as == "" {
-		return output{}, &Error{
-			Code: "owner_required", Exit: exitUsage, Message: "task move needs an acting owner", Fix: "pass --as <owner>",
-		}
+	as, err := actingOwner(env, m.as, "task move")
+	if err != nil {
+		return output{}, err
 	}
 	store, err := openStore(ctx, env, flags)
 	if err != nil {
@@ -107,38 +105,61 @@ func (m *moveFlags) hasField() bool {
 	return cmp.Or(f.Status, f.Stage, f.Revision, f.Spec, f.Tier, f.PR, f.Next) != "" || len(f.Agents) > 0
 }
 
+// actingOwner resolves --as, falling back to SOLOMONAR_OWNER.
+func actingOwner(env Env, as, command string) (string, error) {
+	as = cmp.Or(as, env.Getenv("SOLOMONAR_OWNER"))
+	if as == "" {
+		return "", &Error{
+			Code: "owner_required", Exit: exitUsage, Message: command + " needs an acting owner", Fix: "pass --as <owner>",
+		}
+	}
+	return as, nil
+}
+
 func (m *moveFlags) moveTask(ctx context.Context, env Env, store *task.Store, id, as string) (output, error) {
 	roles, err := installedRoles(env.Assets)
 	if err != nil {
 		return output{}, err
 	}
+	return changeTask(ctx, store, id, "move", m.dryRun, func(reg *task.Registry) (task.MoveResult, []detail, error) {
+		result, err := reg.MoveTask(ctx, store.Git, id, as, m.move, roles, env.Now())
+		return result, nil, err
+	})
+}
+
+// changeTask applies change as a dry run or one registry write, rendered in the task move form.
+func changeTask(
+	ctx context.Context, store *task.Store, id, verb string, dryRun bool,
+	change func(*task.Registry) (task.MoveResult, []detail, error),
+) (output, error) {
 	var result task.MoveResult
+	var lead []detail
 	var record *task.Record
-	move := func(reg *task.Registry) (string, error) {
+	apply := func(reg *task.Registry) (string, error) {
 		var err error
-		result, err = reg.MoveTask(ctx, store.Git, id, as, m.move, roles, env.Now())
+		result, lead, err = change(reg)
 		record = reg.Tasks[id]
 		return result.Subject, err
 	}
-	if m.dryRun {
+	if dryRun {
 		reg, _, err := store.Read(ctx)
 		if err != nil {
 			return output{}, err
 		}
-		if _, err := move(reg); err != nil {
+		if _, err := apply(reg); err != nil {
 			return output{}, err
 		}
 		return output{
 			data:     moveDryRunData{moveData: newMoveData(id, result, record), DryRun: true},
-			text:     "Would move " + moveSummary(id, result, record),
+			text:     "Would " + verb + " " + moveSummary(id, result, record, lead),
 			warnings: outputWarnings(result.Warnings),
 		}, nil
 	}
-	commit, err := store.Update(ctx, move)
+	commit, err := store.Update(ctx, apply)
 	if err != nil {
 		return output{}, err
 	}
-	text := moveSummary(id, result, record)
+	text := moveSummary(id, result, record, lead)
 	if result.Subject != "" {
 		text += registryLine(store, commit) + "\n"
 	}
@@ -170,7 +191,7 @@ func installedRoles(assets fs.FS) ([]string, error) {
 	return roles, nil
 }
 
-func moveSummary(id string, result task.MoveResult, record *task.Record) string {
+func moveSummary(id string, result task.MoveResult, record *task.Record, lead []detail) string {
 	header := id + "  " + positionText(result.From)
 	if result.Subject == "" {
 		return header + " (unchanged)\n"
@@ -180,7 +201,7 @@ func moveSummary(id string, result task.MoveResult, record *task.Record) string 
 	}
 	var b strings.Builder
 	b.WriteString(header + "\n")
-	details := moveDetails(id, result, record)
+	details := slices.Concat(lead, moveDetails(id, result, record))
 	width := 0
 	for _, d := range details {
 		width = max(width, len(d.label))
