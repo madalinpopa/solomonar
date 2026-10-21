@@ -131,6 +131,7 @@ linters:
 
     misspell:
       locale: US
+      ignore-rules: [cancelled] # registry status and error code, rules §7
 
     nakedret:
       max-func-lines: 0
