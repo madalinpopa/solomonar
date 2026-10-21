@@ -226,8 +226,15 @@ type Change struct {
 type Plan struct{ Changes []Change }
 
 func (p Plan) Conflicts() []Change
-func Apply(root *os.Root, p Plan) error
+
+type Journal struct{ /* each touched path's previous content and mode, or its absence */ }
+
+func Apply(ctx context.Context, root *os.Root, p Plan) (*Journal, error)
+func (j *Journal) Rollback() error
 ```
+
+`Apply` returns its `Journal` so the caller can still roll back a successful apply until the registry CAS
+succeeds (AD-6, F-09).
 
 ## 7. Execution flow
 
@@ -281,9 +288,20 @@ invalid one is rejected without touching either the registry or project files (I
   A project-only command, including init reusing an existing valid registry, commits locally when its entire
   file plan succeeds. Journal rollback covers handled errors/signals, not SIGKILL or machine crashes; repeated
   init recovers by adopting identical files and preserving an existing registry (I UC-3).
-- Files: every project path goes through one `os.Root` opened at the worktree root; writes are temp file + rename
-  in the same directory; updates keep their mode, new files get `0o644`; nothing outside the repository is written
-  except Git's own objects and refs.
+- Files: every project path goes through one `os.Root` opened at the worktree root. Nothing outside the repository
+  is written except Git's own objects and refs.
+  - `Apply` acts only on `create`, `update`, and `remove`, in plan order, checking the context before each change. A
+    plan that disagrees with the disk is an error: `create` on an existing path, or `update`/`remove` on a missing or
+    non-regular path (checked with `Lstat`).
+  - Each write is a temp file `.<name>.solomonar-tmp` in the target's directory, chmodded to its exact mode
+    (permission bits only, independent of the umask), then renamed over the target; updates keep their mode, new
+    files get `0o644`. Missing parent directories are created `0o755` one level at a time, each journaled.
+  - The journal keeps each touched path's previous content and mode, or its absence. Errors are wrapped
+    `apply <path>: %w` (cancellation wraps the context error); a failed or cancelled `Apply` rolls back
+    automatically, joins any rollback failure into the error, and returns no journal.
+  - `Journal.Rollback` restores in reverse order through the same temp-file-and-rename, deletes created files, and
+    removes a created directory only when empty. Entries that fail to restore stay in the journal for the next
+    `Rollback`; after a full rollback the journal is empty, so a repeated call is a no-op.
 - `init` creates the registry only when the ref is absent (`update-ref <ref> <new> ""` is create-only); it never
   overwrites one.
 
