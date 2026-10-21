@@ -90,8 +90,8 @@ func TestInteractiveInitUC1(t *testing.T) {
 		extensionsIntro+
 		"\nLanguage:\n    [x] go  Go language rules\n"+
 		"\nFrontend:\n    [x] htmx   T\n    [ ] react  T\n    [x] templ  T (requires htmx)\n\n", prompts)
-	assert.Contains(t, rest, "  create     .solomonar/manifest.json\n"+
-		"  registry   create refs/heads/workflow-state with an empty state.json\n"+
+	assert.Contains(t, rest, "  registry\n    create     refs/heads/workflow-state with an empty state.json\n"+
+		"  manifest\n    create     .solomonar/manifest.json\n"+
 		"Proceed? [Y/n] \nInitialized solomonar 0.1.0 in "+dir+"\n")
 	manifest := manifestOf(t, dir)
 	assert.Equal(t, filepath.Base(dir), manifest.Project.Name)
@@ -183,7 +183,7 @@ func TestInteractiveInitDeclinedWritesNothing(t *testing.T) {
 	require.Equal(t, 0, got.exit, got.stderr)
 	assert.True(t, strings.HasPrefix(got.stdout, repoHeader(dir)+"Plan\n"), got.stdout)
 	assert.True(t, strings.HasSuffix(got.stdout,
-		"  registry   create refs/heads/workflow-state with an empty state.json\n"+
+		"  manifest\n    create     .solomonar/manifest.json\n"+
 			"Proceed? [Y/n] \nCancelled; nothing was written.\n"), got.stdout)
 	assertNothingWritten(t, dir, before, tip)
 }
@@ -302,7 +302,7 @@ func TestInteractiveInitOutsideRepositoryAsksToInitializeGit(t *testing.T) {
 			require.Equal(t, 0, got.exit, got.stderr)
 			assert.True(t, strings.HasPrefix(got.stdout,
 				"solomonar devel · framework 0.1.0 · "+dir+" (not a Git repository)\n\n"+tt.prompt+
-					"Plan\n  git        init -b "+tt.branch+"\n"), got.stdout)
+					"Plan\n  git\n    init       -b "+tt.branch+"\n"), got.stdout)
 			assert.Contains(t, got.stdout, "Proceed? [Y/n] \nInitialized solomonar 0.1.0 in "+dir+"\n")
 			assert.Contains(t, got.stdout, "  1. First commit required before task worktrees:\n")
 			assert.Equal(t, "refs/heads/"+tt.branch, gittest.Git(t, dir, "symbolic-ref", "HEAD"))
