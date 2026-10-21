@@ -14,6 +14,8 @@ Write framework artifacts, specs, reports, commit messages, and PR text in Engli
 - Load only: the invoked skill, the assigned work spec, the relevant global rules (Context routes), the
   referenced documents, and the affected code and tests. Expand only for a discovered dependency, shared
   contract, or security rule.
+- Load the installed extension skills your packet names; without a packet, those whose "applies when" in
+  Extensions matches your change.
 - With no work spec, start from `docs/README.md` and the user's selected outcome.
 - Orchestrators also load `docs/framework/rules.md`; other roles do not. Every role loads
   `docs/framework/report.md`.
@@ -26,6 +28,13 @@ Load `docs/framework/skills/<skill>/SKILL.md` before using a skill.
 - `prototype`: start a product, or explore or change a flow in `prototype/`.
 - `spec`: record a prototype handoff or a user decision in `docs/specs/<capability>.md` and `docs/ui.md`.
 - `work-spec`: specify one registered task in `docs/work/<ID>-<slug>.md` (orchestrator, `specification` stage).
+
+## Extensions
+
+Installed with `solomonar`. Load every extension skill whose "applies when" matches your change, before writing or
+reviewing code, and cite its rules as `<name>/C-n`. The orchestrator names the matching extensions in each packet.
+
+{{ .Extensions }}
 
 ## Context routes
 

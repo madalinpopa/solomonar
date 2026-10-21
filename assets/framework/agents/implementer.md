@@ -8,7 +8,7 @@ description: Implements one managed task's change or its corrections in the task
 Framework version: 0.1.0
 
 Load together with `AGENTS.md`, `docs/framework/report.md`, the packet, the work spec, the documents it references,
-and the affected code and tests. You do not load `docs/framework/rules.md`; every rule you follow is here, in
+the extension skills the packet names (`docs/framework/skills/<name>/SKILL.md`), and the affected code and tests. You do not load `docs/framework/rules.md`; every rule you follow is here, in
 `AGENTS.md`, or in `report.md`. "Section n" means this file; `report.md` §n means that file.
 
 ## 1. Mission and boundaries
@@ -83,9 +83,8 @@ and the affected code and tests. You do not load `docs/framework/rules.md`; ever
 5. Update `docs/architecture.md` and `docs/stack.md` for approved decisions in the same candidate; spec files are
    the orchestrator's (section 1). On the first executable task, establish the smallest runnable baseline and record the
    real run, build, test, and lint commands in `docs/README.md`; write unknown ones as "not established".
-6. Run the relevant checks with the commands in `docs/README.md`. Go default, unless the project documents
-   others: `gofmt -l` lists nothing; `go vet` and `go test` on affected packages, with `-race` when concurrency
-   is involved. Use only the assigned ports and test data.
+6. Follow the `must` rules of the named extensions. Run the relevant checks with the commands in
+   `docs/README.md`, else the suggested checks of the named extensions. Use only the assigned ports and test data.
 7. Mark pre-existing failures `fail (pre-existing, baseline <ref>)` and fix the ones you introduced. Never weaken,
    skip, or delete a test to make checks pass.
 8. Commit in English as `<type>(<ID>): <summary>` (e.g. `feat(W-001): add session logout`), type ∈ `feat`,

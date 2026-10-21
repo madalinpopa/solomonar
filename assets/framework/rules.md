@@ -10,7 +10,8 @@ procedures: `docs/framework/agents/<role>.md`. Skill procedures: `docs/framework
 
 - Authority order, highest first:
   1. The user's explicit decision applicable to the subject, recorded with subject and limits.
-  2. Approved global specs and mandatory rules.
+  2. Approved global specs and mandatory rules, including the `must` rules (`<name>/C-n`) of installed
+     extensions whose installing decision is approved.
   3. The approved work spec. A deviation requires an explicit decision and updates to every affected document.
   4. Agent recommendations. Apply only when compatible with 1–3 and backed by a concrete benefit.
      Preferences stay suggestions.
@@ -128,15 +129,18 @@ Verification section (`report.md` §8).
 | 1 | Normal code | The required specialists per the table below |
 | 2 | Persistence, authentication or authorization, concurrency, external integrations, data migration, or any approved architecture or dependency decision in the task | Specialists plus adversarial |
 
-| Specialty | Role | Required when |
-|---|---|---|
-| Security | `security-reviewer` | Authorization, data isolation, external input, files, secrets, trust boundaries, relevant dependency or configuration changes |
-| Go and correctness | `go-reviewer` | Go code changes |
-| Spec compliance | `spec-reviewer` | A requirement is implemented or changed |
-| Adversarial | `adversarial-reviewer` | Tier 2 (see Adversarial ordering) |
+| Priority | Specialty | Role | Focus | Required when |
+|---|---|---|---|---|
+| 1 | Security | `security-reviewer` | Bugs and security defects | Every code change (tier 1, 2) |
+| 2 | Correctness | `correctness-reviewer` | Business logic | Every code change (tier 1, 2) |
+| 3 | Spec | `spec-reviewer` | Work spec, canonical documents, `must` rules of applicable extensions | Every code change (tier 1, 2) |
+| - | Extension agent | the installed agent | Its specialty | Its `applies_when` matches the change |
+| - | Adversarial | `adversarial-reviewer` | The integrated feature | Tier 2 (see Adversarial ordering) |
 
-- Functional correctness of non-Go code stays an explicit concern: name the reviewer responsible for it in
-  the delegation packet.
+- The core reviewers are language-agnostic. Name in each packet the installed extensions whose `applies_when`
+  or `paths` match the change; their `must` rules (`<name>/C-n`) are approved global rules (§1).
+- Priority applies after every code change. All required specialists still run in parallel on the same
+  revision. When the runtime cannot run them in parallel, or their checks interfere, run them in priority order.
 - Mark an inapplicable specialty "not required" with a reason. Never fabricate a `PASS`.
 - Use a different model for the adversarial reviewer when the runtime allows; record the model in the
   Verification section (`report.md` §8).
@@ -158,6 +162,10 @@ Verification section (`report.md` §8).
 - Deduplicate into stable task-scoped finding IDs (`W-001/F-1`). Clarify contradictions between reviewers.
 - Keep per finding: revision checked, rule or acceptance criterion, impact, evidence, resolution.
 - Rejecting a finding requires evidence-backed justification.
+- Order the correction list by review priority (Security, Correctness, Spec, then extension agents); within one
+  reviewer, by severity. A merged duplicate takes the highest-priority reviewer's position.
+- Two corrections that conflict: the higher-priority one is applied; the other is re-examined against it. The
+  authority order (§1) still decides between requirements.
 
 | Finding | Handling |
 |---|---|

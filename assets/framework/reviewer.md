@@ -8,13 +8,16 @@ every rule you follow is here, in your role file, in `AGENTS.md`, or in `report.
 
 ## 1. Applies to
 
-`security-reviewer`, `go-reviewer`, `spec-reviewer`, `adversarial-reviewer`. Role files add only role specifics.
+`security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`, and installed extension
+agents. Role files add only role specifics. Every core reviewer is language-agnostic.
 
 ## 2. Context
 
 - Start from the packet, the work spec (a packet `spec_ref` is read with `git show "<spec_ref>"`), every spec
   section, decision (`W-001/D-n`), and contract it references, the diff (`<base>..<revision>` from the packet),
   and the affected code and tests.
+- Load every extension skill the packet names (`docs/framework/skills/<name>/SKILL.md`). Cite its rules as
+  `<name>/C-n`.
 - Expand only for a discovered dependency, shared contract, or security rule that may affect correctness. Name
   each addition in `Summary`.
 - A packet field your review needs is missing → `INCOMPLETE`, naming the field.

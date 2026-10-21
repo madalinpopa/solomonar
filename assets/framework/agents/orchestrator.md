@@ -38,7 +38,7 @@ operating procedure; the governing rules live in those files. `§n` means `rules
   unverified: re-delegate (§10).
 - IDs: task = allocated by `task register` (the `planned` record's ID when you pass it, else the next free
   `W-NNN`); owner = unique among active owners, stable for the session (e.g. `orchestrator-2`), kept on resume;
-  agent = role prefix plus counter per new instance (`impl-1`, `sec-1`, `go-1`, `spec-1`, `adv-1`), recorded in
+  agent = role prefix plus counter per new instance (`impl-1`, `sec-1`, `cor-1`, `spec-1`, `adv-1`), recorded in
   `active_agents` (`task move --agent`).
 
 ## 3. Stage procedure
@@ -84,7 +84,7 @@ present a listed alternative (§3).
 
 ### `specialized_review`
 - **Entry:** `revision` recorded; candidate committed and unchanged. **Delegate:** required specialists, in parallel.
-- **Do:** per the triage (§6 table: required / not required with reason, plus who covers non-Go correctness),
+- **Do:** per the triage (§6 table: required / not required with reason, including installed extension agents),
   launch every required reviewer on the same `revision`, wait for every required report, consolidate (section 6).
 - **State:** `task move --agent` at launch; `task block`; then the next stage.
 - **Exit:** every required specialist `PASS` on `revision` → tier 2: `adversarial_review` (first review or
@@ -125,6 +125,7 @@ Worktree: <path> on feature/W-001; modify nothing outside it
 Objective: <outcome to deliver>
 Work spec: <worktree-relative path>    References: <spec sections, AC IDs, W-001/D-n, contracts>
 Area of responsibility: <packages, files, flows>
+Extensions: <installed extensions whose applies_when or paths match the change, e.g. go; or none>
 Baseline: <full SHA>; known failures: <refs or none>; checks available: <command; result; SHA>
 Constraints: ports <…>; test data <…>; commands per docs/README.md
 Output: report per docs/framework/report.md; Revision = the committed candidate you hand off
@@ -139,11 +140,11 @@ Output: READY_FOR_REVIEW lists each addressed W-001/F-n with the check that show
 ```
 
 ```text
-Task: W-001, <title>    Role: <security-reviewer | go-reviewer | spec-reviewer>; docs/framework/agents/<role>.md
+Task: W-001, <title>    Role: <security-reviewer | correctness-reviewer | spec-reviewer | extension agent>; docs/framework/agents/<role>.md
 Worktree: <path>; read-only: modify no tracked file; reproductions in <temp dir> with isolated test data
 Revision: <full SHA>           Diff: <base SHA>..<full SHA>; on a recheck, base = last reviewed revision
 Objective: review the candidate for <specialty>; recheck <none, or each W-001/F-n entry in report.md §7 form>
-Work spec / References / Area of responsibility / Checks available: <as in the implementer packet>
+Work spec / References / Area of responsibility / Extensions / Checks available: <as in the implementer packet>
 Baseline: <full SHA>; known failures: <refs or none>   Constraints: ports <…>; test data <…>
 Output: report per docs/framework/report.md; Revision must equal the SHA above
 ```
@@ -196,7 +197,8 @@ Worktree <path> is kept and holds no unmerged work. Tell me if I should delete i
 1. Each report: header valid, `Revision` equals the delegated revision (implementer: the handoff commit, or
    the start commit when no candidate exists; `report.md` §2); otherwise treat it as `INCOMPLETE`.
 2. A missing or malformed report from a required reviewer makes the stage `INCOMPLETE`, never `PASS`.
-3. Map provisional IDs (`SEC-1`, `GO-1`, …) to `W-001/F-n`; merge duplicates; on rechecks keep IDs and `Status`.
+3. Map provisional IDs (`SEC-1`, `COR-1`, …) to `W-001/F-n`; merge duplicates; on rechecks keep IDs and `Status`.
+   Order the correction list by review priority (§6 Consolidation).
 4. Contradictions between reviewers: request a reproduction, test, or precise analysis; record the conclusion.
 5. Separate `blocking` from `suggestion`; an `unverified` finding on a required check means `INCOMPLETE`.
 6. Decision needs: assign `W-001/D-n` and follow §3; hold only the corrections that depend on them.

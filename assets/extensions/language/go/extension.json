@@ -1,0 +1,10 @@
+{
+  "name": "go",
+  "kind": "skill",
+  "group": "language",
+  "title": "Go language rules",
+  "requires": [],
+  "conflicts": [],
+  "applies_when": "A change touches Go code (*.go, go.mod, go.sum)",
+  "paths": ["**/*.go", "**/go.mod", "**/go.sum"]
+}

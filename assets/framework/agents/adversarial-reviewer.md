@@ -47,7 +47,7 @@ Hypothetical examples (illustrative only); judge the complete result of each aga
    earlier ID and what is new. The block never narrows your hypotheses and is never evidence.
 4. Load additional code or documents only when a scenario under check needs them.
 5. Verify scenarios highest priority first, by reproduction in a temporary copy: request sequences on assigned
-   ports, concurrency tests with `go test -race`, fault injection through test doubles or controlled failures,
+   ports, concurrency tests with race detection where the language supports it, fault injection through test doubles or controlled failures,
    restart simulation. Write a reproduction test only when it checks an actual risk. A reproduced violation of
    an AC or agreed invariant → `blocking` `ADV-n`; `Violates`: that AC, spec section, or `W-001/D-n`;
    `Evidence`: the reproduction steps.

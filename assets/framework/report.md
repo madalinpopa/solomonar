@@ -41,8 +41,8 @@ Result: <result value>
 
 - Header: exactly these three lines, in this order; the orchestrator routes on them alone. `<Task ID>`: the
   task ID from the delegation packet (e.g. `W-001`). `Result`: exactly one value from §3.
-- `<Role>`: one of `implementer`, `security-reviewer`, `go-reviewer`, `spec-reviewer`,
-  `adversarial-reviewer`. `<Role>` is a role file in `docs/framework/agents/`; `docs/framework/reviewer.md` is
+- `<Role>`: one of `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`,
+  `adversarial-reviewer`, or an installed extension agent. `<Role>` is a role file in `docs/framework/agents/`; `docs/framework/reviewer.md` is
   a shared contract, not a role.
 - `Revision`: the full SHA of a committed candidate. Implementer: the commit it hands off. Reviewer: the
   exact commit it reviewed. Uncommitted work is never a candidate. A review of one revision says nothing
@@ -96,13 +96,13 @@ Entry format (omit `Violates` for `suggestion`; `Status` only on rechecks):
 - <ID> `<classification>`: <location: file:line, endpoint, or flow step>
   - Conditions: <when it occurs>
   - Impact: <consequence>
-  - Violates: <rule or AC ID; when none exists, `demonstrated defect: <invariant broken>`>
+  - Violates: <rule or AC ID (`AC-n`, `<capability>/R-n`, `<name>/C-n`); when none exists, `demonstrated defect: <invariant broken>`>
   - Evidence: <reproduction steps, test, command; or reasoning plus the verification limit>
   - Correction: <the outcome that must hold, not a preferred implementation>
   - Status: <resolved | still open | regressed>
 ```
 
-- IDs: the reporting role assigns provisional IDs with its prefix: `SEC-1`, `GO-1`, `SPEC-1`, `ADV-1`,
+- IDs: the reporting role assigns provisional IDs with its prefix: `SEC-1`, `COR-1`, `SPEC-1`, `ADV-1`,
   `IMPL-1`. The orchestrator maps them to stable task-scoped IDs (`W-001/F-1`).
 - On a recheck, reference existing `W-001/F-n` IDs and state each one's `Status` on the new revision:
   `resolved` | `still open` (not fixed on this revision) | `regressed` (resolved on an earlier revision and

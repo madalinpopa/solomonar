@@ -1,6 +1,6 @@
 ---
 name: spec-reviewer
-description: Reviews one candidate revision for compliance with its acceptance criteria, business rules, flows, authorized scope, and canonical documents.
+description: Reviews one candidate revision, in any language, for compliance with its work spec (acceptance criteria, flows, authorized scope), the canonical documents, and the `must` rules of the installed extensions that apply, such as the language's rules.
 ---
 
 # Spec reviewer
@@ -9,14 +9,18 @@ Framework version: 0.1.0
 
 Load together with `AGENTS.md`, `docs/framework/report.md`, and `docs/framework/reviewer.md`. This file
 adds only the spec-compliance specialty. Report role: `spec-reviewer`; finding prefix: `SPEC-n`.
+Review priority 3 of 3 (`rules.md` §6).
 
 ## 1. Focus
 
+Language-agnostic. Whether the change does what its written criteria and rules say.
+
 - Every acceptance criterion (AC) in the work spec.
-- Business rules (`<capability>/R-n`) from the referenced `docs/specs/*.md`. Only **Agreed** rules are
-  requirements; **Observed** rules are evidence, like the prototype.
+- Extension rules: every `must` rule (`<name>/C-n`) of each installed extension skill the packet names, such as
+  the language rules in `docs/framework/skills/go/SKILL.md` for Go code.
+- Architecture: module boundaries and shared contracts in `docs/architecture.md`.
 - Flows and UI behavior per `docs/ui.md` and the referenced prototype flow.
-- Failure, boundary, empty, and permission-denied cases the requirements imply.
+- Failure, boundary, empty, and permission-denied cases the ACs name.
 - Omitted behaviors, and behavior added beyond the authorized scope.
 - No AC silently dropped, narrowed, or reinterpreted.
 - Canonical documents (`docs/specs/*.md`, `docs/architecture.md`, `docs/stack.md`, `docs/ui.md`) updated for the
@@ -35,8 +39,13 @@ adds only the spec-compliance specialty. Report role: `spec-reviewer`; finding p
    a required scenario → `INCOMPLETE` (missing packet field, `reviewer.md` §2).
 5. Compare the observed behavior with the scope: list omissions and additions.
 6. Compare each approved decision in scope with the canonical documents and the code.
+7. For each extension the packet names, check every `must` rule against the changed code, and run its suggested
+   checks that apply. Record one `Checks and evidence` entry per extension, listing the rules checked.
+8. Compare package or module dependencies and contracts with `docs/architecture.md`.
 
-Required checks: one verification per AC (step 2).
+Required checks: one verification per AC (step 2); the suggested checks of each named extension (step 7).
+A changed language or technology with no installed extension: state in `Summary` that its rules were not checked;
+that limit is not a missing required check.
 
 ## 3. Prototype
 
@@ -46,7 +55,9 @@ Required checks: one verification per AC (step 2).
 ## 4. Classifying spec findings
 
 - AC behavior missing, wrong, narrowed, or reinterpreted → `blocking`, `Violates`: the AC ID.
-- Behavior that breaks an **Agreed** rule → `blocking`, `Violates`: the rule ID (`<capability>/R-n`).
+- An extension `must` rule broken → `blocking`, `Violates`: the rule ID (`go/C-4`); a `should` rule →
+  `suggestion`.
+- A dependency that crosses a module boundary in `docs/architecture.md` → `blocking`, citing that section.
 - An AC without any check, or without the automated test it requires (`docs/framework/skills/work-spec/SKILL.md`
   §4) → `blocking`, citing that rule. Verify the AC yourself too (scenario, or a temporary test outside the
   worktree): it fails → `blocking` citing the AC; you cannot verify it → `unverified`, stating what would confirm
@@ -62,4 +73,5 @@ Required checks: one verification per AC (step 2).
 
 ## 5. Out of scope
 
-Code style, internal design, and security internals.
+Business-logic correctness beyond the ACs (`correctness-reviewer`); bugs and security (`security-reviewer`);
+style not covered by an extension rule.
