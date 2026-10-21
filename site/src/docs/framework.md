@@ -14,6 +14,8 @@ Solomonar is a way of working, rather than a technology stack. It connects produ
 
 The names come from a Romanian folktale. The mapping below is the project's interpretation of that story. These are the same five diagrams used in the repository README, rendered with this site's theme.
 
+Want to put it into practice? [Explore concrete use cases]({{ '/docs/use-cases/' | url }}) with agent prompts, terminal examples, and the outcome to expect at each step.
+
 ## The full cycle at a glance
 
 {% diagram "cycle" %}
