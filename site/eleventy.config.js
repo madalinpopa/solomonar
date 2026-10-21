@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 const base = process.env.SITE_BASE_PATH || "/";
 const segments = base.split("/").filter(Boolean);
 const pathPrefix = segments.length ? `/${segments.join("/")}/` : "/";
-const origin = process.env.SITE_ORIGIN || "https://solomonar.dev";
+const origin = new URL(process.env.SITE_ORIGIN || "https://solomonar.dev").origin;
 
 export default function (config) {
   config.setUseTemplateCache(false);
@@ -14,6 +14,7 @@ export default function (config) {
   config.addGlobalData("basePath", pathPrefix);
   config.addGlobalData("canonicalBase", `${origin}${pathPrefix}`);
   config.addFilter("absolute", (url) => `${origin}${pathPrefix}${url.replace(/^\//, "")}`);
+  config.addFilter("jsonLd", (value) => JSON.stringify(value).replace(/</g, "\\u003c"));
   config.addFilter("source", (path) => `https://github.com/madalinpopa/solomonar/blob/main/${path}`);
   config.addFilter("selectGroup", (items, group) => items.filter((item) => item.data.group === group));
   config.addFilter("toc", (html) => [...html.matchAll(/<h2 id="([^"]+)">([\s\S]*?)<\/h2>/g)].map((match) => ({ id: match[1], title: match[2].replace(/<[^>]*>/g, "") })));
