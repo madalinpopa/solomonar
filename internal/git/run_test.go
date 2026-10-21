@@ -108,3 +108,10 @@ func TestRunGHWithoutGHOnPathIsNotFound(t *testing.T) {
 
 	require.ErrorIs(t, err, git.ErrNotFound)
 }
+
+func TestOnPathFindsOnlyExecutablesOnPath(t *testing.T) {
+	gittest.PathWith(t, "claude")
+
+	assert.True(t, git.OnPath("claude"))
+	assert.False(t, git.OnPath("codex"))
+}
