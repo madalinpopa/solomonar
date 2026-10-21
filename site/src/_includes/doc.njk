@@ -7,7 +7,7 @@ layout: base.njk
     <nav aria-label="Documentation pages">
       {% for group in site.groups %}
       <div class="sidebar-group"><p>{{ group }}</p>
-      {% for doc in collections.docs | selectGroup(group) %}<a href="{{ doc.url | url }}"{% if page.url == doc.url %} aria-current="page"{% endif %}>{{ doc.data.title }}</a>{% endfor %}
+      {% for doc in collections.docs | selectGroup(group) %}<a href="{{ doc.url | url }}"{% if page.url == doc.url %} aria-current="page"{% endif %}>{{ doc.data.navTitle or doc.data.title }}</a>{% endfor %}
       </div>
       {% endfor %}
     </nav>
@@ -20,8 +20,8 @@ layout: base.njk
     {% if sources %}<div class="doc-sources"><span>Source of truth</span>{% for source in sources %}<a href="{{ source | source }}">{{ source }}</a>{% endfor %}</div>{% endif %}
     <nav class="doc-pagination" aria-label="Next reading">
       {% for doc in collections.docs %}{% if doc.url == page.url %}
-      {% if not loop.first %}{% set previous = collections.docs[loop.index0 - 1] %}<a href="{{ previous.url | url }}"><span>Previous</span>{{ previous.data.title }}</a>{% endif %}
-      {% if not loop.last %}{% set next = collections.docs[loop.index0 + 1] %}<a href="{{ next.url | url }}"><span>Continue reading</span>{{ next.data.title }} <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a>{% endif %}
+      {% if not loop.first %}{% set previous = collections.docs[loop.index0 - 1] %}<a href="{{ previous.url | url }}"><span>Previous</span>{{ previous.data.navTitle or previous.data.title }}</a>{% endif %}
+      {% if not loop.last %}{% set next = collections.docs[loop.index0 + 1] %}<a href="{{ next.url | url }}"><span>Continue reading</span>{{ next.data.navTitle or next.data.title }} <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a>{% endif %}
       {% endif %}{% endfor %}
     </nav>
   </main>
