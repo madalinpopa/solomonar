@@ -65,9 +65,21 @@ func (r *Registry) claim(id string) (string, *Record, error) {
 }
 
 func (r *Registry) checkOwner(owner string) error {
+	if err := checkOwnerID(owner); err != nil {
+		return err
+	}
+	return r.checkOwnerFree(owner)
+}
+
+func checkOwnerID(owner string) error {
 	if !validAgentID(owner) {
 		return invalidValue("--owner takes an agent ID like [a-z]+-[0-9]+", owner, "pass --owner orchestrator-1")
 	}
+	return nil
+}
+
+// checkOwnerFree rejects an owner that already owns an active task.
+func (r *Registry) checkOwnerFree(owner string) error {
 	for _, id := range r.IDs() {
 		record := r.Tasks[id]
 		if record.Owner == owner && ownsActively(record.Status) {
