@@ -25,7 +25,7 @@ Requirements come from the interface spec and `assets/framework/rules.md` §7, �
 | Human and `--json` output with the same content, one envelope | I §3.3, §3.4 | Every command returns data; one renderer chooses the form. |
 | Exit codes 0 to 5, actionable errors with check, found, fix | I §3.5, §3.6, §8.4 | One error type carries the code, the exit class, and the fix. |
 | Embedded framework and catalog, copied then owned, manifest hashes | I §4.5, §4.7 | `embed.FS` plus a plan/apply engine over project files. |
-| Line prompts only on a terminal; never with `--json` | I §3.7, CLI-D5 | Prompts read from an injected reader; no terminal library. |
+| Prompts only on a terminal; never with `--json` | I §3.7, CLI-D5 | Prompts read from an injected reader; the multi-select enters raw mode through an injected `Env.RawMode`. |
 | Optional network: `git push`, read-only `gh` | I §1, J6 | Time-limited external calls whose failures become warnings. |
 | macOS and Linux; `go install` and release binaries | AD-11, AD-12 | No Windows path, quoting, or terminal code in v0.1. |
 
@@ -57,8 +57,10 @@ Clarifications the implementation settles this way unless the spec says otherwis
 ## 3. Toolchain
 
 - **Go 1.27.3**, the latest stable patch (go.dev/doc/devel/release, 2026-10-19), as `go.mod` declares.
-- **No production dependencies** in increments 1 and 2 (AD-1). The only module dependency is test-only:
-  `github.com/stretchr/testify` v1.12.1, packages `assert` and `require` (AD-14), added with the first test.
+- **One production dependency** in increments 1 and 2 (AD-1): `golang.org/x/term`, for raw terminal mode in the
+  multi-select (CLI-D5; author, 2026-10-21); everything else is the standard library. The only other module
+  dependency is test-only: `github.com/stretchr/testify` v1.12.1, packages `assert` and `require` (AD-14), added with
+  the first test.
   Development tools are pinned in `Taskfile.yml` (section 10) and never enter `go.mod`.
 
 | Need | Standard library | Note |
@@ -70,6 +72,7 @@ Clarifications the implementation settles this way unless the spec says otherwis
 | Hashes | `crypto/sha256` | Manifest file hashes. |
 | JSON | `encoding/json/v2` for reading `state.json` and the manifest | Rejects duplicate keys by default and can reject unknown members (AD-7). |
 | Signals | `os/signal.NotifyContext` | One place, in `main`. |
+| Raw terminal mode | `golang.org/x/term` (`MakeRaw`, `Restore`), the one non-standard package | The multi-select only (CLI-D5); set in `main` as `Env.RawMode` (AD-1). |
 | Sorted iteration | `slices.Sorted(maps.Keys(...))`, `cmp` | Task IDs sorted by number, not by string. |
 | Dashboard (increment 3) | `net/http`, `embed`, `httptest` | Loopback by default. |
 
@@ -81,7 +84,7 @@ Section 10 enforces these with lint rules.
 
 | ID | Decision | Rationale | Rejected alternative |
 |---|---|---|---|
-| AD-1 | No production dependencies for increments 1 and 2; the binary links only the standard library. | The standard library covers every need in section 3; the framework treats each dependency as a decision (rules §3). | Cobra or Kong (AD-2); go-git (AD-3); a prompt library (CLI-D5). |
+| AD-1 | One production dependency for increments 1 and 2: `golang.org/x/term`, for raw terminal mode in the multi-select (CLI-D5; author, 2026-10-21); everything else is the standard library. | The standard library covers every need in section 3 except raw terminal mode; the framework treats each dependency as a decision (rules §3). | Cobra or Kong (AD-2); go-git (AD-3); a full-screen prompt library (CLI-D5). |
 | AD-2 | `flag.FlagSet` per leaf command, a static command table, hand-written help, and an interspersed-arguments helper (about 40 lines). | The interface fixes every help line, error envelope, and exit code, so a framework's generated help and error handling would be overridden, not used. The tree is two levels deep with one alias. | Cobra: interspersed flags for free, but pflag, `SilenceErrors`/`SilenceUsage`, custom exit mapping, and a dependency for about 20 commands. Reconsider only for shell completion. |
 | AD-3 | Git and `gh` through their executables, never a Go Git library. | Atomic `update-ref <new> <old>` and `git worktree list --porcelain` are the contract (rules §7); the user's Git configuration and identity apply; Git ≥ 2.40 is already required. | go-git: no worktree parity, a second implementation of the swap semantics, a large dependency. |
 | AD-4 | Commands return data or a typed error; one renderer writes human or JSON form; `main` alone calls `os.Exit`. | One place enforces the envelope (I §3.4) and the exit table (I §3.5); packages stay testable. | Printing inside domain code: the two output forms would drift. |
@@ -101,7 +104,7 @@ Section 10 enforces these with lint rules.
 Layout (AD-13):
 
 ```
-main.go                  signal context, //go:embed assets, cli.Run, os.Exit; nothing else
+main.go                  signal context, //go:embed assets, Env.RawMode, cli.Run, os.Exit; nothing else
 assets/                  framework/, extensions/, templates/ (existing content)
 internal/
   cli/                   command table, flag parsing, help, prompts, rendering, error envelope, exit codes
@@ -115,7 +118,7 @@ Taskfile.yml  .golangci.yml  .goreleaser.yaml  go.mod
 
 | Package | Owns | Why it is a separate package |
 |---|---|---|
-| `main` (root) | Process boundary: `signal.NotifyContext`, the embedded `assets` tree, building `cli.Env` from `os`, `os.Exit(code)`. | `go install github.com/madalinpopa/solomonar` yields the binary `solomonar`. |
+| `main` (root) | Process boundary: `signal.NotifyContext`, the embedded `assets` tree, building `cli.Env` from `os` (`RawMode` from `term.MakeRaw`/`term.Restore`), `os.Exit(code)`. | `go install github.com/madalinpopa/solomonar` yields the binary `solomonar`. |
 | `internal/cli` | Everything the user sees: argument parsing, help, prompts, human tables, JSON envelope, mapping errors to exit codes, `doctor` and `guard` assembly. One file per command group (`task.go`, `init.go`, `extension.go`, …). | The only package that knows about terminals and output forms; `task` and `project` never print. |
 | `internal/task` | The registry's meaning: `Registry`, `Record`, statuses, stages, tiers, blockers; the rules of I §8; fact checks of I §8.3; `Status` facts and drift of I §9; the swap loop. | The core domain with real invariants; most rule tests live here. |
 | `internal/project` | The project's files: manifest, ownership classes, plan/apply, catalog loading, extension rendering, adapter stubs, `AGENTS.md` sections, decision entries. | Different data (files, not records), different failures (conflicts, not rejections), different tests (file trees). |
@@ -152,6 +155,7 @@ type Env struct {
 	Getenv         func(string) string
 	Now            func() time.Time
 	Interactive    bool
+	RawMode        func() (restore func(), err error) // main: term.MakeRaw/term.Restore on stdin
 	Assets         fs.FS
 }
 
@@ -448,7 +452,7 @@ the name, at most 100 characters per line), and nothing requires one (revive `ex
 
 | Rule | Encodes |
 |---|---|
-| depguard `stdlib-only`: only the standard library and this module outside tests | AD-1 |
+| depguard `stdlib-only`: only the standard library, this module, and `golang.org/x/term` outside tests | AD-1 |
 | depguard `tests`: tests may also import testify `assert` and `require`, never `mock` or `suite` | AD-14 |
 | testifylint (all checkers): `require` for errors, argument order, specific assertions | AD-14 |
 | depguard `banned`: no `reflect`, `unsafe`, `log`, `log/slog` outside tests | Section 3 |
@@ -493,7 +497,7 @@ the version `+dirty` (AD-10). Only the `release` job can write, and it builds wi
 | Concurrency | The swap loop (UC-21) | Two goroutines register against one repository; both succeed with distinct IDs; run with `-race`. A second test: re-validation rejects a concurrent claim of the same planned ID. |
 | Project files | Plans, conflicts, the upgrade table (UC-9), `With` sections, adapters | `fstest.MapFS` as the catalog; temp directories as projects; assert on `Plan` values, then on files after `Apply`; rollback tested with a write that fails midway. |
 | Use cases | Every UC of the increment, human and JSON forms, exit codes | In-process `cli.Run` with buffers, a fixed clock, and `os.DirFS` of `assets/`; JSON compared with `assert.JSONEq`; a few human outputs as golden files in `testdata/`, refreshed with `-update`. |
-| Prompts | Line prompts, `interactive_required` | `Env.Interactive` and a `strings.Reader` as stdin. |
+| Prompts | Text, confirmation, multi-select keys and redraws, EOF, Ctrl-C, `interactive_required` | `Env.Interactive`, a no-op `Env.RawMode`, and byte streams as stdin. |
 
 Assertions use testify (AD-14); test helpers that build repositories take `t`, call `t.Helper()`, and use
 `require`. Tests require `git` ≥ 2.40 on `PATH` and fail with that message otherwise. `gh` is never called in tests:
@@ -541,7 +545,7 @@ This is an internal milestone. The full new-project journey with a stack chosen 
 | 7 | **`task status`.** Facts, drift, `allowed_next`, optional `gh`. | UC-16 (`status`) and UC-17 pass; without `gh` the forge facts are `unknown`, never passing. | Fake `gh` on `PATH`; each drift row produced by a repository state. |
 | 8 | **`init`, non-interactive, core only.** Manifest, plan/apply with rollback, core files, `AGENTS.md` and `docs/README.md` from templates, registry creation, re-run no-op, conflicts, `--keep`/`--overwrite`, `--dry-run`. | UC-2 with `--runtime none --ext none`, UC-3, and the non-interactive UC-4 cases pass; a re-run over files left without a manifest adopts them (CLI-D17); keep preserves the upstream base; manifest apply precedes registry CAS. | File-tree assertions plus F-02/F-09: a failing file write or CAS rolls back this run's entire file plan, including the manifest. |
 | 9 | **`init` with runtimes and catalog extensions.** Adapter stubs, `.claude/settings.json` merge, extension rendering, `requires`/`conflicts`, `P/D-n` entries, `docs/stack.md`. | UC-2 with `--runtime claude,codex --ext go`; a repeated `init` stays a no-op. | `fstest.MapFS` catalog with `With` sections; the settings merge keeps foreign keys. |
-| 10 | **Interactive `init`.** Line prompts, multi-select, `AGENTS.md` adoption, `--git-init` prompt, `interactive_required`. | UC-1 and the interactive UC-4 branches pass with scripted stdin. | Prompt tests with `strings.Reader`. |
+| 10 | **Interactive `init`.** Line prompts, key-driven multi-select (`golang.org/x/term`), `AGENTS.md` adoption, `--git-init` prompt, `interactive_required`. | UC-1 and the interactive UC-4 branches pass with scripted stdin. | Prompt tests with `strings.Reader`. |
 
 Increments 2 and 3 follow I §10 and are planned in detail after increment 1, because their main inputs (CLI-D9
 for Codex, the guard's real hook payloads) are verified only then.
