@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/madalinpopa/solomonar/internal/project"
 	"github.com/madalinpopa/solomonar/internal/task"
 )
 
@@ -39,6 +40,32 @@ func TestRejectionExitFollowsCode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.code, func(t *testing.T) {
 			rejection := &task.Rejection{Code: tt.code, Check: "the check", Found: "what was found", Fix: "the fix"}
+
+			got := renderResult(t.Context(), true, output{}, fmt.Errorf("wrapped: %w", rejection))
+
+			assert.Equal(t, tt.exit, got.exit)
+			assert.JSONEq(t, fmt.Sprintf(`{
+				"ok": false,
+				"command": "task move",
+				"error": {"code": %q, "message": %q, "check": "the check", "found": "what was found", "fix": "the fix"},
+				"warnings": []
+			}`, tt.code, tt.message), got.stdout)
+		})
+	}
+}
+
+func TestProjectRejectionExitFollowsCode(t *testing.T) {
+	tests := []struct {
+		code    string
+		exit    int
+		message string
+	}{
+		{code: "manifest_invalid", exit: 1, message: "task move failed"},
+		{code: "cli_outdated", exit: 3, message: "task move rejected"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.code, func(t *testing.T) {
+			rejection := &project.Rejection{Code: tt.code, Check: "the check", Found: "what was found", Fix: "the fix"}
 
 			got := renderResult(t.Context(), true, output{}, fmt.Errorf("wrapped: %w", rejection))
 
