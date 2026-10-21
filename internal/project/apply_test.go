@@ -3,6 +3,7 @@ package project
 import (
 	"context"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"testing"
@@ -213,4 +214,20 @@ func TestPlanConflictsReturnsConflictsInPlanOrder(t *testing.T) {
 
 	assert.Equal(t, []Change{plan.Changes[0], plan.Changes[2]}, plan.Conflicts())
 	assert.Empty(t, Plan{}.Conflicts())
+}
+
+func TestApplyAppendWritesTheNewContentAndRollsBack(t *testing.T) {
+	root, dir := openTree(t, original())
+	before := snapshot(t, dir)
+
+	journal, err := Apply(t.Context(), root, Plan{Changes: []Change{
+		{Path: "docs/old.md", Action: ActionAppend, Content: []byte("old\nmore\n")},
+	}})
+
+	require.NoError(t, err)
+	want := maps.Clone(before)
+	want["docs/old.md"] = entry{content: "old\nmore\n", mode: 0o600}
+	assert.Equal(t, want, snapshot(t, dir))
+	require.NoError(t, journal.Rollback())
+	assert.Equal(t, before, snapshot(t, dir))
 }
