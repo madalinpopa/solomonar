@@ -48,6 +48,7 @@ func (r *Registry) DoneTask(ctx context.Context, repo *git.Repo, id, as, main st
 	return MoveResult{
 		From:    before.position(),
 		To:      after.position(),
+		Changed: changedFields(before, after),
 		Subject: after.Subject(id, "merged "+d.Merge[:7]),
 	}, nil
 }
