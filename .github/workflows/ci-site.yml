@@ -1,0 +1,65 @@
+name: Build and publish site
+
+on:
+  push:
+    branches: [main]
+    paths: ["site/**", "docs/logo/**", "docs/images/**", ".github/workflows/ci-site.yml"]
+  pull_request:
+    paths: ["site/**", "docs/logo/**", "docs/images/**", ".github/workflows/ci-site.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-site-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/madalinpopa/solomonar-site
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+      - name: Build and validate site image
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          file: site/Dockerfile
+          load: true
+          tags: ${{ env.IMAGE }}:sha-${{ github.sha }}
+          cache-from: type=gha,scope=site
+          cache-to: type=gha,mode=max,scope=site
+      - name: Check Nginx and HTTP behavior
+        env:
+          SITE_IMAGE: ${{ env.IMAGE }}:sha-${{ github.sha }}
+        run: |
+          docker compose -p site-ci -f site/compose.yml config --quiet
+          docker run --detach --name site-ci --read-only --tmpfs /tmp:rw,size=16m,mode=1777 --cap-drop ALL --security-opt no-new-privileges --publish 127.0.0.1:8080:8080 "$SITE_IMAGE"
+          trap 'docker rm --force site-ci' EXIT
+          docker exec site-ci nginx -t
+          curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8080/healthz
+          curl --fail --silent http://127.0.0.1:8080/ --output /tmp/site-home.html
+          grep -q 'Every dragon needs' /tmp/site-home.html
+          curl --fail --silent http://127.0.0.1:8080/docs/framework/ --output /tmp/site-framework.html
+          grep -q 'workflow-diagram' /tmp/site-framework.html
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8080/does-not-exist)" = 404
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish tested image
+        if: github.event_name != 'pull_request'
+        run: |
+          docker push "$IMAGE:sha-$GITHUB_SHA"
+          docker tag "$IMAGE:sha-$GITHUB_SHA" "$IMAGE:latest"
+          docker push "$IMAGE:latest"
