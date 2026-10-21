@@ -227,6 +227,7 @@ func changedFields(before, after *Record) []string {
 	}
 	add("status", before.Status != after.Status)
 	add("stage", before.Stage != after.Stage)
+	add("owner", before.Owner != after.Owner)
 	add("spec", before.Spec != after.Spec)
 	add("revision", before.Revision != after.Revision)
 	add("tier", !samePointee(before.Tier, after.Tier))
