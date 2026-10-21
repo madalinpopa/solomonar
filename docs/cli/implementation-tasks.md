@@ -313,7 +313,36 @@ only with `--next`, the retarget is applied directly; `changeTask` takes the hea
       (UC-19, I §8.4, rules §10)
 - [x] `task handoff <ID> --owner <o> [--next] [--json] [--dry-run]` in the command table and help
 - [x] UC-19 human output, `--dry-run`, JSON, rejections end to end
-- Stage 6.4 `[ ]` — `task done` with merge and `spec_ref` checks, domain (UC-20)
+
+### Stage 6.4 — `Registry.DoneTask` with merge and `spec_ref` checks (domain) `[x]`
+
+Decisions (author, 2026-10-21): `task done` splits into this domain stage and the CLI stage 6.5 (the domain stage
+may overrun the budget moderately); the `--spec-ref` path must equal the recorded `spec`, otherwise
+`spec_ref_not_final`; `--summary` takes 1 to 120 characters (runes) after trimming, else `invalid_value`.
+
+Decisions (author, 2026-10-21): check order lookup, `done_final`, ownership, status
+`running` and stage `integration` (`transition_not_allowed`, check `task done needs running/integration`, found
+`<ID> is <status>/<stage>`, fix `solomonar task status <ID>`), `blockers_open` (found `<ID> has open blockers B-1,
+B-2`, fix `solomonar task unblock <ID> <blocker-id>`), then flag values (`invalid_value`, exit 2): `--summary`,
+`--merge` a full SHA, `--spec-ref` `<full SHA>:<clean path>`; then Git: `merge_not_on_main` (`git merge-base
+--is-ancestor <merge> <main>` against the local main branch; an unknown SHA fails too), `merge_not_merge_commit`
+(fewer than two parents), `revision_not_merged`, `spec_ref_invalid` (`git cat-file -e <spec_ref>`),
+`spec_ref_not_final` (the last commit reachable from the merge's second parent whose subject starts with
+`spec(<ID>):`, compared with the `--spec-ref` commit, and the path compared with the recorded `spec`; fix `pass
+--spec-ref <derived>` with `<derived>` = `<that commit>:<recorded spec>`; no such commit: found `no spec(<ID>)
+commit is reachable from <merge short 8>^2`, no fix); the stored summary is trimmed; the compact record keeps
+`title`, `status` `done`, `stage` `complete`, `summary`, `spec_ref`, `merge_commit`, `pr` when recorded,
+`related_task` when recorded, and `updated_at`; subject `merged <short 7>` (I §8.5); `changed` is left to stage 6.5;
+a root commit as `--merge` reads `<merge short 8> has no parent`; Git exits 1 and 128 of `merge-base --is-ancestor`
+and `cat-file -e` fail the check unless cancelled, other Git failures are `unexpected_error`; the last `spec(<ID>):`
+commit is the first in `git log --topo-order --format="%H %s" <merge>^2`; the `--summary` found shows the raw value;
+the `--merge` fix is `git rev-parse <value>`. UC-20, I §8.3, I §8.4, I §9.1, architecture §2 updated to match.
+
+- [x] Merge checks: `merge_not_on_main`, `merge_not_merge_commit`, `revision_not_merged` (I §8.3), tested on a
+      merge commit, a squash, and a rebased branch (architecture §12 step 6)
+- [x] `spec_ref` checks: `spec_ref_invalid`, `spec_ref_not_final` with the derived `spec_ref` (I §8.3, C14)
+- [x] `Registry.DoneTask`: state and flag checks above, compact record, subject (UC-20, rules §7, §9)
+
 - Stage 6.5 `[ ]` — `task done` command (UC-20)
 
 ## Step 7: `task status`
