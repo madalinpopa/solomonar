@@ -18,6 +18,8 @@ var embedded embed.FS
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	// Restoring the default handlers on the first signal lets a second one end the process (CLI-D18).
+	context.AfterFunc(ctx, stop)
 	code := run(ctx)
 	stop()
 	os.Exit(code)
