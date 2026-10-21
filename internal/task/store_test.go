@@ -139,6 +139,19 @@ func TestUpdateRejectionWritesNothing(t *testing.T) {
 	assert.Equal(t, before, tip(t, store))
 }
 
+func TestUpdateWithEmptySubjectWritesNothing(t *testing.T) {
+	store, remote := storeWithRemote(t)
+	before := tip(t, store)
+
+	commit, err := store.Update(t.Context(), func(*Registry) (string, error) { return "", nil })
+	require.NoError(t, err)
+
+	assert.Equal(t, Commit{SHA: before}, commit)
+	assert.Equal(t, before, tip(t, store))
+	assert.Equal(t, "1", gittest.Git(t, store.Git.Dir, "rev-list", "--count", Ref))
+	assert.Empty(t, gittest.Git(t, remote, "for-each-ref", Ref))
+}
+
 func TestConcurrentUpdatesGetDistinctIDs(t *testing.T) {
 	store := createdStore(t)
 	var wg sync.WaitGroup
