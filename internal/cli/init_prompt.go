@@ -160,7 +160,7 @@ func extensionItem(e project.CatalogExtension) choice {
 
 // proceed shows the plan and applies it once the user confirms.
 func (a *initPrompts) proceed(ctx context.Context, r initRun, root *os.Root, store *task.Store) (output, error) {
-	fmt.Fprint(a.out, r.planText())
+	fmt.Fprint(a.out, "Plan\n"+r.groupedPlan())
 	yes, err := a.confirm("Proceed?", true)
 	if err != nil {
 		return output{}, err
