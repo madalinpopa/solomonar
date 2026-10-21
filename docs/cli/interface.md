@@ -128,8 +128,8 @@ behavior.
   refs/heads/workflow-state with an empty state.json` or `  registry   unchanged refs/heads/workflow-state`; with
   `--git-init` the plan's first line is `  git        init -b <main-branch>` (UC-4).
 - A counts line is `<n> file(s) <first action>, <n> <action>, …` over the non-zero actions in the order created,
-  updated, kept, unchanged, skipped; the manifest counts. Only the first count carries `file` (one) or `files`
-  (`1 file created, 17 unchanged, 1 skipped`); a conflict count is `1 conflict` or `<n> conflicts`.
+  updated (`append` included), kept, unchanged, skipped; the manifest counts. Only the first count carries `file`
+  (one) or `files` (`1 file created, 17 unchanged, 1 skipped`); a conflict count is `1 conflict` or `<n> conflicts`.
 - Every writing command ends with what was written (commit, files) and, when useful, a `Next:` block.
 
 ### 3.4 JSON output
@@ -856,7 +856,9 @@ Postconditions: the files exist uncommitted on main; each chosen group has an ap
 ```
 
 `choices.runtimes` is sorted; `choices.adversarial_model` maps each runtime with a model to it (`{runtime: model}`).
-`reason` appears in a `files` item only when the change has one. `decisions` is `[]` when no stack decision is made.
+`choices.extensions` maps each group with a selection to its sorted names (`{}` when none). `decisions` holds
+`{"id", "group", "selected"}` for the entries this run records (`[]` when none, a re-run included). `reason`
+appears in a `files` item only when the change has one.
 `git_init` (the plan runs `git init`, UC-4) and `first_commit_required` (empty repository, UC-4) are always present.
 `registry.commit` is the tip and `registry.pushed` is `false` when the registry is `unchanged`. With `--dry-run` the
 data adds `"dry_run": true`, `registry` is `{"ref", "action"}`, and `next` is absent; a no-op (UC-3) has
@@ -891,6 +893,13 @@ description ends `--git-init runs git init -b <main-branch> when <dir> is not a 
 codex, or none`; `none` beside another value is `invalid_value`, check `--runtime names runtimes or none`, found `none
 cannot be combined with <v>`, fix `pass --runtime none alone`. Without `--runtime`, a project with a manifest keeps
 its runtimes; otherwise the default is each of `claude`, `codex` whose executable is found on `PATH`.
+
+`--ext` takes extension names or `none`, which requests no extension. `none` beside another value is
+`invalid_value`, check `--ext names extensions or none`, found `none cannot be combined with <v>`, fix `pass --ext
+none alone`; the names then go through the 4.3 selection checks (`unknown_extension`, `extension_requires`,
+`extension_conflict`, `init rejected`). Without `--ext`, a project with a manifest keeps its extensions; otherwise the
+default is `go` when the worktree root holds a regular file `go.mod` and the catalog has `go`, else none. The plan
+lists core files, extension files, runtime stubs, decision documents, then the manifest.
 
 `--adversarial-model <runtime>=<model>` takes one value per flag (no comma splitting) and is recorded as
 `runtimes.<r>.adversarial_model` (4.7); a runtime given twice keeps the last value. A value without `=` or with an
@@ -948,8 +957,8 @@ existing registry), then, with no blank line, `Would initialize solomonar <fw> i
 writes nothing.
 
 Checks run in this order: usage and values (`--runtime`: `unknown_runtime`, then `none` combined; the
-`--adversarial-model` syntax; `--ext`); the repository (`not_a_repository`, UC-4) and the Git version; the manifest
-(`cli_outdated`, `manifest_invalid`); the runtime selection (requested, else the manifest's, else `PATH`) and the
+`--adversarial-model` syntax; `--ext` (`none` combined, then the 4.3 selection checks)); the repository
+(`not_a_repository`, UC-4) and the Git version; the manifest (`cli_outdated`, `manifest_invalid`); the runtime selection (requested, else the manifest's, else `PATH`) and the
 unselected-runtime model check; the recorded choices (`already_initialized`, UC-3), after which
 choices not given come from the manifest, else the worktree root's base name, `main`, and `origin`; the registry
 (absent: create; valid: reuse; invalid: `registry_exists_invalid`; newer: `cli_outdated`); the plan (`invalid_value`
@@ -971,8 +980,9 @@ Already initialized with solomonar 0.1.0; nothing to do.
 Exit 0. The no-op form applies only when the registry exists and the plan creates, updates, appends, or removes nothing;
 when every file matches but the registry is absent, `init` takes the normal path (UC-2) and needs the confirmation.
 The second line is `  <counts> · registry refs/heads/workflow-state unchanged` (3.3). The CLI fills the
-choices not given from the manifest. A given choice that differs from the manifest is rejected, so that `init` never
-becomes a second way to change choices:
+choices not given from the manifest; a manifest extension missing from the catalog is an unexpected error (exit 1)
+`read extension <name>: not in the catalog`. A given choice that differs from the manifest is rejected, so that
+`init` never becomes a second way to change choices:
 
 ```
 $ solomonar init --ext go --yes
