@@ -133,9 +133,38 @@ RFC 3339 UTC>`; STATUS is padded to the width of `cancelled`; NEXT shows the sum
 
 ## Step 5: `task register`, `task move`
 
-- Stage 5.1 `[ ]` — `task register` and ownership (UC-12, UC-18)
-- Stage 5.2 `[ ]` — `Record.Move` and the I §8.3 fact checks
-- Stage 5.3 `[ ]` — `task move` command and every UC-14 rejection (UC-13, UC-14)
+### Stage 5.1 — `Registry.Register` (domain) `[x]`
+
+Decisions (author, 2026-10-21): `task register` splits into this domain stage and
+the CLI stage 5.2; an owner ID matches `[a-z]+-[0-9]+` like agent IDs, otherwise `invalid_value`; claiming a
+planned task keeps its `depends_on` and `related_task` unless the flag is given, which replaces the value; an
+unknown ID is `task_not_found`; `--next` names `user` or the owner (I §8.3, no agents exist yet); the default
+next action is `<owner>: Create feature/<ID> and its worktree`; a blank or whitespace-only title is
+`invalid_value`; an empty `--depends-on` keeps the planned list, so a claim cannot clear it; `owner_in_use` names
+the first active task in ID order. The specs mirror every recorded decision (interface and architecture updated
+with this stage).
+
+- [x] Allocate the next `W-NNN` or claim a `planned` ID; `reserved` / `setup`, `owner`, `branch feature/<ID>`,
+      `next_action`, `updated_at` (I §8.1, rules §4 step 2, §7 Fields)
+- [x] Rejections: `not_planned` (the ID exists and is not `planned`), `owner_in_use` (the owner has a
+      `reserved`, `running`, `blocked`, or `paused` task; architecture §2), `task_not_found`, `invalid_value`
+      (UC-12, I §8.4)
+- [x] Warnings: `title_changed` when a claim changes the planned title, `dependency_not_done` per dependency
+      that is not `done` (UC-12, I §8.4)
+- [x] Commit subject `state(<ID>): reserved/setup, registered by <owner>` (I §8.5)
+
+### Stage 5.2 — `task register` command `[ ]`
+
+- [ ] Human output of UC-12, "Registration confirmed" only after the swap, the worktree command; `--dry-run`;
+      JSON form
+- [ ] `task plan` rejects a blank or whitespace-only title with `checkTitle`, as `task register` does; update
+      UC-11 and I §8.3 to match
+
+- Stage 5.3 `[ ]` — `Record.Move` and the I §8.3 fact checks, `--as` and ownership (UC-18); includes the `--next`
+  action length 1 to 120 and the `--agent` ID format `[a-z]+-[0-9]+` through `validAgentID`, both in I §8.3 but
+  not yet checked
+- Stage 5.4 `[ ]` — `task move` command and every UC-14 rejection (UC-13, UC-14); its rejections name the ID
+  (`task move W-001 rejected`) through `rejectedAs`, as I §3.6 states
 
 ## Step 6: `block`, `unblock`, `handoff`, `done`
 
@@ -153,7 +182,7 @@ RFC 3339 UTC>`; STATUS is padded to the width of `cancelled`; NEXT shows the sum
 - Stage 8.2 `[ ]` — `Plan`/`Apply` with journal and rollback
 - Stage 8.3 `[ ]` — Core file plan, `AGENTS.md` and `docs/README.md` templates, adoption (CLI-D17)
 - Stage 8.4 `[ ]` — `init` command, registry creation after file apply, `--keep`/`--overwrite`/`--dry-run`,
-  F-02/F-09 (UC-2, UC-3, UC-4)
+  F-02/F-09 (UC-2, UC-3, UC-4); outside a repository `init` keeps its own `not_a_repository` fix from UC-4
 
 ## Step 9: `init` with runtimes and catalog extensions
 
