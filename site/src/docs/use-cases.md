@@ -1,6 +1,6 @@
 ---
-title: Framework use cases
-description: Concrete prompts and expected outcomes, from an idea to a reviewed change and the next task.
+title: AI coding agent workflow examples
+description: Explore ten Solomonar workflow examples with agent prompts for product discovery, specifications, bug fixes, parallel tasks, reviews, and recovery.
 kind: How-to examples
 group: Understand
 order: 2.5
