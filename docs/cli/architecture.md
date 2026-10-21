@@ -288,14 +288,17 @@ Exit 0 whatever the drift.
 
 **Project write** (`init`, `extension add`, `sync`, `upgrade`, `runtime add|remove`): load the manifest (absent
 for `init`); take choices from flags, then prompts when interactive; build the `Plan` from the embedded assets and
-the files on disk; show it; stop on conflicts (exit 4) or after `--dry-run`; confirm; `Apply` every project file,
-including the manifest. For `init` create the registry, or for a schema-changing `upgrade` migrate it, only after
-all file writes succeed. Keep the file journal until that CAS succeeds, rolling back this run's changes on a
-handled failure. With an existing valid init registry, reuse it unchanged; successful file apply is then the
-local commit point. Publish only after local success; print `Next:`.
+the files on disk; show it; stop on conflicts (exit 4) or after `--dry-run`; confirm, only when the plan creates or
+updates a file or, for `init`, creates the registry (`interactive_required` without `--yes` and without a terminal);
+`Apply` every project file, including the manifest. For `init` create the registry, or for a schema-changing
+`upgrade` migrate it, only after all file writes succeed. Keep the file journal until that CAS succeeds, rolling
+back this run's changes on a handled failure. With an existing valid init registry, reuse it unchanged; successful
+file apply is then the local commit point. Publish only after local success; print `Next:`.
 
 For init, validate an existing registry and its version before any file apply. A valid registry is reused; an
-invalid one is rejected without touching either the registry or project files (I UC-3).
+invalid one is rejected without touching either the registry or project files (I UC-3). On `file_conflict`,
+`render` still prints the plan text (`Plan` and the conflict lines) on stdout before the error on stderr; JSON
+keeps `data` absent.
 
 ## 8. Errors, cancellation, and file safety
 
@@ -328,7 +331,8 @@ invalid one is rejected without touching either the registry or project files (I
     removes a created directory only when empty. Entries that fail to restore stay in the journal for the next
     `Rollback`; after a full rollback the journal is empty, so a repeated call is a no-op.
 - `init` creates the registry only when the ref is absent (`update-ref <ref> <new> ""` is create-only); it never
-  overwrites one.
+  overwrites one. On any failure before that CAS succeeds (a failed create, cancellation) it calls
+  `Journal.Rollback` and returns the error (`interrupted` or `unexpected_error`) with the rollback error joined.
 
 ## 9. Code conventions
 
