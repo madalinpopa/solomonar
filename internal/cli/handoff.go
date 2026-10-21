@@ -40,9 +40,9 @@ func (h *handoffFlags) run(ctx context.Context, env Env, flags sharedFlags, args
 		return output{}, invalidUsage(errors.New("--owner is required"))
 	}
 	id := args[0]
-	store, err := openStore(ctx, env, flags)
+	store, _, err := openStore(ctx, env, flags)
 	if err != nil {
-		return output{}, err
+		return output{}, rejectedAs("task handoff "+id, err)
 	}
 	var previous string
 	header := func(result task.MoveResult) string {
