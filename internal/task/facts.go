@@ -43,7 +43,7 @@ func checkRevisionOnBranch(ctx context.Context, repo *git.Repo, branch, revision
 	if !ok || ctx.Err() != nil || (gitErr.ExitCode != 1 && gitErr.ExitCode != 128) {
 		return fmt.Errorf("check revision on %s: %w", branch, err)
 	}
-	worktree, err := worktreeOn(ctx, repo, branch)
+	worktree, err := Worktree(ctx, repo, branch)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func checkWorktree(ctx context.Context, repo *git.Repo, id, branch string) error
 	if err := checkBranch(ctx, repo, branch); err != nil {
 		return err
 	}
-	worktree, err := worktreeOn(ctx, repo, branch)
+	worktree, err := Worktree(ctx, repo, branch)
 	if err != nil || worktree != "" {
 		return err
 	}
@@ -92,8 +92,8 @@ func checkWorktree(ctx context.Context, repo *git.Repo, id, branch string) error
 	}
 }
 
-// worktreeOn returns the path of the worktree that has branch checked out, or "" when none has.
-func worktreeOn(ctx context.Context, repo *git.Repo, branch string) (string, error) {
+// Worktree returns the path of the worktree that has branch checked out, or "" when none has.
+func Worktree(ctx context.Context, repo *git.Repo, branch string) (string, error) {
 	out, err := repo.Run(ctx, "worktree", "list", "--porcelain")
 	if err != nil {
 		return "", fmt.Errorf("list worktrees: %w", err)
@@ -111,7 +111,7 @@ func worktreeOn(ctx context.Context, repo *git.Repo, branch string) (string, err
 }
 
 func findSpec(ctx context.Context, repo *git.Repo, branch string, after *Record) (string, error) {
-	worktree, err := worktreeOn(ctx, repo, branch)
+	worktree, err := Worktree(ctx, repo, branch)
 	if err != nil {
 		return "", err
 	}
