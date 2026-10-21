@@ -68,7 +68,7 @@ const (
 	StatusRunning   Status = "running"
 	StatusBlocked   Status = "blocked"
 	StatusPaused    Status = "paused"
-	StatusCancelled Status = "cancelled" //nolint:misspell // registry value, rules §7
+	StatusCancelled Status = "cancelled"
 	StatusDone      Status = "done"
 )
 
