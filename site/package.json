@@ -1,0 +1,16 @@
+{
+  "name": "solomonar-site",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "dev": "eleventy --serve --port=4173",
+    "prebuild": "node -e \"require('node:fs').rmSync('_site', { recursive: true, force: true })\"",
+    "build": "eleventy",
+    "check": "node scripts/check.mjs"
+  },
+  "devDependencies": {
+    "@11ty/eleventy": "3.1.7"
+  }
+}
