@@ -15,7 +15,7 @@ const exitFatal = 128
 
 // Discover finds the repository containing dir, or the working directory when dir is empty.
 func Discover(ctx context.Context, dir string, trace io.Writer) (*Repo, error) {
-	out, err := run(ctx, dir, trace, nil, []string{
+	out, err := run(ctx, "git", dir, trace, nil, []string{
 		"rev-parse", "--path-format=absolute", "--show-toplevel", "--git-common-dir",
 	})
 	if gitErr, ok := errors.AsType[*Error](err); ok && gitErr.ExitCode == exitFatal {
