@@ -21,7 +21,7 @@ type planFlags struct {
 	dryRun    bool
 }
 
-type planData struct {
+type writeData struct {
 	ID     string       `json:"id"`
 	Record *task.Record `json:"record"`
 	Commit string       `json:"commit"`
@@ -103,15 +103,20 @@ func (p *planFlags) run(ctx context.Context, env Env, flags sharedFlags, args []
 	if err != nil {
 		return output{}, err
 	}
-	text := fmt.Sprintf("Planned %s: %s\n  %s\n  registry @ %s", id, p.title, subject, commit.SHA)
-	if commit.Pushed {
-		text += " · pushed " + store.Remote + "/" + strings.TrimPrefix(task.Ref, "refs/heads/")
-	}
 	return output{
-		data:     planData{ID: id, Record: record, Commit: commit.SHA, Pushed: commit.Pushed},
-		text:     text + "\n",
+		data:     writeData{ID: id, Record: record, Commit: commit.SHA, Pushed: commit.Pushed},
+		text:     fmt.Sprintf("Planned %s: %s\n  %s\n", id, p.title, subject) + registryLine(store, commit) + "\n",
 		warnings: outputWarnings(commit.Warnings),
 	}, nil
+}
+
+// registryLine reads "  registry @ <sha>", naming the remote branch only after a push.
+func registryLine(store *task.Store, commit task.Commit) string {
+	line := "  registry @ " + commit.SHA
+	if commit.Pushed {
+		line += " · pushed " + store.Remote + "/" + strings.TrimPrefix(task.Ref, "refs/heads/")
+	}
+	return line
 }
 
 func taskShowCommand() command {
