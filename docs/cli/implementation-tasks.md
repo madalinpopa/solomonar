@@ -287,7 +287,32 @@ fields, labels aligned; `--dry-run` prints `Would block ` or `Would unblock ` be
 
 - [x] `task block <ID>` and `task unblock <ID> <blocker-id>` in the command table and help, flags of UC-15
 - [x] UC-15 human output, `--dry-run`, JSON, rejections end to end
-- Stage 6.3 `[ ]` — `task handoff` (UC-19)
+
+### Stage 6.3 — `task handoff` (UC-19) `[x]`
+
+Decisions (author, 2026-10-21): one stage for domain and command (small domain part); a `planned` task is
+`not_registered` (exit 3, check `the task is registered`, found `<ID> is planned`, fix `solomonar task register
+<ID> --title <title> --owner <new-owner>`); without `--next`, a `next_action` whose actor is the old owner is
+retargeted to the new owner with the same action text, and `changed` lists `next_action`.
+
+Decisions (author, 2026-10-21): check order lookup (`task_not_found`), `done_final`,
+`not_registered`, `--owner` format (`invalid_value`, the `task register` wording), `handoff_same_owner` (found `<ID>
+is owned by <owner>`, no fix), `owner_in_use` (the `task register` check), then `--next` (actor `user`, the new
+owner, or an `active_agents` id; I §8.3); `SOLOMONAR_OWNER` is ignored; usage errors `task ID is required` and
+`--owner is required` before the store opens; rejections read `task handoff <ID> rejected`; the subject is always
+`handoff <old> -> <new>`; `changed` lists `owner` in record order (after `stage`) and `next_action` when it changes;
+a handoff always sets `updated_at` and keeps `active_agents`; every status except `planned` and `done` accepts a
+handoff; human output is the UC-19 form with a `next` detail line when `next_action` changes; `--dry-run` prints
+`Would hand off ` before the header, then the detail lines and the subject, without the registry line and without
+the closing `The previous owner must stop writing this record.`; `--json` has the `task move` shape; `task
+handoff` sits between `task block` and `task move` in the alphabetical command table and help; `Record.Move` runs
+only with `--next`, the retarget is applied directly; `changeTask` takes the header from the caller
+(`positionHeader` for move, block, unblock). UC-19, I §8.4, I §8.5 updated to match.
+
+- [x] `Registry.HandoffTask`: checks above, owner change, `next_action` retarget or `--next`, `MoveResult`
+      (UC-19, I §8.4, rules §10)
+- [x] `task handoff <ID> --owner <o> [--next] [--json] [--dry-run]` in the command table and help
+- [x] UC-19 human output, `--dry-run`, JSON, rejections end to end
 - Stage 6.4 `[ ]` — `task done` with merge and `spec_ref` checks, domain (UC-20)
 - Stage 6.5 `[ ]` — `task done` command (UC-20)
 
