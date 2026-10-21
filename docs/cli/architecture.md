@@ -95,7 +95,7 @@ Section 10 enforces these with lint rules.
 | AD-9 | Process inputs (args, standard streams, environment lookup, clock, terminal detection, embedded assets) reach `cli.Run` as one `Env` value. | In-process tests of every use case, without building the binary or touching `os` globals. | Reading `os.Args`, `os.Getenv`, `time.Now` inside commands. |
 | AD-10 | CLI version from `runtime/debug.ReadBuildInfo`: `go install …@vX.Y.Z` records the module version, and `go build` in a checkout stamps it from the Git tag (with `+dirty` for local changes). Framework version from the embedded `rules.md` header. | No version constant and no `-ldflags -X` to forget. | A hand-maintained `const Version`. |
 | AD-11 | Platforms: macOS and Linux. Windows is deferred. | Windows changes hook command quoting, path handling in the guard, and terminal detection; no user needs it yet. | Windows from the start. |
-| AD-12 | Distribution: `go install github.com/madalinpopa/solomonar@vX.Y.Z` now; release binaries for linux and darwin on amd64 and arm64, built by GoReleaser with `-trimpath` from a `vX.Y.Z` tag on `main` (section 10). | AD-10 makes both carry the right version without extra flags. A release tool is a build tool and stays out of `go.mod`. | Package managers before a first release. |
+| AD-12 | Distribution: `go install github.com/madalinpopa/solomonar@vX.Y.Z` now; release binaries for linux and darwin on amd64 and arm64, built by GoReleaser with `-trimpath` from a `vX.Y.Z` tag on `main`, and a Homebrew cask in `madalinpopa/homebrew-tap` that GoReleaser regenerates on each stable release (section 10). | AD-10 makes both carry the right version without extra flags. A release tool is a build tool and stays out of `go.mod`. The cask comes from the same release, so it never drifts from the published archives. | A hand-written formula or cask in the tap. |
 | AD-13 | The entry point is `main.go` at the module root, not `cmd/solomonar/main.go`; it also holds `//go:embed assets` and passes the tree to `cli.Run` in `Env`. | The repository holds one binary, which is the official layout for "a command with supporting packages" (go.dev/doc/modules/layout); the install path shortens to the module path; the `assets` package and its global disappear. | `cmd/solomonar/`: meant for repositories with several binaries. A `cmd` package holding the command handlers (the Cobra convention): in Go, `cmd/<name>` means a `main` package, so it misleads readers and `go install ./cmd/...`. |
 | AD-14 | Tests use testify: `require` when the test cannot continue after a failure (errors, setup), `assert` for the remaining checks. `mock` and `suite` are not used. | Author decision, 2026-10-21. Shorter, uniform assertions with readable diffs (`assert.JSONEq` for the `--json` envelopes). Without `mock` and `suite`, tests keep real repositories and plain test functions (section 11). | The standard `testing` package alone. |
 
@@ -486,7 +486,9 @@ Actions are pinned to commit SHAs; Dependabot updates them and the Go modules we
 
 `.goreleaser.yaml` builds linux and darwin on amd64 and arm64 with `CGO_ENABLED=0`, `-trimpath`, `-s -w`, and the
 commit time as file timestamp, then writes `tar.gz` archives, SHA-256 checksums, and GitHub-generated release notes;
-a tag with a prerelease suffix publishes a prerelease. `dist/` is ignored by Git, since an untracked file would stamp
+a tag with a prerelease suffix publishes a prerelease. It also writes the `solomonar` cask to
+`madalinpopa/homebrew-tap` with the `HOMEBREW_TAP_TOKEN` secret; a prerelease leaves the cask on the last stable
+version, and a macOS postflight step removes the quarantine attribute because the binaries are not notarized. `dist/` is ignored by Git, since an untracked file would stamp
 the version `+dirty` (AD-10). Only the `release` job can write, and it builds without a Go cache.
 
 ## 11. Testing
