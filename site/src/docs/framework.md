@@ -1,9 +1,10 @@
 ---
 title: How the spec-driven framework works
+navTitle: How it works
 description: Learn how Solomonar connects specifications, agent skills, orchestration, independent code review, and Git integration in a language-agnostic framework.
 kind: Explanation
-group: Understand
-order: 2
+group: Learn the framework
+order: 5
 sources:
   - assets/framework/rules.md
   - assets/framework/skills/solomonar/SKILL.md
@@ -14,7 +15,7 @@ Solomonar is a way of working, rather than a technology stack. It connects produ
 
 The names come from a Romanian folktale. The mapping below is the project's interpretation of that story. These are the same five diagrams used in the repository README, rendered with this site's theme.
 
-Want to put it into practice? [Explore concrete use cases]({{ '/docs/use-cases/' | url }}) with agent prompts, terminal examples, and the outcome to expect at each step.
+If you followed [Run your first task]({{ '/docs/first-task/' | url }}), you have already used every part described here. This page explains why each part exists.
 
 ## The full cycle at a glance
 
@@ -104,6 +105,6 @@ Two approved requirements that contradict each other need a user decision. Imple
 
 The core contains the workflow's rules, skills, and required roles. Extensions add language, library, practice, or specialist-review instructions.
 
-The CLI design installs copied, project-owned files under `docs/solomonar/` and creates small runtime adapters that point to that portable source. Adopting a stack extension records a decision; it does not install application packages or approve further dependencies.
+`solomonar init` copies the core into your project under `docs/solomonar/` and creates small runtime adapters that point to that portable source. Adopting a stack extension will record a decision; it does not install application packages or approve further dependencies.
 
-The extension-management commands are planned. Read [configuration and files]({{ '/docs/configuration/' | url }}) for the documented installation model and its current availability.
+Extensions cannot be installed yet: choosing them at `init` and the `extension` commands are planned. The [project files reference]({{ '/docs/configuration/' | url }}) shows what is installed today.
