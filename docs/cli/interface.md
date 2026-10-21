@@ -499,6 +499,18 @@ offending path is `invalid_value` (exit 2): check `--keep and --overwrite resolv
 plan lists the wanted paths in the given order. The manifest entries returned for unresolved conflicts already carry
 the offered base; nothing is written while the plan has a conflict.
 
+`AGENTS.md` is split at the first line exactly equal to `## Project notes`: the managed part is everything before
+it, the notes part is that line onward (none without such a line). Only the managed part is hashed and classified by
+the rows above; a non-regular `AGENTS.md` keeps the `exists and is not a regular file` conflict. A written managed
+file is the offered managed part followed by the file's own notes part (the template's when it has none), so
+`--overwrite AGENTS.md` on a managed conflict replaces only the managed part and keeps the notes. An unmanaged
+`AGENTS.md` is compared on its managed part too: when it equals the offered managed part, the file is
+`unchanged (adopted)` whatever its notes; otherwise it is adopted (UC-4): `update`, reason `adopted; existing content
+moved under "## Project notes"`, written as the offered managed part, `## Project notes`, a blank line, and the old
+content unchanged. An adoption counts as a conflict for the flags: `--overwrite AGENTS.md` writes the full template
+and discards the old content, and `--keep AGENTS.md` is `invalid_value` (exit 2): check `--keep and --overwrite
+resolve conflicts`, found `AGENTS.md cannot be kept`, fix `adopt it (default) or pass --overwrite AGENTS.md`.
+
 ### 4.6 Rendered `AGENTS.md`
 
 The managed part of `AGENTS.md` is rendered from the choices: the framework version, the core "Skills" list, and an
@@ -518,6 +530,9 @@ The orchestrator names the matching extensions in each packet.
   - `tdd` (testing): a change adds or changes behavior
 - Agents: none. An installed agent is a specialist reviewer, required by triage when its "applies when" matches.
 ```
+
+With no installed extension, the list renders `- Skills: none.` and `- Agents: none. An installed agent is a
+specialist reviewer, required by triage when its "applies when" matches.`
 
 ### 4.7 Manifest
 
@@ -809,8 +824,17 @@ AGENTS.md exists and is not managed by solomonar.
   Adopt it: write the framework part above "## Project notes" and move the current content into that section? [Y/n]
 ```
 
-Non-interactively, adoption is the default with `--yes`; `--overwrite AGENTS.md` discards the old content; `--keep
-AGENTS.md` aborts with a conflict, because the framework cannot run without its `AGENTS.md`.
+Non-interactively, adoption is the default with `--yes`; `--overwrite AGENTS.md` on this unmanaged file writes the
+full template and discards the old content; `--keep AGENTS.md` is rejected, because the framework cannot run without
+its `AGENTS.md` (I §4.5):
+
+```
+error: init rejected (invalid_value)
+  check: --keep and --overwrite resolve conflicts
+  found: AGENTS.md cannot be kept
+  fix:   adopt it (default) or pass --overwrite AGENTS.md
+nothing was written
+```
 
 Existing `CLAUDE.md` without `@AGENTS.md`: never modified (G10):
 
