@@ -211,7 +211,7 @@ in 8.4; project commands use `not_a_repository`, `not_initialized`,
 `schema_version`, is newer than this CLI supports. The CLI checks the versions before decoding either file
 strictly, so a newer project is never reported as `manifest_invalid` or `registry_invalid`. Every command that reads
 the manifest or the registry rejects with it and writes nothing, with the fix "install a newer solomonar release".
-`version` still prints both versions, and `doctor` reports it as a `fail`.
+`version` prints the project's versions and exits 0 (UC-24), and `doctor` reports it as a `fail`.
 
 `manifest_invalid` (exit 1, like `registry_invalid`): `.solomonar/manifest.json` fails strict decoding or the 4.7
 validation. The message names the field, and the fix is "inspect .solomonar/manifest.json; never edit it by hand".
@@ -1933,10 +1933,20 @@ solomonar 0.1.0 (embedded framework 0.1.0)
 project   framework 0.1.0 · registry schema 1
 ```
 
-A build without a release tag reports the CLI version `devel`. Outside a project the `project` line reads
-`not initialized`; in a project newer than the CLI it adds
-`(newer than this CLI; install solomonar <version> or later)`, and `version` still exits 0. `--json`: `{"cli": "0.1.0", "framework": "0.1.0",
-"project_framework": "0.1.0", "registry_schema": 1}`.
+A build without a release tag reports the CLI version `devel`. `version` reads only the version fields of the
+manifest and the registry, never decoding either strictly, so a newer project prints its versions and exits 0
+(CLI-D19). It discovers the repository from `-C` like other commands: outside a repository, or inside one without
+`.solomonar/manifest.json`, the `project` line reads `not initialized`; `git_too_old` and other discovery errors stay
+errors. With a manifest: `registry missing` replaces `registry schema <n>` when the registry ref is absent; an
+unreadable manifest version makes the line only `manifest invalid (inspect .solomonar/manifest.json)`, skipping the
+registry, and an unreadable registry version reads `· registry invalid`; each case exits 0. A manifest read failure
+other than absence, a failure opening the worktree, and a registry commit whose tree has no `state.json` are
+unexpected errors (exit 1), not `invalid`. A suffix follows whichever registry part is shown (`registry schema <n>`,
+`registry missing`, or `registry invalid`): a project framework newer than the embedded one adds ` (newer than this
+CLI; install solomonar <project fw> or later)`; otherwise a manifest or registry schema newer than this CLI supports
+adds ` (newer than this CLI; install a newer solomonar release)`. `--json`: `{"cli": "0.1.0", "framework": "0.1.0",
+"project_framework": "0.1.0", "registry_schema": 1}`; a value not shown (not initialized, missing, invalid) is `null`,
+so an invalid manifest leaves both project values `null`.
 
 ## 8. Reference: task validation
 
