@@ -1,0 +1,28 @@
+---
+layout: base.njk
+---
+<div class="docs-layout wrap">
+  <aside class="docs-sidebar" aria-label="Documentation">
+    <a class="docs-home" href="{{ '/docs/getting-started/' | url }}">The field guide <span>v{{ site.frameworkVersion }}</span></a>
+    <nav aria-label="Documentation pages">
+      {% for group in site.groups %}
+      <div class="sidebar-group"><p>{{ group }}</p>
+      {% for doc in collections.docs | selectGroup(group) %}<a href="{{ doc.url | url }}"{% if page.url == doc.url %} aria-current="page"{% endif %}>{{ doc.data.title }}</a>{% endfor %}
+      </div>
+      {% endfor %}
+    </nav>
+    <p class="sidebar-note">Framework defined.<br>CLI in active development.</p>
+  </aside>
+  <main id="main" class="doc-main" tabindex="-1">
+    <header class="doc-header"><p class="eyebrow">{{ kind }} <span>/</span> {{ group }}</p><h1>{{ title }}</h1><p class="doc-lead">{{ description }}</p></header>
+    <details class="doc-toc" open><summary>On this page</summary><nav aria-label="On this page">{% for heading in content | toc %}<a href="#{{ heading.id }}">{{ heading.title | safe }}</a>{% endfor %}</nav></details>
+    <div class="doc-content">{{ content | safe }}</div>
+    {% if sources %}<div class="doc-sources"><span>Source of truth</span>{% for source in sources %}<a href="{{ source | source }}">{{ source }}</a>{% endfor %}</div>{% endif %}
+    <nav class="doc-pagination" aria-label="Next reading">
+      {% for doc in collections.docs %}{% if doc.url == page.url %}
+      {% if not loop.first %}{% set previous = collections.docs[loop.index0 - 1] %}<a href="{{ previous.url | url }}"><span>Previous</span>{{ previous.data.title }}</a>{% endif %}
+      {% if not loop.last %}{% set next = collections.docs[loop.index0 + 1] %}<a href="{{ next.url | url }}"><span>Continue reading</span>{{ next.data.title }} <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a>{% endif %}
+      {% endif %}{% endfor %}
+    </nav>
+  </main>
+</div>
