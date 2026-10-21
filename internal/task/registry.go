@@ -138,18 +138,9 @@ func (r *Record) Encode() ([]byte, error) {
 }
 
 func checkSchemaVersion(data []byte) error {
-	var header struct {
-		SchemaVersion jsontext.Value `json:"schema_version"`
-	}
-	if err := json.Unmarshal(data, &header, jsontext.AllowDuplicateNames(true)); err != nil {
-		return invalidRegistry("decode state.json: %v", err)
-	}
-	if header.SchemaVersion == nil {
-		return invalidRegistry("schema_version is missing")
-	}
-	var version int
-	if err := json.Unmarshal(header.SchemaVersion, &version); err != nil || version < 1 {
-		return invalidRegistry("schema_version %s is not a positive integer", header.SchemaVersion)
+	version, err := SchemaOf(data)
+	if err != nil {
+		return err
 	}
 	if version > SchemaVersion {
 		return &Rejection{
@@ -160,4 +151,22 @@ func checkSchemaVersion(data []byte) error {
 		}
 	}
 	return nil
+}
+
+// SchemaOf reads the registry's schema version without the newer-than check (UC-24).
+func SchemaOf(data []byte) (int, error) {
+	var header struct {
+		SchemaVersion jsontext.Value `json:"schema_version"`
+	}
+	if err := json.Unmarshal(data, &header, jsontext.AllowDuplicateNames(true)); err != nil {
+		return 0, invalidRegistry("decode state.json: %v", err)
+	}
+	if header.SchemaVersion == nil {
+		return 0, invalidRegistry("schema_version is missing")
+	}
+	var version int
+	if err := json.Unmarshal(header.SchemaVersion, &version); err != nil || version < 1 {
+		return 0, invalidRegistry("schema_version %s is not a positive integer", header.SchemaVersion)
+	}
+	return version, nil
 }
