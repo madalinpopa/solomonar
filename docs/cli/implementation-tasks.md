@@ -367,8 +367,44 @@ exports the worktree lookup. UC-20 updated to match.
 
 ## Step 7: `task status`
 
-- Stage 7.1 `[ ]` — I §9.1 facts, optional `gh`
-- Stage 7.2 `[ ]` — Drift, `allowed_next`, rendering (UC-16 status, UC-17)
+Decision (author, 2026-10-21): three stages: 7.1 Git and forge facts (may overrun the budget moderately), 7.2 drift
+and `allowed_next` (domain), 7.3 the `task status` command.
+
+### Stage 7.1 — Git and forge facts (domain) `[x]`
+
+Decisions (author, 2026-10-21): `checks` is `failing` when any check concluded `FAILURE`, `CANCELLED`, `TIMED_OUT`,
+`ACTION_REQUIRED`, `ERROR`, or `STARTUP_FAILURE`, else `pending` when any is not completed, else `passing` when all
+are `SUCCESS`, `NEUTRAL`, or `SKIPPED`, `none` for an empty rollup, and `unknown` without a PR or without `gh` (J6);
+`forge_unavailable` (warning, exit 0) when `gh` is not on `PATH` or `gh pr view` fails, the forge facts then
+`unknown`; `gh` reporting no PR for the branch is not a failure (pr `none`); `--no-forge` gives no warning.
+
+Decisions (author, 2026-10-21): the facts live in `internal/task` as one
+`StatusFacts` value whose JSON is the I §9.3 `facts` object; `gh` runs through `internal/git` (AD-3) with the `-v`
+trace `+ gh …`; the branch object adds `contains_revision` (`git merge-base --is-ancestor <revision>
+feature/<ID>`, null without a revision or branch) for the drift `revision_not_on_branch`; `worktree` is null
+without a worktree, `ahead_of_revision` null without a revision, `dirty` `[]` when clean; dirty states from `git
+status --porcelain=v2`: `modified`, `added`, `deleted`, `type_changed` (worktree side, else index side), `renamed`
+or `copied` (entries `2`), `untracked` (`?`), `unmerged` (`u`), ignored entries skipped; without a revision,
+`merged` is `false` (I §9.1); a `done` record's merge facts come from its `merge_commit` and `spec_ref`;
+`gh` "no pull requests found" is detected from its stderr; `forge` is `{"available": false, "pr": null, "checks":
+"unknown"}` without `gh` or with `--no-forge`, and `pr` is `{"number", "url", "state", "merge_commit"}` otherwise;
+the function is `Forge` (the type is `ForgeFacts`), `NoForge()` the `--no-forge` value; a revision Git does not know
+(exit 128) gives `ahead_of_revision` null and `merged`, `contains_revision`, `at_revision` false; the PR `state`
+passes through as `gh` prints it; `checks` precedence `failing` > `pending` > `unknown` > `passing`, an entry
+without `status` and `state` is unknown; a `2` entry with `C` in XY is `copied`, else `renamed`, paths as Git
+prints them, Git's order; `forge_unavailable` messages `gh unavailable: gh not found`, `gh unavailable: <first
+stderr line>`, `gh unavailable: exit status <n>`, `gh unavailable: unreadable gh pr view output`; a cancelled `gh`
+is `interrupted`; `merge_commit` and `derived_spec_ref` are null while `merged` is false; `git.ErrNotFound`,
+`Error.Program`, `RunGH`, `gittest.FakeGH` (a `PATH` holding only the fake `gh`). I §3.1, I §8.4, I §9.1, I §9.3,
+architecture §8 updated to match.
+
+- [x] Git facts of I §9.1: branch and tip, `contains_revision`, worktree, HEAD vs `revision`, dirty paths, spec in
+      the worktree and at the revision, merged and the derived `spec_ref`
+- [x] Forge facts: `gh pr view feature/<ID> --json number,url,state,mergeCommit,statusCheckRollup`, the `checks`
+      summary, `forge_unavailable`, `--no-forge`; tests with a fake `gh` on `PATH` (architecture §11)
+
+- Stage 7.2 `[ ]` — Drift, `allowed_next` (domain, I §9.2, I §9.3)
+- Stage 7.3 `[ ]` — `task status` command, rendering (UC-16 status, UC-17)
 
 ## Step 8: `init`, non-interactive, core only
 
