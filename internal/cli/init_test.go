@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json/v2"
 	"fmt"
 	"io/fs"
 	"os"
@@ -114,10 +115,16 @@ func initializedRepo(t *testing.T) string {
 	return dir
 }
 
+// nextBlock is the Next: block of a repository whose main branch has no commit and HEAD is on main.
 func nextBlock(dir string) string {
 	return "\nNext:\n" +
-		"  1. git add AGENTS.md .solomonar docs && git commit -m \"chore: initialize solomonar 0.1.0\"\n" +
-		"  2. Start a top-level session in " + dir + ":\n" +
+		"  1. First commit required before task worktrees:\n" +
+		"       git add AGENTS.md .solomonar docs && git commit -m \"chore: initialize solomonar 0.1.0\"\n" +
+		sessionStep(dir)
+}
+
+func sessionStep(dir string) string {
+	return "  2. Start a top-level session in " + dir + ":\n" +
 		"       Use the solomonar skill to explore the next useful flow.\n"
 }
 
@@ -178,6 +185,8 @@ func TestInitJSON(t *testing.T) {
 			"decisions": [],
 			"files": `+createdFilesJSON()+`,
 			"registry": {"ref": "refs/heads/workflow-state", "commit": "`+refTip(t, dir)+`", "action": "create", "pushed": false},
+			"git_init": false,
+			"first_commit_required": true,
 			"next": ["git add AGENTS.md .solomonar docs", "git commit -m \"chore: initialize solomonar 0.1.0\""]
 		},
 		"warnings": [{"code": "no_remote", "message": "no remote \"origin\"; the registry stays local"}]
@@ -385,6 +394,8 @@ func TestInitDryRunWritesNothing(t *testing.T) {
 			"decisions": [],
 			"files": `+createdFilesJSON()+`,
 			"registry": {"ref": "refs/heads/workflow-state", "action": "create"},
+			"git_init": false,
+			"first_commit_required": true,
 			"dry_run": true
 		},
 		"warnings": []
@@ -475,17 +486,230 @@ func TestInitInvalidRegistryNamesTheFix(t *testing.T) {
 		"  fix:   inspect with git show refs/heads/workflow-state:state.json; the CLI never overwrites a registry\n")
 }
 
-func TestInitOutsideRepository(t *testing.T) {
+// plainDir returns an empty directory "ledger" that no Git repository contains.
+func plainDir(t *testing.T) string {
+	t.Helper()
 	gittest.Isolate(t)
 	outside := gittest.Resolved(t, t.TempDir())
-	t.Setenv("GIT_CEILING_DIRECTORIES", filepath.Dir(outside))
-	require.NoError(t, os.Mkdir(filepath.Join(outside, "ledger"), 0o755))
+	t.Setenv("GIT_CEILING_DIRECTORIES", outside)
+	dir := filepath.Join(outside, "ledger")
+	require.NoError(t, os.Mkdir(dir, 0o755))
+	return dir
+}
 
-	got := runCLI(t, repoAssets(t), "-C", outside, "init", "ledger", "--main-branch", "trunk", "--yes")
+func TestInitOutsideRepository(t *testing.T) {
+	dir := plainDir(t)
+
+	got := runCLI(t, repoAssets(t), "-C", filepath.Dir(dir), "init", "ledger", "--main-branch", "trunk", "--yes")
 
 	assert.Equal(t, 3, got.exit)
-	assert.Equal(t, "error: "+filepath.Join(outside, "ledger")+" is not a Git repository (not_a_repository)\n"+
-		"  fix:   run `git init -b trunk` first\nnothing was written\n", got.stderr)
+	assert.Equal(t, "error: "+dir+" is not a Git repository (not_a_repository)\n"+
+		"  fix:   run `git init -b trunk` first, or rerun with --git-init\nnothing was written\n", got.stderr)
+	assert.NoDirExists(t, filepath.Join(dir, ".git"))
+}
+
+func TestInitGitInitCreatesRepository(t *testing.T) {
+	tests := []struct {
+		name   string
+		args   []string
+		branch string
+	}{
+		{name: "default main branch", branch: "main"},
+		{name: "named main branch", args: []string{"--main-branch", "trunk"}, branch: "trunk"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := plainDir(t)
+
+			got := runCLI(t, repoAssets(t), append([]string{"-C", dir}, initArgs(append(tt.args, "--git-init")...)...)...)
+
+			require.Equal(t, 0, got.exit, got.stderr)
+			assert.Equal(t, "Initialized solomonar 0.1.0 in "+dir+"\n"+
+				"  19 files created\n"+
+				"  registry  refs/heads/workflow-state @ "+refTip(t, dir)+"\n"+nextBlock(dir), got.stdout)
+			assert.Equal(t, "warning: no remote \"origin\"; the registry stays local\n", got.stderr)
+			assert.Equal(t, "refs/heads/"+tt.branch, gittest.Git(t, dir, "symbolic-ref", "HEAD"))
+			assert.Equal(t, dir, gittest.Git(t, dir, "rev-parse", "--show-toplevel"))
+			files := tree(t, dir)
+			for _, p := range initPaths() {
+				assert.Contains(t, files, p)
+			}
+			manifest, err := project.DecodeManifest([]byte(files[project.ManifestPath]), "0.1.0")
+			require.NoError(t, err)
+			assert.Equal(t, tt.branch, manifest.Project.MainBranch)
+		})
+	}
+}
+
+func TestInitGitInitDryRunRunsNoGit(t *testing.T) {
+	dir := plainDir(t)
+
+	human := runCLI(t, repoAssets(t), "-C", dir, "init", "--git-init", "--dry-run")
+	asJSON := runCLI(t, repoAssets(t), "-C", dir, "init", "--git-init", "--dry-run", "--json")
+
+	require.Equal(t, 0, human.exit, human.stderr)
+	assert.True(t, strings.HasPrefix(human.stdout, "Plan\n  git        init -b main\n  create     docs/solomonar/"),
+		human.stdout)
+	assert.Contains(t, human.stdout, "  registry   create refs/heads/workflow-state with an empty state.json\n")
+	require.Equal(t, 0, asJSON.exit, asJSON.stderr)
+	assert.JSONEq(t, `{
+		"ok": true,
+		"command": "init",
+		"data": {
+			"project": "`+dir+`",
+			"framework_version": "0.1.0",
+			"choices": {"runtimes": [], "extensions": {}, "adversarial_model": {}},
+			"decisions": [],
+			"files": `+createdFilesJSON()+`,
+			"registry": {"ref": "refs/heads/workflow-state", "action": "create"},
+			"git_init": true,
+			"first_commit_required": true,
+			"dry_run": true
+		},
+		"warnings": []
+	}`, asJSON.stdout)
+	assert.NoDirExists(t, filepath.Join(dir, ".git"))
+	assert.Empty(t, tree(t, dir))
+}
+
+func TestInitGitInitNeedsConfirmation(t *testing.T) {
+	dir := plainDir(t)
+
+	got := runCLI(t, repoAssets(t), "-C", dir, "init", "--git-init")
+
+	assert.Equal(t, 2, got.exit)
+	assert.Contains(t, got.stderr, "error: init needs a confirmation (interactive_required)\n")
+	assert.NoDirExists(t, filepath.Join(dir, ".git"))
+	assert.Empty(t, tree(t, dir))
+}
+
+func TestInitGitInitInsideRepositoryIsIgnored(t *testing.T) {
+	dir := gittest.NewRepo(t)
+
+	with := runInRepo(t, dir, initArgs("--git-init", "--dry-run", "--json")...)
+	without := runInRepo(t, dir, initArgs("--dry-run", "--json")...)
+
+	require.Equal(t, 0, with.exit, with.stderr)
+	assert.Equal(t, without.stdout, with.stdout)
+	assert.Contains(t, with.stdout, `"git_init": false`)
+}
+
+func TestInitGitInitFailingRegistryCreateKeepsGit(t *testing.T) {
+	dir := plainDir(t)
+	template := t.TempDir()
+	writeFile(t, template, "refs/heads/workflow-state.lock", "")
+	t.Setenv("GIT_TEMPLATE_DIR", template)
+
+	got := runCLI(t, repoAssets(t), append([]string{"-C", dir}, initArgs("--git-init")...)...)
+
+	assert.Equal(t, 1, got.exit)
+	assert.Contains(t, got.stderr, "error: create workflow-state: ")
+	assert.Empty(t, tree(t, dir))
+	assert.DirExists(t, filepath.Join(dir, ".git"))
+}
+
+func committedRepo(t *testing.T) string {
+	t.Helper()
+	dir := gittest.NewRepo(t)
+	gittest.Commit(t, dir, "initial")
+	return dir
+}
+
+func unbornFeatureRepo(t *testing.T) string {
+	t.Helper()
+	gittest.Isolate(t)
+	dir := gittest.Resolved(t, t.TempDir())
+	gittest.Git(t, dir, "init", "-b", "feature")
+	return dir
+}
+
+func TestInitNextNamesTheFirstCommit(t *testing.T) {
+	commit := "git commit -m \"chore: initialize solomonar 0.1.0\""
+	tests := []struct {
+		name     string
+		repo     func(t *testing.T) string
+		step     string
+		next     []string
+		required bool
+	}{
+		{
+			name: "main has a commit",
+			repo: committedRepo,
+			step: "  1. git add AGENTS.md .solomonar docs && " + commit + "\n",
+			next: []string{"git add AGENTS.md .solomonar docs", commit},
+		},
+		{
+			name:     "main has no commit",
+			repo:     gittest.NewRepo,
+			step:     "  1. First commit required before task worktrees:\n       git add AGENTS.md .solomonar docs && " + commit + "\n",
+			next:     []string{"git add AGENTS.md .solomonar docs", commit},
+			required: true,
+		},
+		{
+			name: "HEAD on another unborn branch",
+			repo: unbornFeatureRepo,
+			step: "  1. First commit required before task worktrees:\n" +
+				"       git switch --orphan main\n" +
+				"       git add AGENTS.md .solomonar docs && " + commit + "\n",
+			next:     []string{"git switch --orphan main", "git add AGENTS.md .solomonar docs", commit},
+			required: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			human, asJSON := tt.repo(t), tt.repo(t)
+
+			text := runInRepo(t, human, initArgs()...)
+			data := runInRepo(t, asJSON, initArgs("--json")...)
+
+			require.Equal(t, 0, text.exit, text.stderr)
+			assert.True(t, strings.HasSuffix(text.stdout, "\nNext:\n"+tt.step+sessionStep(human)), text.stdout)
+			require.Equal(t, 0, data.exit, data.stderr)
+			var envelope struct {
+				Data struct {
+					Next                []string `json:"next"`
+					FirstCommitRequired bool     `json:"first_commit_required"`
+				} `json:"data"`
+			}
+			require.NoError(t, json.Unmarshal([]byte(data.stdout), &envelope))
+			assert.Equal(t, tt.next, envelope.Data.Next)
+			assert.Equal(t, tt.required, envelope.Data.FirstCommitRequired)
+		})
+	}
+}
+
+func TestInitWarnsAboutJujutsu(t *testing.T) {
+	const message = "Jujutsu detected; v0.1 supports Git only. Never run jj commands on workflow-state."
+	tests := []struct {
+		name string
+		jj   string
+	}{
+		{name: "directory", jj: ".jj/repo/store"},
+		{name: "file", jj: ".jj"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := gittest.NewRepo(t)
+			writeFile(t, dir, tt.jj, "")
+
+			plan := runInRepo(t, dir, initArgs("--dry-run", "--json")...)
+			applied := runInRepo(t, dir, initArgs()...)
+			noOp := runInRepo(t, dir, initArgs()...)
+
+			require.Equal(t, 0, plan.exit, plan.stderr)
+			assert.Contains(t, plan.stdout, `"warnings": [
+    {
+      "code": "jujutsu_detected",
+      "message": "`+message+`"
+    }
+  ]`)
+			require.Equal(t, 0, applied.exit, applied.stderr)
+			assert.Equal(t, "warning: "+message+"\nwarning: no remote \"origin\"; the registry stays local\n",
+				applied.stderr)
+			require.Equal(t, 0, noOp.exit, noOp.stderr)
+			assert.Equal(t, "warning: "+message+"\n", noOp.stderr)
+		})
+	}
 }
 
 func TestInitFailingManifestWriteRollsBack(t *testing.T) {
