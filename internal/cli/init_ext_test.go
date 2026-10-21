@@ -144,7 +144,7 @@ func catalogAssets(t *testing.T) fstest.MapFS {
 		assets[dir+"extension.json"] = &fstest.MapFile{Data: []byte(`{"name": "` + name +
 			`", "kind": "skill", "group": "frontend", "title": "T", "applies_when": "A", "paths": [], ` +
 			relations + `}`)}
-		assets[dir+"SKILL.md"] = &fstest.MapFile{Data: []byte("# " + name + "\n")}
+		assets[dir+"SKILL.md"] = &fstest.MapFile{Data: []byte("---\nname: " + name + "\ndescription: D\n---\n\n# " + name + "\n")}
 	}
 	return assets
 }
