@@ -116,7 +116,7 @@ behavior.
 - Results go to stdout; warnings and errors go to stderr, prefixed `warning:` or `error:`.
 - Full SHAs appear wherever a value will be copied into another command; a short SHA (7) appears only beside
   a full one or in tables.
-- File plans use one verb per line: `create`, `update`, `unchanged`, `keep` (project-modified, left as is),
+- File plans use one verb per line: `create`, `update`, `unchanged`, `keep` (project-modified, left as is; 4.5),
   `remove`, `conflict`, `skip` (project-owned, never touched). An unmanaged file whose content equals what the CLI
   would write is adopted into the manifest and shown as `unchanged (adopted)` (CLI-D17).
 - Every writing command ends with what was written (commit, files) and, when useful, a `Next:` block.
@@ -471,6 +471,34 @@ base; for `core+notes`, hash only the managed part. A kept differing file stays 
 `--keep` resolves a conflict, advance the base to the offered upstream version, never to the kept local content.
 The next upgrade can therefore preserve the edit or report a conflict instead of overwriting it as unmodified.
 
+Each wanted path is classified from `disk` (the current file), `base` (the manifest `sha256`), and `offer` (the
+content the CLI would write); the recorded base is always the hash of `offer`. A path is managed when the manifest
+records a `sha256` for it; every owner except `seed` is hashed. The first matching row applies, so a present `seed`
+path is `skip` even when it is not a regular file, and a managed file whose `disk` = `offer` is `unchanged`:
+
+| Path | Condition | Action |
+|---|---|---|
+| `seed` owner | absent / present | `create` / `skip` (project-owned; no hash recorded) |
+| any other | absent | `create` |
+| any other | not a regular file (directory, symlink) | `conflict`, `exists and is not a regular file` |
+| managed (`base` recorded) | `disk` = `offer` | `unchanged` |
+| managed | `disk` = `base` | `update` |
+| managed | `offer` = `base` | `keep` (the project's edit stays; F-02) |
+| managed | otherwise | `conflict`, `modified since installation (manifest sha256 differs)` |
+| unmanaged | `disk` = `offer` | `unchanged (adopted)` (CLI-D17) |
+| unmanaged | otherwise | `conflict`, `exists and is not managed by solomonar` |
+
+A path that cannot be inspected for a reason other than absence (for example, a parent that is a file) is an
+unexpected error, not `absent`. Only conflicts carry a reason, `adopted` aside.
+
+`--keep <path>` turns a conflict into a plain `keep`, `--overwrite <path>` into a plain `update`; both record the
+offered base. A path in both flags is checked first; then each `--keep` path, then each `--overwrite` path, in the
+given order, must be a conflict of this plan (a path the plan does not list is also not a conflict). The first
+offending path is `invalid_value` (exit 2): check `--keep and --overwrite resolve conflicts`, found `<path> is in both
+--keep and --overwrite` or `<path> is not a conflict`, fix `pass --keep or --overwrite once per conflicting path`. The
+plan lists the wanted paths in the given order. The manifest entries returned for unresolved conflicts already carry
+the offered base; nothing is written while the plan has a conflict.
+
 ### 4.6 Rendered `AGENTS.md`
 
 The managed part of `AGENTS.md` is rendered from the choices: the framework version, the core "Skills" list, and an
@@ -740,9 +768,11 @@ error: init found different choices (already_initialized)
   fix:   change extensions with `solomonar extension add|remove`; init never changes choices
 ```
 
-Exit 3. A managed file edited since installation, or an unmanaged file in a target path whose content differs
-from what the CLI would write, is a conflict; an unmanaged file with identical content is adopted (3.3), so a re-run
-after an interrupted `init` completes it:
+Exit 3. A managed file edited since installation whose offered content is unchanged is shown as `keep` and is not
+a conflict (4.5). It becomes a conflict only when the offered content changes too, as when a newer CLI re-runs `init`
+after `docs/solomonar/rules.md` was edited. An unmanaged file in a target path whose content differs from what the
+CLI would write is a conflict; an unmanaged file with identical content is adopted (3.3), so a re-run after an
+interrupted `init` completes it:
 
 ```
 $ solomonar init --runtime claude --yes
