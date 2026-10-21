@@ -75,7 +75,7 @@ h2 { font-size: clamp(2.5rem, 4.2vw, 3.6rem); line-height: 1.12; letter-spacing:
 .theme-switch button[aria-pressed="true"] { background: var(--line); color: var(--ink); }
 .icon-button { border: 1px solid var(--line); background: transparent; width: 44px; height: 44px; display: grid; place-items: center; }
 .eyebrow { font: 10px/1.6 var(--mono); text-transform: uppercase; letter-spacing: .22em; color: var(--ink); display: flex; align-items: center; gap: 18px; }
-.thread-rule { display: inline-block; width: 32px; height: 2px; background: var(--thread); flex-shrink: 0; }
+.stitch-mark { display: inline-block; width: 12px; height: 12px; flex-shrink: 0; background: linear-gradient(45deg, transparent 40%, var(--thread) 40% 60%, transparent 60%), linear-gradient(-45deg, transparent 40%, var(--thread) 40% 60%, transparent 60%); }
 
 .hero-actions { display: flex; gap: 30px; align-items: center; flex-wrap: wrap; }
 .button { display: inline-flex; align-items: center; justify-content: space-between; gap: 32px; padding: 17px 25px; background: var(--thread); border: 1px solid var(--thread); color: var(--on-thread); text-decoration: none; border-radius: 2px; font-size: 21px; line-height: 1.2; min-height: 60px; }
@@ -302,7 +302,6 @@ h2 { font-size: clamp(2.5rem, 4.2vw, 3.6rem); line-height: 1.12; letter-spacing:
   .menu-toggle { width: 36px; height: 36px; border: 0; }
   .primary-nav { font-size: 16px; gap: 20px; padding: 18px; flex-wrap: wrap; }
   .eyebrow { font-size: 8px; letter-spacing: .12em; gap: 12px; }
-  .thread-rule { width: 22px; }
   .story-hero { grid-template-columns: 1fr; padding-top: 13px; padding-bottom: 24px; }
   .story-header h1 { font-size: clamp(2.9rem, 10.5vw, 3.8rem); margin: 22px 0 20px; }
   .story-definition { font-size: 21px; margin-bottom: 16px; }
