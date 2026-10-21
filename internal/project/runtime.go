@@ -1,6 +1,7 @@
 package project
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -10,13 +11,15 @@ import (
 	"unicode"
 )
 
-// portable is a core skill or role and its frontmatter fields.
+// portable is a core or extension skill or role and its frontmatter fields.
 type portable struct {
 	id, name, description string
 }
 
 // RuntimeWants returns the adapter stubs of the given runtimes, claude before codex (I §4.2).
-func RuntimeWants(assets fs.FS, runtimes []string, models map[string]string, framework string) ([]Want, error) {
+func RuntimeWants(assets fs.FS, runtimes []string, models map[string]string, framework string,
+	extensions []CatalogExtension,
+) ([]Want, error) {
 	for _, runtime := range runtimes {
 		if runtime != "claude" && runtime != "codex" {
 			return nil, fmt.Errorf("unknown runtime %q", runtime)
@@ -30,6 +33,22 @@ func RuntimeWants(assets fs.FS, runtimes []string, models map[string]string, fra
 	if err != nil {
 		return nil, err
 	}
+	for _, e := range extensions {
+		file := path.Join(e.Dir, extensionMain(e))
+		p, err := readFrontmatter(assets, file)
+		if err != nil {
+			return nil, fmt.Errorf("read frontmatter %s: %w", file, err)
+		}
+		p.id = e.Name
+		if e.Kind == "agent" {
+			roles = append(roles, p)
+		} else {
+			skills = append(skills, p)
+		}
+	}
+	byID := func(a, b portable) int { return cmp.Compare(a.id, b.id) }
+	slices.SortFunc(skills, byID)
+	slices.SortFunc(roles, byID)
 	var wants []Want
 	if slices.Contains(runtimes, "claude") {
 		wants = append(wants, claudeWants(skills, roles, models["claude"], framework)...)
