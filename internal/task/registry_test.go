@@ -217,3 +217,29 @@ func TestEncodeRoundTrips(t *testing.T) {
 func replace(s, old, replacement string) string {
 	return strings.Replace(s, old, replacement, 1)
 }
+
+func TestSchemaOfReadsNewerSchema(t *testing.T) {
+	schema, err := SchemaOf([]byte(`{"schema_version": 2, "added_in_v2": true}`))
+
+	require.NoError(t, err)
+	assert.Equal(t, 2, schema)
+}
+
+func TestSchemaOfRejectsUnreadableSchema(t *testing.T) {
+	tests := []struct {
+		name, data, found string
+	}{
+		{name: "not json", data: `[`, found: "decode state.json"},
+		{name: "missing", data: `{"tasks": {}}`, found: "schema_version is missing"},
+		{name: "zero", data: `{"schema_version": 0}`, found: "schema_version 0 is not a positive integer"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := SchemaOf([]byte(tt.data))
+
+			rejection := rejectionOf(t, err)
+			assert.Equal(t, "registry_invalid", rejection.Code)
+			assert.Contains(t, rejection.Found, tt.found)
+		})
+	}
+}
