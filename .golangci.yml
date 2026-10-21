@@ -85,6 +85,8 @@ linters:
         git-is-a-leaf:
           list-mode: lax
           files: ["**/internal/git/**"]
+          allow:
+            - github.com/madalinpopa/solomonar/internal/git # gittest and the external test package
           deny:
             - pkg: github.com/madalinpopa/solomonar/internal
               desc: internal/git imports no other internal package (architecture §5)
