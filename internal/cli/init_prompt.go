@@ -8,9 +8,13 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/madalinpopa/solomonar/internal/git"
 	"github.com/madalinpopa/solomonar/internal/project"
 	"github.com/madalinpopa/solomonar/internal/task"
 )
+
+// errDeclined is a declined question that cancels init before it writes anything.
+var errDeclined = errors.New("init declined")
 
 // initPrompts asks for the init choices and the confirmation in a terminal session (I §3.7, UC-1).
 type initPrompts struct {
@@ -161,9 +165,62 @@ func (a *initPrompts) proceed(ctx context.Context, r initRun, root *os.Root, sto
 	if err != nil {
 		return output{}, err
 	}
-	fmt.Fprintln(a.out)
 	if !yes {
-		return output{text: "Cancelled; nothing was written.\n", warnings: r.warnings}, nil
+		return a.cancelled(r.warnings), nil
 	}
+	fmt.Fprintln(a.out)
 	return r.apply(ctx, root, store)
+}
+
+// cancelOn turns errDeclined into the cancel output and passes any other error through.
+func (a *initPrompts) cancelOn(err error, warnings []warning) (output, error) {
+	if errors.Is(err, errDeclined) {
+		return a.cancelled(warnings), nil
+	}
+	return output{}, err
+}
+
+// cancelled ends the declined question's block and reports that init wrote nothing (I §3.7).
+func (a *initPrompts) cancelled(warnings []warning) output {
+	fmt.Fprintln(a.out)
+	return output{text: "Cancelled; nothing was written.\n", warnings: warnings}
+}
+
+// header names the CLI, the framework, and where init runs (UC-1); repo is nil outside a repository.
+func (a *initPrompts) header(ctx context.Context, framework string, repo *git.Repo, dir string) error {
+	where := "(not a Git repository)"
+	if repo != nil {
+		branch, err := repo.Branch(ctx)
+		if err != nil {
+			return err
+		}
+		dir, where = repo.Dir, "(git, branch "+branch+")"
+		if branch == "" {
+			where = "(git, detached HEAD)"
+		}
+	}
+	fmt.Fprintf(a.out, "solomonar %s · framework %s · %s %s\n\n", cliVersion(buildVersion()), framework, dir, where)
+	return nil
+}
+
+// confirmGitInit asks to continue as with --git-init outside a repository (UC-4).
+func (a *initPrompts) confirmGitInit(mainBranch string) (bool, error) {
+	a.section()
+	return a.confirm("Initialize a Git repository here with main branch \""+mainBranch+"\"?", false)
+}
+
+// adoption asks to adopt the unmanaged AGENTS.md, else to replace it; declining both is errDeclined.
+func (a *initPrompts) adoption() (replace bool, err error) {
+	a.section()
+	fmt.Fprintln(a.out, "AGENTS.md exists and is not managed by solomonar.")
+	adopt, err := a.confirm("  Adopt it: write the framework part above \"## Project notes\" and move the current "+
+		"content into that section?", true)
+	if err != nil || adopt {
+		return false, err
+	}
+	replace, err = a.confirm("  Replace it with the framework template, discarding its content?", false)
+	if err == nil && !replace {
+		err = errDeclined
+	}
+	return replace, err
 }
