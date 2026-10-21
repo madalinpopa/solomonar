@@ -53,15 +53,37 @@ func (s *Store) Read(ctx context.Context) (*Registry, string, error) {
 			Fix:   "solomonar init",
 		}
 	}
-	data, err := s.Git.Run(ctx, "cat-file", "blob", tip+":state.json")
+	data, err := s.blob(ctx, tip)
 	if err != nil {
-		return nil, "", fmt.Errorf("read workflow-state: %w", err)
+		return nil, "", err
 	}
-	reg, err := Decode([]byte(data))
+	reg, err := Decode(data)
 	if err != nil {
 		return nil, "", err
 	}
 	return reg, tip, nil
+}
+
+// ReadSchema returns the schema version at the tip of Ref without decoding the registry strictly.
+func (s *Store) ReadSchema(ctx context.Context) (schema int, present bool, err error) {
+	tip, err := s.tip(ctx)
+	if err != nil || tip == "" {
+		return 0, false, err
+	}
+	data, err := s.blob(ctx, tip)
+	if err != nil {
+		return 0, true, err
+	}
+	schema, err = SchemaOf(data)
+	return schema, true, err
+}
+
+func (s *Store) blob(ctx context.Context, tip string) ([]byte, error) {
+	data, err := s.Git.Run(ctx, "cat-file", "blob", tip+":state.json")
+	if err != nil {
+		return nil, fmt.Errorf("read workflow-state: %w", err)
+	}
+	return []byte(data), nil
 }
 
 // Create writes an empty registry as the root commit of Ref and fails if Ref exists.
