@@ -94,7 +94,7 @@ Command flags shared by several commands:
 | `--dry-run` | every writing command | Run every check and print the plan or the record that would be written; write nothing; exit as the real run would. |
 | `--keep <path>`, `--overwrite <path>` | `init`, `runtime add\|remove`, `extension add\|remove`; `upgrade` uses `--take-new` instead of `--overwrite` | Resolve a managed-file conflict explicitly; `--keep` preserves local content without making it the distributed base (4.5). On removal, keep untracks the file; overwrite deletes it. |
 | `--overwrite <path>` | `sync` | Replace a conflicting generated stub explicitly. |
-| `--as <owner>` | `task move`, `block`, `unblock`, `done` | Acting orchestrator, checked against the record's `owner` (CLI-D2). Defaults to `SOLOMONAR_OWNER`. Agents pass `--as` on every command, because a runtime may start a new shell per command and lose the variable; the variable is a convenience for the user's terminal. The check guards against mistakes (wrong task, a stale session after a handoff), not against impersonation. |
+| `--as <owner>` | `task move`, `block`, `unblock`, `done` | Acting orchestrator, checked against the record's `owner` (CLI-D2). Defaults to `SOLOMONAR_OWNER`; neither is `owner_required`. Agents pass `--as` on every command, because a runtime may start a new shell per command and lose the variable; the variable is a convenience for the user's terminal. The check guards against mistakes (wrong task, a stale session after a handoff), not against impersonation. |
 
 Environment variables: `SOLOMONAR_OWNER` (default for `--as`), `NO_COLOR`. No other environment variable changes
 behavior.
@@ -1238,8 +1238,9 @@ solomonar task move <ID> [--as <owner>]
   [--json] [--dry-run]
 ```
 
-At least one field flag is required. All flags apply as one validated update and one commit. `done` and `complete`
-are not accepted here: only `task done` writes them.
+At least one field flag is required (UC-14); `--as`, `--dry-run`, and `--resume-cancelled` are not field flags.
+All flags apply as one validated update and one commit. `done` and `complete` are not accepted here: only `task
+done` writes them.
 
 Worktree ready, specification starts:
 
@@ -1265,8 +1266,13 @@ W-001  running/specification → running/implementation
   registry @ 8e1f3a5c7b9d0e2f4a6c8b0d1e3f5a7c9b1d2e4f
 ```
 
-The `spec` line names where the spec was found: the worktree path, or the short revision when it is found only
-there (`(found at 7cd18e4)`).
+The header is `<ID>  <from status/stage> → <to>`, or `<ID>  <status>/<stage>` when the position does not change.
+A detail line follows for every changed field other than status and stage, in record order, labels aligned two
+spaces past the longest label: `spec <path> (found in <worktree>)`, `revision <sha> (on feature/<ID>)`, `tier <n>:
+<meaning>` (0 `no review stages`, 1 `specialists only`, 2 `specialists, then adversarial`), `agents <id> <role>, …`
+or `agents none`, `pr <value>`, `next <actor>: <action>`; then the subject and the registry line. The `spec` line
+reads `(found in <worktree>)` when the spec is in the worktree, and `(found at <short revision>)` when it is found
+only at the recorded revision.
 
 `READY_FOR_REVIEW` at a committed SHA, triage recorded tier 2, specialists launched:
 
@@ -1278,6 +1284,7 @@ W-001  running/implementation → running/specialized_review
   revision  7cd18e45bb55c3be9465c9f893683bc05216f529 (on feature/W-001)
   tier      2: specialists, then adversarial
   agents    sec-1 security-reviewer, cor-1 correctness-reviewer, spec-1 spec-reviewer
+  next      orchestrator-1: Collect specialist reports
   state(W-001): running/specialized_review, stage specialized_review, revision 7cd18e4, tier 2, agents sec-1 cor-1 spec-1, next orchestrator-1
   registry @ 2d4f6a8c0e1b3d5f7a9c1e2b4d6f8a0c2e3b5d7f
 ```
@@ -1287,9 +1294,13 @@ The remaining moves follow the same shape: `--stage adversarial_review --agent a
 commit (rules §9). `--json` data: `{"id": "W-001", "from": {"status": "running", "stage": "implementation"}, "to":
 {"status": "running", "stage": "specialized_review"}, "changed": ["stage", "revision", "tier", "active_agents",
 "next_action"], "record": { }, "commit": "<sha>", "pushed": true}`; `changed` lists the fields in record order.
+`--dry-run` prints `Would move ` before the header, then the detail lines, the note of a cancel move (UC-18), and
+the subject, with no registry line; `--dry-run --json` data is the same without `commit` and `pushed`, with
+`"dry_run": true`.
 
-A move whose flags change nothing writes no commit and exits 0: the human line is
-`W-001  running/specification (unchanged)`, and `--json` data has `changed: []`, `commit` the current tip, and
+A move whose flags change nothing writes no commit and exits 0: the human output is only the header line
+`W-001  running/specification (unchanged)` (`Would move W-001  running/specification (unchanged)` with
+`--dry-run`), with no subject or registry line, and `--json` data has `changed: []`, `commit` the current tip, and
 `pushed: false`. It still runs every check (ownership, the move rules, and the Git fact checks, so a repeated `--spec`
 is verified again) and is rejected like any other move when one fails.
 
@@ -1301,18 +1312,21 @@ Each rejection exits 3, writes nothing, and names the check and the fix (8.4). T
 $ solomonar task move W-001 --as orchestrator-1 --stage specialized_review
 error: task move W-001 rejected (tier_required)
   check: a stage after implementation needs a recorded tier
+  found: implementation -> specialized_review
   fix:   triage the candidate and pass --revision <full-sha> --tier <0|1|2> with the stage move
 nothing was written
 
 $ solomonar task move W-001 --as orchestrator-1 --revision 7cd18e4 --tier 1 --stage specialized_review
 error: task move W-001 rejected (revision_not_full_sha)
   check: --revision must be a full 40-character SHA
+  found: 7cd18e4
   fix:   git rev-parse 7cd18e4
 nothing was written
 
 $ solomonar task move W-001 --as orchestrator-1 --stage adversarial_review
 error: task move W-001 rejected (stage_not_allowed)
   check: tier 1 skips adversarial_review (rules §7)
+  found: specialized_review -> adversarial_review
   fix:   --stage integration, or record tier 2 if the triage changed: --tier 2
 nothing was written
 
@@ -1323,6 +1337,10 @@ error: task move W-001 rejected (owner_mismatch)
   fix:   act as orchestrator-1, or ask the user for an explicit handoff: solomonar task handoff W-001 --owner orchestrator-2
 nothing was written
 ```
+
+Usage errors exit 2 and write nothing: a missing ID is `invalid_usage` (`task ID is required`), and so is a move
+without a field flag (`at least one field flag is required`); no `--as` and no `SOLOMONAR_OWNER` is
+`owner_required` (`task move needs an acting owner`, fix `pass --as <owner>`).
 
 ### UC-15 Wait for a user decision
 
@@ -1461,20 +1479,31 @@ section (C14 a), and `task done` rejects a mismatch.
 ```
 $ solomonar task move W-002 --as orchestrator-2 --status paused --next "orchestrator-2:Resume at specification; draft AC-3 uncommitted"
 W-002  running/specification → paused/specification
+  next  orchestrator-2: Resume at specification; draft AC-3 uncommitted
   state(W-002): paused/specification, status paused, next orchestrator-2
+  registry @ 5b5e0e33f8e29da3ea8d00d07be6c74719046616
 
 $ solomonar task move W-002 --as orchestrator-2 --status running
 W-002  paused/specification → running/specification
   state(W-002): running/specification, status running
+  registry @ 5ae4ac5f86fa01730a5e37fe7eaa70cc0f5ffdd4
 
 $ solomonar task move W-004 --as orchestrator-4 --status cancelled --next "user:Superseded by W-005; branch and worktree kept"
 W-004  running/implementation → cancelled/implementation
+  next  user: Superseded by W-005; branch and worktree kept
   note: branch feature/W-004, its worktree, and PR are kept untouched (rules §10)
+  state(W-004): cancelled/implementation, status cancelled, next user
+  registry @ 811967098dec97801a7bfb982e1165f9946ff5a6
 
 $ solomonar task move W-004 --as orchestrator-4 --status running --resume-cancelled
 W-004  cancelled/implementation → running/implementation
-  warning: resuming a cancelled task requires the user's explicit instruction (rules §7)
+  state(W-004): running/implementation, status running
+  registry @ c473d7af3f586cf94fc8d9877fc10a73c9895ab9
+warning: resuming a cancelled task requires the user's explicit instruction (rules §7)
 ```
+
+The warning goes to stderr. Without a recorded PR the note is `note: branch feature/<ID> and its worktree are kept
+untouched (rules §10)`.
 
 `--status paused` and `--status cancelled` require `--next` (`next_required`); `--status running` on a cancelled
 task without `--resume-cancelled` is `cancelled_requires_flag`.
@@ -1658,7 +1687,7 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `--stage specification` from `setup` | `feature/<ID>` exists and a worktree has it checked out (`git worktree list --porcelain`) | `branch_missing`, `worktree_missing` |
 | `--spec` | clean path relative to the worktree: not absolute, no `..` element, not `.`, already in clean form (`./a`, `a//b`, `a/`, `a/../b` are rejected) | `invalid_value` |
 | `--spec` given, or the move enters `implementation` | `spec` is a regular file in the worktree on `feature/<ID>` (located by `git worktree list --porcelain`), or a blob at the recorded `revision` (`git cat-file -t <revision>:<spec>` is `blob`; a directory does not count) | `spec_not_found` |
-| `--agent` | `<id>:<role>` split at the first `:`, id `[a-z]+-[0-9]+`, a core delegated role or an extension agent whose manifest state is `installed`, never a draft or `orchestrator`; the fix lists the allowed roles | `invalid_value` |
+| `--agent` | `<id>:<role>` split at the first `:`, id `[a-z]+-[0-9]+`, a core delegated role or an extension agent whose manifest state is `installed`, never a draft or `orchestrator`; without a manifest, the core agents `adversarial-reviewer`, `correctness-reviewer`, `implementer`, `security-reviewer`, `spec-reviewer`; the fix lists the allowed roles | `invalid_value` |
 | `--next` | `<actor>:<action>` split at the first `:`, actor `user`, the owner, or an `active_agents` id after the move, so an agent added by `--agent` in the same `task move` may act (`user` or the owner on `task register`); the fix lists the allowed actors; action 1 to 120 characters (runes) after trimming, on every command that takes `--next`, including `task register` | `invalid_value` |
 | `task register --owner` | agent ID `[a-z]+-[0-9]+` | `invalid_value` |
 | `task plan --title`, `task register --title` | not blank or whitespace-only | `invalid_value` |
