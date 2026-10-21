@@ -41,7 +41,9 @@ The multi-stage Dockerfile pins the official Node and Nginx images by digest, in
 4. Add `solomonar.dev` in Dokploy's **Domains** tab, select service `site`, container port **8080**, and enable HTTPS. Point the domain's DNS to the Dokploy server.
 5. Deploy. Dokploy supplies the routing labels and network configuration. The Compose service exposes port 8080 internally and does not bind a host port.
 
-The service uses `restart: always` so Docker starts the existing container again after the daemon or VPS restarts. Docker itself must be enabled to start on boot. After changing this policy on a server, redeploy the Compose service to apply it to the existing container.
+The service uses [`pull_policy: always`](https://docs.docker.com/reference/compose-file/services/#pull_policy) so each Compose deployment checks the registry for the selected image. When the image changes, Compose recreates the service. Dokploy's `--build` flag does not build this service because it has no `build:` section. Wait for the site's CI publication to finish before deploying; cloning new source does not rebuild the published image. If `SITE_IMAGE` pins a SHA tag, update that value when selecting another release.
+
+The service uses `restart: always` so Docker starts the existing container again after the daemon or VPS restarts. Docker itself must be enabled to start on boot. After changing these policies on a server, redeploy the Compose service to apply them to the existing container.
 
 This uses [Dokploy's native domain management](https://docs.dokploy.com/docs/core/docker-compose/domains), without hardcoded Traefik router names or a `container_name`.
 
