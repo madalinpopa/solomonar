@@ -78,7 +78,7 @@ func (s *Store) Create(ctx context.Context) (Commit, error) {
 		return Commit{}, err
 	}
 	// An empty old value makes update-ref fail when the ref exists, so a concurrent init is never overwritten.
-	if _, err := s.Git.Run(ctx, "update-ref", Ref, sha, ""); err != nil {
+	if err := s.swap(ctx, sha, ""); err != nil {
 		return Commit{}, fmt.Errorf("create workflow-state: %w", err)
 	}
 	return s.push(ctx, sha), nil
@@ -99,9 +99,12 @@ func (s *Store) Update(ctx context.Context, fn func(*Registry) (subject string, 
 		if err != nil {
 			return Commit{}, err
 		}
-		_, swapErr := s.Git.Run(ctx, "update-ref", Ref, sha, old)
+		swapErr := s.swap(ctx, sha, old)
 		if swapErr == nil {
 			return s.push(ctx, sha), nil
+		}
+		if ctx.Err() != nil {
+			return Commit{}, fmt.Errorf("update workflow-state: %w", swapErr)
 		}
 		current, err := s.tip(ctx)
 		if err != nil {
@@ -156,27 +159,59 @@ func (s *Store) writeCommit(ctx context.Context, reg *Registry, subject, parent 
 	return sha, nil
 }
 
+// swap moves Ref from old to sha unless ctx is already done.
+func (s *Store) swap(ctx context.Context, sha, old string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	// The swap is the commit point (CLI-D18): once started it runs to completion, so the outcome is known.
+	_, err := s.Git.Run(context.WithoutCancel(ctx), "update-ref", Ref, sha, old)
+	return err
+}
+
 func (s *Store) push(ctx context.Context, sha string) Commit {
-	commit := Commit{SHA: sha}
+	warning := s.pushWarning(ctx)
+	if warning == nil {
+		return Commit{SHA: sha, Pushed: true}
+	}
+	return Commit{SHA: sha, Warnings: []Warning{*warning}}
+}
+
+func (s *Store) pushWarning(ctx context.Context) *Warning {
 	if s.Remote == "" {
-		commit.Warnings = []Warning{noRemote(s.Remote)}
-		return commit
+		return new(noRemote(s.Remote))
 	}
 	if _, err := s.Git.Run(ctx, "remote", "get-url", s.Remote); err != nil {
-		commit.Warnings = []Warning{noRemote(s.Remote)}
-		return commit
+		if errors.Is(ctx.Err(), context.Canceled) {
+			return new(s.pushInterrupted())
+		}
+		return new(noRemote(s.Remote))
 	}
+	return s.pushRef(ctx)
+}
+
+func (s *Store) pushRef(ctx context.Context) *Warning {
 	pushCtx, cancel := context.WithTimeout(ctx, pushTimeout)
 	defer cancel()
-	if _, err := s.Git.Run(pushCtx, "push", s.Remote, Ref+":"+Ref); err != nil {
-		commit.Warnings = []Warning{{
+	_, err := s.Git.Run(pushCtx, "push", s.Remote, Ref+":"+Ref)
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(ctx.Err(), context.Canceled):
+		return new(s.pushInterrupted())
+	default:
+		return &Warning{
 			Code:    "push_failed",
 			Message: fmt.Sprintf("git push %s workflow-state failed: %s", s.Remote, pushFailure(err)),
-		}}
-		return commit
+		}
 	}
-	commit.Pushed = true
-	return commit
+}
+
+func (s *Store) pushInterrupted() Warning {
+	return Warning{
+		Code:    "push_interrupted",
+		Message: fmt.Sprintf("push to %s interrupted; the registry commit is kept locally", s.Remote),
+	}
 }
 
 func noRemote(remote string) Warning {
