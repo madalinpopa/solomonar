@@ -2,31 +2,40 @@ package task
 
 import (
 	"net/url"
+	"path"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 )
 
-const maxSummaryRunes = 80
+const (
+	maxSummaryRunes = 80
+	maxActionRunes  = 120
+)
 
 func invalidValue(check, found, fix string) *Rejection {
 	return &Rejection{Code: "invalid_value", Check: check, Found: found, Fix: fix}
 }
 
-// parseAgents reads repeated --agent values; clears reports a lone --agent none.
-func parseAgents(values []string) (agents []Agent, clears bool, err error) {
+// parseAgents reads repeated --agent values for the installed roles; clears reports a lone none.
+func parseAgents(values, roles []string) (agents []Agent, clears bool, err error) {
 	if slices.Contains(values, "none") {
 		if len(values) > 1 {
 			return nil, false, agentRejection(strings.Join(values, " "))
 		}
 		return nil, true, nil
 	}
+	delegated := slices.DeleteFunc(slices.Clone(roles), func(role string) bool { return role == "orchestrator" })
 	for _, value := range values {
 		id, role, _ := strings.Cut(value, ":")
-		if id == "" || role == "" || strings.ContainsFunc(value, unicode.IsSpace) {
+		if !validAgentID(id) || role == "" {
 			return nil, false, agentRejection(value)
+		}
+		if !slices.Contains(delegated, role) {
+			return nil, false, invalidValue("--agent role is an installed delegated role, never orchestrator", value,
+				"allowed roles: "+join(delegated))
 		}
 		agents = append(agents, Agent{ID: id, Role: role})
 	}
@@ -45,7 +54,20 @@ func parseNextAction(value string) (*NextAction, error) {
 		return nil, invalidValue("--next takes <actor>:<action>", value,
 			`pass --next "impl-1:Implement AC-1"`)
 	}
+	if utf8.RuneCountInString(action) > maxActionRunes {
+		return nil, invalidValue("--next action takes 1 to 120 characters", value,
+			"shorten the action; put details in the spec or a decision")
+	}
 	return &NextAction{Actor: actor, Action: action}, nil
+}
+
+// checkSpec accepts a clean worktree-relative path; existence is checked against Git separately.
+func checkSpec(value string) error {
+	if value != "." && path.Clean(value) == value && filepath.IsLocal(filepath.FromSlash(value)) {
+		return nil
+	}
+	return invalidValue("--spec takes a clean path relative to the worktree, without ..", value,
+		"pass --spec docs/work/<task ID>-<slug>.md")
 }
 
 func parseTier(value string) (*int, error) {
