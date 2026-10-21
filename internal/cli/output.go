@@ -67,9 +67,8 @@ func writeJSON(env Env, command string, out output, cliErr *Error) {
 }
 
 func writeHuman(env Env, out output, cliErr *Error) {
-	if cliErr == nil {
-		_, _ = io.WriteString(env.Stdout, out.text)
-	} else {
+	_, _ = io.WriteString(env.Stdout, out.text)
+	if cliErr != nil {
 		writeHumanError(env.Stderr, cliErr)
 	}
 	for _, w := range out.warnings {
