@@ -333,6 +333,8 @@ keeps `data` absent.
 - `init` creates the registry only when the ref is absent (`update-ref <ref> <new> ""` is create-only); it never
   overwrites one. On any failure before that CAS succeeds (a failed create, cancellation) it calls
   `Journal.Rollback` and returns the error (`interrupted` or `unexpected_error`) with the rollback error joined.
+  With `--git-init`, a failure after `git init` rolls back the project files but leaves the new `.git`; a re-run
+  adopts the files (I UC-4).
 
 ## 9. Code conventions
 
