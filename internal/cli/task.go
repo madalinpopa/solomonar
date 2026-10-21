@@ -76,7 +76,7 @@ func (p *planFlags) run(ctx context.Context, env Env, flags sharedFlags, args []
 	if p.title == "" {
 		return output{}, invalidUsage(errors.New("--title is required"))
 	}
-	store, err := openStore(ctx, env, flags)
+	store, _, err := openStore(ctx, env, flags)
 	if err != nil {
 		return output{}, err
 	}
@@ -134,13 +134,17 @@ func runTaskShow(ctx context.Context, env Env, flags sharedFlags, args []string)
 	if len(args) > 1 {
 		return output{}, unexpectedArgument(args[1])
 	}
-	store, err := openStore(ctx, env, flags)
+	label := "task show"
+	if len(args) == 1 {
+		label += " " + args[0]
+	}
+	store, _, err := openStore(ctx, env, flags)
 	if err != nil {
-		return output{}, err
+		return output{}, rejectedAs(label, err)
 	}
 	if len(args) == 1 {
 		out, err := showRecord(ctx, store, args[0])
-		return out, rejectedAs("task show "+args[0], err)
+		return out, rejectedAs(label, err)
 	}
 	return showRegistry(ctx, store)
 }
