@@ -104,8 +104,12 @@ func TestDoneTaskStoresCompactRecord(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, MoveResult{
-		From:    Position{Status: StatusRunning, Stage: StageIntegration},
-		To:      Position{Status: StatusDone, Stage: StageComplete},
+		From: Position{Status: StatusRunning, Stage: StageIntegration},
+		To:   Position{Status: StatusDone, Stage: StageComplete},
+		Changed: []string{
+			"status", "stage", "owner", "branch", "spec", "revision", "tier", "active_agents", "next_action",
+			"depends_on", "session_ref", "summary", "spec_ref", "merge_commit",
+		},
 		Subject: "state(W-001): done/complete, merged " + d.merge[:7],
 	}, result)
 	stored := registry.Tasks["W-001"]
