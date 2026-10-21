@@ -716,7 +716,31 @@ Decisions (author, 2026-10-21):
 
 - [x] `not_a_repository` fix; `--git-init` planning, confirmation, `git init`, rollback (UC-4)
 - [x] empty repository `Next:` and `first_commit_required`; the `jujutsu_detected` warning
-- Stage 8.8 `[ ]` — task commands read `main_branch` and `remote` from the manifest (architecture §7 step 2)
+
+### Stage 8.8 — Task commands read the manifest (`internal/cli`; I §3.2, architecture §7) `[x]`
+
+Decisions (author, 2026-10-21):
+- every task command (`task plan`, `show`, `register`, `move`, `block`, `unblock`, `handoff`, `done`, `status`)
+  reads `.solomonar/manifest.json` from the current worktree root (`repo.Dir`) with `project.ReadManifest` after
+  repository discovery and the Git version check, before the registry; the store's remote and the main branch come
+  from `project.remote` and `project.main_branch`, else `origin` and `main` when the manifest is absent (I §3.2);
+- a newer manifest is `cli_outdated` (exit 3, `<command> rejected`), an invalid one `manifest_invalid` (exit 1,
+  `<command> failed`), with the command label used today (`task move W-001 rejected`); nothing is written;
+- the main branch replaces `defaultMainBranch` in `task register` (the worktree command), `task done` (merge
+  check and its line), and `task status` (facts, drift, the `merged` line); `defaultRemote`/`defaultMainBranch`
+  remain only as the fallbacks;
+- `version` reading the project is Stage 8.9.
+- also: `openStore(ctx, env, flags) (*task.Store, string, error)` returns the main branch beside the store, read by
+  `readProject(env, dir)`; every `openStore` error goes through `rejectedAs` with the command's label (`task show`
+  builds its label once); the drift text follows the main branch (`merged into trunk`); the `task status` JSON is
+  unchanged; an I/O failure opening the worktree reads `open worktree: %w`. I §3.2, I §8.4, architecture §7 updated
+  to match.
+
+- [x] `openStore` reads the manifest; remote and main branch from it; `cli_outdated`/`manifest_invalid`
+- [x] tests: a manifest with another remote and main branch drives push, `register`'s worktree line, `done`'s merge
+  check, and `status`; a newer and an invalid manifest reject with nothing written; no manifest keeps the defaults
+
+- Stage 8.9 `[ ]` — `version` reads the project framework and registry schema (UC-24)
 
 ## Step 9: `init` with runtimes and catalog extensions
 
