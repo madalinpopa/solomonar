@@ -1647,10 +1647,11 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `--revision` | full 40-hex SHA | `revision_not_full_sha` |
 | `--revision` | `feature/<ID>` exists locally | `branch_missing` |
 | `--revision` | `git merge-base --is-ancestor <sha> feature/<ID>` | `revision_not_on_branch` |
-| `--spec` | relative path under the worktree, no `..` | `invalid_value` |
+| `--stage specification` from `setup` | `feature/<ID>` exists and a worktree has it checked out (`git worktree list --porcelain`) | `branch_missing`, `worktree_missing` |
+| `--spec` | clean path relative to the worktree: not absolute, no `..` element, not `.`, already in clean form (`./a`, `a//b`, `a/`, `a/../b` are rejected) | `invalid_value` |
 | `--spec` | exists in the worktree located by `git worktree list --porcelain`, or at the recorded `revision` | `spec_not_found` |
-| `--agent` | `<id>:<role>` split at the first `:`, id `[a-z]+-[0-9]+`, a core delegated role or an extension agent whose manifest state is `installed`, never a draft or `orchestrator` | `invalid_value` |
-| `--next` | `<actor>:<action>` split at the first `:`, actor `user`, the owner, or an `active_agents` id (`user` or the owner on `task register`); action 1 to 120 characters | `invalid_value` |
+| `--agent` | `<id>:<role>` split at the first `:`, id `[a-z]+-[0-9]+`, a core delegated role or an extension agent whose manifest state is `installed`, never a draft or `orchestrator`; the fix lists the allowed roles | `invalid_value` |
+| `--next` | `<actor>:<action>` split at the first `:`, actor `user`, the owner, or an `active_agents` id after the move, so an agent added by `--agent` in the same `task move` may act (`user` or the owner on `task register`); the fix lists the allowed actors; action 1 to 120 characters (runes) after trimming, on every command that takes `--next`, including `task register` | `invalid_value` |
 | `task register --owner` | agent ID `[a-z]+-[0-9]+` | `invalid_value` |
 | `task plan --title`, `task register --title` | not blank or whitespace-only | `invalid_value` |
 | `--pr` | a positive PR number or an `https://` URL, stored as given | `invalid_value` |
@@ -1679,6 +1680,7 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `revision_required` | 3 | Review stage without a revision | pass `--revision` |
 | `revision_not_full_sha` | 3 | Short or malformed SHA | `git rev-parse <short>` |
 | `branch_missing` | 3 | `feature/<ID>` does not exist | create the branch and worktree (rules §4) |
+| `worktree_missing` | 3 | `feature/<ID>` exists but no worktree has it checked out | `git worktree add ../<repo>-worktrees/<ID> feature/<ID>` |
 | `revision_not_on_branch` | 3 | SHA not reachable from `feature/<ID>` | commit on the feature branch |
 | `spec_required` | 3 | `implementation` without `spec` | pass `--spec` |
 | `spec_not_found` | 3 | The spec path does not exist | commit the work spec in the worktree |
