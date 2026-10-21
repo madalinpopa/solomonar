@@ -1,0 +1,44 @@
+---
+layout: base.njk
+title: Every dragon needs a little direction
+description: A wizard, a book, a dragon, and a way through the storm. Meet Solomonar, a spec-driven framework for AI coding agents.
+home: true
+---
+<main id="main" tabindex="-1">
+  <section class="story-hero wrap" id="story" data-chapter="0" aria-labelledby="hero-title">
+    <div class="story-header">
+      <p class="eyebrow"><span class="thread-rule"></span> Romanian folklore. Modern craft.</p>
+      <h1 id="hero-title">Every dragon needs<br>a little direction.</h1>
+      <p class="story-definition"><dfn>solomonar</dfn>: in Romanian folklore, a wizard who learns every secret from a single book and rides a dragon to command the storms.</p>
+      <a class="text-link" href="{{ '/docs/story/' | url }}">A story worth following <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a>
+    </div>
+    <figure class="story-stage" role="img" aria-label="A stitched solomonar learns from a book, turns knowledge into spells, and rides a dragon through the storm. The four chapters below connect the tale to the framework.">
+      <div class="stitch-field" aria-hidden="true"></div>
+      <img class="story-art scholar-art" src="{{ '/assets/story-scholar.webp' | url }}" width="768" height="768" alt="" fetchpriority="high">
+      <img class="story-art rider-art" src="{{ '/assets/story-rider.webp' | url }}" width="1000" height="667" alt="">
+      <div class="spell-trail" aria-hidden="true"><svg><use href="{{ '/assets/icons.svg#sparkles' | url }}"></use></svg><svg><use href="{{ '/assets/icons.svg#sparkles' | url }}"></use></svg><svg><use href="{{ '/assets/icons.svg#sparkles' | url }}"></use></svg></div>
+      <span class="scene-caption" aria-hidden="true">CUSĂTURA <span>A STORY TOLD IN THREAD</span></span>
+    </figure>
+    <div class="story-player">
+      <div class="chapter-buttons" role="group" aria-label="Story chapters" hidden>
+        <button type="button" data-chapter-button="0" aria-pressed="true"><span>01</span> The book</button>
+        <button type="button" data-chapter-button="1" aria-pressed="false"><span>02</span> The spells</button>
+        <button type="button" data-chapter-button="2" aria-pressed="false"><span>03</span> The dragon</button>
+        <button type="button" data-chapter-button="3" aria-pressed="false"><span>04</span> The direction</button>
+      </div>
+      <button class="story-motion" type="button" aria-pressed="false" hidden>Pause story</button>
+      <div class="chapter-caption">
+        <p data-chapter-caption="0"><span>One book. Every secret.</span><a href="{{ '/docs/framework/#the-book-specifications' | url }}">Your book: specs <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a></p>
+        <p data-chapter-caption="1" hidden><span>Knowledge becomes a method.</span><a href="{{ '/docs/framework/#the-spells-skills' | url }}">Your spells: skills <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a></p>
+        <p data-chapter-caption="2" hidden><span>A dragon. A storm to command.</span><a href="{{ '/docs/framework/#the-dragons-agents' | url }}">Your dragons: agents <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a></p>
+        <p data-chapter-caption="3" hidden><span>Every dragon needs a little direction.</span><a href="{{ '/docs/framework/#the-reins-orchestration' | url }}">You hold the reins <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a></p>
+      </div>
+    </div>
+  </section>
+  <div class="embroidery-seam" aria-hidden="true"></div>
+  <section class="story-to-software wrap" aria-label="From folklore to framework">
+    <p>solomonar gives your project its <a href="{{ '/docs/framework/#the-book-specifications' | url }}">book <span>(specs)</span></a>, its <a href="{{ '/docs/framework/#the-spells-skills' | url }}">spells <span>(skills)</span></a> and its <a href="{{ '/docs/framework/#the-dragons-agents' | url }}">dragons <span>(agents)</span></a>.</p>
+    <div class="hero-actions"><a class="button" href="{{ '/docs/getting-started/' | url }}">Open the field guide <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a><a class="text-link" href="{{ '/docs/framework/' | url }}">See how it works</a></div>
+    <p class="development-note"><span class="status-dot" aria-hidden="true"></span> Framework v0.1 · CLI in active development.</p>
+  </section>
+</main>
