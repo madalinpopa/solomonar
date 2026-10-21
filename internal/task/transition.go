@@ -71,12 +71,7 @@ func priorStatus(stage Stage) Status {
 // checkTransition checks a task move from before to after against I §8.1, CLI-D16, and I §8.2.
 func checkTransition(before, after *Record, resumeCancelled bool) error {
 	if before.Status == StatusDone {
-		return &Rejection{
-			Code:  "done_final",
-			Check: "status done is final (I §8.1)",
-			Found: fmt.Sprintf("%s -> %s", before.Status, after.Status),
-			Fix:   "register a related task (--related)",
-		}
+		return doneFinal(after.Status)
 	}
 	if before.Status != after.Status {
 		if err := checkStatusMove(before, after.Status, resumeCancelled); err != nil {
@@ -90,6 +85,15 @@ func checkTransition(before, after *Record, resumeCancelled bool) error {
 		return checkStageMove(before.Stage, after)
 	}
 	return nil
+}
+
+func doneFinal(to Status) *Rejection {
+	return &Rejection{
+		Code:  "done_final",
+		Check: "status done is final (I §8.1)",
+		Found: fmt.Sprintf("%s -> %s", StatusDone, to),
+		Fix:   "register a related task (--related)",
+	}
 }
 
 func checkStatusMove(before *Record, to Status, resumeCancelled bool) error {
