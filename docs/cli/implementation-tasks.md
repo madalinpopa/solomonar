@@ -740,7 +740,33 @@ Decisions (author, 2026-10-21):
 - [x] tests: a manifest with another remote and main branch drives push, `register`'s worktree line, `done`'s merge
   check, and `status`; a newer and an invalid manifest reject with nothing written; no manifest keeps the defaults
 
-- Stage 8.9 `[ ]` — `version` reads the project framework and registry schema (UC-24)
+
+### Stage 8.9 — `version` reads the project (`internal/project`, `internal/task`, `internal/cli`; UC-24) `[x]`
+
+Decisions (author, 2026-10-21):
+- `version` never decodes the manifest or the registry strictly: it reads only their version fields
+  (`project.ManifestVersions(data) (schema int, framework string, err error)` and `task.SchemaOf(data) (int, error)`,
+  sharing the existing header checks of `checkVersions` and `checkSchemaVersion` without the newer-than check), so a
+  newer project still prints its versions and exits 0 (CLI-D19, UC-24);
+- context: repository discovery from `-C` as other commands; `not_a_repository` → `project   not initialized`
+  (JSON `null`s); `git_too_old` and other discovery errors stay errors; inside a repository without
+  `.solomonar/manifest.json` → `not initialized`;
+- with a manifest: `project   framework <project fw> · registry schema <n>`, `registry missing` when the ref is absent
+  (JSON `registry_schema` `null`); a manifest whose version fields are unreadable → `project   manifest invalid
+  (inspect .solomonar/manifest.json)`, an unreadable registry → `· registry invalid`, both `null` in JSON, exit 0;
+- newer: when the project framework is newer than the embedded one, the line ends ` (newer than this CLI; install
+  solomonar <project fw> or later)`; when only the manifest or registry schema is newer, ` (newer than this CLI;
+  install a newer solomonar release)`;
+- the help description's "Outside a project the project line reads \"not initialized\"." stays.
+- also: `project.NewerFramework(project, shipped string) (bool, error)` keeps the malformed-embedded-version error;
+  `(*task.Store).ReadSchema(ctx) (schema int, present bool, err error)` shares the blob read with `Read`; an invalid
+  manifest skips the registry (both JSON values `null`); the framework suffix wins over the schema suffix and follows
+  whichever registry part is shown; a registry commit without `state.json`, a manifest read failure other than
+  absence, and a failure opening the worktree are unexpected errors (exit 1); any value not shown is `null` in JSON.
+  UC-24, I §3.6, architecture §6 updated to match.
+
+- [x] `ManifestVersions`, `SchemaOf` (domain), with the existing strict paths unchanged
+- [x] `version` project line and JSON; tests for every row above, including a newer framework and a newer schema
 
 ## Step 9: `init` with runtimes and catalog extensions
 
