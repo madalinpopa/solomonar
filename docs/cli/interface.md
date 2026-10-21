@@ -73,6 +73,11 @@ meaning (orchestrator, implementer, reviewers), so the CLI never uses `agent` fo
 solomonar [global flags] <command> [<subcommand>] [flags] [args]
 ```
 
+No command, a command group alone (`task`), and an unknown command or subcommand are `unknown_command`; an
+unknown flag, a missing required flag, or an unexpected argument is `invalid_usage`. Both exit 2 with the fix "run
+solomonar help". `solomonar help <command>` prints the same text as `<command> -h`: the usage line, the
+description, and a pointer to `solomonar help` for the global flags.
+
 | Flag | Default | Meaning |
 |---|---|---|
 | `-C <path>` | current directory | Run as if started in `<path>`, as `git -C` does. Any worktree of the repository works. |
@@ -100,8 +105,11 @@ behavior.
   feature worktree. The registry ref is shared by all worktrees.
 - Project settings (main branch, remote) come from `.solomonar/manifest.json` in the current worktree; defaults
   are `main` and `origin`.
-- Requirements: Git 2.40 or later; `gh` optional. A colocated Jujutsu repository (`.jj/`) is a warning: v0.1 is
-  Git-only (C6), and jj commands must not be used on `workflow-state`.
+- A command that needs the repository fails outside one with `not_a_repository` (exit 3), message
+  `<absolute path> is not a Git repository`, fix "run inside a Git repository or pass -C <path>".
+- Requirements: Git 2.40 or later, otherwise `git_too_old` (exit 1, fix "install git 2.40 or later"); `gh`
+  optional. A colocated Jujutsu repository (`.jj/`) is a warning: v0.1 is Git-only (C6), and jj commands must not
+  be used on `workflow-state`.
 
 ### 3.3 Human output
 
@@ -134,15 +142,18 @@ On failure `ok` is `false`, `data` is absent, and `error` is present:
   "command": "task move",
   "error": {
     "code": "revision_not_on_branch",
-    "message": "revision 1902e3d6fc4e78a0bcc50ba12b882769afbf4a8c is not reachable from feature/W-001",
+    "message": "task move W-001 rejected",
     "check": "--revision must be a full SHA reachable from feature/W-001",
-    "fix": "Commit the candidate on feature/W-001 and pass its full SHA: git -C <worktree> rev-parse HEAD"
+    "found": "1902e3d6fc4e78a0bcc50ba12b882769afbf4a8c is not on feature/W-001",
+    "fix": "commit the candidate on feature/W-001 and pass its full SHA: git -C <worktree> rev-parse HEAD"
   },
   "warnings": []
 }
 ```
 
-`data` per command is given in its use case. Field names are `snake_case`; timestamps are RFC 3339 UTC; SHAs are full.
+`command` names the command run; `help` and a top-level `-h` report `help`, `<command> -h` reports the command,
+and the help data is `{"help": "<text>"}`. `data` per command is given in its use case. Field names are
+`snake_case`; timestamps are RFC 3339 UTC; SHAs are full.
 
 ### 3.5 Exit codes
 
@@ -173,7 +184,14 @@ error: task move W-001 rejected (revision_not_on_branch)
 nothing was written
 ```
 
-The error code catalog for task commands is in 8.4; project commands use `not_a_repository`, `not_initialized`,
+The first line is `error: <message> (<code>)`, and `message` carries the same text in JSON. A rejection's message
+is `<command> rejected`, with the positional task ID when the command takes one (`task show W-009 rejected`), or
+`<command> failed` for an exit-1 code. An unexpected failure is `unexpected_error` (exit 1) with the underlying
+error as the message.
+
+Every command may report `unknown_command`, `invalid_usage`, `unexpected_error`, and `interrupted`; a command that
+needs the repository also `not_a_repository` and `git_too_old` (3.2). The error code catalog for task commands is
+in 8.4; project commands use `not_a_repository`, `not_initialized`,
 `already_initialized`, `file_conflict`, `unknown_runtime`, `unknown_extension`, `core_item`,
 `name_collision`, `invalid_value`, `unknown_group`, `extension_requires`, `extension_conflict`, `decision_not_found`,
 `decision_not_approved`, `registry_exists_invalid`, `manifest_invalid`, `interactive_required`,
@@ -1125,10 +1143,22 @@ Planned W-003: Export expenses as CSV
 ```
 
 The ID is the next free `W-NNN` (highest existing number plus one). `--depends-on` and `--related` must name existing
-tasks (`task_not_found`). `task plan` takes no `--as`: it is the user's write (G16).
+tasks (`task_not_found`). `task plan` takes no `--as`: it is the user's write (G16). Without a successful push the
+last line ends at `registry @ <sha>` and the warning (`no_remote`, `push_failed`, `push_interrupted`) follows on
+stderr.
 
 `--json` data: `{"id": "W-003", "record": {"title": "Export expenses as CSV", "status": "planned", "updated_at":
 "2026-10-20T14:58:03Z"}, "commit": "bed97175b06e68eb7ff5722897aa86b8ea75c8ef", "pushed": true}`.
+
+`--dry-run` reads the registry, runs the same checks, and writes no commit:
+
+```
+$ solomonar task plan --title "Export expenses as CSV" --dry-run
+Would plan W-003: Export expenses as CSV
+  state(W-003): planned, plan "Export expenses as CSV"
+```
+
+`--dry-run --json` data: `{"id": "W-003", "record": { }, "dry_run": true}`.
 
 ### UC-12 Register a task (orchestrator): the registration barrier
 
@@ -1152,15 +1182,20 @@ Create the worktree:
   git worktree add -b feature/W-001 ../ledger-worktrees/W-001 main
 ```
 
-Claiming a planned task: `solomonar task register W-003 --title "Export expenses as CSV" --owner orchestrator-2`; the
-title must match the planned title or is updated with `warning: title changed from "<old>"`. The default
-`next_action` is the worktree step shown above.
+Without an ID the task gets the next free `W-NNN`. Claiming a planned task: `solomonar task register W-003 --title
+"Export expenses as CSV" --owner orchestrator-2`; an unknown ID is `task_not_found`. A title that differs from the
+planned title replaces it with the warning `title_changed`: `title changed from "<old>"`. The claim keeps the
+planned `depends_on` and `related_task`; `--depends-on` or `--related`, when given, replaces the planned value, so a
+claim cannot clear planned dependencies. A blank `--title`, and an `--owner` that is not an agent ID
+`[a-z]+-[0-9]+` (fix "pass --owner orchestrator-1"), are `invalid_value`. The default `next_action` is
+`<owner>: Create feature/<ID> and its worktree`; a given `--next` names `user` or the owner (8.3).
 
-Rejections (exit 3): `not_planned` (the ID exists and is not `planned`; fix: `task show <ID>`, resume it instead);
-`owner_in_use` (the owner already owns an active task; fix: use a new owner such as `orchestrator-3`, since an
-orchestrator owns exactly one task); `dependency_not_done` is a warning, not a rejection: register, then `task block
---kind dependency` (rules §4). The success line "Registration confirmed" appears only after the compare-and-swap
-commit exists; `--dry-run` never prints it.
+Rejections (exit 3): `not_planned` (the ID exists and is not `planned`; found `<ID> is <status>`; fix: `solomonar
+task show <ID>; resume the task instead`); `owner_in_use` (the owner has a `reserved`, `running`, `blocked`, or
+`paused` task; found `<owner> owns <ID> (<status>)`; fix: choose a new owner ID such as `orchestrator-3`, since an
+orchestrator owns exactly one task). `dependency_not_done` is a warning per dependency that is not `done`, not a
+rejection: `<ID> is not done; register, then block with task block --kind dependency` (rules §4). The success line
+"Registration confirmed" appears only after the compare-and-swap commit exists; `--dry-run` never prints it.
 
 ### UC-13 Advance a task through its stages (owner)
 
@@ -1219,7 +1254,7 @@ The remaining moves follow the same shape: `--stage adversarial_review --agent a
 `--stage implementation` with a correction round; `--stage integration`; `--pr 42`; `--revision` for each closure
 commit (rules §9). `--json` data: `{"id": "W-001", "from": {"status": "running", "stage": "implementation"}, "to":
 {"status": "running", "stage": "specialized_review"}, "changed": ["stage", "revision", "tier", "active_agents",
-"next_action"], "record": { }, "commit": "<sha>", "pushed": true}`.
+"next_action"], "record": { }, "commit": "<sha>", "pushed": true}`; `changed` lists the fields in record order.
 
 ### UC-14 A rejected move
 
@@ -1311,8 +1346,13 @@ W-003  planned    -                   -               -
 registry refs/heads/workflow-state @ 2d4f6a8 · 2026-10-20T15:12:40Z
 ```
 
-Rows are sorted by ID; a `done` row shows its `summary` in NEXT. `task show <ID>` prints the stored record exactly
-as JSON, the raw read (J3); `task show --json` returns the full `state.json` plus the source commit.
+Rows are sorted by ID number. STATUS is as wide as `cancelled`; NEXT shows the `summary` for a `done` row,
+`<actor>: <action>` otherwise, and `-` when empty, as do STAGE and OWNER. The last line is `registry <ref> @ <sha7>
+· <commit time>`, the time in RFC 3339 UTC. `task show <ID>` prints the stored record exactly as JSON, the raw read
+(J3).
+
+`--json` data: `{"registry": <state.json>, "commit": "<sha>"}`; with an ID, `{"id": "W-001", "record": { },
+"commit": "<sha>"}`.
 
 The oracle (rules §7, J3):
 
@@ -1530,7 +1570,8 @@ solomonar 0.1.0 (embedded framework 0.1.0)
 project   framework 0.1.0 · registry schema 1
 ```
 
-Outside a project the `project` line reads `not initialized`; in a project newer than the CLI it adds
+A build without a release tag reports the CLI version `devel`. Outside a project the `project` line reads
+`not initialized`; in a project newer than the CLI it adds
 `(newer than this CLI; install solomonar <version> or later)`, and `version` still exits 0. `--json`: `{"cli": "0.1.0", "framework": "0.1.0",
 "project_framework": "0.1.0", "registry_schema": 1}`.
 
@@ -1579,9 +1620,11 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `--revision` | `git merge-base --is-ancestor <sha> feature/<ID>` | `revision_not_on_branch` |
 | `--spec` | relative path under the worktree, no `..` | `invalid_value` |
 | `--spec` | exists in the worktree located by `git worktree list --porcelain`, or at the recorded `revision` | `spec_not_found` |
-| `--agent` | `<id>:<role>`, id `[a-z]+-[0-9]+`, a core delegated role or an extension agent whose manifest state is `installed`, never a draft or `orchestrator` | `invalid_value` |
-| `--next` | `<actor>:<action>`, actor `user`, the owner, or an `active_agents` id; action 1 to 120 characters | `invalid_value` |
-| `--pr` | GitHub PR URL of the configured remote, or a number turned into that URL | `invalid_value` |
+| `--agent` | `<id>:<role>` split at the first `:`, id `[a-z]+-[0-9]+`, a core delegated role or an extension agent whose manifest state is `installed`, never a draft or `orchestrator` | `invalid_value` |
+| `--next` | `<actor>:<action>` split at the first `:`, actor `user`, the owner, or an `active_agents` id (`user` or the owner on `task register`); action 1 to 120 characters | `invalid_value` |
+| `task register --owner` | agent ID `[a-z]+-[0-9]+` | `invalid_value` |
+| `task register --title` | not blank | `invalid_value` |
+| `--pr` | a positive PR number or an `https://` URL, stored as given | `invalid_value` |
 | `task done --merge` | full SHA, reachable from main, has two or more parents | `merge_not_on_main`, `merge_not_merge_commit` |
 | `task done` | recorded `revision` is an ancestor of the merge commit | `revision_not_merged` |
 | `task done --spec-ref` | `git show "<spec_ref>"` resolves | `spec_ref_invalid` |
@@ -1592,13 +1635,14 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 
 | Code | Exit | Meaning | Fix shown |
 |---|---|---|---|
+| `not_a_repository` | 3 | `-C` or the working directory is not in a Git repository | run inside a Git repository or pass `-C <path>` |
 | `not_initialized` | 3 | No `refs/heads/workflow-state` | `solomonar init` |
 | `registry_invalid` | 1 | `state.json` fails the schema | inspect with `git show refs/heads/workflow-state:state.json`; never edit it by hand |
 | `task_not_found` | 3 | Unknown ID | `solomonar task show` |
-| `not_planned` | 3 | `register <ID>` on a non-planned record | resume the task instead |
+| `not_planned` | 3 | `register <ID>` on a non-planned record | `solomonar task show <ID>; resume the task instead` |
 | `owner_required` | 2 | No `--as` and no `SOLOMONAR_OWNER` | pass `--as <owner>` |
 | `owner_mismatch` | 3 | Acting owner differs from the record | act as the owner, or `task handoff` on the user's instruction |
-| `owner_in_use` | 3 | The owner owns another active task | choose a new owner ID |
+| `owner_in_use` | 3 | The owner owns a `reserved`, `running`, `blocked`, or `paused` task | choose a new owner ID |
 | `transition_not_allowed` | 3 | Status change not in 8.1 | names the allowed targets |
 | `stage_not_allowed` | 3 | Stage change not in 8.2 or not allowed by the tier | names the allowed stages |
 | `field_not_allowed` | 3 | A field flag outside the stages that accept it (8.2 field rules) | names the stages that accept it |
@@ -1622,8 +1666,12 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `spec_ref_invalid` | 3 | `spec_ref` does not resolve | copy it from the PR "Final specification" line |
 | `spec_ref_not_final` | 3 | Not the last `spec(<ID>)` commit merged | shows the derived `spec_ref` |
 | `invalid_value` | 2 | Malformed flag value | names the expected format |
+| `unknown_command` | 2 | No command, a command group alone, or an unknown command or subcommand | run solomonar help |
+| `invalid_usage` | 2 | Unknown flag, missing required flag, or unexpected argument | run solomonar help |
 | `cas_exhausted` | 4 | Lost the compare-and-swap 5 times | retry |
 | `cli_outdated` | 3 | Registry or manifest written by a newer CLI | install solomonar `<version>` or later |
+| `git_too_old` | 1 | Git older than 2.40 | install git 2.40 or later |
+| `unexpected_error` | 1 | I/O, Git error, corrupt object (3.5) | - |
 | `interrupted` | 130, 143 | Signal before the compare-and-swap | rerun (the error form already states nothing was written) |
 
 Warnings (exit 0): `push_failed`, `push_interrupted`, `no_remote`, `dependency_not_done`, `title_changed`, `forge_unavailable`.
