@@ -55,15 +55,15 @@ func (r *registerFlags) run(ctx context.Context, env Env, flags sharedFlags, arg
 	case r.registration.Owner == "":
 		return output{}, invalidUsage(errors.New("--owner is required"))
 	}
-	store, err := openStore(ctx, env, flags)
+	store, mainBranch, err := openStore(ctx, env, flags)
 	if err != nil {
-		return output{}, err
+		return output{}, rejectedAs(label, err)
 	}
-	out, err := r.register(ctx, env, store)
+	out, err := r.register(ctx, env, store, mainBranch)
 	return out, rejectedAs(label, err)
 }
 
-func (r *registerFlags) register(ctx context.Context, env Env, store *task.Store) (output, error) {
+func (r *registerFlags) register(ctx context.Context, env Env, store *task.Store, mainBranch string) (output, error) {
 	var id, subject string
 	var record *task.Record
 	var warnings []task.Warning
@@ -93,7 +93,7 @@ func (r *registerFlags) register(ctx context.Context, env Env, store *task.Store
 	}
 	text := registrationSummary("Registered", id, record, subject) + registryLine(store, commit) + "\n\n" +
 		"Registration confirmed. The next task may start.\nCreate the worktree:\n" +
-		fmt.Sprintf("  git worktree add -b %s %s %s\n", record.Branch, worktreePath(store.Git, id), defaultMainBranch)
+		fmt.Sprintf("  git worktree add -b %s %s %s\n", record.Branch, worktreePath(store.Git, id), mainBranch)
 	return output{
 		data:     writeData{ID: id, Record: record, Commit: commit.SHA, Pushed: commit.Pushed},
 		text:     text,
