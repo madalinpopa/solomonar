@@ -1551,6 +1551,28 @@ W-002  owner orchestrator-2 → orchestrator-3 (blocked/specification)
 `handoff` takes no `--as`: the new owner runs it on the user's instruction (rules §10). Rejections: `handoff_same_owner`,
 `owner_in_use`, `done_final`.
 
+Checks run in order: the lookup (`task_not_found`), `done_final`, `not_registered` (a `planned` task; found `<ID>
+is planned`), the `--owner` format (`invalid_value`, as `task register`: an agent ID `[a-z]+-[0-9]+`, fix "pass
+--owner orchestrator-1"), `handoff_same_owner` (found `<ID> is owned by <owner>`), `owner_in_use` (the texts of
+`task register`), then `--next` (actor `user`, the new owner, or an `active_agents` id). `SOLOMONAR_OWNER` is
+ignored. Rejections read `task handoff <ID> rejected` (3.6). Usage errors exit 2 and write nothing, checked before
+the registry is read: a missing ID is `invalid_usage` (`task ID is required`), and so is a missing `--owner`
+(`--owner is required`).
+
+Every status except `planned` and `done` accepts a handoff, including `cancelled`. Without `--next`, a
+`next_action` whose actor is the previous owner is retargeted to the new owner with the same action text; any other
+`next_action` is kept. `active_agents` and blockers are kept; `updated_at` is always set.
+
+A `next <actor>: <action>` detail line follows the header when `next_action` changes; the closing line `The
+previous owner must stop writing this record.` prints only after a real write. The subject is always `handoff <old>
+-> <new>`, also with `--next`. `--dry-run` prints `Would hand off ` before the header, then the detail lines and the
+subject, with no registry line and no closing line.
+
+`--json` data has the `task move` shape: `{"id": "W-002", "from": {"status": "blocked", "stage": "specification"},
+"to": {"status": "blocked", "stage": "specification"}, "changed": ["owner"], "record": { }, "commit": "<sha>",
+"pushed": true}`; `changed` lists `owner` (in record order, after `stage`) and `next_action` when it changes.
+`--dry-run --json` data is the same without `commit` and `pushed`, with `"dry_run": true`.
+
 ### UC-20 Complete a task after the merge
 
 ```
@@ -1731,6 +1753,7 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `registry_invalid` | 1 | `state.json` fails the schema | inspect with `git show refs/heads/workflow-state:state.json`; never edit it by hand |
 | `task_not_found` | 3 | Unknown ID | `solomonar task show` |
 | `not_planned` | 3 | `register <ID>` on a non-planned record | `solomonar task show <ID>; resume the task instead` |
+| `not_registered` | 3 | `task handoff` on a `planned` task; found `<ID> is planned` | `solomonar task register <ID> --title <title> --owner <new-owner>` |
 | `owner_required` | 2 | No `--as` and no `SOLOMONAR_OWNER` | pass `--as <owner>` |
 | `owner_mismatch` | 3 | Acting owner differs from the record | act as the owner, or `task handoff` on the user's instruction |
 | `owner_in_use` | 3 | The owner owns a `reserved`, `running`, `blocked`, or `paused` task | choose a new owner ID |
@@ -1750,7 +1773,7 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `blocker_not_found` | 3 | The ID is not an open blocker of the task (unknown or malformed); found `<blocker ID> is not an open blocker of <ID>` | `solomonar task show <ID>` |
 | `blockers_open` | 3 | `task done` with open blockers | `task unblock` |
 | `cancelled_requires_flag` | 3 | Resuming a cancelled task without the flag | `--resume-cancelled`, on the user's instruction |
-| `handoff_same_owner` | 3 | Handoff to the current owner | - |
+| `handoff_same_owner` | 3 | Handoff to the current owner; found `<ID> is owned by <owner>` | - |
 | `done_final` | 3 | Any write to a `done` task, checked before ownership | register a related task (`--related`) |
 | `merge_not_on_main` | 3 | Merge commit not reachable from main | fetch and update main, then rerun |
 | `merge_not_merge_commit` | 3 | The commit has one parent (squash or rebase) | `spec_ref` cannot survive; report to the user (rules §11) |
@@ -1781,7 +1804,7 @@ previous tip.
 | `task move` | every changed field, comma-separated, in record order (the order of the JSON `changed` list): `status <status>`, `stage <stage>`, `spec <path>`, `revision <short 7>`, `tier <n>`, `agents <id> <id>…` (space-separated) or `agents none` when cleared, `next <actor>`, `pr <value as stored>` |
 | `task block` | `block B-n <kind>` |
 | `task unblock` | `unblock B-n` |
-| `task handoff` | `handoff <old> -> <new>` |
+| `task handoff` | `handoff <old> -> <new>`, also with `--next` |
 | `task done` | `merged <short merge sha>` |
 | `init` | subject `state: initialize registry` (root commit) |
 | `upgrade` | subject `state: migrate schema <n> -> <m>` |
