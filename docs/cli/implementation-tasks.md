@@ -821,8 +821,46 @@ Decisions (author, 2026-10-21):
 
 - [x] `RuntimeWants` with the stub forms above, frontmatter reading, the role and skill sets
 - [x] `Want.CreateOnly` in `Classify`; `InitPlan` records the runtimes
-- Stage 9.2 `[ ]` — `init --runtime claude|codex|none` (default: detected on `PATH`), `--adversarial-model`, the
-  runtime plan lines, `Next:` invocations, JSON choices, `already_initialized` on runtimes and models (UC-2)
+
+### Stage 9.2 — `init` with runtimes (`internal/cli`, `internal/project`; UC-2, I §4.2) `[x]`
+
+Decisions (author, 2026-10-21):
+- `--runtime` takes `claude`, `codex`, or `none` (repeatable, comma-separated); another value is `unknown_runtime`
+  (exit 2, `init rejected`), check `--runtime names a known runtime`, found `"<v>" is not a runtime; known: claude,
+  codex`, fix `pass --runtime claude, codex, or none`; `none` beside another value is `invalid_value`, check
+  `--runtime names runtimes or none`, found `none cannot be combined with <v>`, fix `pass --runtime none alone`;
+  `--ext` keeps its step-8 limitation until 9.3;
+- default without `--runtime` and without a manifest: each of `claude`, `codex` whose executable is found on `PATH`
+  (`exec.LookPath`); with a manifest, the manifest's runtimes;
+- `--adversarial-model <runtime>=<model>` (repeatable): malformed is `invalid_value`, check `--adversarial-model is
+  <runtime>=<model>`, found `"<v>" has no "="` (or an empty side), fix `pass --adversarial-model claude=<model>`; a
+  runtime that is not selected is `invalid_value`, check `--adversarial-model names a selected runtime`, found
+  `<runtime> is not selected`, fix `add --runtime <runtime> or drop the model`; a runtime given twice keeps the last;
+  recorded as `runtimes.<r>.adversarial_model`;
+- `Requested.AdversarialModels map[string]string` (nil = not given) joins `CheckChoices` after extensions: a given
+  model differing from the manifest is `already_initialized`, found `manifest adversarial_model <r> "<v>"; requested
+  "<v>"` (`none` for an absent model), fix `change models with \`solomonar runtime add <runtime>
+  --adversarial-model <model>\`; init never changes choices`;
+- the wants are `CoreWants` then `RuntimeWants`; plan lines stay one per file;
+- `Next:` step 1 adds, in this order, `CLAUDE.md` (only when it is created), `.claude` (claude), `.agents` and `.codex`
+  (codex) to `git add AGENTS.md … .solomonar docs`; step 2: with only claude `  2. Start a top-level Claude Code
+  session in <root>:` and `       /solomonar Explore the next useful flow.`; with only codex `  2. Start a top-level
+  Codex session in <root>:` and `       $solomonar Explore the next useful flow.`; with both `  2. Start a top-level
+  session in <root> with your selected outcome:`, `       Claude Code: /solomonar Explore the next useful flow.`,
+  `       Codex:       $solomonar Explore the next useful flow.`, `       Portable:    Use the solomonar skill to explore
+  the next useful flow.`; with none, today's portable line;
+- JSON `choices.runtimes` (sorted) and `choices.adversarial_model` (`{runtime: model}`); `next` follows step 1.
+- also: the PATH lookup is `git.OnPath(program) bool` because only `internal/git` may import `os/exec` (AD-3);
+  `gittest.PathWith(t, names...)` puts fake executables on `PATH`; malformed models read `"<v>" has no "="`, `"<v>"
+  has an empty runtime`, `"<v>" has an empty model`; one value per flag; an unknown runtime in a model is `<r> is not
+  selected`; the model fix names the runtime; check order: runtime values, model syntax, `--ext`, then after the
+  manifest the runtime selection, the unselected-runtime check, `CheckChoices`; models start from the manifest's for
+  the selected runtimes, requested ones on top; every init test controls `PATH`. UC-1, UC-2, UC-3, architecture §5,
+  §6 updated to match.
+
+- [x] runtime values, PATH default, `--adversarial-model`, the manifest runtimes, `CheckChoices` on models
+- [x] wants with `RuntimeWants`; `Next:` paths and invocations; JSON choices; tests (UC-2 with `--runtime claude`,
+  both runtimes, PATH detection, models, a re-run no-op, `already_initialized` on runtimes and models)
 - Stage 9.3 `[ ]` — Extension rendering, `requires`/`conflicts` (split further when detailed)
 - Stage 9.4 `[ ]` — `P/D-n` entries, `docs/decisions.md`, `docs/stack.md`
 
