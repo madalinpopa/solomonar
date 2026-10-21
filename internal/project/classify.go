@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"slices"
+	"strings"
 )
 
 const adoptedNotes = `adopted; existing content moved under "## Project notes"`
@@ -16,6 +17,8 @@ type Want struct {
 	Path    string
 	Owner   string
 	Content []byte
+	// CreateOnly leaves a present unmanaged file alone and unrecorded (CLI-D3).
+	CreateOnly bool
 }
 
 // Classify plans the wanted paths (I §4.5) and returns their manifest files entries.
@@ -46,6 +49,9 @@ func Classify(root *os.Root, m *Manifest, wants []Want, keep, overwrite []string
 			change = resolve(change, written, keep, overwrite)
 		}
 		plan.Changes = append(plan.Changes, change)
+		if want.CreateOnly && change.Action == ActionSkip {
+			continue
+		}
 		entry := File{Owner: want.Owner}
 		switch want.Owner {
 		case "seed":
@@ -79,6 +85,10 @@ func resolve(change Change, written []byte, keep, overwrite []string) Change {
 // classify plans one wanted path and returns the content an update or --overwrite writes.
 func classify(root *os.Root, m *Manifest, want Want) (Change, []byte, error) {
 	change := Change{Path: want.Path, Owner: want.Owner}
+	base := ""
+	if m != nil {
+		base = m.Files[want.Path].SHA256
+	}
 	info, err := root.Lstat(want.Path)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
@@ -88,16 +98,15 @@ func classify(root *os.Root, m *Manifest, want Want) (Change, []byte, error) {
 	case want.Owner == "seed":
 		change.Action = ActionSkip
 		return change, want.Content, nil
+	case want.CreateOnly && base == "":
+		change, err := skipUnmanaged(root, change, info.Mode().IsRegular())
+		return change, want.Content, err
 	case !info.Mode().IsRegular():
 		return conflict(change, "exists and is not a regular file"), want.Content, nil
 	}
 	disk, err := root.ReadFile(want.Path)
 	if err != nil {
 		return Change{}, nil, fmt.Errorf("classify %s: %w", want.Path, err)
-	}
-	base := ""
-	if m != nil {
-		base = m.Files[want.Path].SHA256
 	}
 	if want.Owner == "core+notes" {
 		change, written := classifyNotes(change, want.Content, disk, base)
@@ -143,6 +152,25 @@ func compare(change Change, disk, offer, written []byte, base string) Change {
 		change = conflict(change, "modified since installation (manifest sha256 differs)")
 	}
 	return change
+}
+
+// skipUnmanaged skips an unmanaged create-only file and says whether it imports AGENTS.md.
+func skipUnmanaged(root *os.Root, change Change, regular bool) (Change, error) {
+	change.Action = ActionSkip
+	change.Reason = "exists; add this line so Claude Code loads the framework:  @AGENTS.md"
+	if !regular {
+		return change, nil
+	}
+	disk, err := root.ReadFile(change.Path)
+	if err != nil {
+		return Change{}, fmt.Errorf("classify %s: %w", change.Path, err)
+	}
+	for line := range strings.SplitSeq(string(disk), "\n") {
+		if line == "@AGENTS.md" {
+			change.Reason = "exists and imports AGENTS.md"
+		}
+	}
+	return change, nil
 }
 
 func offered(change Change, action Action, want Want) Change {
