@@ -1439,12 +1439,13 @@ The oracle (rules §7, J3):
 $ solomonar task status W-001
 W-001  Login
 record
-  status    running / specialized_review       owner orchestrator-1   tier 2
+  status    running / specialized_review   owner orchestrator-1   tier 2
   spec      docs/work/W-001-login.md
   revision  7cd18e45bb55c3be9465c9f893683bc05216f529
   agents    sec-1 security-reviewer, cor-1 correctness-reviewer, spec-1 spec-reviewer (last reported, not liveness)
   blockers  none
   next      orchestrator-1: Collect specialist reports
+  pr        none
   updated   2026-10-20T15:12:40Z (registry @ 2d4f6a8)
 git
   branch    feature/W-001 @ 992051e56493f5bb8abb4faadcdbc5f271195498
@@ -1454,8 +1455,8 @@ git
   spec      present in worktree and at revision
   merged    no
 forge (gh)
-  pr        none for feature/W-001
-  checks    unknown (no PR)
+  pr      none for feature/W-001
+  checks  unknown (no PR)
 drift
   head_ahead_of_revision  HEAD is 1 commit past the recorded revision
   dirty_worktree          1 uncommitted path; preserve it (rules §10)
@@ -1467,7 +1468,29 @@ allowed next
   solomonar task move W-001 --as orchestrator-1 --status cancelled --next <actor>:<action>
 ```
 
-`--no-forge` skips `gh`. Exit 0 whatever the drift: drift is information, not failure. The full JSON shape is in 9.3.
+The human form has a `<ID>  <title>` header and the sections `record`, `git`, `forge (gh)`, `drift`, and `allowed
+next`, each line indented two spaces with its label padded to the widest label of the section. `status` is `<status>
+/ <stage>   owner <owner>   tier <tier>` (`-` for a missing stage or owner, `tier none` without a tier); `spec`,
+`revision`, `agents` (`<id> <role>, …` then `(last reported, not liveness)`; plain `none` when empty), `blockers`
+(`B-n <kind>: <summary> (<ref>)`, or `B-n <kind>: <summary>` without a ref, joined by `; `), `next`, and `pr` always
+appear, `none` when empty, then `updated   <updated_at> (registry @ <sha7>)`; a `done` record shows `status` (same
+format, e.g. `done / complete   owner -   tier none`), `summary`, `spec_ref`, `merge`, `pr`, `updated` instead.
+`git`: `branch` is `feature/<ID> @ <tip>` or `feature/<ID> missing`; `worktree` a path or `missing`; `HEAD` `<head8>
+· <n> commit(s) ahead of revision`, `<head8>` alone when the revision is unknown or not recorded, or `unknown (no
+worktree)`; `dirty` `clean`, `1 path: <p> (<state>)`, `<n> paths: <p> (<state>), …`, or `unknown (no worktree)`;
+`spec` `present in worktree and at revision`, `present in worktree only`, `present at revision only`, `missing`, or
+`none recorded`; `merged` `yes, by <merge sha> (merge commit on <main>)` whenever the facts have a merge commit,
+`no` otherwise; `spec_ref` `derived <spec_ref> (last spec(<ID>) commit merged)` only when derived and the record is
+not `done` (a `done` record's recorded `spec_ref` is in the record section). `forge (gh)`: `pr` `#<n> <state
+lowercased>`, `none for feature/<ID>`, `unknown (gh unavailable)`, or `unknown (--no-forge)`; `checks` the check
+state, or `unknown (no PR)` without a PR. `drift` lists `<code>  <message>` with codes padded; `allowed next` one
+command per line, unwrapped; each is `none` when empty.
+
+`--no-forge` skips `gh`. A missing ID is `invalid_usage` (`task ID is required`); an unknown ID is `task_not_found`
+as on `task show <ID>`. `SOLOMONAR_OWNER` feeds `owned_by_other`. `forge_unavailable` goes to stderr as a warning;
+`--no-forge` warns nothing, and its `--json` forge is `{"available": false, "pr": null, "checks": "unknown"}`. Exit
+0 whatever the drift: drift is information, not failure. `--json` data is the 9.3 shape `{"id", "record",
+"registry_commit", "facts", "drift", "allowed_next"}`.
 
 ### UC-17 Resume after an unexpected session end
 
@@ -1477,22 +1500,29 @@ A new orchestrator session for W-001 starts. The previous session merged the PR,
 $ solomonar task status W-001
 W-001  Login
 record
-  status    running / integration          owner orchestrator-1   tier 2
+  status    running / integration   owner orchestrator-1   tier 2
+  spec      docs/work/W-001-login.md
   revision  fea453f853c8645b085126e6517eab38dfaa022f
-  pr        https://github.com/acme/ledger/pull/42
+  agents    none
+  blockers  none
   next      orchestrator-1: Merge PR 42 with a merge commit
+  pr        https://github.com/acme/ledger/pull/42
+  updated   2026-10-20T16:58:10Z (registry @ 7b1c2d3)
 git
   branch    feature/W-001 @ fea453f853c8645b085126e6517eab38dfaa022f
-  worktree  /work/ledger-worktrees/W-001 (clean)
+  worktree  /work/ledger-worktrees/W-001
+  HEAD      fea453f8 · 0 commits ahead of revision
+  dirty     clean
+  spec      present in worktree and at revision
   merged    yes, by 14091a9f2461267ee7e02525b4f1f2923f1c9849 (merge commit on main)
   spec_ref  derived 10ec7f36405c2d9eae3871433246dfd650c19e81:docs/work/W-001-login.md (last spec(W-001) commit merged)
 forge (gh)
-  pr        #42 merged
+  pr      #42 merged
+  checks  passing
 drift
   merged_not_done  feature/W-001 is merged into main but the record is not done
 allowed next
-  solomonar task done W-001 --as orchestrator-1 --merge 14091a9f2461267ee7e02525b4f1f2923f1c9849 \
-    --spec-ref <PR "Final specification" line> --summary <one sentence>
+  solomonar task done W-001 --as orchestrator-1 --merge 14091a9f2461267ee7e02525b4f1f2923f1c9849 --spec-ref <PR "Final specification" line> --summary <one sentence>
 ```
 
 The derived `spec_ref` is a cross-check (C14 b); the orchestrator takes `spec_ref` from the PR's Verification
