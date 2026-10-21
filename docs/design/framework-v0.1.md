@@ -30,7 +30,7 @@ The framework is a lightweight core of a process: a way of working, not a techno
 
 Verification: a project initialized with no extension can run the Phase 1 validation scenarios; `grep` of the core assets finds no language-, framework-, or library-specific rule.
 
-Interface, catalog, rendering, and file ownership: [CLI v0.1 §4.1 and §4.3–4.6](cli-v0.1.md#41-core-and-extensions).
+Interface, catalog, rendering, and file ownership: [CLI v0.1 §4.1 and §4.3–4.6](../cli/interface.md#41-core-and-extensions).
 
 # Agreed decisions
 
