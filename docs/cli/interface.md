@@ -1248,7 +1248,7 @@ $ export SOLOMONAR_OWNER=orchestrator-1
 $ solomonar task move W-001 --as orchestrator-1 --status running --stage specification --next "orchestrator-1:Run work-spec"
 W-001  reserved/setup → running/specification
   next  orchestrator-1: Run work-spec
-  state(W-001): running/specification, status running, stage specification
+  state(W-001): running/specification, status running, stage specification, next orchestrator-1
   registry @ 5b2e9d0c7a4f1e3b6d8c0a2f4e6b8d0c2a4e6f8b
 ```
 
@@ -1261,7 +1261,7 @@ W-001  running/specification → running/implementation
   spec    docs/work/W-001-login.md (found in /work/ledger-worktrees/W-001)
   agents  impl-1 implementer
   next    impl-1: Implement AC-1 to AC-4
-  state(W-001): running/implementation, spec docs/work/W-001-login.md, agents impl-1
+  state(W-001): running/implementation, stage implementation, spec docs/work/W-001-login.md, agents impl-1, next impl-1
   registry @ 8e1f3a5c7b9d0e2f4a6c8b0d1e3f5a7c9b1d2e4f
 ```
 
@@ -1278,7 +1278,7 @@ W-001  running/implementation → running/specialized_review
   revision  7cd18e45bb55c3be9465c9f893683bc05216f529 (on feature/W-001)
   tier      2: specialists, then adversarial
   agents    sec-1 security-reviewer, cor-1 correctness-reviewer, spec-1 spec-reviewer
-  state(W-001): running/specialized_review, revision 7cd18e4, tier 2
+  state(W-001): running/specialized_review, stage specialized_review, revision 7cd18e4, tier 2, agents sec-1 cor-1 spec-1, next orchestrator-1
   registry @ 2d4f6a8c0e1b3d5f7a9c1e2b4d6f8a0c2e3b5d7f
 ```
 
@@ -1287,6 +1287,11 @@ The remaining moves follow the same shape: `--stage adversarial_review --agent a
 commit (rules §9). `--json` data: `{"id": "W-001", "from": {"status": "running", "stage": "implementation"}, "to":
 {"status": "running", "stage": "specialized_review"}, "changed": ["stage", "revision", "tier", "active_agents",
 "next_action"], "record": { }, "commit": "<sha>", "pushed": true}`; `changed` lists the fields in record order.
+
+A move whose flags change nothing writes no commit and exits 0: the human line is
+`W-001  running/specification (unchanged)`, and `--json` data has `changed: []`, `commit` the current tip, and
+`pushed: false`. It still runs every check (ownership, the move rules, and the Git fact checks, so a repeated `--spec`
+is verified again) and is rejected like any other move when one fails.
 
 ### UC-14 A rejected move
 
@@ -1456,7 +1461,7 @@ section (C14 a), and `task done` rejects a mismatch.
 ```
 $ solomonar task move W-002 --as orchestrator-2 --status paused --next "orchestrator-2:Resume at specification; draft AC-3 uncommitted"
 W-002  running/specification → paused/specification
-  state(W-002): paused/specification, status paused
+  state(W-002): paused/specification, status paused, next orchestrator-2
 
 $ solomonar task move W-002 --as orchestrator-2 --status running
 W-002  paused/specification → running/specification
@@ -1693,7 +1698,7 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `blockers_open` | 3 | `task done` with open blockers | `task unblock` |
 | `cancelled_requires_flag` | 3 | Resuming a cancelled task without the flag | `--resume-cancelled`, on the user's instruction |
 | `handoff_same_owner` | 3 | Handoff to the current owner | - |
-| `done_final` | 3 | Any write to a `done` task | register a related task (`--related`) |
+| `done_final` | 3 | Any write to a `done` task, checked before ownership | register a related task (`--related`) |
 | `merge_not_on_main` | 3 | Merge commit not reachable from main | fetch and update main, then rerun |
 | `merge_not_merge_commit` | 3 | The commit has one parent (squash or rebase) | `spec_ref` cannot survive; report to the user (rules §11) |
 | `revision_not_merged` | 3 | The reviewed revision is not in the merge | check that the right PR merged |
@@ -1708,7 +1713,7 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `unexpected_error` | 1 | I/O, Git error, corrupt object (3.5) | - |
 | `interrupted` | 130, 143 | Signal before the compare-and-swap | rerun (the error form already states nothing was written) |
 
-Warnings (exit 0): `push_failed`, `push_interrupted`, `no_remote`, `dependency_not_done`, `title_changed`, `forge_unavailable`.
+Warnings (exit 0): `push_failed`, `push_interrupted`, `no_remote`, `dependency_not_done`, `title_changed`, `forge_unavailable`, `cancelled_resumed`.
 
 ### 8.5 Registry commits
 
@@ -1720,7 +1725,7 @@ previous tip.
 |---|---|
 | `task plan` | `plan "<title>"` |
 | `task register` | `registered by <owner>` |
-| `task move` | the changed fields, comma-separated: `status running`, `stage implementation`, `revision 7cd18e4`, `tier 2`, `spec <path>`, `agents impl-1`, `pr 42`, `next <actor>` |
+| `task move` | every changed field, comma-separated, in record order (the order of the JSON `changed` list): `status <status>`, `stage <stage>`, `spec <path>`, `revision <short 7>`, `tier <n>`, `agents <id> <id>…` (space-separated) or `agents none` when cleared, `pr <value as stored>`, `next <actor>` |
 | `task block` | `block B-n <kind>` |
 | `task unblock` | `unblock B-n` |
 | `task handoff` | `handoff <old> -> <new>` |
