@@ -212,7 +212,7 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 	if err != nil {
 		return output{}, err
 	}
-	r.plan, _, err = project.InitPlan(root, existing, wants, f.keep, f.overwrite, p, framework)
+	r.plan, _, err = project.InitPlan(root, existing, wants, f.keep, f.overwrite, p, nil, framework)
 	if err != nil {
 		return output{}, err
 	}
