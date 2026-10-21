@@ -1,9 +1,10 @@
 ---
 title: "Behind the name: Romanian folklore"
+navTitle: Behind the name
 description: Discover the Romanian folklore behind Solomonar, the stitched balaur logo, and how the book, spells, dragons, and reins map to its developer workflow.
 kind: Explanation
-group: Understand
-order: 5
+group: Learn the framework
+order: 8
 sources:
   - docs/logo/README.md
 ---
