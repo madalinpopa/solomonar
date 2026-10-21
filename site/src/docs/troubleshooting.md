@@ -1,9 +1,10 @@
 ---
 title: CLI troubleshooting
-description: Diagnose Solomonar CLI errors, missing initialization, task ownership conflicts, rejected transitions, and exit codes with actionable recovery steps.
+navTitle: Troubleshooting
+description: Diagnose Solomonar CLI errors, init conflicts and confirmations, missing initialization, task ownership conflicts, rejected transitions, and exit codes.
 kind: How-to guide
-group: Use the CLI
-order: 8
+group: Guides
+order: 10
 sources:
   - docs/cli/interface.md
   - internal/cli/errors.go
@@ -12,15 +13,36 @@ sources:
 
 ## A command is unknown
 
-First run `solomonar help` to see the command table in your binary. The interface specification includes future commands; the current build does not yet implement `init`, `doctor`, or `task status`.
+First run `solomonar help` to see the command table in your binary. The interface specification includes future commands; the current build does not yet implement `doctor`, `sync`, `runtime`, `extension`, or `upgrade`.
 
 Use the [availability table]({{ '/docs/cli/#current-commands' | url }}) before following an example from the full design contract. An unknown command exits 2; it does not mean your application needs to be scaffolded again.
 
 ## The registry is not initialized
 
-`not_initialized` means `refs/heads/workflow-state` is missing. Task commands depend on that registry. Because `init` is still planned, a normal source checkout is not a complete managed project.
+`not_initialized` means `refs/heads/workflow-state` is missing. Task commands depend on that registry. Run `solomonar init` in the repository; see [Set up a project]({{ '/docs/set-up-a-project/' | url }}).
 
-Do not write `state.json` by hand or create a registry branch to bypass initialization. You can still build the CLI, inspect help and versions, and read the framework contracts.
+Do not write `state.json` by hand or create a registry branch to bypass initialization.
+
+## init asks for a confirmation
+
+`interactive_required` means `init` had something to write but no terminal to ask. Review the plan with `--dry-run`, then rerun with `--yes`. A run that would change nothing needs no confirmation.
+
+## init reports a conflict
+
+`file_conflict` (exit 4) means a file in a target path differs from what `init` would write: you edited a managed file, or the path held your own file before. The plan lists each conflict, and nothing was written. Decide per file:
+
+```sh
+solomonar init --keep docs/solomonar/rules.md --yes
+solomonar init --overwrite .claude/agents/implementer.md --yes
+```
+
+`--keep` preserves your bytes; `--overwrite` writes the framework's version. An existing `AGENTS.md` is never a conflict: it is adopted, with your content moved under `## Project notes`.
+
+## init rejects a choice
+
+`already_initialized` means the project's manifest records a different choice than the one you passed, such as another runtime. `init` never changes recorded choices; the planned `runtime` and `extension` commands will. Rerun without the differing flag.
+
+`not_a_repository` from `init` means the directory is not inside a Git repository. Run `git init -b main` first, or pass `--git-init`.
 
 ## The command cannot find the repository
 
