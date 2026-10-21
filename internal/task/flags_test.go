@@ -17,17 +17,21 @@ func TestParseAgents(t *testing.T) {
 	}{
 		{name: "one agent", values: []string{"impl-1:implementer"}, want: []Agent{{ID: "impl-1", Role: "implementer"}}},
 		{name: "two agents", values: []string{"sec-1:security-reviewer", "cor-1:correctness-reviewer"}, want: []Agent{{ID: "sec-1", Role: "security-reviewer"}, {ID: "cor-1", Role: "correctness-reviewer"}}},
-		{name: "split at first colon", values: []string{"impl-1:role:x"}, want: []Agent{{ID: "impl-1", Role: "role:x"}}},
+		{name: "split at first colon", values: []string{"impl-1:implementer:x"}, code: "invalid_value"},
 		{name: "none clears", values: []string{"none"}, clears: true},
 		{name: "none mixed", values: []string{"none", "impl-1:implementer"}, code: "invalid_value"},
 		{name: "no colon", values: []string{"impl-1"}, code: "invalid_value"},
 		{name: "empty id", values: []string{":implementer"}, code: "invalid_value"},
 		{name: "empty role", values: []string{"impl-1:"}, code: "invalid_value"},
 		{name: "space", values: []string{"impl 1:implementer"}, code: "invalid_value"},
+		{name: "uppercase id", values: []string{"Impl-1:implementer"}, code: "invalid_value"},
+		{name: "id without number", values: []string{"impl:implementer"}, code: "invalid_value"},
+		{name: "unknown role", values: []string{"impl-1:designer"}, code: "invalid_value"},
+		{name: "orchestrator role", values: []string{"orc-2:orchestrator"}, code: "invalid_value"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			agents, clears, err := parseAgents(tt.values)
+			agents, clears, err := parseAgents(tt.values, installedRoles())
 
 			assertCode(t, err, tt.code)
 			assert.Equal(t, tt.want, agents)
@@ -37,12 +41,21 @@ func TestParseAgents(t *testing.T) {
 }
 
 func TestParseAgentsGuidance(t *testing.T) {
-	_, _, err := parseAgents([]string{"impl-1"})
+	_, _, err := parseAgents([]string{"impl-1"}, installedRoles())
 
 	rejection := rejectionOf(t, err)
 	assert.Equal(t, "--agent takes <id>:<role>, or none alone", rejection.Check)
 	assert.Equal(t, "impl-1", rejection.Found)
 	assert.Equal(t, "pass --agent impl-1:implementer, or --agent none to clear the list", rejection.Fix)
+}
+
+func TestParseAgentsRoleGuidance(t *testing.T) {
+	_, _, err := parseAgents([]string{"orc-2:orchestrator"}, installedRoles())
+
+	rejection := rejectionOf(t, err)
+	assert.Equal(t, "--agent role is an installed delegated role, never orchestrator", rejection.Check)
+	assert.Equal(t, "orc-2:orchestrator", rejection.Found)
+	assert.Equal(t, "allowed roles: correctness-reviewer, implementer, security-reviewer", rejection.Fix)
 }
 
 func TestParseNextAction(t *testing.T) {
@@ -58,6 +71,9 @@ func TestParseNextAction(t *testing.T) {
 		{name: "no colon", value: "user", code: "invalid_value"},
 		{name: "empty actor", value: ":Review", code: "invalid_value"},
 		{name: "blank action", value: "user:  ", code: "invalid_value"},
+		{name: "one character", value: "user:é", want: &NextAction{Actor: "user", Action: "é"}},
+		{name: "120 characters", value: "user:" + strings.Repeat("é", 120), want: &NextAction{Actor: "user", Action: strings.Repeat("é", 120)}},
+		{name: "121 characters", value: "user:" + strings.Repeat("é", 121), code: "invalid_value"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
