@@ -200,10 +200,12 @@ func stageTargets(from Stage, tier *int) []Stage {
 			targets = append(targets, move.to)
 		}
 	}
-	slices.SortFunc(targets, func(a, b Stage) int {
-		return cmp.Compare(slices.Index(stages(), a), slices.Index(stages(), b))
-	})
+	slices.SortFunc(targets, compareStages)
 	return targets
+}
+
+func compareStages(a, b Stage) int {
+	return cmp.Compare(slices.Index(stages(), a), slices.Index(stages(), b))
 }
 
 func (m stageMove) allows(tier *int) bool {
