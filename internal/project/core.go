@@ -19,6 +19,7 @@ type Choices struct {
 	Objective        string
 	FrameworkVersion string
 	Extensions       []CatalogExtension
+	Documents        []string
 }
 
 // CoreWants returns the framework files, AGENTS.md, and docs/README.md (I §4.1).
@@ -50,6 +51,9 @@ func CoreWants(assets fs.FS, c Choices) ([]Want, error) {
 	readme, err := render(assets, "templates/docs/README.md", data)
 	if err != nil {
 		return nil, err
+	}
+	if len(c.Documents) > 0 {
+		readme, _ = addDocuments(readme, c.Documents)
 	}
 	return append(wants,
 		Want{Path: "AGENTS.md", Owner: "core+notes", Content: agents},
