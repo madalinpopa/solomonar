@@ -439,7 +439,39 @@ an open blocker lists block and cancel; a missing tier at `specialized_review` o
 
 - [x] `DriftOf(id, main, record, facts, envOwner)`: the I §9.2 rows with the messages above
 - [x] `AllowedNext(id, record, facts)`: the rule above, as command strings (I §9.3)
-- Stage 7.3 `[ ]` — `task status` command, rendering (UC-16 status, UC-17)
+### Stage 7.3 — `task status` command (UC-16 status, UC-17) `[x]`
+
+Decisions (author, 2026-10-21): usage `solomonar task status <ID> [--json]
+[--no-forge]`; `task ID is required`; an unknown ID is `task_not_found` as on `task show <ID>`; `SOLOMONAR_OWNER`
+feeds `owned_by_other`; exit 0 whatever the drift; `forge_unavailable` goes to stderr as a warning; `--json` data
+is the I §9.3 shape `{"id", "record", "registry_commit", "facts", "drift", "allowed_next"}`. Human form, sections
+`record`, `git`, `forge (gh)`, `drift`, `allowed next`, two-space indent, labels padded to the widest label of the
+section:
+- header `<ID>  <title>`;
+- `record`: `status    <status> / <stage>   owner <owner>   tier <tier>` (`-` for a missing stage or owner,
+  `tier none` without a tier), then always `spec`, `revision`, `agents` (`<id> <role>, …` followed by `(last
+  reported, not liveness)`), `blockers` (`B-n <kind>: <summary> (<ref>)` joined by `; `), `next` (`<actor>:
+  <action>`), `pr`, each `none` when empty, and `updated   <updated_at> (registry @ <sha7>)`; a `done` record shows
+  `status`, `summary`, `spec_ref`, `merge`, `pr`, `updated` instead;
+- `git`: `branch    feature/<ID> @ <tip>` or `feature/<ID> missing`; `worktree  <path>` or `missing`; `HEAD
+  <head8> · <n> commit(s) ahead of revision` (`<head8>` alone without a revision, `unknown (no worktree)` without a
+  worktree); `dirty     clean`, `1 path: <p> (<state>)`, `<n> paths: <p> (<state>), …`, or `unknown (no
+  worktree)`; `spec      present in worktree and at revision`, `present in worktree only`, `present at revision
+  only`, `missing`, or `none recorded`; `merged    no` or `yes, by <merge sha> (merge commit on <main>)`;
+  `spec_ref  derived <spec_ref> (last spec(<ID>) commit merged)` only when derived;
+- `forge (gh)`: `pr        #<n> <state lowercased>`, `none for feature/<ID>`, `unknown (gh unavailable)`, or
+  `unknown (--no-forge)`; `checks    <value>`, with `unknown (no PR)` when there is no PR;
+- `drift`: `<code>  <message>` with codes padded, or `none`;
+- `allowed next`: one command per line, unwrapped, or `none`.
+UC-16 and UC-17 examples aligned to this form. Also: labels are padded per section (`forge (gh)` pads to
+`checks`); a `done` record's `git` section omits the derived `spec_ref` line; empty `agents` reads `none` without
+the liveness suffix; a blocker without a ref omits ` (<ref>)`; `HEAD` shows `<head8>` alone when the revision is
+unknown or not recorded; a `done` status line keeps the format (`done / complete   owner -   tier none`);
+`writeDetails` is shared with `task move`; `gittest.NoGH` puts only a `git` wrapper on `PATH` and `FakeGH` adds the
+fake `gh` there. UC-16, UC-17 updated to match.
+
+- [x] `task status <ID> [--json] [--no-forge]` in the command table and help; facts, forge, drift, `allowed_next`
+- [x] UC-16 status and UC-17 human output and JSON end to end; fake `gh` and `--no-forge`
 
 ## Step 8: `init`, non-interactive, core only
 
