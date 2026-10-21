@@ -42,7 +42,7 @@ func encoded(t *testing.T, m *Manifest) string {
 func TestInitPlanFirstInitCreatesEverythingAndTheManifestLast(t *testing.T) {
 	root, dir := openTree(t, nil)
 
-	plan, manifest, err := InitPlan(root, nil, initWants(), nil, nil, ledger(), nil, nil, framework)
+	plan, manifest, err := InitPlan(root, nil, initWants(), nil, nil, ledger(), nil, nil, Decisions{}, framework)
 
 	require.NoError(t, err)
 	require.Len(t, plan.Changes, 3)
@@ -68,14 +68,14 @@ func TestInitPlanFirstInitCreatesEverythingAndTheManifestLast(t *testing.T) {
 
 func TestInitPlanRerunAfterApplyIsUnchanged(t *testing.T) {
 	root, _ := openTree(t, nil)
-	plan, _, err := InitPlan(root, nil, initWants(), nil, nil, ledger(), nil, nil, framework)
+	plan, _, err := InitPlan(root, nil, initWants(), nil, nil, ledger(), nil, nil, Decisions{}, framework)
 	require.NoError(t, err)
 	_, err = Apply(t.Context(), root, plan)
 	require.NoError(t, err)
 	existing, err := ReadManifest(root, framework)
 	require.NoError(t, err)
 
-	plan, _, err = InitPlan(root, existing, initWants(), nil, nil, ledger(), nil, nil, framework)
+	plan, _, err = InitPlan(root, existing, initWants(), nil, nil, ledger(), nil, nil, Decisions{}, framework)
 
 	require.NoError(t, err)
 	assert.Equal(t, map[string]Action{rulesPath: ActionUnchanged, "docs/README.md": ActionSkip, ManifestPath: ActionUnchanged},
@@ -87,7 +87,7 @@ func TestInitPlanRerunAfterApplyIsUnchanged(t *testing.T) {
 func TestInitPlanAdoptsIdenticalFilesWithoutManifest(t *testing.T) {
 	root, _ := openTree(t, map[string]entry{rulesPath: {content: contentA, mode: 0o644}})
 
-	plan, manifest, err := InitPlan(root, nil, initWants()[:1], nil, nil, ledger(), nil, nil, framework)
+	plan, manifest, err := InitPlan(root, nil, initWants()[:1], nil, nil, ledger(), nil, nil, Decisions{}, framework)
 
 	require.NoError(t, err)
 	assert.Equal(t, Change{Path: rulesPath, Action: ActionUnchanged, Owner: "core", Reason: "adopted"}, plan.Changes[0])
@@ -125,7 +125,7 @@ func TestInitPlanUpdatesADifferingManifest(t *testing.T) {
 				ManifestPath: {content: tt.manifest, mode: 0o644},
 			})
 
-			plan, manifest, err := InitPlan(root, tt.existing, initWants()[:1], nil, tt.overwrite, ledger(), nil, nil, framework)
+			plan, manifest, err := InitPlan(root, tt.existing, initWants()[:1], nil, tt.overwrite, ledger(), nil, nil, Decisions{}, framework)
 
 			require.NoError(t, err)
 			assert.Equal(t, Change{
@@ -141,7 +141,7 @@ func TestInitPlanReturnsTheManifestWithConflicts(t *testing.T) {
 	root, dir := openTree(t, map[string]entry{rulesPath: {content: contentB, mode: 0o644}})
 	before := snapshot(t, dir)
 
-	plan, manifest, err := InitPlan(root, nil, initWants()[:1], nil, nil, ledger(), nil, nil, framework)
+	plan, manifest, err := InitPlan(root, nil, initWants()[:1], nil, nil, ledger(), nil, nil, Decisions{}, framework)
 
 	require.NoError(t, err)
 	assert.Equal(t, []Change{{Path: rulesPath, Action: ActionConflict, Owner: "core", Reason: notManaged}}, plan.Conflicts())
@@ -153,7 +153,7 @@ func TestInitPlanReturnsTheManifestWithConflicts(t *testing.T) {
 func TestInitPlanPassesClassifyRejectionsThrough(t *testing.T) {
 	root, dir := openTree(t, nil)
 
-	plan, manifest, err := InitPlan(root, nil, initWants(), []string{rulesPath}, nil, ledger(), nil, nil, framework)
+	plan, manifest, err := InitPlan(root, nil, initWants(), []string{rulesPath}, nil, ledger(), nil, nil, Decisions{}, framework)
 
 	assert.Equal(t, invalidResolution("%s is not a conflict", rulesPath), err)
 	assert.Empty(t, plan.Changes)
@@ -164,7 +164,7 @@ func TestInitPlanPassesClassifyRejectionsThrough(t *testing.T) {
 func TestInitPlanFailsWhenTheManifestCannotBeRead(t *testing.T) {
 	root, _ := openTree(t, map[string]entry{ManifestPath + "/inner": {content: "x", mode: 0o644}})
 
-	_, _, err := InitPlan(root, nil, nil, nil, nil, ledger(), nil, nil, framework)
+	_, _, err := InitPlan(root, nil, nil, nil, nil, ledger(), nil, nil, Decisions{}, framework)
 
 	require.ErrorContains(t, err, "read manifest: ")
 }
@@ -256,7 +256,7 @@ func TestInitPlanRecordsTheRuntimes(t *testing.T) {
 	runtimes := map[string]Runtime{"claude": {AdversarialModel: "opus"}, "codex": {}}
 	root, _ := openTree(t, nil)
 
-	_, manifest, err := InitPlan(root, nil, initWants(), nil, nil, ledger(), runtimes, nil, framework)
+	_, manifest, err := InitPlan(root, nil, initWants(), nil, nil, ledger(), runtimes, nil, Decisions{}, framework)
 
 	require.NoError(t, err)
 	assert.Equal(t, runtimes, manifest.Runtimes)
@@ -271,11 +271,85 @@ func TestInitPlanRecordsTheExtensions(t *testing.T) {
 	}
 	root, _ := openTree(t, nil)
 
-	plan, manifest, err := InitPlan(root, nil, initWants(), nil, nil, ledger(), nil, extensions, framework)
+	plan, manifest, err := InitPlan(root, nil, initWants(), nil, nil, ledger(), nil, extensions, Decisions{}, framework)
 
 	require.NoError(t, err)
 	assert.Equal(t, extensions, manifest.Extensions)
 	decoded, err := DecodeManifest(plan.Changes[len(plan.Changes)-1].Content, framework)
 	require.NoError(t, err)
 	assert.Equal(t, extensions, decoded.Extensions)
+}
+
+func TestInitPlanPutsTheDecisionChangesBeforeTheManifest(t *testing.T) {
+	root, _ := openTree(t, nil)
+	decisions, err := PlanDecisions(root, nil, []CatalogExtension{{Name: "go", Kind: "skill", Group: "language"}},
+		decisionDate)
+	require.NoError(t, err)
+	extensions := map[string]Extension{
+		"go": {State: "installed", Kind: "skill", Group: "language", Source: "catalog", Decision: "P/D-1"},
+	}
+
+	plan, manifest, err := InitPlan(root, nil, initWants(), nil, nil, ledger(), nil, extensions, decisions, framework)
+
+	require.NoError(t, err)
+	var paths []string
+	for _, c := range plan.Changes {
+		paths = append(paths, c.Path)
+	}
+	assert.Equal(t, []string{rulesPath, "docs/README.md", "docs/decisions.md", "docs/stack.md", ManifestPath}, paths)
+	decoded, err := DecodeManifest(plan.Changes[4].Content, framework)
+	require.NoError(t, err)
+	assert.Equal(t, manifest, decoded)
+	assert.Equal(t, File{Owner: "decision", Entries: []string{"P/D-1"}}, manifest.Files["docs/stack.md"])
+}
+
+func TestInitPlanAddsTheIndexToAPresentReadme(t *testing.T) {
+	index := []string{decisionsIndex, stackIndex}
+	tests := []struct {
+		name, readme string
+		change       Change
+	}{
+		{
+			name: "with items", readme: "# R\n\n## Documents\n\n- `x`\n\n## Next\n",
+			change: Change{
+				Path: "docs/README.md", Action: ActionAppend, Owner: "seed",
+				Content: []byte("# R\n\n## Documents\n\n- `x`\n" + decisionsIndex + "\n" + stackIndex + "\n\n## Next\n"),
+			},
+		},
+		{
+			name: "without items", readme: "## Documents\n\n## Next\n",
+			change: Change{
+				Path: "docs/README.md", Action: ActionAppend, Owner: "seed",
+				Content: []byte("## Documents\n\n" + decisionsIndex + "\n" + stackIndex + "\n\n## Next\n"),
+			},
+		},
+		{
+			name: "without the section", readme: "# R\n",
+			change: Change{
+				Path: "docs/README.md", Action: ActionSkip, Owner: "seed",
+				Reason: `exists; add under "## Documents": ` + decisionsIndex + "; " + stackIndex,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root, _ := openTree(t, map[string]entry{"docs/README.md": {content: tt.readme, mode: 0o644}})
+
+			plan, manifest, err := InitPlan(root, nil, initWants(), nil, nil, ledger(), nil, nil,
+				Decisions{Index: index}, framework)
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.change, plan.Changes[1])
+			assert.Equal(t, File{Owner: "seed"}, manifest.Files["docs/README.md"])
+		})
+	}
+}
+
+func TestInitPlanSkipsAPresentReadmeWithoutIndexLines(t *testing.T) {
+	root, _ := openTree(t, map[string]entry{"docs/README.md": {content: "## Documents\n", mode: 0o644}})
+
+	plan, _, err := InitPlan(root, nil, initWants(), nil, nil, ledger(), nil, nil, Decisions{}, framework)
+
+	require.NoError(t, err)
+	assert.Equal(t, Change{Path: "docs/README.md", Action: ActionSkip, Owner: "seed"}, plan.Changes[1])
 }
