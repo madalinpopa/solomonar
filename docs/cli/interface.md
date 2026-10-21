@@ -511,6 +511,13 @@ content unchanged. An adoption counts as a conflict for the flags: `--overwrite 
 and discards the old content, and `--keep AGENTS.md` is `invalid_value` (exit 2): check `--keep and --overwrite
 resolve conflicts`, found `AGENTS.md cannot be kept`, fix `adopt it (default) or pass --overwrite AGENTS.md`.
 
+The manifest is planned last, as one change for `.solomonar/manifest.json` with owner `manifest`, and is never
+classified by the table above (it has no hash): `create` when absent, `unchanged` when its bytes equal the canonical
+encoding of the new manifest, `update` otherwise. When it exists but cannot be read as a file (for example a
+directory), `init` stops with an unexpected error (`read manifest: …`, exit 1) instead of planning a conflict. The new manifest records `files` for every wanted path plus
+`.solomonar/manifest.json` `{"owner": "manifest"}`, with empty `runtimes` and `extensions` for a core-only `init`. It
+is built even when the plan has conflicts, but nothing is written then.
+
 ### 4.6 Rendered `AGENTS.md`
 
 The managed part of `AGENTS.md` is rendered from the choices: the framework version, the core "Skills" list, and an
@@ -773,18 +780,29 @@ Already initialized with solomonar 0.1.0; nothing to do.
   Change choices with `solomonar runtime|extension add|remove`; move versions with `solomonar upgrade`.
 ```
 
-Exit 0. A choice flag that differs from the manifest is rejected, so that `init` never becomes a second way to
-change choices:
+Exit 0. The CLI fills the choices not given from the manifest. A given choice that differs from the manifest is
+rejected, so that `init` never becomes a second way to change choices:
 
 ```
 $ solomonar init --ext go --yes
-error: init found different choices (already_initialized)
-  found: manifest extensions [go, htmx, templ, tdd]; requested [go]
+error: init rejected (already_initialized)
+  found: manifest extensions [go, htmx, tdd, templ]; requested [go]
   fix:   change extensions with `solomonar extension add|remove`; init never changes choices
+nothing was written
 ```
 
-Exit 3. A managed file edited since installation whose offered content is unchanged is shown as `keep` and is not
-a conflict (4.5). It becomes a conflict only when the offered content changes too, as when a newer CLI re-runs `init`
+Exit 3. The first differing choice is reported, in the order name, main branch, remote, runtimes, extensions, with
+no check line. Found is `manifest <field> <value>; requested <value>` with the field `name`, `main_branch`, `remote`,
+`runtimes`, or `extensions`; strings are quoted (`manifest name "ledger"; requested "billing"`), lists are sorted
+(`[go, tdd]`), and an empty list is `none`. Runtimes and extensions are compared as sets, sorted with duplicates
+dropped; a list given as `none` counts as given and is compared (`manifest extensions [go]; requested none`); only a
+choice not given is filled from the manifest. The fix is `rerun without --name; init never changes choices` (likewise
+`--main-branch`, `--remote`), ``change runtimes with `solomonar runtime add|remove`; init never changes choices``, or
+``change extensions with `solomonar extension add|remove`; init never changes choices``. `--objective` is not a
+recorded choice and is ignored on a re-run (`docs/README.md` is a seed).
+
+A managed file edited since installation whose offered content is unchanged is shown as `keep` and is not a
+conflict (4.5). It becomes a conflict only when the offered content changes too, as when a newer CLI re-runs `init`
 after `docs/solomonar/rules.md` was edited. An unmanaged file in a target path whose content differs from what the
 CLI would write is a conflict; an unmanaged file with identical content is adopted (3.3), so a re-run after an
 interrupted `init` completes it:
