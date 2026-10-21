@@ -2,8 +2,10 @@
 package gittest
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/madalinpopa/solomonar/internal/git"
@@ -78,4 +80,19 @@ func Resolved(t *testing.T, path string) string {
 		t.Fatalf("resolve %s: %v", path, err)
 	}
 	return resolvedPath
+}
+
+// FakeGH sets PATH to a lone gh script that prints stdout and stderr and exits with code.
+func FakeGH(t *testing.T, stdout, stderr string, code int) {
+	t.Helper()
+	dir := t.TempDir()
+	script := fmt.Sprintf("#!/bin/sh\nprintf '%%s' %s\nprintf '%%s' %s >&2\nexit %d\n", quote(stdout), quote(stderr), code)
+	if err := os.WriteFile(filepath.Join(dir, "gh"), []byte(script), 0o755); err != nil { //nolint:gosec // the fake gh must be executable
+		t.Fatalf("write fake gh: %v", err)
+	}
+	t.Setenv("PATH", dir)
+}
+
+func quote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
