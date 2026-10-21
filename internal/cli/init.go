@@ -73,6 +73,7 @@ type initRun struct {
 	runtimes     []string
 	models       map[string]string
 	extensions   []project.CatalogExtension
+	renderedWith map[string][]string
 	decisions    []project.Decision
 	warnings     []warning
 }
@@ -392,7 +393,7 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 			return output{}, err
 		}
 	}
-	if r.plan, r.decisions, err = f.plan(env, root, existing, p, r); err != nil {
+	if err = f.plan(env, root, existing, p, &r); err != nil {
 		return output{}, err
 	}
 	if err := f.beforePlan(env, root, existing, p, &r, ask); err != nil {
@@ -418,34 +419,37 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 }
 
 // plan wants the core, extension, and adapter files, then decision documents and the manifest.
-func (f *initFlags) plan(env Env, root *os.Root, existing *project.Manifest, p project.Project, r initRun,
-) (project.Plan, []project.Decision, error) {
+func (f *initFlags) plan(env Env, root *os.Root, existing *project.Manifest, p project.Project, r *initRun) error {
 	decisions, err := project.PlanDecisions(root, existing, r.extensions, env.Now().Format(time.DateOnly))
 	if err != nil {
-		return project.Plan{}, nil, err
+		return err
 	}
 	core, err := project.CoreWants(env.Assets, project.Choices{
 		Name: p.Name, Objective: f.objective, FrameworkVersion: r.framework,
 		Extensions: r.extensions, Documents: decisions.Index,
 	})
 	if err != nil {
-		return project.Plan{}, nil, err
+		return err
 	}
 	extensions, entries, err := project.ExtensionWants(env.Assets, r.extensions, decisions.ByGroup)
 	if err != nil {
-		return project.Plan{}, nil, err
+		return err
 	}
 	adapters, err := project.RuntimeWants(env.Assets, r.runtimes, r.models, r.framework, r.extensions)
 	if err != nil {
-		return project.Plan{}, nil, err
+		return err
 	}
 	runtimes := map[string]project.Runtime{}
 	for _, runtime := range r.runtimes {
 		runtimes[runtime] = project.Runtime{AdversarialModel: r.models[runtime]}
 	}
-	plan, _, err := project.InitPlan(root, existing, slices.Concat(core, extensions, adapters), f.keep, f.overwrite,
+	r.plan, _, err = project.InitPlan(root, existing, slices.Concat(core, extensions, adapters), f.keep, f.overwrite,
 		p, runtimes, entries, decisions, r.framework)
-	return plan, decisions.Records, err
+	r.decisions, r.renderedWith = decisions.Records, map[string][]string{}
+	for name, e := range entries {
+		r.renderedWith[name] = e.RenderedWith
+	}
+	return err
 }
 
 // unbornMain reports whether the main branch has no commit and HEAD points elsewhere (UC-4).
@@ -481,7 +485,7 @@ func (f *initFlags) beforePlan(env Env, root *os.Root, existing *project.Manifes
 		}
 		if replace {
 			f.overwrite = append(f.overwrite, "AGENTS.md")
-			if r.plan, r.decisions, err = f.plan(env, root, existing, p, *r); err != nil {
+			if err = f.plan(env, root, existing, p, r); err != nil {
 				return err
 			}
 		}
