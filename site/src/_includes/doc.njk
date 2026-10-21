@@ -3,7 +3,7 @@ layout: base.njk
 ---
 <div class="docs-layout wrap">
   <aside class="docs-sidebar" aria-label="Documentation">
-    <a class="docs-home" href="{{ '/docs/getting-started/' | url }}">The field guide <span>v{{ site.frameworkVersion }}</span></a>
+    <a class="docs-home" href="{{ '/docs/getting-started/' | url }}">The field guide <span>{{ release.version }}</span></a>
     <nav aria-label="Documentation pages">
       {% for group in site.groups %}
       <div class="sidebar-group"><p>{{ group }}</p>
