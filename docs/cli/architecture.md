@@ -365,10 +365,12 @@ updates a file or, for `init`, creates the registry (`interactive_required` with
 back this run's changes on a handled failure. With an existing valid init registry, reuse it unchanged; successful
 file apply is then the local commit point. Publish only after local success; print `Next:`.
 
-For init, validate an existing registry and its version before any file apply. A valid registry is reused; an
-invalid one is rejected without touching either the registry or project files (I UC-3). On `file_conflict`,
-`render` still prints the plan text (`Plan` and the conflict lines) on stdout before the error on stderr; JSON
-keeps `data` absent.
+For init, the selection is the requested `--ext` names, else the manifest's, else `go` for a root `go.mod`, after
+`Resolve`; `PlanDecisions` feeds `ByGroup` to `ExtensionWants` and `Index` to `CoreWants`, and the core, extension,
+and `RuntimeWants` wants go with the decisions to `InitPlan`. Validate an existing registry and its version before
+any file apply. A valid registry is reused; an invalid one is rejected without touching either the registry or
+project files (I UC-3). On `file_conflict`, `render` still prints the plan text (`Plan` and the conflict lines) on
+stdout before the error on stderr; JSON keeps `data` absent.
 
 ## 8. Errors, cancellation, and file safety
 
