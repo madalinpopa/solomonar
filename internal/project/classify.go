@@ -12,6 +12,9 @@ import (
 
 const adoptedNotes = `adopted; existing content moved under "## Project notes"`
 
+// Adopted reports whether the change moves an unmanaged file's content under "## Project notes".
+func (c Change) Adopted() bool { return c.Reason == adoptedNotes }
+
 // Want is a path the CLI would write, its owner, and the offered content.
 type Want struct {
 	Path    string
