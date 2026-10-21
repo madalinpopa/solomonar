@@ -94,7 +94,14 @@ fields in record order (UC-13 example updated).
 
 ## Step 4: Store, `task plan`, `task show`
 
-- Stage 4.1 `[ ]` — `Store.Update` swap loop, registry creation, commit subjects (I §8.5), push with warning
+### Stage 4.1 — Registry store `[x]`
+
+- [x] Shared Git test helpers in `internal/git/gittest` (standard `testing` only), used by `git` and `task` tests
+- [x] `Store.Read`: tip and decoded registry; a missing ref is `not_initialized` (I §8.4)
+- [x] `Store.Create`: root commit `state: initialize registry`, create-only `update-ref` (I §8.5, §8)
+- [x] `Store.Update`: `hash-object` → `mktree` → `commit-tree -p <old>` → `update-ref <new> <old>`; a lost swap
+      re-reads and re-runs `fn`, five attempts, then `cas_exhausted` (AD-5, UC-21)
+- [x] Push to the remote with a 30-second limit; failure is `push_failed`, no remote is `no_remote` (I §8.4, §8)
 - Stage 4.2 `[ ]` — Cancellation (`interrupted`, `push_interrupted`), `cli_outdated`
 - Stage 4.3 `[ ]` — `task plan` and `task show` commands (UC-11, UC-16 show, UC-21)
 
