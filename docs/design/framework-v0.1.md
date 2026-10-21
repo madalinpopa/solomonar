@@ -1,3 +1,8 @@
+> Historical design note. Current behavior is owned by `assets/framework/`; CLI behavior and structure are in
+> [interface.md](../cli/interface.md) and [architecture.md](../cli/architecture.md). The
+> [review register](phase1-review-register.md#l-workflow-audit-corrections-2026-10-21) records later decisions,
+> including the accepted workflow audit. Superseded passages below are retained as design history.
+
 This is the v0.1 design candidate for a lightweight, prototype-led development framework. It preserves the agreed workflow, approval rules, sequential task starts, isolated parallel implementation, and compaction after merge. The concrete paths, state schema, report format, and initialization contract below are proposed defaults for this design review. Phase 1 defines the framework; Phase 2 packages it in a Go CLI. The reusable framework rules and the specifications of an individual application are separate. This full design note is a reference, not default context for every agent session.
 
 # Language policy
