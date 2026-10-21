@@ -62,8 +62,17 @@ procedures: `docs/solomonar/agents/<role>.md`. Skill procedures: `docs/solomonar
 - Decision entry fields (English): ID, question, status (`pending` | `approved` | `superseded`), selected
   option (once approved), rejected options with reasons, scope, rationale, date, references. Only an
   `approved` entry authorizes work.
+- Entry format: `## <ID>: <question>`, then named bullets `Status`, `Selected option` (once approved),
+  `Rejected options` (`none` when empty), `Scope`, `Rationale`, `Date`, and `References`. Keep the labels exact
+  so the CLI can read the status; references identify any superseded decision and its replacement.
 - Reuse a decision only within its scope. A superseding decision must name the decision it replaces, set
   that entry's status to `superseded`, and update the affected canonical rules.
+- Stack extensions follow the same approval rule. The user's own `solomonar extension add|remove` command
+  records an approved project decision `P/D-n` per affected group; an orchestrator instead passes
+  `--decision <approved-ID>` to apply the recorded choice. The entry uses the format above with the complete
+  new group selection and any superseded/replacement IDs explicit. In the same operation, every remaining installed
+  extension in the group references the approved decision for its complete selection. Draft extensions approve
+  nothing and are excluded from loading, rendering, and review triage.
 
 ## 4. Starting a task
 
@@ -193,7 +202,8 @@ Verification section (`report.md` §8).
 - Canonical registry: `state.json` on `refs/heads/workflow-state`: `{"schema_version": 1, "tasks": {"<ID>": <record>}}`.
   Read it with `solomonar task show [<ID>]` or `git show refs/heads/workflow-state:state.json`.
 - Only `solomonar task` commands write it. Agents never edit, commit, or check out the registry. A runtime hook
-  that denies direct writes to `state.json` is a Phase 2 adapter concern.
+  denies direct mutations of `workflow-state` and its Git ref storage, not ordinary product files that happen
+  to be named `state.json`; the registry has no filesystem checkout. Hooks are a Phase 2 adapter concern.
 - The CLI is a guard and an oracle, never a driver: it validates and records what the orchestrator decided and
   reports what Git shows. It never launches agents, calls models, or stores review verdicts. State holds
   decisions; Git holds what happened; `task status` reconciles them.
@@ -202,15 +212,17 @@ Verification section (`report.md` §8).
 |---|---|---|
 | `task plan --title <t>` | user | Creates a `planned` record without owner |
 | `task register [<ID>] --title <t> --owner <o>` | orchestrator | Claims the `planned` `<ID>` or allocates the next `W-NNN`; sets `reserved` / `setup`, branch `feature/<ID>`, `next_action` |
-| `task move <ID> [--status] [--stage] [--revision] [--spec] [--tier <0\|1\|2>] [--agent <id>:<role>]... [--pr] [--next <actor>:<action>]` | owner | Validated transition and field update; repeated `--agent` replaces `active_agents`, `--agent none` clears it |
-| `task block <ID> --kind <k> --summary <s> [--ref <r>]` / `task unblock <ID> <blocker-id>` | owner | Adds or clears a blocker |
-| `task done <ID> --merge <sha> --spec-ref <sha:path> --summary <s>` | owner | Verifies the merge commit is reachable from main and `spec_ref` resolves and names the last `spec(<ID>)` commit merged, then writes the compact record (`done` / `complete`) |
+| `task move <ID> --as <owner> [--status] [--stage] [--revision] [--spec] [--tier <0\|1\|2>] [--agent <id>:<role>]... [--pr] [--next <actor>:<action>]` | owner | Validated transition and field update; repeated `--agent` replaces `active_agents`, `--agent none` clears it |
+| `task block <ID> --as <owner> --kind <k> --summary <s> [--ref <r>] [--next <actor>:<action>] [--status blocked]` / `task unblock <ID> <blocker-id> --as <owner> [--status <prior>] [--next <actor>:<action>]` | owner | Adds or clears a blocker; optional status and next action are one atomic update |
+| `task done <ID> --as <owner> --merge <sha> --spec-ref <sha:path> --summary <s>` | owner | Verifies the merge commit is reachable from main and `spec_ref` resolves and names the last `spec(<ID>)` commit merged, then writes the compact record (`done` / `complete`) |
 | `task handoff <ID> --owner <o>` | new owner, on user instruction | Ownership change (§10) |
 | `task show [<ID>]` | anyone | Reads the stored record |
 | `task status <ID> [--json]` | anyone | Read-only: the record; facts derived from Git (branch, worktree, HEAD vs `revision`, dirty paths, merge into main); PR and check facts when available; drift between record and facts; the commands allowed next. Writes nothing |
 
 - `planned` records are created by the user with `task plan`; they have no owner. This is the only state write
   not made by an orchestrator. Otherwise each orchestrator writes only its own task's record.
+- Owner commands accept `SOLOMONAR_OWNER` as the terminal default for `--as`. Agents pass `--as <owner>` on
+  every `move`, `block`, `unblock`, and `done` call; shells need not preserve environment variables.
 - The CLI validates schema, ownership, and allowed transitions, and checks facts before writing: `--revision` is
   a full SHA reachable from `feature/<ID>`; `--spec` exists in the feature worktree or at the recorded
   `revision`; a stage move respects the recorded `tier`. A rejection names the failed check and the corrective
@@ -306,11 +318,13 @@ Compact record (illustrative):
   informal approval message never replaces CI or repository rules.
 - Record every verdict with the revision checked in the PR Verification section.
 - Staleness: before merge the feature branch contains current main (merged by the implementer,
-  `implementer.md` §7). CI always reruns. Agent reviews rerun only if updating from main had conflicts, or if
-  main's changes since the branch base touch files in the candidate's diff: with `<base>` =
-  `git merge-base <reviewed revision> main`, `git diff --name-only <base>..<reviewed revision>` and
-  `git diff --name-only <base>..main` share a file. A rerun moves the task back to `specialized_review` and
-  through the review stages to `integration` again. Otherwise reuse the verdicts with that reason (§6).
+  `implementer.md` §7). CI always reruns. Compare main's changes with the candidate, its referenced contracts,
+  dependencies, and requirements. With `<base>` = `git merge-base <reviewed revision> main`, overlapping paths
+  from `git diff --name-only <base>..<reviewed revision>` and `git diff --name-only <base>..main`, merge
+  conflicts, or a changed relevant contract/dependency require the affected reviews to rerun. Disjoint paths
+  alone are not a reuse reason. Reuse a verdict only with its original SHA and a concrete reason why main's
+  changes do not affect its scope; if impact is unclear, rerun that review. A rerun moves tier 1 or 2 back to
+  `specialized_review` and through the required stages to `integration`; tier 0 keeps its CI-only gate.
 - A spec rule ID that collides with one already on main after merging main: renumber the task's rule with the
   `spec` skill, update the work spec, and treat it as a changed candidate (§6).
 - Merge only with a merge commit (§11), never squash or rebase, so the final spec commit survives in main's
@@ -366,7 +380,8 @@ uncommitted changes.
   with an empty registry, created by `solomonar init`. No other checkout is needed for state.
 - v0.1 requires a Git repository and Git worktrees; Jujutsu and other VCS front ends are out of scope.
 - The repository must allow merge commits, and the orchestrator merges only with a merge commit: squash and
-  rebase merges break `spec_ref`. `solomonar doctor` checks the repository settings (Phase 2).
+  rebase merges break `spec_ref`. `solomonar doctor` checks the repository settings and project health; its
+  checklist is exposed in `solomonar doctor --help` (CLI interface §5 UC-10, Phase 2).
 - Integration requires a remote and PR path. Missing access is a concrete blocker (kind `environment`).
 - Record real run, build, test, and lint commands in `docs/README.md` once known. Record unknown commands as
   "not established"; never guess them.
