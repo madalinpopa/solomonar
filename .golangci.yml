@@ -1,0 +1,192 @@
+version: "2"
+
+run:
+  timeout: 5m
+  relative-path-mode: gomod
+
+linters:
+  default: standard
+  enable:
+    - depguard
+    - errorlint
+    - exhaustive
+    - forbidigo
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - gocritic
+    - godoclint
+    - gosec
+    - iface
+    - interfacebloat
+    - ireturn
+    - misspell
+    - modernize
+    - musttag
+    - nakedret
+    - nilerr
+    - nolintlint
+    - predeclared
+    - revive
+    - tagliatelle
+    - thelper
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+
+  settings:
+    depguard:
+      rules:
+        stdlib-only:
+          list-mode: strict
+          allow:
+            - $gostd
+            - github.com/madalinpopa/solomonar
+        banned:
+          list-mode: lax
+          files: ["$all", "!$test"]
+          deny:
+            - pkg: reflect
+              desc: no reflection (architecture §3)
+            - pkg: unsafe
+              desc: no unsafe (architecture §3)
+            - pkg: log
+              desc: packages return errors; only cli writes output (architecture §8)
+        exec-only-in-git:
+          list-mode: lax
+          files: ["$all", "!$test", "!**/internal/git/**"]
+          deny:
+            - pkg: os/exec
+              desc: run git and gh through internal/git (AD-3)
+        nothing-imports-cli:
+          list-mode: lax
+          files: ["**/internal/task/**", "**/internal/project/**", "**/internal/git/**", "**/internal/dashboard/**"]
+          deny:
+            - pkg: github.com/madalinpopa/solomonar/internal/cli
+              desc: dependencies point away from cli (architecture §5)
+        task-without-project:
+          list-mode: lax
+          files: ["**/internal/task/**"]
+          deny:
+            - pkg: github.com/madalinpopa/solomonar/internal/project
+              desc: cli passes the installed roles to task (architecture §5)
+        git-is-a-leaf:
+          list-mode: lax
+          files: ["**/internal/git/**"]
+          deny:
+            - pkg: github.com/madalinpopa/solomonar/internal
+              desc: internal/git imports no other internal package (architecture §5)
+
+    forbidigo:
+      forbid:
+        - pattern: ^os\.Exit$
+          msg: only main exits; return an error (AD-4)
+        - pattern: ^os\.(Args|Stdin|Stdout|Stderr|Getenv|LookupEnv|Environ)$
+          msg: read process inputs from cli.Env (AD-9)
+        - pattern: ^time\.Now$
+          msg: take the clock from cli.Env (AD-9)
+        - pattern: ^fmt\.Print(f|ln)?$
+          msg: write to the cli.Env writers (AD-4)
+        - pattern: ^(print|println|panic)$
+          msg: return an error (architecture §8)
+        - pattern: ^exec\.Command$
+          msg: use exec.CommandContext so cancellation reaches the child (architecture §8)
+
+    gocognit:
+      min-complexity: 20
+
+    godoclint:
+      default: basic
+      enable: [max-len, no-unused-link]
+      options:
+        max-len:
+          length: 100
+
+    gosec:
+      config:
+        G301: "0755"
+        G306: "0644"
+
+    govet:
+      enable-all: true
+      disable: [fieldalignment, shadow]
+
+    iface:
+      enable: [identical, unused, opaque]
+
+    interfacebloat:
+      max: 5
+
+    misspell:
+      locale: US
+
+    nakedret:
+      max-func-lines: 0
+
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: early-return
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: range
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: superfluous-else
+        - name: time-naming
+        - name: unexported-return
+        - name: unreachable-code
+        - name: unused-parameter
+        - name: use-any
+        - name: var-declaration
+        - name: var-naming
+
+    staticcheck:
+      checks: ["all", "-ST1000"]
+
+    tagliatelle:
+      case:
+        rules:
+          json: snake
+
+  exclusions:
+    generated: strict
+    warn-unused: true
+    presets:
+      - comments
+      - std-error-handling
+      - common-false-positives
+    rules:
+      - path: (^|/)main\.go$
+        linters: [forbidigo]
+      - path: ^internal/git/
+        text: G204
+        linters: [gosec]
+      - path: _test\.go$
+        linters: [gocognit, gosec, unparam]
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    gofumpt:
+      module-path: github.com/madalinpopa/solomonar
+    goimports:
+      local-prefixes: [github.com/madalinpopa/solomonar]
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
