@@ -4,7 +4,6 @@ export default {
   repository: "https://github.com/madalinpopa/solomonar",
   socialImage: "/assets/social-card.png",
   socialImageAlt: "Solomonar and its stitched dragon. Spec-driven development for AI coding agents. Specs, skills, agents, and independent review.",
-  frameworkVersion: "0.1.0",
   groups: ["Start here", "Learn the framework", "Guides", "Reference"],
   navigation: [
     { label: "Get started", href: "/docs/getting-started/" },
