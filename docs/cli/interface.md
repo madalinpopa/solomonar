@@ -127,6 +127,8 @@ behavior.
   with paths padded to the widest path that has a reason. `init`'s registry line is `  registry   create
   refs/heads/workflow-state with an empty state.json` or `  registry   unchanged refs/heads/workflow-state`; with
   `--git-init` the plan's first line is `  git        init -b <main-branch>` (UC-4).
+- The interactive `init` plan shown before `Proceed?` groups its lines and collapses uniform file sets (UC-1); `init
+  --dry-run` and the `file_conflict` plan list every file in this form.
 - A counts line is `<n> file(s) <first action>, <n> <action>, …` over the non-zero actions in the order created,
   updated (`append` included), kept, unchanged, skipped; the manifest counts. Only the first count carries `file`
   (one) or `files` (`1 file created, 17 unchanged, 1 skipped`); a conflict count is `1 conflict` or `<n> conflicts`.
@@ -802,37 +804,37 @@ Testing:
 
 Plan
   framework 0.1.0
-    create  AGENTS.md
-    create  docs/README.md
-    create  docs/solomonar/rules.md
-    create  docs/solomonar/report.md
-    create  docs/solomonar/reviewer.md
-    create  docs/solomonar/agents/ (6 roles)
-    create  docs/solomonar/skills/solomonar/ (SKILL.md)
-    create  docs/solomonar/skills/prototype/ (SKILL.md, template.md)
-    create  docs/solomonar/skills/spec/ (SKILL.md, template.md)
-    create  docs/solomonar/skills/work-spec/ (SKILL.md, template.md)
+    create     docs/solomonar/agents/ (6 roles)
+    create     docs/solomonar/report.md
+    create     docs/solomonar/reviewer.md
+    create     docs/solomonar/rules.md
+    create     docs/solomonar/skills/prototype/ (SKILL.md, template.md)
+    create     docs/solomonar/skills/solomonar/ (SKILL.md)
+    create     docs/solomonar/skills/spec/ (SKILL.md, template.md)
+    create     docs/solomonar/skills/work-spec/ (SKILL.md, template.md)
+    create     AGENTS.md
+    create     docs/README.md
   extensions
-    create  docs/solomonar/skills/go/SKILL.md      rendered with: tdd
-    create  docs/solomonar/skills/htmx/SKILL.md    rendered with: templ
-    create  docs/solomonar/skills/templ/SKILL.md   rendered with: htmx
-    create  docs/solomonar/skills/tdd/SKILL.md     rendered with: go
+    create     docs/solomonar/skills/go/SKILL.md     rendered with: tdd
+    create     docs/solomonar/skills/htmx/SKILL.md   rendered with: templ
+    create     docs/solomonar/skills/tdd/SKILL.md    rendered with: go
+    create     docs/solomonar/skills/templ/SKILL.md  rendered with: htmx
   decisions (approved, selected by you)
-    create  docs/decisions.md   P/D-1 language: go · P/D-2 frontend: htmx, templ · P/D-3 testing: tdd
-    create  docs/stack.md       language: go (P/D-1) · frontend: htmx, templ (P/D-2) · testing: tdd (P/D-3)
+    create     docs/decisions.md  P/D-1 language: go · P/D-2 frontend: htmx, templ · P/D-3 testing: tdd
+    create     docs/stack.md      language: go (P/D-1) · frontend: htmx, templ (P/D-2) · testing: tdd (P/D-3)
   runtime claude
-    create  CLAUDE.md
-    create  .claude/skills/ (8 skill stubs: 4 core, 4 extensions)
-    create  .claude/agents/ (5 role stubs; adversarial-reviewer model opus)
-    create  .claude/settings.json (state guard hook)
+    create     CLAUDE.md
+    create     .claude/skills/ (8 skill stubs: 4 core, 4 extensions)
+    create     .claude/agents/ (5 role stubs; adversarial-reviewer model opus)
+    create     .claude/settings.json (state guard hook)
   runtime codex
-    create  .agents/skills/ (8 skill stubs: 4 core, 4 extensions; solomonar/agents/openai.yaml)
-    create  .codex/agents/ (5 role stubs)
-    create  .codex/hooks.json (state guard hook)
+    create     .agents/skills/ (8 skill stubs: 4 core, 4 extensions; solomonar/agents/openai.yaml)
+    create     .codex/agents/ (5 role stubs)
+    create     .codex/hooks.json (state guard hook)
   registry
-    create  refs/heads/workflow-state with an empty state.json
+    create     refs/heads/workflow-state with an empty state.json
   manifest
-    create  .solomonar/manifest.json
+    create     .solomonar/manifest.json
 Proceed? [Y/n] y
 
 Initialized solomonar 0.1.0 in /work/ledger
@@ -875,13 +877,30 @@ each group.
   the last list, then asks every group again, each with its blank line and the previous selection marked, without
   repeating the extensions paragraph.
 
-When the plan writes, has no conflict, and `--dry-run` is not set, `init` prints `Plan`, the plan lines, the registry
-line, and `Proceed? [Y/n] `, also on a re-run with a manifest; yes applies as with `--yes`, and no prints
+When the plan writes, has no conflict, and `--dry-run` is not set, `init` prints `Plan`, the grouped plan below, and
+`Proceed? [Y/n] `, also on a re-run with a manifest; yes applies as with `--yes`, and no prints
 `Cancelled; nothing was written.` and exits 0, keeping warnings such as `jujutsu_detected`. One blank line follows
 the answer, before `Initialized …` or the cancel line. `Plan` is preceded by a blank line only when
 a choice was asked, also before an interactive `--dry-run` plan and the `file_conflict` plan text. `--dry-run` still
 prompts for choices, never for the confirmation. `--json` without `--yes` never prompts, even on a
 terminal, and stays `interactive_required`.
+
+The grouped plan is shown only before `Proceed?`; `--dry-run` (interactive or not), the `file_conflict` plan, and
+JSON list every file (3.3). Its groups, in this order with empty groups omitted, are `git` (`init       -b
+<main-branch>`), `framework <fw>` (owners `core`, `core+notes`, `seed`), `extensions` (`ext`, `project-ext`),
+`decisions (approved, selected by you)`, `runtime claude`, `runtime codex`, `registry` (`create     refs/heads/workflow-state
+with an empty state.json` or `unchanged  refs/heads/workflow-state`), and `manifest`. A header is indented two spaces and its lines four; a line is `<action padded to 9>  <path>`, and a note
+follows two spaces after the path padded to the widest noted path in its group. Within a group the plan order is
+kept, and a collapsed line takes its set's first position. A set collapses into one line only when all its lines
+share one action and none has a reason; otherwise each file gets its own line. The sets are
+`docs/solomonar/agents/ (<n> roles)`; `docs/solomonar/skills/<s>/ (<files, comma-joined, sorted>)` per core skill;
+`.claude/skills/` and `.agents/skills/` as `(<n> skill stubs: <c> core, <e> extensions)`, `: <c> core` always shown,
+the codex one adding `; solomonar/agents/openai.yaml`; and `.claude/agents/` and `.codex/agents/` as `(<n> role
+stubs[: <c> core, <e> extensions][; adversarial-reviewer model <m>])`, the split only when an extension role exists
+and the model when the runtime has one. A count of 1 is singular (`1 role`, `1 role stub`, `1 extension`). Notes join
+with `; `, the reason first: an extension's main file is noted `rendered with: <names>` when not empty;
+`docs/decisions.md` is noted `<ID> <group>: <names> · …` and each group document `<group>: <names> (<ID>) · …` for the
+entries this run records; an `unchanged` document gets no note.
 
 Postconditions: the files exist uncommitted on main; each chosen group has an approved `P/D-n` entry; `workflow-state` exists as a root commit
 `state: initialize registry` containing `{"schema_version": 1, "tasks": {}}`; the manifest records every choice.
