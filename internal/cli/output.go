@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"fmt"
@@ -8,8 +9,9 @@ import (
 )
 
 type output struct {
-	data any
-	text string
+	data     any
+	text     string
+	warnings []warning
 }
 
 type envelope struct {
@@ -33,10 +35,10 @@ type warning struct {
 	Message string `json:"message"`
 }
 
-func render(env Env, asJSON bool, command string, out output, err error) int {
+func render(ctx context.Context, env Env, asJSON bool, command string, out output, err error) int {
 	var cliErr *Error
 	if err != nil {
-		cliErr = asCLIError(err)
+		cliErr = asCLIError(ctx, command, err)
 	}
 	if asJSON {
 		writeJSON(env, command, out, cliErr)
@@ -50,7 +52,7 @@ func render(env Env, asJSON bool, command string, out output, err error) int {
 }
 
 func writeJSON(env Env, command string, out output, cliErr *Error) {
-	result := envelope{OK: cliErr == nil, Command: command, Data: out.data, Warnings: []warning{}}
+	result := envelope{OK: cliErr == nil, Command: command, Data: out.data, Warnings: out.warnings}
 	if cliErr != nil {
 		result.Data = nil
 		result.Error = &errorBody{
@@ -67,13 +69,20 @@ func writeJSON(env Env, command string, out output, cliErr *Error) {
 func writeHuman(env Env, out output, cliErr *Error) {
 	if cliErr == nil {
 		_, _ = io.WriteString(env.Stdout, out.text)
-		return
+	} else {
+		writeHumanError(env.Stderr, cliErr)
 	}
-	fmt.Fprintf(env.Stderr, "error: %s (%s)\n", cliErr.Message, cliErr.Code)
-	writeDetail(env.Stderr, "check: ", cliErr.Check)
-	writeDetail(env.Stderr, "found: ", cliErr.Found)
-	writeDetail(env.Stderr, "fix:   ", cliErr.Fix)
-	_, _ = io.WriteString(env.Stderr, "nothing was written\n")
+	for _, w := range out.warnings {
+		fmt.Fprintf(env.Stderr, "warning: %s\n", w.Message)
+	}
+}
+
+func writeHumanError(w io.Writer, cliErr *Error) {
+	fmt.Fprintf(w, "error: %s (%s)\n", cliErr.Message, cliErr.Code)
+	writeDetail(w, "check: ", cliErr.Check)
+	writeDetail(w, "found: ", cliErr.Found)
+	writeDetail(w, "fix:   ", cliErr.Fix)
+	_, _ = io.WriteString(w, "nothing was written\n")
 }
 
 func writeDetail(w io.Writer, label, value string) {
