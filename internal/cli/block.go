@@ -58,9 +58,9 @@ func (b *blockFlags) run(ctx context.Context, env Env, flags sharedFlags, args [
 	if err != nil {
 		return output{}, err
 	}
-	store, err := openStore(ctx, env, flags)
+	store, _, err := openStore(ctx, env, flags)
 	if err != nil {
-		return output{}, err
+		return output{}, rejectedAs("task block "+id, err)
 	}
 	out, err := changeTask(ctx, store, id, "block", positionHeader(id), b.dryRun, func(reg *task.Registry) (task.MoveResult, []detail, error) {
 		result, err := reg.BlockTask(id, as, b.block, env.Now())
@@ -110,9 +110,9 @@ func (u *unblockFlags) run(ctx context.Context, env Env, flags sharedFlags, args
 	if err != nil {
 		return output{}, err
 	}
-	store, err := openStore(ctx, env, flags)
+	store, _, err := openStore(ctx, env, flags)
 	if err != nil {
-		return output{}, err
+		return output{}, rejectedAs("task unblock "+id, err)
 	}
 	out, err := changeTask(ctx, store, id, "unblock", positionHeader(id), u.dryRun, func(reg *task.Registry) (task.MoveResult, []detail, error) {
 		var cleared task.Blocker
