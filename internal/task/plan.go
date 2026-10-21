@@ -2,20 +2,13 @@ package task
 
 import (
 	"fmt"
-	"slices"
 	"time"
 )
 
 // Plan adds a planned task under the next free ID and returns the ID and the commit subject.
 func (r *Registry) Plan(title string, dependsOn []string, related string, now time.Time) (id, subject string, err error) {
-	references := slices.Clone(dependsOn)
-	if related != "" {
-		references = append(references, related)
-	}
-	for _, reference := range references {
-		if _, err := r.Lookup(reference); err != nil {
-			return "", "", err
-		}
+	if err := r.checkReferences(dependsOn, related); err != nil {
+		return "", "", err
 	}
 	id = nextTaskID(r)
 	record := &Record{
