@@ -1,6 +1,7 @@
 package task
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -118,6 +119,7 @@ func TestRegisterRejects(t *testing.T) {
 		{name: "unknown related", reg: with(func(r *Registration) { r.Related = "W-009" }), code: "task_not_found"},
 		{name: "malformed next", reg: with(func(r *Registration) { r.Next = "user" }), code: "invalid_value"},
 		{name: "next for another actor", reg: with(func(r *Registration) { r.Next = "impl-1:Implement" }), code: "invalid_value"},
+		{name: "next action too long", reg: with(func(r *Registration) { r.Next = "user:" + strings.Repeat("é", 121) }), code: "invalid_value"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
