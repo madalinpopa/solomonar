@@ -28,6 +28,7 @@ type Record struct {
 	Tier         *int        `json:"tier,omitzero"`
 	ActiveAgents []Agent     `json:"active_agents,omitempty"`
 	Blockers     []Blocker   `json:"blockers,omitempty"`
+	LastBlocker  int         `json:"last_blocker,omitzero"`
 	NextAction   *NextAction `json:"next_action,omitzero"`
 	PR           string      `json:"pr,omitempty"`
 	DependsOn    []string    `json:"depends_on,omitempty"`
