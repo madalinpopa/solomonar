@@ -1,6 +1,7 @@
 services:
   site:
     image: ${SITE_IMAGE:-ghcr.io/madalinpopa/solomonar-site:latest}
+    pull_policy: always
     restart: always
     expose:
       - "8080"
