@@ -193,3 +193,60 @@ func TestClassifyAgentsCannotBeKept(t *testing.T) {
 		Fix:   "adopt it (default) or pass --overwrite AGENTS.md",
 	}, err)
 }
+
+func TestCoreWantsRendersTheExtensionsBlock(t *testing.T) {
+	const agentsNote = "- Agents: an installed agent is a specialist reviewer, required by triage when its " +
+		"\"applies when\" matches.\n"
+	gin := CatalogExtension{Name: "gin", Kind: "skill", Group: "backend", AppliesWhen: "A change adds routes"}
+	golang := CatalogExtension{
+		Name: "go", Kind: "skill", Group: "language", AppliesWhen: "A change touches Go code",
+		Paths: []string{"**/*.go", "**/go.mod"},
+	}
+	chi := CatalogExtension{Name: "chi", Kind: "skill", Group: "backend", AppliesWhen: "Routes", Paths: []string{}}
+	contrast := CatalogExtension{Name: "contrast", Kind: "agent", Group: "review", AppliesWhen: "UI changes"}
+	perf := CatalogExtension{
+		Name: "perf", Kind: "agent", Group: "operations", AppliesWhen: "Hot paths", Paths: []string{"cmd/**"},
+	}
+	tests := []struct {
+		name       string
+		extensions []CatalogExtension
+		block      string
+	}{
+		{name: "none", block: noExtensions},
+		{
+			name: "skills only, by group then name", extensions: []CatalogExtension{gin, golang, chi},
+			block: "- Skills\n" +
+				"  - `go` (language): A change touches Go code; paths: `**/*.go`, `**/go.mod`\n" +
+				"  - `chi` (backend): Routes\n" +
+				"  - `gin` (backend): A change adds routes\n" +
+				"- Agents: none. An installed agent is a specialist reviewer, required by triage when its " +
+				"\"applies when\" matches.",
+		},
+		{
+			name: "agents only", extensions: []CatalogExtension{contrast, perf},
+			block: "- Skills: none.\n" + agentsNote +
+				"  - `perf` (operations): Hot paths; paths: `cmd/**`\n" +
+				"  - `contrast` (review): UI changes",
+		},
+		{
+			name: "skills and agents", extensions: []CatalogExtension{contrast, golang},
+			block: "- Skills\n" +
+				"  - `go` (language): A change touches Go code; paths: `**/*.go`, `**/go.mod`\n" + agentsNote +
+				"  - `contrast` (review): UI changes",
+		},
+	}
+	assets := fstest.MapFS{
+		"framework/rules.md":       {Data: []byte("rules\n")},
+		"templates/AGENTS.md":      {Data: []byte("## Extensions\n\n{{ .Extensions }}\n\n## Next\n")},
+		"templates/docs/README.md": {Data: []byte("# {{ .ProjectName }}\n")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wants, err := CoreWants(assets, Choices{Name: "ledger", Extensions: tt.extensions})
+
+			require.NoError(t, err)
+			got := wantedContent(t, wants, agentsPath)
+			assert.Equal(t, "## Extensions\n\n"+tt.block+"\n\n## Next\n", got)
+		})
+	}
+}
