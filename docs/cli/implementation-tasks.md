@@ -153,11 +153,25 @@ with this stage).
       that is not `done` (UC-12, I §8.4)
 - [x] Commit subject `state(<ID>): reserved/setup, registered by <owner>` (I §8.5)
 
-### Stage 5.2 — `task register` command `[ ]`
+### Stage 5.2 — `task register` command `[x]`
 
-- [ ] Human output of UC-12, "Registration confirmed" only after the swap, the worktree command; `--dry-run`;
-      JSON form
-- [ ] `task plan` rejects a blank or whitespace-only title with `checkTitle`, as `task register` does; update
+Decisions (author, 2026-10-21): `--title` and `--owner` are required flags
+(`invalid_usage`); a rejection with an ID reads `task register <ID> rejected`; the human form prints the four
+UC-12 lines (status, owner, branch, next), the subject, and the registry line; without a push the registry line
+ends at the SHA, the warnings follow on stderr, and "Registration confirmed" still prints (rules §4 step 3);
+domain warnings come before push warnings; the worktree path is `../<repo>-worktrees/<ID>` with `<repo>` the main
+checkout's directory name, relative when run from the main checkout and absolute from another worktree; the
+base is the main branch (`main` until the manifest exists); `--dry-run` prints `Would register <ID>: <title>`,
+the four lines, and the subject, with no registry line, confirmation, or worktree command; `--json` data is
+`{"id", "record", "commit", "pushed"}`, or `{"id", "record", "dry_run": true}` with `--dry-run`; `--dry-run`
+reports the domain warnings, never a push warning; with both flags missing the error is `--title is required`.
+UC-11, UC-12, and I §8.3 updated to match.
+
+- [x] `task register [<ID>]` in the command table and help; flags `--title`, `--owner`, `--depends-on`,
+      `--related`, `--next`, `--dry-run` (UC-12)
+- [x] Human output of UC-12, "Registration confirmed" only after the swap, the worktree command; `--dry-run`;
+      JSON form; warnings (I §3.3, §3.4)
+- [x] `task plan` rejects a blank or whitespace-only title with `checkTitle`, as `task register` does; update
       UC-11 and I §8.3 to match
 
 - Stage 5.3 `[ ]` — `Record.Move` and the I §8.3 fact checks, `--as` and ownership (UC-18); includes the `--next`
