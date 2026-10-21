@@ -11,6 +11,7 @@ const wantTopLevelHelp = `Usage: solomonar [global flags] <command> [flags] [arg
 
 Commands:
   help            Print help for a command
+  init            Install the framework core and create the registry
   version         Print CLI, embedded framework, and project framework versions
   task block      Add a blocker to a task
   task done       Complete a task after its merge
