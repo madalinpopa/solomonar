@@ -1,0 +1,372 @@
+# Solomonar CLI v0.1: architecture
+
+Status: draft, 2026-10-21. How the `solomonar` binary is built. The interface (commands, flags, output, exit codes,
+validation) is fixed by [the interface spec](interface.md) (cited as `I §n`); this document does not restate it.
+When the two differ, the interface spec wins for behavior and this document wins for structure. Decisions here are
+`AD-n`; questions still open are in section 13.
+
+Contents: 1 Scope · 2 Analysis of the interface design · 3 Toolchain · 4 Architectural decisions · 5 Layout and
+packages · 6 Key types · 7 Execution flow · 8 Errors, cancellation, and file safety · 9 Code conventions ·
+10 Tooling · 11 Testing · 12 Implementation plan · 13 Open questions · 14 Non-goals and deferred work
+
+## 1. Scope
+
+Requirements come from the interface spec and `assets/framework/rules.md` §7, §11. Nothing is added here.
+
+| Requirement | Source | Consequence for the architecture |
+|---|---|---|
+| Guard and oracle, never a driver | I §1, J1 | No agent, model, daemon, or cache code. The only long-running process is `dashboard`. |
+| Registry on `refs/heads/workflow-state`, compare-and-swap writes, no checkout | rules §7, I §6 UC-21 | Git plumbing through the `git` binary; a read-validate-write loop that re-runs validation on a lost swap. |
+| Fact checks against Git before every write | I §8.3, J2 | Task validation needs a repository, not only a record. |
+| Human and `--json` output with the same content, one envelope | I §3.3, §3.4 | Every command returns data; one renderer chooses the form. |
+| Exit codes 0 to 5, actionable errors with check, found, fix | I §3.5, §3.6, §8.4 | One error type carries the code, the exit class, and the fix. |
+| Embedded framework and catalog, copied then owned, manifest hashes | I §4.5, §4.7 | `embed.FS` plus a plan/apply engine over project files. |
+| Line prompts only on a terminal; never with `--json` | I §3.7, CLI-D5 | Prompts read from an injected reader; no terminal library. |
+| Optional network: `git push`, read-only `gh` | I §1, J6 | Time-limited external calls whose failures become warnings. |
+| macOS and Linux; `go install` and release binaries | AD-11, AD-12 | No Windows path, quoting, or terminal code in v0.1. |
+
+## 2. Analysis of the interface design
+
+The interface spec is complete and consistent enough to build from: every command has its arguments, output,
+rejections, and exit code. The points below are where it affects the build, ordered by impact.
+
+| # | Finding | Proposal | State |
+|---|---|---|---|
+| F1 | Prior status after `blocked`/`paused` was derived from registry history: a walk of `workflow-state` commits on every `unblock` or resume. | A task is `reserved` exactly while at `setup`, so the prior status follows from the stage. | Decided, CLI-D16; applied to rules §7 and I §8.1. |
+| F2 | Positionals come before flags (`task move W-001 --stage …`), and shared flags appear before and after the command. The standard `flag` package stops at the first non-flag argument. | Interspersed parsing helper over `flag.FlagSet` (AD-2); `--json`, `-v`, `--no-color`, `-C` registered on every command's set. | Adopted. |
+| F3 | "A partial file write is rolled back" (I §3.5) for commands that write tens of files. | Plan first, apply with a journal, roll back the files this run touched (AD-6). | Adopted. |
+| F4 | An unmanaged file identical to what `init` would write is a conflict, so a re-run after a crash fails on the run's own files. | Treat identical content as `unchanged` and adopt it into the manifest. | Open, Q2. |
+| F5 | `upgrade --diff` needs a text diff; the standard library has none. | `git diff --no-index --no-color <tmp-embedded> <path>`. | Adopted. |
+| F6 | The guard (UC-22) recognizes registry writes inside arbitrary shell commands. | Best effort, as the spec says: match `state.json` paths for file tools, `workflow-state` tokens for shell tools; a table test of real commands. | Adopted. |
+| F7 | `--runtime` defaults to "detected on `PATH`" also with `--yes`. | Keep; the plan and the JSON `choices` show the detected list. | No change. |
+| F8 | Interrupt handling is not specified. | Cancel the context; report whether the registry write happened. | Open, Q3. |
+| F9 | CLI-D8 (binary name) is still "deferred". | Root `main.go` (AD-13). | Proposed. |
+| F10 | `already_initialized` is reused for a rejected downgrade (UC-9). | `downgrade_rejected`. | Open, Q4. |
+
+Clarifications the implementation settles this way unless the spec says otherwise:
+
+- "Active" for `owner_in_use` means `reserved`, `running`, `blocked`, `paused`.
+- A plan followed by a prompt goes to stderr, so stdout carries only results; `--dry-run` plans go to stdout.
+- `spec_ref_not_final` matches commit subjects from `git log --format=%H%x00%s`, never `--grep`, which also
+  matches body lines.
+
+## 3. Toolchain
+
+- **Go 1.27.3**, the latest stable patch (go.dev/doc/devel/release, 2026-10-19), as `go.mod` declares.
+- **No module dependencies** in increments 1 and 2 (AD-1). Development tools are pinned in `Taskfile.yml`
+  (section 10) and never enter `go.mod`.
+
+| Need | Standard library | Note |
+|---|---|---|
+| Commands and flags | `flag.FlagSet`, custom `flag.Value` | Repeatable and comma-separated flags (`--agent`, `--runtime`, `--ext`) as one `listFlag` type. |
+| Embedded assets | `embed`, `io/fs`, `text/template` | The `docs/README.md` template already uses `{{ .ProjectName }}`. |
+| Project file I/O confined to the repository | `os.Root` (`OpenRoot`, `WriteFile`, `MkdirAll`, `Rename`, `Remove`) | Manifest paths and extension sources are editable input; `os.Root` rejects `..` and symlink escapes. |
+| Git and `gh` | `os/exec`, `context` | `exec.CommandContext` kills the child on cancel. |
+| Hashes | `crypto/sha256` | Manifest file hashes. |
+| JSON | `encoding/json/v2` for reading `state.json` and the manifest | Rejects duplicate keys by default and can reject unknown members (AD-7). |
+| Signals | `os/signal.NotifyContext` | One place, in `main`. |
+| Sorted iteration | `slices.Sorted(maps.Keys(...))`, `cmp` | Task IDs sorted by number, not by string. |
+| Dashboard (increment 3) | `net/http`, `embed`, `httptest` | Loopback by default. |
+
+Not used, deliberately: generics beyond standard helpers, reflection, goroutines outside the dashboard server and
+tests, `log` and `log/slog` (the CLI writes user output, not logs; `-v` traces external commands to stderr).
+Section 10 enforces these with lint rules.
+
+## 4. Architectural decisions
+
+| ID | Decision | Rationale | Rejected alternative |
+|---|---|---|---|
+| AD-1 | Zero module dependencies for increments 1 and 2. | The standard library covers every need in section 3; the framework treats each dependency as a decision (rules §3). | Cobra or Kong (AD-2); go-git (AD-3); a prompt library (CLI-D5). |
+| AD-2 | `flag.FlagSet` per leaf command, a static command table, hand-written help, and an interspersed-arguments helper (about 40 lines). | The interface fixes every help line, error envelope, and exit code, so a framework's generated help and error handling would be overridden, not used. The tree is two levels deep with one alias. | Cobra: interspersed flags for free, but pflag, `SilenceErrors`/`SilenceUsage`, custom exit mapping, and a dependency for about 20 commands. Reconsider only for shell completion. |
+| AD-3 | Git and `gh` through their executables, never a Go Git library. | Atomic `update-ref <new> <old>` and `git worktree list --porcelain` are the contract (rules §7); the user's Git configuration and identity apply; Git ≥ 2.40 is already required. | go-git: no worktree parity, a second implementation of the swap semantics, a large dependency. |
+| AD-4 | Commands return data or a typed error; one renderer writes human or JSON form; `main` alone calls `os.Exit`. | One place enforces the envelope (I §3.4) and the exit table (I §3.5); packages stay testable. | Printing inside domain code: the two output forms would drift. |
+| AD-5 | Registry writes as `Update(ctx, fn)`: read tip, run `fn` on a copy, build the tree, swap; on a lost swap re-read and re-run `fn`, up to 5 attempts. | Re-running the whole validation on the new tip is exactly UC-21; callers cannot forget it. | Validate once, retry only the swap: wrong after a concurrent claim of the same ID. |
+| AD-6 | Every file-writing command computes a `Plan` before writing; `Apply` writes temp + rename inside `os.Root`, journals the previous content, and restores it on failure. Files first, registry next, manifest last. | `--dry-run`, plan display, conflict detection, and rollback share one structure. | Writing while deciding: no reliable dry run, no rollback. |
+| AD-7 | `state.json` and the manifest are decoded strictly and validated after decoding; written with stable key order and a trailing newline. | The registry is the authority; a hand edit or a newer schema fails loudly (`registry_invalid`, `manifest_invalid`) instead of losing fields on the next write. | Lenient decoding: unknown fields vanish on rewrite. |
+| AD-8 | Task rules are pure functions over the record; fact checks are a separate step that takes the repository. | The I §8.1 and §8.2 tables are tested without Git; `allowed_next` (I §9.3) comes from the same tables, so validation and the oracle cannot disagree. | Rules and Git calls interleaved: every rule test needs a repository. |
+| AD-9 | Process inputs (args, standard streams, environment lookup, clock, terminal detection, embedded assets) reach `cli.Run` as one `Env` value. | In-process tests of every use case, without building the binary or touching `os` globals. | Reading `os.Args`, `os.Getenv`, `time.Now` inside commands. |
+| AD-10 | CLI version from `runtime/debug.ReadBuildInfo`: `go install …@vX.Y.Z` records the module version, and `go build` in a checkout stamps it from the Git tag (with `+dirty` for local changes). Framework version from the embedded `rules.md` header. | No version constant and no `-ldflags -X` to forget. | A hand-maintained `const Version`. |
+| AD-11 | Platforms: macOS and Linux. Windows is deferred. | Windows changes hook command quoting, path handling in the guard, and terminal detection; no user needs it yet. | Windows from the start. |
+| AD-12 | Distribution: `go install github.com/madalinpopa/solomonar@vX.Y.Z` now; release binaries built with `-trimpath` from a tag when there is a first release. | AD-10 makes both carry the right version without extra flags. A release tool is a build tool and stays out of `go.mod`. | Package managers before a first release. |
+| AD-13 | Proposed: the entry point is `main.go` at the module root, not `cmd/solomonar/main.go`; it also holds `//go:embed assets` and passes the tree to `cli.Run` in `Env`. | The repository holds one binary, which is the official layout for "a command with supporting packages" (go.dev/doc/modules/layout); the install path shortens to the module path; the `assets` package and its global disappear. | `cmd/solomonar/`: meant for repositories with several binaries. A `cmd` package holding the command handlers (the Cobra convention): in Go, `cmd/<name>` means a `main` package, so it misleads readers and `go install ./cmd/...`. |
+
+## 5. Layout and packages
+
+Layout with AD-13 applied:
+
+```
+main.go                  signal context, //go:embed assets, cli.Run, os.Exit; nothing else
+assets/                  framework/, extensions/, templates/ (existing content)
+internal/
+  cli/                   command table, flag parsing, help, prompts, rendering, error envelope, exit codes
+  task/                  registry model, transition and field rules, fact checks, status and drift, CAS store
+  project/               manifest, file plans and apply, catalog and rendering, adapters, decisions
+  git/                   git and gh process runner, typed helpers, -v tracing
+  dashboard/             HTTP server and embedded page (increment 3 only)
+Taskfile.yml  .golangci.yml  go.mod
+```
+
+| Package | Owns | Why it is a separate package |
+|---|---|---|
+| `main` (root) | Process boundary: `signal.NotifyContext`, the embedded `assets` tree, building `cli.Env` from `os`, `os.Exit(code)`. | `go install github.com/madalinpopa/solomonar` yields the binary `solomonar`. |
+| `internal/cli` | Everything the user sees: argument parsing, help, prompts, human tables, JSON envelope, mapping errors to exit codes, `doctor` and `guard` assembly. One file per command group (`task.go`, `init.go`, `extension.go`, …). | The only package that knows about terminals and output forms; `task` and `project` never print. |
+| `internal/task` | The registry's meaning: `Registry`, `Record`, statuses, stages, tiers, blockers; the rules of I §8; fact checks of I §8.3; `Status` facts and drift of I §9; the swap loop. | The core domain with real invariants; most rule tests live here. |
+| `internal/project` | The project's files: manifest, ownership classes, plan/apply, catalog loading, extension rendering, adapter stubs, `AGENTS.md` sections, decision entries. | Different data (files, not records), different failures (conflicts, not rejections), different tests (file trees). |
+| `internal/git` | Running `git` and `gh`: context, working directory, stdin, trimmed output, errors with stderr, `-v` trace. Typed helpers only where used twice. | Both `task` and `project` need it; `exec` details and tracing stay in one place. |
+| `internal/dashboard` | `net/http` handlers for `/`, `/api/state`, `/api/status/<ID>`, and the embedded page. | HTTP is a distinct boundary; deferred to increment 3. |
+
+Dependency direction; nothing imports `cli`, `git` imports no internal package, and `.golangci.yml` enforces all
+three (section 10):
+
+```
+main → cli → task      → git
+           → project   → git
+           → dashboard → task
+```
+
+`task` does not import `project`: `cli` passes the installed roles for `--agent` validation (I §8.3) as a
+`[]string`. `project` receives the embedded tree as an `fs.FS`, so its tests use `testing/fstest.MapFS`.
+
+Not created, and why: no `pkg/` (no public API); no `config` package (settings are three manifest fields read by
+`project`); no `output` or `ui` package (rendering is `cli`); no package per command; no `doctor` or `guard`
+package until either outgrows a file in `cli`.
+
+## 6. Key types
+
+Sketches that fix names and ownership, not final code.
+
+```go
+// internal/cli
+type Env struct {
+	Args           []string
+	Stdin          io.Reader
+	Stdout, Stderr io.Writer
+	Getenv         func(string) string
+	Now            func() time.Time
+	Interactive    bool
+	Assets         fs.FS
+}
+
+func Run(ctx context.Context, env Env) int
+
+type Error struct {
+	Code              string
+	Exit              int
+	Check, Found, Fix string
+	Err               error
+}
+```
+
+```go
+// internal/task
+type Registry struct {
+	SchemaVersion int                `json:"schema_version"`
+	Tasks         map[string]*Record `json:"tasks"`
+}
+
+type Record struct {
+	Title        string      `json:"title"`
+	Status       Status      `json:"status"`
+	Stage        Stage       `json:"stage,omitempty"`
+	Owner        string      `json:"owner,omitempty"`
+	Branch       string      `json:"branch,omitempty"`
+	Spec         string      `json:"spec,omitempty"`
+	Revision     string      `json:"revision,omitempty"`
+	Tier         *int        `json:"tier,omitempty"`
+	ActiveAgents []Agent     `json:"active_agents,omitempty"`
+	Blockers     []Blocker   `json:"blockers,omitempty"`
+	NextAction   *NextAction `json:"next_action,omitempty"`
+	PR           string      `json:"pr,omitempty"`
+	// depends_on, related_task, summary, spec_ref, merge_commit, updated_at …
+}
+
+func (r *Record) Move(m Move, roles []string, now time.Time) (changed []string, err error)
+
+type Store struct {
+	Git    *git.Repo
+	Remote string
+}
+
+func (s *Store) Update(ctx context.Context, fn func(*Registry) (subject string, err error)) (Commit, error)
+```
+
+`Tier` is a pointer because tier 0 is valid and "no tier yet" must stay distinguishable. `task` and `project` each
+define their own `Rejection{Code, Check, Found, Fix}`; a shared package for one struct would be a `common` package
+in disguise. `cli` recognizes both with `errors.As` and maps codes to exit classes with one table.
+
+```go
+// internal/project
+type Action string // create, update, unchanged, keep, remove, conflict, skip (I §3.3)
+
+type Change struct {
+	Path    string
+	Action  Action
+	Owner   string
+	Content []byte
+	Reason  string
+}
+
+type Plan struct{ Changes []Change }
+
+func (p Plan) Conflicts() []Change
+func Apply(root *os.Root, p Plan) error
+```
+
+## 7. Execution flow
+
+**Task write** (`task move W-001 --revision … --tier 2 --stage specialized_review`):
+
+1. `main` builds the signal context and `Env`; `cli.Run` parses shared flags, finds `task move`, parses the rest
+   with the interspersed helper. Malformed input stops here: exit 2.
+2. `cli` locates the repository (`git rev-parse --git-common-dir` from `-C` or the working directory), reads the
+   manifest for `main_branch` and `remote`, and resolves `--as` from the flag or `SOLOMONAR_OWNER`.
+3. `store.Update(ctx, fn)`: read the tip and `state.json`; `fn` checks ownership, applies `Record.Move`, then runs
+   the fact checks (`git merge-base --is-ancestor`, worktree spec lookup). A rejection returns at once: exit 3,
+   nothing written.
+4. The store writes `hash-object` → `mktree` → `commit-tree -p <old>` → `update-ref <new> <old>`. A lost swap
+   re-reads the tip and re-runs `fn`; five losses give `cas_exhausted` (exit 4).
+5. With a remote, `git push <remote> workflow-state` under a time limit; failure is the warning `push_failed`,
+   exit stays 0.
+6. `cli` renders the UC-13 lines, or the envelope with the UC-13 `data`.
+
+**Task read** (`task status W-001`): read the registry; collect the I §9.1 facts with one Git command each; `gh`
+only without `--no-forge` and when installed; compute drift and `allowed_next` from the rule tables; render.
+Exit 0 whatever the drift.
+
+**Project write** (`init`, `extension add`, `sync`, `upgrade`, `runtime add|remove`): load the manifest (absent
+for `init`); take choices from flags, then prompts when interactive; build the `Plan` from the embedded assets and
+the files on disk; show it; stop on conflicts (exit 4) or after `--dry-run`; confirm; `Apply`; for `init` create
+the registry after the files; write the manifest last; print `Next:`.
+
+## 8. Errors, cancellation, and file safety
+
+- Expected failures are values: a `Rejection` for user-correctable checks, `cli.Error` at the boundary.
+  Unexpected failures are wrapped with `%w` and context (`read workflow-state: %w`) and become exit 1.
+- Each error is reported once, by `cli`; packages never log. `errors.As` is used only in `cli`. No error hierarchy
+  beyond these types.
+- Git failures carry the command, exit status, and trimmed stderr; with `-v` the command line is traced before it
+  runs.
+- Cancellation: one context from `signal.NotifyContext(os.Interrupt, syscall.SIGTERM)`. Local Git commands run
+  without a time limit; `git push` and `gh` get 30 seconds each. A cancelled `Apply` rolls back; a swap has either
+  happened (`update-ref` is atomic) or not, and the message says which.
+- Files: every project path goes through one `os.Root` opened at the worktree root; writes are temp file + rename
+  in the same directory; updates keep their mode, new files get `0o644`; nothing outside the repository is written
+  except Git's own objects and refs.
+- `init` creates the registry only when the ref is absent (`update-ref <ref> <new> ""` is create-only); it never
+  overwrites one.
+
+## 9. Code conventions
+
+- Code explains itself through names, small functions, and types. No comment restates what the code does.
+- A comment exists only for what the code cannot say: a non-obvious reason or an external constraint, cited
+  briefly (`I §8.1`, a Git behavior).
+- Doc comments only where the name and signature leave the behavior unclear: one short sentence that starts with
+  the name, no further explanation. No package comments are required.
+- Errors use lowercase messages without trailing punctuation and name the failed operation: `read manifest: %w`.
+- Tests are named for behavior (`TestMoveRejectsShortRevision`); table cases carry a `name` field.
+
+Lint enforces the form, never the presence, of comments: `godoclint` checks existing doc comments (start with
+the name, at most 100 characters per line), and nothing requires one (revive `exported` and staticcheck
+`ST1000` are off; the `comments` exclusion preset is on). Brevity stays a review rule.
+
+## 10. Tooling
+
+`Taskfile.yml` is the single entry point for development and CI; it pins the tool versions and installs them into
+`.bin/` with `go install`, so they are built with the project's Go toolchain and never enter `go.mod`.
+
+| Task | Runs |
+|---|---|
+| `task` | Lists the tasks. |
+| `task build` | `go build -trimpath -o bin/solomonar`, skipped when sources are unchanged. |
+| `task install` | `go install -trimpath`. |
+| `task run -- <args>` | The CLI from source. |
+| `task test` | `go test -race ./...`. |
+| `task cover` | Tests with a coverage profile and the total. |
+| `task fmt` | `golangci-lint fmt` (gofumpt, goimports with the module as local prefix). |
+| `task lint` | `go mod tidy -diff`, then `golangci-lint run` (includes `go vet`, `gosec`, format checks). |
+| `task security` | `govulncheck ./...`. |
+| `task check` | `lint`, `test`, `security`: what CI runs. |
+| `task tools` | Installs golangci-lint v2.15.0 and govulncheck v1.9.0 into `.bin/`; skipped when the pinned versions are there. `task tools --force` rebuilds after a Go upgrade. |
+| `task clean` | Removes `bin/` and coverage output. |
+
+`.golangci.yml` (v2 format) starts from the standard linters (errcheck, govet with all analyzers except
+`fieldalignment` and `shadow`, ineffassign, staticcheck, unused) and adds rules that encode this document:
+
+| Rule | Encodes |
+|---|---|
+| depguard `stdlib-only`: only the standard library and this module | AD-1 |
+| depguard `banned`: no `reflect`, `unsafe`, `log`, `log/slog` outside tests | Section 3 |
+| depguard `exec-only-in-git`: `os/exec` only in `internal/git` | AD-3 |
+| depguard `nothing-imports-cli`, `task-without-project`, `git-is-a-leaf` | Section 5 dependency direction |
+| forbidigo: `os.Exit` outside `main.go`; `os.Args`, standard streams, `os.Getenv`, `time.Now` outside `main.go`; `fmt.Print*`, `print`, `panic`; `exec.Command` without context | AD-4, AD-9, section 8 |
+| tagliatelle: JSON tags in `snake_case` | I §3.4 |
+| musttag: marshaled structs carry tags | AD-7 |
+| exhaustive: switches over `Status`, `Stage`, `Action` cover every value | AD-8 |
+| iface (`identical`, `unused`, `opaque`), ireturn, interfacebloat (max 5) | Concrete types first; small consumer interfaces |
+| gochecknoglobals, gochecknoinits | No global mutable state (the `//go:embed` variable is allowed) |
+| errorlint | `%w`, `errors.Is`, `errors.As` |
+| usetesting, thelper | `t.TempDir`, `t.Setenv`, `t.Context`, `t.Helper` (section 11) |
+| gocognit (20, not in tests), nakedret (none), revive (flow and naming rules), gocritic, modernize, unparam, unconvert, wastedassign, nilerr, predeclared, usestdlibvars, misspell (US) | Readable, modern, self-explaining code (section 9) |
+| godoclint (basic, `max-len` 100) | Section 9 |
+| gosec, with `G204` excluded in `internal/git` and file modes `0755`/`0644` | Running `git` with arguments is the design (AD-3); project files are ordinary repository files |
+| nolintlint: every `//nolint` names its linter and gives a reason | Exceptions stay visible |
+
+## 11. Testing
+
+| Layer | What | How |
+|---|---|---|
+| Rules | I §8.1 and §8.2 tables, field rules, ID allocation, blocker IDs, `allowed_next` | Table-driven tests in `task`, no Git. One row per allowed and per rejected transition. |
+| Registry I/O | Strict decoding, schema validation, stable encoding | Table tests with JSON inputs, including duplicate and unknown keys. |
+| Git facts | Fact checks (I §8.3), `task status` facts and drift (I §9) | Real repositories in `t.TempDir()` built by helpers (`newRepo`, `commit`, `worktree`), isolated with `t.Setenv("GIT_CONFIG_GLOBAL", …)` and author and committer variables. |
+| Concurrency | The swap loop (UC-21) | Two goroutines register against one repository; both succeed with distinct IDs; run with `-race`. A second test: re-validation rejects a concurrent claim of the same planned ID. |
+| Project files | Plans, conflicts, the upgrade table (UC-9), `With` sections, adapters | `fstest.MapFS` as the catalog; temp directories as projects; assert on `Plan` values, then on files after `Apply`; rollback tested with a write that fails midway. |
+| Use cases | Every UC of the increment, human and JSON forms, exit codes | In-process `cli.Run` with buffers, a fixed clock, and `os.DirFS` of `assets/`; JSON compared structurally; a few human outputs as golden files in `testdata/`, refreshed with `-update`. |
+| Prompts | Line prompts, `interactive_required` | `Env.Interactive` and a `strings.Reader` as stdin. |
+
+Tests require `git` ≥ 2.40 on `PATH` and fail with that message otherwise. `gh` is never called in tests:
+`--no-forge`, or a fake `gh` script placed first on `PATH`.
+
+Deferred: transcript tests (`rsc.io/script` or `testscript`). The use cases are transcripts, so they would fit,
+but they are a dependency; reconsider if the in-process tests read worse than the transcripts.
+
+## 12. Implementation plan (increment 1)
+
+Increment 1 of I §10: `init`, every `task` command, `version`, `help`. Each step ends with `task check` green.
+
+| Step | Objective and scope | Acceptance criteria | Tests |
+|---|---|---|---|
+| 1 | **Skeleton.** `main.go` (AD-13), `cli.Run`, command table, interspersed parsing, shared flags, help, `version`, `cli.Error`, envelope, exit codes. | `solomonar version` prints UC-24 outside a project; `solomonar nope` exits 2; `--json` prints one envelope; `-h` on any command prints its help. | Use-case tests for UC-24, usage errors, envelope shape. |
+| 2 | **Git runner.** `internal/git`: run with context and stdin, `-v` trace, repository discovery from `-C` and worktrees, Git version check. | The main checkout and a feature worktree resolve the same common directory; Git < 2.40 is reported. | Temp repositories with a worktree. |
+| 3 | **Registry model and rules.** `task` types, strict decoding, validation, I §8.1 and §8.2 as tables, CLI-D16 invariant, field rules, ID allocation. No Git. | Every row of I §8.1 and §8.2 is accepted or rejected with its I §8.4 code. | Table tests only. |
+| 4 | **Store, `task plan`, `task show`.** Swap loop, commit subjects (I §8.5), push with warning; registry creation as a function (used by tests now, by `init` in step 8). | UC-11, UC-16 (`show`), UC-21 pass; a lost swap re-validates. | Concurrency test with `-race`; push to a bare remote and to a missing one. |
+| 5 | **`task register`, `task move`.** Ownership, I §8.3 fact checks, every UC-14 rejection. | UC-12, UC-13, UC-14, UC-18 pass in human and JSON form. | Real repositories with `feature/<ID>` branches and worktrees. |
+| 6 | **`task block`, `unblock`, `handoff`, `done`.** Blocker IDs, prior status from the stage, merge and `spec_ref` checks. | UC-15, UC-19, UC-20 pass; a squash merge is rejected with `merge_not_merge_commit`. | Repositories with a merge commit, a squash, and a rebased branch. |
+| 7 | **`task status`.** Facts, drift, `allowed_next`, optional `gh`. | UC-16 (`status`) and UC-17 pass; without `gh` the forge facts are `unknown`, never passing. | Fake `gh` on `PATH`; each drift row produced by a repository state. |
+| 8 | **`init`, non-interactive, core only.** Manifest, plan/apply with rollback, core files, `AGENTS.md` and `docs/README.md` from templates, registry creation, re-run no-op, conflicts, `--keep`/`--overwrite`, `--dry-run`. | UC-2 with `--runtime none --ext none`, UC-3, and the non-interactive UC-4 cases pass. | File-tree assertions; a failing write rolls back every file of the run. |
+| 9 | **`init` with runtimes and catalog extensions.** Adapter stubs, `.claude/settings.json` merge, extension rendering, `requires`/`conflicts`, `P/D-n` entries, `docs/stack.md`. | UC-2 with `--runtime claude,codex --ext go`; a repeated `init` stays a no-op. | `fstest.MapFS` catalog with `With` sections; the settings merge keeps foreign keys. |
+| 10 | **Interactive `init`.** Line prompts, multi-select, `AGENTS.md` adoption, `--git-init` prompt, `interactive_required`. | UC-1 and the interactive UC-4 branches pass with scripted stdin. | Prompt tests with `strings.Reader`. |
+
+Increments 2 and 3 follow I §10 and are planned in detail after increment 1, because their main inputs (CLI-D9
+for Codex, the guard's real hook payloads) are verified only then.
+
+## 13. Open questions
+
+| ID | Question | Recommendation | Why it matters |
+|---|---|---|---|
+| Q2 | Adopt an unmanaged file whose content equals what the CLI would write (F4)? | Yes, as `unchanged`, recorded in the manifest. | `init` becomes restartable after a crash. |
+| Q3 | Exit code for an interrupted command (F8)? | 130, with "interrupted; nothing was written" or "interrupted after the registry write; push skipped". | Not in the I §3.5 table today. |
+| Q4 | Separate error code for a downgrade (F10)? | `downgrade_rejected`, exit 3. | Clients can tell it from a re-initialization. |
+| Q8 | Entry point at the module root (AD-13)? | Yes; then CLI-D8 is recorded as decided with this option. | Fixes the install path, the build target in `Taskfile.yml`, and step 1. |
+
+Resolved on 2026-10-21: Q1 as CLI-D16; Q5 as AD-11; Q6 as AD-12; Q7 by moving the interface spec to
+`docs/cli/interface.md`.
+
+## 14. Non-goals and deferred work
+
+- Not built: agent launching, model calls, verdict storage, a daemon, a cache, multiple writable clones of the
+  registry, Jujutsu support (I §1, rules §11).
+- Deferred to increment 2: `doctor`, `sync`, `runtime`, `extension` commands, `guard`.
+- Deferred to increment 3: `upgrade` (with `--diff` through `git diff --no-index`), `dashboard`.
+- Deferred until a concrete need: shell completion (and with it AD-2), transcript tests, Git URL extension sources
+  (CLI-D6), Windows (AD-11), a configuration file, any environment variable beyond `SOLOMONAR_OWNER` and
+  `NO_COLOR`.
