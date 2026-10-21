@@ -22,7 +22,8 @@
 
 ## Commands
 
-<!-- The implementer records the real commands once known. Never guess; keep "not established" until then. -->
+<!-- The implementer discovers commands from the repository and records them once verified. Never guess;
+keep "not established" until then. Unknown commands do not imply an absent application. -->
 
 | Purpose | Command |
 |---|---|
@@ -31,4 +32,6 @@
 | Test | not established |
 | Lint | not established |
 
-Next useful action: start the `prototype` skill.
+Next useful action: use the `solomonar` skill with your selected outcome. For product discovery it routes to
+`prototype`; an existing brief or a CLI/API task can start directly. In Claude Code use `/solomonar`; in Codex
+CLI/IDE use `$solomonar`; the portable prompt is "Use the solomonar skill".
