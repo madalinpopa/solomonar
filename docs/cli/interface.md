@@ -1143,7 +1143,8 @@ Planned W-003: Export expenses as CSV
 ```
 
 The ID is the next free `W-NNN` (highest existing number plus one). `--depends-on` and `--related` must name existing
-tasks (`task_not_found`). `task plan` takes no `--as`: it is the user's write (G16). Without a successful push the
+tasks (`task_not_found`). A missing `--title` is `invalid_usage`; a blank or whitespace-only title is
+`invalid_value`. `task plan` takes no `--as`: it is the user's write (G16). Without a successful push the
 last line ends at `registry @ <sha>` and the warning (`no_remote`, `push_failed`, `push_interrupted`) follows on
 stderr.
 
@@ -1186,16 +1187,44 @@ Without an ID the task gets the next free `W-NNN`. Claiming a planned task: `sol
 "Export expenses as CSV" --owner orchestrator-2`; an unknown ID is `task_not_found`. A title that differs from the
 planned title replaces it with the warning `title_changed`: `title changed from "<old>"`. The claim keeps the
 planned `depends_on` and `related_task`; `--depends-on` or `--related`, when given, replaces the planned value, so a
-claim cannot clear planned dependencies. A blank `--title`, and an `--owner` that is not an agent ID
-`[a-z]+-[0-9]+` (fix "pass --owner orchestrator-1"), are `invalid_value`. The default `next_action` is
+claim cannot clear planned dependencies. A blank or whitespace-only `--title`, and an `--owner` that is not an
+agent ID `[a-z]+-[0-9]+` (fix "pass --owner orchestrator-1"), are `invalid_value`. The default `next_action` is
 `<owner>: Create feature/<ID> and its worktree`; a given `--next` names `user` or the owner (8.3).
 
-Rejections (exit 3): `not_planned` (the ID exists and is not `planned`; found `<ID> is <status>`; fix: `solomonar
-task show <ID>; resume the task instead`); `owner_in_use` (the owner has a `reserved`, `running`, `blocked`, or
+Rejections (exit 3), with the message `task register <ID> rejected` when an ID is given (3.6): `not_planned` (the
+ID exists and is not `planned`; found `<ID> is <status>`; fix: `solomonar task show <ID>; resume the task
+instead`); `owner_in_use` (the owner has a `reserved`, `running`, `blocked`, or
 `paused` task; found `<owner> owns <ID> (<status>)`; fix: choose a new owner ID such as `orchestrator-3`, since an
 orchestrator owns exactly one task). `dependency_not_done` is a warning per dependency that is not `done`, not a
 rejection: `<ID> is not done; register, then block with task block --kind dependency` (rules §4). The success line
 "Registration confirmed" appears only after the compare-and-swap commit exists; `--dry-run` never prints it.
+
+`--title` and `--owner` are required; a missing one is `invalid_usage` (`--title is required`, `--owner is
+required`); when both are missing, the error is `--title is required`. The worktree path is
+`../<repo>-worktrees/<ID>`, where `<repo>` is the main checkout's directory name: relative when the command runs in
+the main checkout, absolute when it runs in another worktree. The base is the main branch
+(`main` until the manifest names it). Without a successful push the registry line ends at `registry @ <sha>`, the
+warnings follow on stderr, and "Registration confirmed" still prints, since a push is not required (rules §4
+step 3). Warnings come in the order `title_changed`, `dependency_not_done`, then the push warning (`no_remote`,
+`push_failed`, `push_interrupted`); JSON `warnings` keep that order.
+
+`--json` data: `{"id": "W-001", "record": { }, "commit": "e06b95860a6082ae37ef08874f8eb5fade2549da", "pushed":
+true}`.
+
+`--dry-run` runs the same checks and writes nothing; it reports `title_changed` and `dependency_not_done` on stderr
+and in JSON `warnings`, never a push warning, and prints no registry line, confirmation, or worktree command:
+
+```
+$ solomonar task register --title "Login" --owner orchestrator-1 --dry-run
+Would register W-001: Login
+  status    reserved / setup
+  owner     orchestrator-1
+  branch    feature/W-001 (create it now)
+  next      orchestrator-1: Create feature/W-001 and its worktree
+  state(W-001): reserved/setup, registered by orchestrator-1
+```
+
+`--dry-run --json` data: `{"id": "W-001", "record": { }, "dry_run": true}`.
 
 ### UC-13 Advance a task through its stages (owner)
 
@@ -1623,7 +1652,7 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `--agent` | `<id>:<role>` split at the first `:`, id `[a-z]+-[0-9]+`, a core delegated role or an extension agent whose manifest state is `installed`, never a draft or `orchestrator` | `invalid_value` |
 | `--next` | `<actor>:<action>` split at the first `:`, actor `user`, the owner, or an `active_agents` id (`user` or the owner on `task register`); action 1 to 120 characters | `invalid_value` |
 | `task register --owner` | agent ID `[a-z]+-[0-9]+` | `invalid_value` |
-| `task register --title` | not blank | `invalid_value` |
+| `task plan --title`, `task register --title` | not blank or whitespace-only | `invalid_value` |
 | `--pr` | a positive PR number or an `https://` URL, stored as given | `invalid_value` |
 | `task done --merge` | full SHA, reachable from main, has two or more parents | `merge_not_on_main`, `merge_not_merge_commit` |
 | `task done` | recorded `revision` is an ancestor of the merge commit | `revision_not_merged` |
