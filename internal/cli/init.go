@@ -171,7 +171,11 @@ func (f *initFlags) run(ctx context.Context, env Env, flags sharedFlags, args []
 		return output{}, fmt.Errorf("open worktree: %w", err)
 	}
 	defer root.Close()
-	return f.initialize(ctx, env, repo, gitInit, root, framework, catalog)
+	var ask *initPrompts
+	if env.Interactive && !f.yes && !flags.json {
+		ask = &initPrompts{prompter: newPrompter(env)}
+	}
+	return f.initialize(ctx, env, repo, gitInit, root, framework, catalog, ask)
 }
 
 // knownRuntimes returns the given runtimes sorted and unique; a given none requests an empty list.
@@ -319,12 +323,18 @@ func selectModels(requested map[string]string, runtimes []string, existing *proj
 }
 
 // initialize plans against repo; with gitInit, repo is the directory git init turns into one (UC-4).
+// A non-nil ask asks for the missing choices of a first init and confirms the plan.
 func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, gitInit bool, root *os.Root,
-	framework string, catalog project.Catalog,
+	framework string, catalog project.Catalog, ask *initPrompts,
 ) (output, error) {
 	existing, err := project.ReadManifest(root, framework)
 	if err != nil {
 		return output{}, err
+	}
+	if ask != nil && existing == nil {
+		if err := ask.choices(f, root, filepath.Base(repo.Dir), catalog); err != nil {
+			return output{}, err
+		}
 	}
 	runtimes := selectRuntimes(f.requested.Runtimes, existing)
 	models, err := selectModels(f.requested.AdversarialModels, runtimes, existing)
@@ -363,6 +373,9 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 	if r.plan, r.decisions, err = f.plan(env, root, existing, p, r); err != nil {
 		return output{}, err
 	}
+	if ask != nil {
+		ask.section()
+	}
 	if conflicts := r.plan.Conflicts(); len(conflicts) > 0 {
 		return output{text: "Plan\n" + planLines(conflicts)}, fileConflict(conflicts)
 	}
@@ -371,6 +384,8 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 		return r.dryRun(), nil
 	case r.tip != "" && !slices.ContainsFunc(r.plan.Changes, writes):
 		return r.noOp(), nil
+	case ask != nil:
+		return ask.proceed(ctx, r, root, store)
 	case !f.yes:
 		return output{}, &Error{
 			Code: "interactive_required", Exit: exitUsage, Message: "init needs a confirmation",
@@ -567,21 +582,28 @@ func (r initRun) noOp() output {
 }
 
 func (r initRun) dryRun() output {
-	registry := "unchanged " + task.Ref
 	action := "unchanged"
 	if r.tip == "" {
-		registry = "create " + task.Ref + " with an empty state.json"
 		action = "create"
 	}
 	data := r.data(registryState{Ref: task.Ref, Action: action})
 	data.DryRun = true
+	text := r.planText() +
+		fmt.Sprintf("Would initialize solomonar %s in %s\n  %s\n", r.framework, r.root, counts(r.plan.Changes))
+	return output{data: data, text: text, warnings: r.warnings}
+}
+
+// planText lists the git init, the file changes, and the registry change.
+func (r initRun) planText() string {
+	registry := "unchanged " + task.Ref
+	if r.tip == "" {
+		registry = "create " + task.Ref + " with an empty state.json"
+	}
 	text := "Plan\n"
 	if r.gitInit {
 		text += fmt.Sprintf("  %-9s  %s\n", "git", "init -b "+r.mainBranch)
 	}
-	text += planLines(r.plan.Changes) + fmt.Sprintf("  %-9s  %s\n", "registry", registry) +
-		fmt.Sprintf("Would initialize solomonar %s in %s\n  %s\n", r.framework, r.root, counts(r.plan.Changes))
-	return output{data: data, text: text, warnings: r.warnings}
+	return text + planLines(r.plan.Changes) + fmt.Sprintf("  %-9s  %s\n", "registry", registry)
 }
 
 func (r initRun) data(registry registryState) initData {
