@@ -1288,9 +1288,10 @@ W-001  blocked/implementation → running/implementation
   registry @ 4f6a8c0e2b4d6f8a1c3e5b7d9f0a2c4e6b8d1f3a
 ```
 
-Rules: blocker IDs are `B-n`, stable within the task, never reused; `--kind decision` requires `--ref <ID>/D-n`;
-`--summary` is at most 80 characters; `--status blocked` requires at least one open blocker after the write;
-`unblock --status` accepts only the prior status (8.1).
+Rules: blocker IDs are `B-n`, stable within the task, never reused (the record's `last_blocker` holds the
+highest `n` issued); `--kind decision` requires `--ref <ID>/D-n`; `--summary` is at most 80 characters;
+`--status blocked` requires at least one open blocker after the write; `unblock --status` accepts only the prior
+status (8.1).
 
 ### UC-16 Inspect state
 
