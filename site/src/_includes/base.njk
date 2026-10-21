@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if title %}{{ title }} · {% endif %}solomonar</title>
+  <meta name="description" content="{{ description or site.description }}">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#1A1614">
+  <link rel="canonical" href="{{ page.url | absolute }}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ title or 'From intent to verified code' }} · solomonar">
+  <meta property="og:description" content="{{ description or site.description }}">
+  <meta property="og:url" content="{{ page.url | absolute }}">
+  <link rel="icon" href="{{ '/favicon.svg' | url }}" type="image/svg+xml">
+  <link rel="preload" href="{{ '/assets/fonts/newsreader-latin.woff2' | url }}" as="font" type="font/woff2" crossorigin>
+  <script>
+    try { const theme = localStorage.getItem('solomonar-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}
+  </script>
+  <link rel="stylesheet" href="{{ '/assets/site.css' | url }}">
+  <script src="{{ '/assets/site.js' | url }}" defer></script>
+</head>
+<body{% if home %} class="home"{% endif %}>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header wrap">
+    <a class="brand" href="{{ '/' | url }}" aria-label="Solomonar home">{% dragon 'brand-dragon' %}<span>solomonar</span></a>
+    <button class="menu-toggle icon-button" type="button" aria-controls="primary-nav" aria-expanded="false" hidden><svg aria-hidden="true"><use href="{{ '/assets/icons.svg#menu-2' | url }}"></use></svg><span class="sr-only">Toggle navigation</span></button>
+    <nav class="primary-nav" id="primary-nav" aria-label="Main navigation">
+      {% for item in site.navigation %}<a href="{{ item.href | url }}"{% if page.url == item.href %} aria-current="page"{% endif %}>{{ item.label }}</a>{% endfor %}
+      <a class="github-link" href="{{ site.repository }}">GitHub <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#external-link' | url }}"></use></svg></a>
+    </nav>
+    <div class="theme-switch" aria-label="Color theme" role="group" hidden>
+      <button type="button" data-set-theme="light" aria-label="Light theme" aria-pressed="false"><svg aria-hidden="true"><use href="{{ '/assets/icons.svg#sun' | url }}"></use></svg></button>
+      <button type="button" data-set-theme="dark" aria-label="Dark theme" aria-pressed="true"><svg aria-hidden="true"><use href="{{ '/assets/icons.svg#moon' | url }}"></use></svg></button>
+    </div>
+  </header>
+  {{ content | safe }}
+  <footer class="site-footer wrap">
+    <a class="brand footer-brand" href="{{ '/' | url }}">{% dragon 'brand-dragon' %}<span>solomonar</span></a>
+    <p>From intent to verified code.</p>
+    <nav aria-label="Footer navigation"><a href="{{ '/docs/getting-started/' | url }}">Documentation</a><a href="{{ site.repository }}">Source on GitHub</a><a href="{{ 'LICENSE' | source }}">MIT license</a></nav>
+    <span class="footer-note">Rooted in Romanian folklore. Built for thoughtful software.</span>
+  </footer>
+  <div class="sr-only" role="status" aria-live="polite" id="announcement"></div>
+</body>
+</html>
