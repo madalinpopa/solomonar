@@ -142,15 +142,32 @@ func checkStageMove(from Stage, after *Record) error {
 		return m.from != from || m.to != after.Stage
 	})
 	switch {
-	case len(moves) == 0 || after.Tier != nil && !moves[0].allows(after.Tier):
+	case len(moves) == 0:
 		rejection.Fix = "allowed: " + join(stageTargets(from, after.Tier))
-		return rejection
+	case after.Tier != nil && !moves[0].allows(after.Tier):
+		rejection.Check, rejection.Fix = tierMismatch(moves[0], *after.Tier)
 	case after.Tier == nil && after.Stage.atOrAfter(StageSpecializedReview):
 		rejection.Code = "tier_required"
-		rejection.Fix = "pass --tier with --revision"
-		return rejection
+		rejection.Check = "a stage after implementation needs a recorded tier"
+		rejection.Fix = "triage the candidate and pass --revision <full-sha> --tier <0|1|2> with the stage move"
+	default:
+		return nil
 	}
-	return nil
+	return rejection
+}
+
+// tierMismatch words a stage move the tier does not allow, naming the lowest tier that does (I UC-14).
+func tierMismatch(move stageMove, tier int) (check, fix string) {
+	check = fmt.Sprintf("tier %d does not go from %s to %s (rules §7)", tier, move.from, move.to)
+	if !tierReaches(&tier, move.to) {
+		check = fmt.Sprintf("tier %d skips %s (rules §7)", tier, move.to)
+	}
+	targets := stageTargets(move.from, &tier)
+	if forward := slices.DeleteFunc(slices.Clone(targets), func(s Stage) bool { return !s.atOrAfter(move.from) }); len(forward) > 0 {
+		targets = forward
+	}
+	lowest := slices.Min(move.tiers)
+	return check, fmt.Sprintf("--stage %s, or record tier %d if the triage changed: --tier %d", join(targets), lowest, lowest)
 }
 
 // allowedStatuses lists the task move targets of r's status in declaration order.
