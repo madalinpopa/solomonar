@@ -114,7 +114,7 @@ Applied 2026-10-20 to the working copy (not committed). File abbreviations as ab
 | C2 | sk:spec §2 (mode table, bullets), §5 (user-confirmed "Spec changes", final IDs for `<capability>/new`); O §1, §3 `integration`; sk:work-spec §4 (sources on each entry; only the orchestrator applies them); I §1 and §5 step 5 (spec files removed from implementer edits); work-spec template (sources in the "Spec changes" hint and example) |
 | C3 | R §7 (`state(<ID>): <status>/<stage> — <summary>`); R §3 (`docs(<ID>): record W-001/D-n`); I §5 step 8 (type set + `wip`); O §3 preamble reference |
 | C4 | sk:work-spec §4 (named check; automated test unless impractical, then manual scenario + limit), §5 Verifiable reference; I §5 step 4 reference; SPC §4 (missing check or required automated test → `blocking`) |
-| C5 | `assets/framework/agents/reviewer.md` → `assets/framework/reviewer.md`, frontmatter removed; references in SEC, GO, SPC, ADV updated. O, P, and A held no `agents/reviewer.md` reference |
+| C5 | `assets/framework/agents/reviewer.md` → `assets/framework/reviewer.md`, frontmatter removed; references in SEC, COR, SPC, ADV updated. O, P, and A held no `agents/reviewer.md` reference |
 | C6 | R §11: Git and Git worktrees required; Jujutsu and other VCS front ends out of scope |
 | D6 | `docs/design/framework-v0.1.md` copied unchanged from `~/Downloads/AI-Assisted Software Development Framework.md` |
 
@@ -177,7 +177,7 @@ checkout in R §4, §7, §11.
 ## H. Applied changes for section G
 
 Applied 2026-10-20 in the working copy (not committed). Abbreviations as above; ADV = `adversarial-reviewer.md`,
-GO = `go-reviewer.md`, sk = skill. Section numbers did not shift; R §9 is renamed "Closure".
+COR = `correctness-reviewer.md`, sk = skill. Section numbers did not shift; R §9 is renamed "Closure".
 
 | ID | Files · sections changed |
 |---|---|
@@ -189,7 +189,7 @@ GO = `go-reviewer.md`, sk = skill. Section numbers did not shift; R §9 is renam
 | G7 | R §8 Staleness (branch contains main; CI always reruns; agent reviews rerun on conflicts or a non-empty file intersection, `<base>` = `git merge-base <reviewed revision> main`); R §6 Candidate stability (reference to §8); O §3 `integration` |
 | G8 | R §6 Triage (tier table; adversarial row "Tier 2"; different model, recorded in Verification), Adversarial ordering (tier 2 only); R §5 main flow; R §7 Stages (tier 0 and tier 1 skips); O §3 `implementation` (triage and tier at `READY_FOR_REVIEW`; tier 0 → `integration`), `specialized_review` Exit, `adversarial_review` Entry; ADV §1; P §8 `Reviews` line (tier and models) |
 | G3 | I §5 step 1 (approach; one `NEEDS_DECISION` before tracked changes, no `wip`; skipped in correction rounds unless the approach changes), step 9 (`Approach` line in `Summary`); I §4 step 2 (no checkpoint when nothing tracked changed); O §3 `implementation` reference. Former step 2 (map AC → code and check) folded into the approach |
-| G9 | I §5 step 3 (failing test per AC first where practical, recorded in `Checks and evidence`), step 9; SPC §4 (weakened or deleted assertions → `blocking`); GO §1 test bullet |
+| G9 | I §5 step 3 (failing test per AC first where practical, recorded in `Checks and evidence`), step 9; SPC §4 (weakened or deleted assertions → `blocking`); COR §1 test bullet |
 | G4 | sk:work-spec §4 (ACs cite `<capability>/R-n` or `<capability>/new`; EARS form) and template (hint and example ACs in EARS); sk:spec §3 and template (EARS for new rules, example rules); I §5 step 3 and A rule 13 (tests and comments cite rule IDs, never task or AC IDs) |
 | G13 | A Load your context; O §1 |
 | G19 | sk:work-spec template (`# W-001: Change title`, example), §3 step 3 prototype reference, §5 readiness line (`Readiness: NOT READY (<…>)`); P §2, §5, §6, §7, §9 (`# <Task ID>: <Role>`, entry lines); `state(<ID>)` format (R §7); O §4 packet headers (`Task: W-001, <title>`, `Role: …; …`) and §5 messages; prototype references (`, flow <flow-id>`) in sk:prototype §7, sk:spec §3 and template, sk:work-spec; prototype template list lines; README template index lines; A version line. No em dash remains anywhere in `assets/` |

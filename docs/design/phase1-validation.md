@@ -1,9 +1,9 @@
 # Phase 1 validation — framework v0.1.0
 
 Abbreviations: R = `rules.md`, P = `report.md`, O = `orchestrator.md`, I = `implementer.md`, Rv = `reviewer.md`,
-SEC/GO/SPC/ADV = specialist role files, A = `AGENTS.md`, sk:x = skill `x` `SKILL.md`. `§n` is the file's section n.
-Source of intent: `docs/design/framework-v0.1.md` does not exist in the repository or its jj history; the design
-note was read from `~/Downloads/AI-Assisted Software Development Framework.md` (613 lines, has "Phase 1 validation").
+SEC/COR/SPC/ADV = specialist role files, A = `AGENTS.md`, sk:x = skill `x` `SKILL.md`. `§n` is the file's section n.
+Source of intent: [`framework-v0.1.md`](framework-v0.1.md). Role names follow the current framework; the B8 line
+counts are those measured at validation.
 
 ## 1. Verdict
 
@@ -45,13 +45,13 @@ Feature: product "Notes", flow `login`, task `W-001` "Login", decision `W-001/D-
 
 | # | Actor | Governing § | State change | Artifacts | Result | Gap |
 |---|---|---|---|---|---|---|
-| 1 | orchestrator-1 | R §6 Triage; O §3 | security, go, spec required; `active_agents` sec-1, go-1, spec-1 | three packets, same `revision`; state commit | – | none |
+| 1 | orchestrator-1 | R §6 Triage; O §3 | security, correctness, spec required; `active_agents` sec-1, cor-1, spec-1 | three packets, same `revision`; state commit | – | none |
 | 2 | sec-1 | SEC §2, §4; Rv §7 | – | `SEC-1` `blocking`, Violates AC-5, request-sequence evidence | `CHANGES_REQUIRED` | none |
-| 3 | spec-1 / go-1 | SPC §4 / GO §3 | – | `SPEC-1` (AC-5) / none | `CHANGES_REQUIRED` / `PASS` | none |
+| 3 | spec-1 / cor-1 | SPC §4 / COR §3 | – | `SPEC-1` (AC-5) / none | `CHANGES_REQUIRED` / `PASS` | none |
 | 4 | orchestrator-1 | O §6; R §6 Consolidation; P §7 | stage `implementation` | SEC-1 + SPEC-1 → `W-001/F-1`; one correction list | – | none |
 | 5 | impl-3 | I §6 | – | `fix(W-001): invalidate session on logout` | `READY_FOR_REVIEW` (lists F-1) | none |
-| 6 | orchestrator-1 | R §6 Candidate stability; O §3 | new `revision`; `specialized_review` | affected verdicts: security, spec, go (Go code changed) | – | none |
-| 7 | sec-2, spec-2, go-2 | Rv §3 recheck | – | F-1 `Status: resolved` | `PASS` ×3 | none |
+| 6 | orchestrator-1 | R §6 Candidate stability; O §3 | new `revision`; `specialized_review` | affected verdicts: security, correctness, spec (code changed) | – | none |
+| 7 | sec-2, cor-2, spec-2 | Rv §3 recheck | – | F-1 `Status: resolved` | `PASS` ×3 | none |
 | 8 | adv-1 | ADV §3; O §4 adversarial packet | `adversarial_review` → `integration` | scenarios: reuse token after logout, concurrent logout, restart | `PASS` | none |
 
 **S4 — The feature merges**
@@ -95,9 +95,9 @@ Feature: product "Notes", flow `login`, task `W-001` "Login", decision `W-001/D-
 | S9 · 2 | orchestrator-1 | R §5 Loop stop; O §3, §5 | stop looping; analyze; options | *Blocked* | – | none |
 | S9 · 3 | orchestrator-1 | R §7 Blocker | status `blocked`; blocker kind? decision entry? | state commit | – | ambiguous → Q6 |
 | S9 · 4 | user | R §5 table; sk:work-spec §4 | option chosen; an AC change cites `changed: W-001/D-2` | – | – | none |
-| S10 · 1 | go-1 | – | session ends; no report | – | – | none |
+| S10 · 1 | cor-1 | – | session ends; no report | – | – | none |
 | S10 · 2 | orchestrator-1 | O §6.2; R §6 gate | stays `specialized_review`; gate `INCOMPLETE`, never `PASS` | – | `INCOMPLETE` | none |
-| S10 · 3 | go-2 | O §3 `specialized_review` Failure | `active_agents` go-2; rerun on same `revision` | state commit | `PASS` | none |
+| S10 · 3 | cor-2 | O §3 `specialized_review` Failure | `active_agents` cor-2; rerun on same `revision` | state commit | `PASS` | none |
 
 ## 3. Audit tables
 
@@ -111,9 +111,9 @@ Feature: product "Notes", flow `login`, task `W-001` "Login", decision `W-001/D-
 | Readiness | `READY`, `NOT READY — …` | sk:work-spec §5 | R §4; O §3 | none (skill verdict) |
 | Finding class | `blocking` `suggestion` `unverified` | P §5 | R §6; O §6; I §6; Rv §7; role files | `Violates` without a rule — fixed F2 |
 | Recheck status | `resolved` `still open` `regressed` | P §5 | Rv §3; ADV §4 | none |
-| Check result | `pass` `fail` `not run` `limited`; `fail (pre-existing, baseline <ref>)` | P §4 | I §5; Rv §8, §10; GO §3; ADV §3 | none |
+| Check result | `pass` `fail` `not run` `limited`; `fail (pre-existing, baseline <ref>)` | P §4 | I §5; Rv §8, §10; COR §3; ADV §3 | none |
 | Roles | orchestrator, implementer, 4 reviewers; `reviewer` = shared contract | agents/*.md; P §2 | A; R §6; O §2, §4 | none |
-| Agent / owner IDs | `orchestrator-n`, `impl-n`, `sec-n`, `go-n`, `spec-n`, `adv-n` | O §2 | R §7 example | none |
+| Agent / owner IDs | `orchestrator-n`, `impl-n`, `sec-n`, `cor-n`, `spec-n`, `adv-n` | O §2 | R §7 example | none |
 | Blocker kind | `decision` `dependency` `check` `environment` | R §7 | R §3–4, §9, §11; O §3 | loop stop has no kind → Q6 |
 | Labels | **Observed** **Agreed** **Open** | sk:spec §3 | SPC §1; sk:work-spec §2, §4; spec template | none |
 | Flow status | `draft` `ready for spec` `superseded` | sk:prototype §5 | prototype template; sk:spec §4 | none |
@@ -122,7 +122,7 @@ Feature: product "Notes", flow `login`, task `W-001` "Login", decision `W-001/D-
 | `W-001/D-n`, `W-001/F-n` | task-scoped | R §3, §6 | P §5–7; O; I; Rv; SPC; ADV; skills | none |
 | `W-001/Q-n` | task question | sk:work-spec §3 | work-spec template | none |
 | `B-n` | blocker ID | R §7 example only | O §5 `<blocker ID>` | format illustrative only (minor) |
-| `SEC/GO/SPEC/ADV-n`, `IMPL-n` | provisional finding IDs | role files; I §6 | P §5; O §6 | `IMPL-n` missing in P §5 — fixed F1 |
+| `SEC/COR/SPEC/ADV-n`, `IMPL-n` | provisional finding IDs | role files; I §6 | P §5; O §6 | `IMPL-n` missing in P §5 — fixed F1 |
 | `D-n`, `AC-n` | provisional decision; AC | P §6; sk:work-spec §4 | Rv §7; I §4; SPC; P §9 | none |
 | `<capability>/R-n`, `/Q-n`, `ui/R-n` | spec rule, open item | sk:spec §3 | A; Rv §7; SPC §1; sk:work-spec §3; templates | none |
 | Flow ID | kebab-case, never reused | sk:prototype §5 | sk:spec §3; sk:work-spec §3 | none |
@@ -203,7 +203,7 @@ section/step refs, I 4 + 4, Rv 3, ADV 1, SPC 2, skills 16, A 1. Every `docs/fram
 | Project and framework files | covered, except `decisions.md` "pending choices" | A routes; templates; C1 → Q1; runtime adapter: Phase 2 |
 | Context loading; Example AGENTS.md | covered | A; I §2; Rv §2 |
 | work-spec skill and template; Prototype handoff and readiness | covered | sk:work-spec; sk:prototype §7; sk:spec §4 |
-| Review specializations; Final adversarial review | covered | R §5–6; SEC; GO; SPC; ADV |
+| Review specializations; Final adversarial review | covered | R §5–6; SEC; COR; SPC; ADV |
 | Priorities and arbitration | covered | R §1, §6; Rv §6 |
 | Execution loop, approval loop, return points | covered | R §3, §5; O §3 (rejection actor → Q2) |
 | Conditions for PR and merge | covered | R §8 |
@@ -225,7 +225,7 @@ frontmatter keys (exactly `name`, `description`; `name` = file or skill name), `
 |---|---|---|---|
 | rules.md / report.md | 301 (300) / 197 | OK / OK | none (correct) |
 | agents: orchestrator / implementer / reviewer | 206 (202) / 127 (126) / 104 | OK | OK |
-| agents: security / go / spec / adversarial | 55 / 61 / 62 / 80 | OK | OK |
+| agents: security / correctness / spec / adversarial | 55 / 61 / 62 / 80 | OK | OK |
 | skills SKILL.md: prototype / spec / work-spec | 98 / 106 / 108 | OK | OK |
 | skills template.md: prototype / spec / work-spec | 34 / 35 / 40 | **FAIL** (absent) → Q8 | none (correct) |
 | templates: AGENTS.md / docs/README.md / state.json | 62 / 33 / 4 | renders `Framework version: 0.1.0 —` / n/a / n/a | parse + execute OK / OK / valid JSON (`schema_version`, `tasks`) |
@@ -244,7 +244,7 @@ frontmatter keys (exactly `name`, `description`; `name` = file or skill name), `
 
 | ID | File · section | Before → after | Reason |
 |---|---|---|---|
-| F1 | report.md §5 IDs | "a reviewer assigns … `SEC-1`, `GO-1`, `SPEC-1`, `ADV-1`" → "the reporting role assigns … `ADV-1`, `IMPL-1`" | C3; I §6 uses `IMPL-n` |
+| F1 | report.md §5 IDs | "a reviewer assigns … `SEC-1`, `COR-1`, `SPEC-1`, `ADV-1`" → "the reporting role assigns … `ADV-1`, `IMPL-1`" | C3; I §6 uses `IMPL-n` |
 | F2 | report.md §5 table + entry format | "must name the violated rule/AC" → "… (or the demonstrated defect)"; `Violates: <rule or AC ID>` → "…; when none exists, `demonstrated defect: <invariant broken>`" | C4; contradiction with Rv §7, SEC §4 |
 | F3 | rules.md §10 Pause | "Commit status `paused` and a `next_action`; stop delegating" → "Stop delegating; settle or stop active work; commit status `paused` with the latest committed `revision` and a `next_action` naming outstanding work" | C2; design Pause row |
 | F4 | implementer.md §6 | orchestrator commits touch "only `docs/work/` or `docs/decisions.md`" → also `docs/specs/`, `docs/ui.md`, the `docs/README.md` index | O §1, §3 commit spec updates; a decision during a correction round made the implementer report `INCOMPLETE` |

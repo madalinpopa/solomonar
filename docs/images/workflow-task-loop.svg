@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" class="dg" width="960" height="482" viewBox="0 0 960 482" role="img" aria-label="The orchestrator is the hub: it delegates the work spec to the implementer, sends the same revision to the required specialists in parallel, then to the adversarial reviewer for tier 2 tasks, asks the user to approve decisions, writes state through solomonar task, reads it back with task status against Git, and opens the PR.">
+<svg xmlns="http://www.w3.org/2000/svg" class="dg" width="960" height="482" viewBox="0 0 960 482" role="img" aria-label="The orchestrator is the hub: it delegates the work spec to the implementer, sends the same revision to the required language-agnostic specialists (security, correctness, spec, plus installed extension reviewers) in parallel, then to the adversarial reviewer for tier 2 tasks, asks the user to approve decisions, writes state through solomonar task, reads it back with task status against Git, and opens the PR.">
 <style>
 svg {
   --bg: #F2F4F1; --surface: #FFFFFF; --ink: #18211E; --muted: #56625D; --line: #9AA7A1; --grid: #DDE3DF;
@@ -75,11 +75,15 @@ svg { font-family: var(--sans); }
       <text class="ph" x="690" y="120">SPECIALISTS, IN PARALLEL</text>
       <rect class="frame" x="690" y="130" width="230" height="170" rx="6"/>
       <rect class="box" x="705" y="145" width="200" height="40" rx="3"/>
-      <text class="t-sm" x="805" y="169" text-anchor="middle">Security</text>
+      <text class="t-sm" x="805" y="161" text-anchor="middle">Security</text>
+      <text class="s" x="805" y="177" text-anchor="middle">bugs · security</text>
       <rect class="box" x="705" y="195" width="200" height="40" rx="3"/>
-      <text class="t-sm" x="805" y="219" text-anchor="middle">Go and correctness</text>
+      <text class="t-sm" x="805" y="211" text-anchor="middle">Correctness</text>
+      <text class="s" x="805" y="227" text-anchor="middle">business logic</text>
       <rect class="box" x="705" y="245" width="200" height="40" rx="3"/>
-      <text class="t-sm" x="805" y="269" text-anchor="middle">Spec compliance</text>
+      <text class="t-sm" x="805" y="261" text-anchor="middle">Spec</text>
+      <text class="s" x="805" y="277" text-anchor="middle">work spec · language rules</text>
+      <text class="s" x="805" y="318" text-anchor="middle">+ extension reviewers (CLI)</text>
 
       <rect class="box" x="705" y="370" width="200" height="60" rx="4"/>
       <text class="t" x="805" y="396" text-anchor="middle">Adversarial</text>

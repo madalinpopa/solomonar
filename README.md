@@ -10,6 +10,15 @@ solomonar: in Romanian folklore, a wizard who learns every secret from a single 
 
 From intent to verified code. The prototype discovers the product, the specifications pin down its behavior, and every task runs through an orchestrator that delegates implementation and reviews, writes and checks state only through the `solomonar` CLI, and merges into `main` only what has passed every check.
 
+### A light core, extended by the CLI
+
+Solomonar is a way of working, not a technology stack. The core holds only the minimal skills and agents that enforce the process, and none of them names a language. `solomonar init` and `solomonar extension add` install everything else, following the project's approved stack decisions.
+
+| Part | Contains |
+| - | - |
+| Core | Skills `prototype`, `spec`, `work-spec`. Agents `orchestrator`, `implementer`, and four language-agnostic reviewers: `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`. Always installed. |
+| Extensions | Skills with the rules of a language, library, or practice (for example `go`, `htmx`, `templ`, `tdd`), and agents that add a specialist reviewer. Added by the CLI; the process never depends on one. |
+
 ## 1 / 5 · The full cycle, from prototype to closure
 
 ![The Solomonar cycle: prototype and spec discover the product, solomonar task register and work-spec prepare the task, then implementation, tiered reviews, PR with merge, and solomonar task done; CHANGES_REQUIRED sends the task back to implementation.](docs/images/workflow-cycle.svg)
@@ -18,9 +27,20 @@ From intent to verified code. The prototype discovers the product, the specifica
 
 ## 2 / 5 · The task loop: everything goes through the orchestrator
 
-![The orchestrator is the hub: it delegates the work spec to the implementer, sends the same revision to the required specialists in parallel, then to the adversarial reviewer for tier 2 tasks, asks the user to approve decisions, writes state through solomonar task, reads it back with task status against Git, and opens the PR.](docs/images/workflow-task-loop.svg)
+![The orchestrator is the hub: it delegates the work spec to the implementer, sends the same revision to the required language-agnostic specialists (security, correctness, spec, plus installed extension reviewers) in parallel, then to the adversarial reviewer for tier 2 tasks, asks the user to approve decisions, writes state through solomonar task, reads it back with task status against Git, and opens the PR.](docs/images/workflow-task-loop.svg)
 
 **Agents talk only to the orchestrator.** The user starts each orchestrator as a top-level session. The implementer writes its approach first and raises every architecture or dependency decision in one `NEEDS_DECISION`, before touching tracked files. Specialists review the same revision in parallel; the triage records a risk tier in state and marks a specialty that does not apply as "not required", never as a fabricated PASS. The adversarial review runs only on tier 2 tasks, after the specialist blockers are closed, on a different model when the runtime allows. No response is not approval. After two rounds with no progress on the same blocker, the orchestrator stops the loop and takes the problem to the user. **The orchestrator decides; the CLI checks.** Each `solomonar task` write is checked against Git: the revision exists on the feature branch, the spec exists, and the stage respects the recorded tier. `task status` reports what Git shows and where the record has drifted. The CLI never launches agents or stores verdicts.
+
+### Core reviewers
+
+| Priority | Reviewer | Checks |
+| - | - | - |
+| 1 | Security | Bugs and security defects: crashes, error handling, leaks, races, trust boundaries, input, secrets. |
+| 2 | Correctness | Business logic: agreed business rules, domain invariants, calculations, state transitions. |
+| 3 | Spec | The task matches its work spec (acceptance criteria, scope) and the rules of the installed extensions that apply, such as the language's rules. |
+| - | Adversarial | Tier 2 only: tries to break the integrated feature with an input, a sequence, or a failure. |
+
+After every code change, Security, Correctness, and Spec all review the same revision in parallel. Their priority is the order of the table: the orchestrator orders the corrections by it, and when two corrections conflict, the higher-priority one wins. Language rules are not in any reviewer: choosing Go installs the `go` extension, a separate rules file (`go/C-n`) that the Spec reviewer checks. Installed extension agents join the specialists when their "applies when" matches the change.
 
 ### Report results
 

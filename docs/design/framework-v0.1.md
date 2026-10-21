@@ -9,11 +9,28 @@ Write all framework artifacts in English, including rules, documentation and spe
 | Phase | Deliverable | Completion condition |
 | - | - | - |
 | 1 — Framework definition | English rules, three skill contracts, agent responsibilities, context routing, work specification, state and report contracts, recovery and dashboard behavior. | The contracts form one coherent workflow and can be walked through with a small feature. |
-| 2 — Go CLI | Versioned embedded framework assets; an `init` command that installs them in a new project and creates `refs/heads/workflow-state`; the `solomonar task` commands (rules §7), the only state writers, with fact checks and the read-only `task status`. | Initialization is repeatable, preserves project edits, and exposes the selected runtime's instructions correctly. Every `task` command validates and rejects as rules §7 requires, with tests for transitions, fact checks, and the compare-and-swap retry. |
+| 2 — Go CLI | Versioned embedded framework core and extension catalog; an `init` command that installs the core and the chosen extensions in a new project and creates `refs/heads/workflow-state`; the `solomonar task` commands (rules §7), the only state writers, with fact checks and the read-only `task status`; the `solomonar extension` commands that extend the core. | Initialization is repeatable, preserves project edits, and exposes the selected runtime's instructions correctly. Every `task` command validates and rejects as rules §7 requires, with tests for transitions, fact checks, and the compare-and-swap retry. |
 
-The CLI's first responsibility is project initialization and packaging, then the state commands the rules depend on; `solomonar doctor` and runtime adapters (hooks, skill installation, native agent files) follow them. For state, the CLI is a guard and an oracle, never a driver: it never runs sessions or calls model providers. Dashboard hosting is an implementation choice for Phase 2. No CLI, installed skills, dashboard application, or application architecture is implemented by this design note.
+The CLI's first responsibility is project initialization and packaging, then the state commands the rules depend on; `solomonar doctor`, runtime adapters (hooks, skill installation, native agent files), and extension management follow them. For state, the CLI is a guard and an oracle, never a driver: it never runs sessions or calls model providers. Dashboard hosting is an implementation choice for Phase 2. No CLI, installed skills, dashboard application, or application architecture is implemented by this design note.
 
+# Light core and extensions
 
+The framework is a lightweight core of a process: a way of working, not a technology stack. The core holds only the minimal skills and agents that enforce the process; the CLI adds every other skill and agent as an extension.
+
+| Part | Contains | Installed by |
+| - | - | - |
+| Core | `rules.md`, `report.md`, `reviewer.md`; skills `prototype`, `spec`, `work-spec`; agents `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`. | `solomonar init`; always present, never removed. |
+| Extensions | Skills with the rules of a language, library, or practice, or a supporting procedure; agents that add a specialist reviewer. | `solomonar init` or `solomonar extension add`. |
+
+- FW-1: An item belongs to the core only if the rules name it as a process step or a required role. Anything else is an extension.
+- FW-2: The core is language-agnostic. No core rule, skill, or agent names a language, framework, or library; that knowledge lives in extension skills.
+- FW-3: The process never depends on an extension. With no extension installed, every gate runs on the core reviewers.
+- FW-4: Only the CLI installs, renders, and removes extensions. Adding or dropping a stack extension (language, architecture, frontend, backend, persistence, testing, operations) is an architecture or dependency decision and follows the approval loop.
+- FW-5: The orchestrator names the installed extensions that apply to a change in each packet. Their `must` rules are approved global rules (authority order 2); installed extension agents join triage beside the core reviewers.
+
+Verification: a project initialized with no extension can run the Phase 1 validation scenarios; `grep` of the core assets finds no language-, framework-, or library-specific rule.
+
+Interface, catalog, rendering, and file ownership: [CLI v0.1 §4.1 and §4.3–4.6](cli-v0.1.md#41-core-and-extensions).
 
 # Agreed decisions
 
@@ -24,7 +41,7 @@ The CLI's first responsibility is project initialization and packaging, then the
 
 Project specifications live under `docs/`. Skills must be short, with minimal templates and questions tailored to the next step. Information is identified as observed in the prototype, agreed, or awaiting clarification.
 
-`AGENTS.md` must specify which context to load for each type of work. Go is the user's primary language. This note records the skill designs; implementation and installation are separate steps.
+`AGENTS.md` must specify which context to load for each type of work. Go is the user's primary language; it reaches a project as the `go` extension, never as core content (FW-2). This note records the skill designs; implementation and installation are separate steps.
 
 Agreed flow: orchestrator → implementer → parallel specialist reviews → final adversarial review → pull request → merge into main. The implementer notifies the orchestrator when an architecture or dependency decision is needed, and the orchestrator requests user approval. The implementer waits for approval before applying the decision. Automatic completion through PR and merge depends on passing the required checks and following repository rules.
 
@@ -44,8 +61,8 @@ Parallel execution requirement: the user starts tasks one at a time. Each orches
 | `docs/decisions.md` | Scoped decisions, rationale, pending choices, and links to the rules they affect. |
 | `prototype/` | Static HTML, CSS, and JavaScript used for product discovery. |
 | `docs/framework/rules.md` | Reusable orchestration, approval, review, state, and closure rules; identifies the framework version. |
-| `docs/framework/agents/<role>.md` | One concise contract per orchestrator, implementer, security, Go/correctness, spec, or adversarial role. |
-| `docs/framework/skills/<skill>/SKILL.md` | The procedure for `prototype`, `spec`, or `work-spec`; small templates live beside the skill and are loaded when needed. |
+| `docs/framework/agents/<role>.md` | One concise contract per core role (orchestrator, implementer, security, correctness, spec, adversarial) or installed extension agent. |
+| `docs/framework/skills/<skill>/SKILL.md` | The procedure for a core skill (`prototype`, `spec`, `work-spec`) or the rules of an installed extension skill; small templates live beside the skill and are loaded when needed. |
 
 These are portable source locations. The selected runtime may need a small registration adapter; references alone do not register a skill. Application documents are created only when useful. The versioned registry is `state.json` on the dedicated `workflow-state` branch, described below.
 
@@ -157,17 +174,23 @@ An agent performs an activity; a skill provides its procedure. The agreed organi
 
 When delegated work, each agent receives the objective, work spec, relevant references, and its area of responsibility. Transfer the full conversation history only when necessary. Reviewers also receive the exact diff or commit and the check results.
 
-# Proposed review specializations
+# Review specializations
 
-| Specialization | Focus | When it is activated |
-| - | - | - |
-| Security | Authorization, data isolation, external input, files, secrets, and other trust boundaries. | When the change affects these areas; includes relevant dependency and configuration changes. |
-| Go and correctness | Bugs, error handling, concurrency, transactions, resources, adherence to the architecture, and relevant Go practices. | When Go code changes. |
-| Spec compliance | Acceptance criteria, business rules, flows, important cases, and omitted behaviors. | When implementing or changing a requirement. |
+The four core reviewers are language-agnostic (FW-2). Language, library, and practice rules reach a review only through the installed extension skills that the orchestrator names in the packet.
 
-The review checklist adapts to the change. During triage, the orchestrator determines which specializations are needed and records the relevant outcome. Functional correctness remains an explicit concern, including when the code uses another language.
+| Priority | Reviewer | Focus | Required when |
+| - | - | - | - |
+| 1 | Security (`security-reviewer`) | Bugs and security defects: crashes, error handling, resource leaks, concurrency and races, partial writes; authorization, data isolation, external input, files, secrets, other trust boundaries, and relevant dependency or configuration changes. | Every code change. |
+| 2 | Correctness (`correctness-reviewer`) | Business logic: Agreed business rules (`<capability>/R-n`), domain invariants, calculations, state transitions, and the failure, boundary, empty, and permission cases those rules imply. | Every code change. |
+| 3 | Spec (`spec-reviewer`) | Conformance: each acceptance criterion and the authorized scope of the work spec, omitted or extra behavior, `docs/architecture.md` and `docs/ui.md`, and the `must` rules (`<name>/C-n`) of every installed extension that applies, such as the rules of the language. | Every code change. |
+| - | Adversarial (`adversarial-reviewer`) | The integrated feature as a whole (next section). | The risk tier requires it (rules §6), after the specialists pass. |
 
-[Go Code Review Comments](https://go.dev/wiki/CodeReviewComments) provides a reference for common practices and issues. The [Go security documentation](https://go.dev/doc/security/) describes tools such as govulncheck, which checks for known vulnerabilities relevant to the code. The selection and execution of checks adapt to the change and the available environment.
+- Priority applies after every code change. The three specialists still run in parallel on the same revision; they run in priority order only when the runtime cannot run them in parallel or their checks interfere. The orchestrator orders the consolidated correction list by priority, and when two corrections conflict, the higher-priority one is applied and the other re-examined. The authority order still decides between requirements; priority never overrides evidence.
+- Language rules live in the language's extension skill, never in a reviewer. Choosing Go at `init` (or `solomonar extension add go`) installs `docs/framework/skills/go/SKILL.md` (source: [`assets/extensions/language/go/`](../../assets/extensions/language/go/SKILL.md)) with rules `go/C-n`; the implementer follows them and the Spec reviewer checks every `must` rule.
+- Spec checks that the change does what its written criteria and rules say. Correctness checks that the domain logic holds in every case those rules cover, including cases no AC names. The orchestrator deduplicates a defect both report.
+- Language-specific checks and tools (for example `go vet` or `govulncheck`) are suggested by the extension that applies; a reviewer runs them when available and records any check not run.
+- During triage, the orchestrator records which reviewers are required and why. A reviewer that does not apply is marked not required with a reason. An installed extension agent is required when its `applies_when` matches the change.
+- A change in a language with no installed extension is still reviewed by all required core reviewers; the Spec reviewer records the missing language rules as a verification limit, not a PASS on them.
 
 # Final adversarial review
 
@@ -247,7 +270,7 @@ Two approved requirements that contradict each other require a decision. The orc
 
 Severity determines the urgency of fixes according to impact, such as unauthorized access, data loss, or a blocked essential flow. Whether a finding is blocking depends on the violated rule and the acceptance conditions. The specialization label and the number of reviewers who agree do not override valid evidence. The adversarial reviewer uses the same arbitration rules.
 
-Example: a Go reviewer recommends an in-memory store, but the spec requires sessions to survive a restart. The orchestrator rejects the incompatible recommendation and requests a compliant implementation. If the solution requires a new dependency, the orchestrator requests approval. If two approved policies simultaneously require a permanent public link and access revocation for the same document, the user clarifies the policy before work continues.
+Example: a reviewer recommends an in-memory store, but the spec requires sessions to survive a restart. The orchestrator rejects the incompatible recommendation and requests a compliant implementation. If the solution requires a new dependency, the orchestrator requests approval. If two approved policies simultaneously require a permanent public link and access revocation for the same document, the user clarifies the policy before work continues.
 
 Each finding receives an ID and retains the revision checked, the affected rule or criterion, the impact, the evidence, and the resolution. The implementer receives the relevant open findings and a single set of actions. Rejecting a finding requires justification supported by evidence.
 
@@ -574,13 +597,13 @@ Resolve active spec links against the feature revision/worktree. Resolve complet
 
 # Phase 2: Go initialization contract
 
-The future Go CLI embeds the reusable framework rules, three skill procedures and templates, agent contracts, AGENTS.md template, and an empty registry template. The application's mission and business rules remain editable project content. An embedded global framework spec does not pre-approve a project's architecture, production dependencies, or application behavior.
+The future Go CLI embeds the framework core (rules, the three core skills and their templates, the core agent contracts, the AGENTS.md template, and an empty registry template) and a catalog of extensions. The application's mission and business rules remain editable project content. An embedded global framework spec or extension does not pre-approve a project's architecture, production dependencies, or application behavior; installing a stack extension records its decision (FW-4).
 
 `init` is expected to:
 
 1. Establish the project location and use the existing authorized project brief, or start with one short objective.
 
-2. Materialize the versioned framework assets, root AGENTS.md, and minimal docs/README.md.
+2. Materialize the versioned core, the extensions the user selects (none when the stack is not decided yet), root AGENTS.md, and minimal docs/README.md. Later extensions are added with `solomonar extension add`.
 
 3. Prepare the empty committed registry on workflow-state and its persistent coordination checkout once Git setup is valid.
 

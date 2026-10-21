@@ -181,13 +181,13 @@ one being present.
 
 | Part | Contains | Installed |
 |---|---|---|
-| Core: the process | `docs/framework/rules.md`, `report.md`, `reviewer.md`; the process roles `orchestrator`, `implementer`, `code-reviewer`, `security-reviewer`, `spec-reviewer`, `adversarial-reviewer`; the process skills `prototype`, `spec`, `work-spec`; `AGENTS.md`; `docs/README.md`; the empty registry on `refs/heads/workflow-state`; `.solomonar/manifest.json` | always; cannot be removed |
+| Core: the process | `docs/framework/rules.md`, `report.md`, `reviewer.md`; the process roles `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`; the process skills `prototype`, `spec`, `work-spec`; `AGENTS.md`; `docs/README.md`; the empty registry on `refs/heads/workflow-state`; `.solomonar/manifest.json` | always; cannot be removed |
 | Runtimes | Adapter files for `claude`, `codex` (4.2) | zero or more; default: those found on `PATH` |
 | Extensions | Skills (knowledge of a language, library, or practice; or a supporting procedure) and agents (extra specialist reviewers), grouped by decision type (4.3) | zero or more; default: `go` when `go.mod` exists |
 
 Core boundary (CLI-D14, decided): the core is the current framework in `assets/framework/`, the items `rules.md`
-names as a step or a required role of the process. The core carries no technology-specific content: the Go specifics of today's `go-reviewer` move to the `go`
-extension, and `code-reviewer` stays language-neutral (CLI-D1).
+names as a step or a required role of the process. The core carries no technology-specific content: Go rules live in the `go`
+extension, and the four core reviewers stay language-neutral (CLI-D1; design note "Light core and extensions").
 
 A project whose stack is not known yet starts with no stack extension: the stack is decided later (rules §3), and
 `solomonar extension add` follows that decision (UC-6).
@@ -322,7 +322,7 @@ title: `Installed by P/D-2; rendered with: htmx.`
 
 **Loading.** Runtimes trigger extension skills by their `description`, but the process does not rely on that: the
 orchestrator names the installed extensions whose `applies_when` or `paths` match the change in every packet, the
-implementer loads them before writing code, and reviewers check their `must` rules. Triage lists installed extension
+implementer loads them before writing code, and `spec-reviewer` checks their `must` rules. Triage lists installed extension
 agents beside the core specialists, required when their `applies_when` matches (rules §6).
 
 **Rule IDs and force** (CLI-D12). Extension rules have stable IDs `<name>/C-n`, never reused across versions. `must`
@@ -1088,12 +1088,12 @@ W-001  running/specification → running/implementation
 
 ```
 $ solomonar task move W-001 --revision 7cd18e45bb55c3be9465c9f893683bc05216f529 --tier 2 \
-    --stage specialized_review --agent sec-1:security-reviewer --agent code-1:code-reviewer \
+    --stage specialized_review --agent sec-1:security-reviewer --agent cor-1:correctness-reviewer \
     --agent spec-1:spec-reviewer --next "orchestrator-1:Collect specialist reports"
 W-001  running/implementation → running/specialized_review
   revision  7cd18e45bb55c3be9465c9f893683bc05216f529 (on feature/W-001)
   tier      2: specialists, then adversarial
-  agents    sec-1 security-reviewer, code-1 code-reviewer, spec-1 spec-reviewer
+  agents    sec-1 security-reviewer, cor-1 correctness-reviewer, spec-1 spec-reviewer
   state(W-001): running/specialized_review, revision 7cd18e4, tier 2
   registry @ 2d4f6a8c0e1b3d5f7a9c1e2b4d6f8a0c2e3b5d7f
 ```
@@ -1205,7 +1205,7 @@ record
   status    running / specialized_review       owner orchestrator-1   tier 2
   spec      docs/work/W-001-login.md
   revision  7cd18e45bb55c3be9465c9f893683bc05216f529
-  agents    sec-1 security-reviewer, code-1 code-reviewer, spec-1 spec-reviewer (last reported, not liveness)
+  agents    sec-1 security-reviewer, cor-1 correctness-reviewer, spec-1 spec-reviewer (last reported, not liveness)
   blockers  none
   next      orchestrator-1: Collect specialist reports
   updated   2026-10-20T15:12:40Z (registry @ 2d4f6a8)
@@ -1591,13 +1591,14 @@ J7 puts `init` and the `task` commands first. The init choices in this spec move
 This spec assumes the following framework changes. Each needs the author's decision (section 12) and is applied in
 `assets/` separately, in the register's usual way.
 
+Applied 2026-10-21 and removed from the table: the language-neutral core reviewers with review priority (rules §6),
+the `go` extension (`assets/extensions/language/go/`), installed extension agents in triage, extension `must` rules
+as approved global rules (rules §1, `report.md` `Violates`), and the "Extensions" section of the `AGENTS.md`
+template.
+
 | Change | Files |
 |---|---|
-| Core reduced to the process (CLI-D14): Go specifics leave the core; a language-neutral `code-reviewer` replaces `go-reviewer`, and the Go content moves to the `go` extension (CLI-D1) | `agents/go-reviewer.md` → `agents/code-reviewer.md`; rules §6 specialty table ("Code and correctness: code changes; loads the installed extensions that apply"); orchestrator §2 agent prefix `code-n`; `assets/extensions/` new |
-| Extension point for review agents: triage lists installed extension agents beside the core specialists, required when their `applies_when` matches | rules §6 specialty table (one row for installed extension agents); orchestrator §3 `specialized_review` |
-| Extension skills as approved global rules: `must` rules bind once their decision is approved; IDs `<name>/C-n` cite like spec rule IDs (CLI-D12) | rules §1 authority 2, §6 Consolidation; `report.md` finding `Violates`; implementer and reviewer loading lines; orchestrator packets name the extensions that apply |
 | Project-scoped decisions `P/D-n`, appended by the CLI on the user's own command (CLI-D11); a fixed entry format the CLI can read | rules §3 (entry format, project scope); orchestrator §1 (edits only its task's entries); `docs/README.md` template index lines for `decisions.md`, `stack.md`, `architecture.md` |
-| `AGENTS.md` template rendered from choices: core skills list, "Extensions" section | `assets/templates/AGENTS.md` |
 | Acting identity for owner checks (CLI-D2) | rules §7 command table (`--as <owner>` / `SOLOMONAR_OWNER` on `move`, `block`, `unblock`, `done`); orchestrator §3 (pass `--as <owner>` on every `task` write) |
 | `--next` and `--status` shorthands on `task block` and `task unblock` | rules §7 command table |
 | `doctor` check list | rules §11 (reference section 5 UC-10 instead of "checks the repository settings") |
@@ -1608,7 +1609,7 @@ This spec assumes the following framework changes. Each needs the author's decis
 
 | ID | Question | Options | Recommendation | Decision |
 |---|---|---|---|---|
-| CLI-D1 | How language knowledge reaches reviews | a) one language-neutral `code-reviewer` loads the installed extension skills that apply to the change; b) one `<lang>-reviewer` role per language, rendered into the rules §6 table | a: one role and one rules table, a language is one skill, and mixed-language changes need no extra reviewer | **a**, author, 2026-10-20 |
+| CLI-D1 | How language knowledge reaches reviews | a) language-neutral core reviewers; `spec-reviewer` checks the `must` rules of the installed extension skills that apply to the change; b) one `<lang>-reviewer` role per language, rendered into the rules §6 table | a: one rules table, a language is one skill, and mixed-language changes need no extra reviewer | **a**, author, 2026-10-20; revised 2026-10-21: core reviewers are `security-reviewer` (bugs, security), `correctness-reviewer` (business logic), `spec-reviewer` (work spec and language rules), `adversarial-reviewer` |
 | CLI-D2 | How the CLI knows the acting orchestrator | a) `--as <owner>` with `SOLOMONAR_OWNER` default; b) no check, ownership stays behavioral | a: rules §7 promises ownership validation; it remains a behavioral contract, not authentication | **a**, author, 2026-10-20 |
 | CLI-D3 | Claude Code root instructions (G10) | a) create a one-line `CLAUDE.md` (`@AGENTS.md`) when absent, never modify an existing one; b) nothing, if Claude Code is verified to load `AGENTS.md` natively | a, unless the verification at implementation time shows b | open |
 | CLI-D4 | Does `init` commit on main | a) never; print the commit command; `doctor` fails until committed; b) `--commit` flag; c) always | a: commits on main stay the user's; b can be added later | open |
@@ -1621,4 +1622,4 @@ This spec assumes the following framework changes. Each needs the author's decis
 | CLI-D11 | How a change of stack extensions is approved and recorded | a) `--decision <ID>` names an approved entry; otherwise the user's own command appends an approved project entry `P/D-n` per group, superseding the previous one, plus a line in `docs/stack.md` or `docs/architecture.md`; b) extensions install without any decision record; c) the CLI only accepts `--decision`, and the user writes every entry by hand | a: choosing a stack extension is an architecture or dependency decision (rules §3); the user's command is that explicit decision, and the record keeps rules §1 authority traceable | open |
 | CLI-D12 | Rule IDs and force inside extension skills | a) `<name>/C-n` with `must` (approved global rule, blocking) and `should` (suggestion); b) every extension rule binding; c) extensions are guidance only | a: matches the finding handling in rules §6 and keeps preferences out of the blocking set | open |
 | CLI-D13 | v0.1 extension catalog | a) a catalog for every group; b) a small catalog matching the stack in use | b: `go`, `htmx`, `templ`, `tdd`; other groups take project extensions until catalog ones are written | **b**, author, 2026-10-20: `go`, `htmx`, `templ`, `tdd` |
-| CLI-D14 | Core boundary | a) core = what `rules.md` names as a process step or required role: `orchestrator`, `implementer`, `code-reviewer`, `security-reviewer`, `spec-reviewer`, `adversarial-reviewer`; `prototype`, `spec`, `work-spec`; b) core = `orchestrator`, `implementer`, `work-spec`; reviewers and discovery skills become extensions | a: the review gates and the prototype-to-spec flow are the process; making them optional turns a required review into a choice | **a**, author, 2026-10-20: the current framework in `assets/framework/` is the core, with `go-reviewer` made language-neutral as `code-reviewer` (CLI-D1) |
+| CLI-D14 | Core boundary | a) core = what `rules.md` names as a process step or required role: `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`; `prototype`, `spec`, `work-spec`; b) core = `orchestrator`, `implementer`, `work-spec`; reviewers and discovery skills become extensions | a: the review gates and the prototype-to-spec flow are the process; making them optional turns a required review into a choice | **a**, author, 2026-10-20: the current framework in `assets/framework/` is the core, with language-neutral core reviewers and Go rules in the `go` extension (CLI-D1, revised 2026-10-21) |
