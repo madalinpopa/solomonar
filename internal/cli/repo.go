@@ -26,10 +26,7 @@ func openStore(ctx context.Context, env Env, flags sharedFlags) (*task.Store, er
 
 // openRepo discovers the repository containing dir and checks the Git version.
 func openRepo(ctx context.Context, env Env, flags sharedFlags, dir, fix string) (*git.Repo, error) {
-	var trace io.Writer
-	if flags.verbose {
-		trace = env.Stderr
-	}
+	trace := traceWriter(env, flags)
 	repo, err := git.Discover(ctx, dir, trace)
 	if errors.Is(err, git.ErrNotRepository) {
 		return nil, &Error{
@@ -39,12 +36,25 @@ func openRepo(ctx context.Context, env Env, flags sharedFlags, dir, fix string) 
 	if err != nil {
 		return nil, err
 	}
-	if _, err := git.Version(ctx, trace); errors.Is(err, git.ErrTooOld) {
-		return nil, &Error{Code: "git_too_old", Exit: 1, Message: err.Error(), Fix: "install git 2.40 or later", Err: err}
-	} else if err != nil {
+	if err := checkVersion(ctx, trace); err != nil {
 		return nil, err
 	}
 	return repo, nil
+}
+
+func checkVersion(ctx context.Context, trace io.Writer) error {
+	_, err := git.Version(ctx, trace)
+	if errors.Is(err, git.ErrTooOld) {
+		return &Error{Code: "git_too_old", Exit: 1, Message: err.Error(), Fix: "install git 2.40 or later", Err: err}
+	}
+	return err
+}
+
+func traceWriter(env Env, flags sharedFlags) io.Writer {
+	if flags.verbose {
+		return env.Stderr
+	}
+	return nil
 }
 
 func absDir(dir string) string {
