@@ -1218,7 +1218,7 @@ W-001  running/implementation → running/specialized_review
 The remaining moves follow the same shape: `--stage adversarial_review --agent adv-1:adversarial-reviewer`;
 `--stage implementation` with a correction round; `--stage integration`; `--pr 42`; `--revision` for each closure
 commit (rules §9). `--json` data: `{"id": "W-001", "from": {"status": "running", "stage": "implementation"}, "to":
-{"status": "running", "stage": "specialized_review"}, "changed": ["revision", "tier", "stage", "active_agents",
+{"status": "running", "stage": "specialized_review"}, "changed": ["stage", "revision", "tier", "active_agents",
 "next_action"], "record": { }, "commit": "<sha>", "pushed": true}`.
 
 ### UC-14 A rejected move
@@ -1601,6 +1601,7 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `owner_in_use` | 3 | The owner owns another active task | choose a new owner ID |
 | `transition_not_allowed` | 3 | Status change not in 8.1 | names the allowed targets |
 | `stage_not_allowed` | 3 | Stage change not in 8.2 or not allowed by the tier | names the allowed stages |
+| `field_not_allowed` | 3 | A field flag outside the stages that accept it (8.2 field rules) | names the stages that accept it |
 | `tier_required` | 3 | A stage after `implementation` without a tier | pass `--tier` with `--revision` |
 | `revision_required` | 3 | Review stage without a revision | pass `--revision` |
 | `revision_not_full_sha` | 3 | Short or malformed SHA | `git rev-parse <short>` |
