@@ -159,8 +159,16 @@ func Run(ctx context.Context, env Env) int
 type Error struct {
 	Code              string
 	Exit              int
+	Message           string // error: <Message> (<Code>); the JSON message
 	Check, Found, Fix string
 	Err               error
+}
+
+type runFunc func(ctx context.Context, env Env, flags sharedFlags, args []string) (output, error)
+
+type command struct {
+	name, summary, usage, description string
+	bind                              func(fs *flag.FlagSet) runFunc // registers the command's own flags
 }
 ```
 
@@ -170,6 +178,8 @@ type Registry struct {
 	SchemaVersion int                `json:"schema_version"`
 	Tasks         map[string]*Record `json:"tasks"`
 }
+
+func (r *Registry) IDs() []string // numeric order: W-999 before W-1000
 
 type Record struct {
 	Title        string      `json:"title"`
@@ -223,8 +233,9 @@ func Apply(root *os.Root, p Plan) error
 
 **Task write** (`task move W-001 --revision … --tier 2 --stage specialized_review`):
 
-1. `main` builds the signal context and `Env`; `cli.Run` parses shared flags, finds `task move`, parses the rest
-   with the interspersed helper. Malformed input stops here: exit 2.
+1. `main` builds the signal context and `Env`; `cli.Run` parses shared flags, finds `task move`, lets it register
+   its own flags (`bind`) beside the shared ones, and parses the rest with the interspersed helper. Malformed input
+   stops here: exit 2.
 2. `cli` locates the repository (`git rev-parse --git-common-dir` from `-C` or the working directory), reads the
    manifest for `main_branch` and `remote`, and resolves `--as` from the flag or `SOLOMONAR_OWNER`.
 3. `store.Update(ctx, fn)`: read the tip and `state.json`; `fn` checks ownership, applies `Record.Move`, then runs
@@ -235,6 +246,8 @@ func Apply(root *os.Root, p Plan) error
 5. With a remote, `git push <remote> workflow-state` under a time limit; failure is the warning `push_failed`,
    exit stays 0.
 6. `cli` renders the UC-13 lines, or the envelope with the UC-13 `data`.
+
+With `--dry-run`, step 3 reads the registry and applies the change to it without `Update`; nothing is committed.
 
 **Task read** (`task status W-001`): read the registry; collect the I §9.1 facts with one Git command each; `gh`
 only without `--no-forge` and when installed; compute drift and `allowed_next` from the rule tables; render.
