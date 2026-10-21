@@ -1,6 +1,6 @@
 ---
-title: CLI reference
-description: Find the current commands, shared flags, output contract, and the rest of the planned interface.
+title: CLI commands and flags
+description: Reference current Solomonar task commands, global flags, dry runs, and JSON output. See which CLI commands work today and which remain planned.
 kind: Reference
 group: Use the CLI
 order: 6
