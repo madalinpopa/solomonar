@@ -221,9 +221,24 @@ validation. The message names the field, and the fix is "inspect .solomonar/mani
 
 - Prompts appear only when stdin and stdout are terminals and neither `--yes` nor `--json` is set. Otherwise a
   missing required choice is error `interactive_required` (exit 2) naming the flag that supplies it.
-- Prompts are line-based (no full-screen UI, CLI-D5): a text prompt shows its default in brackets; a multi-select
-  shows a numbered list, accepts numbers separated by commas or spaces to toggle, `all`, `none`, or Enter to accept
-  the marked defaults; a confirmation is `[Y/n]` or `[y/N]`, default capitalized.
+- Text prompts and confirmations are line-based; the multi-select redraws its own lines in place (no full-screen UI,
+  CLI-D5).
+- A text prompt is `<label> [<default>]: `, or `<label>: ` without a default; the answer is trimmed, and empty gives
+  the default. In a text prompt or a confirmation, a final line without a newline at end of input counts as input
+  closed.
+- A confirmation is `<question> [Y/n] ` or `[y/N] `, default capitalized; `y`, `yes`, `n`, `no` in any case; empty
+  gives the default; any other answer prints `  answer y or n` and asks again.
+- A multi-select lists one row per item, `  <pointer><box> <name>  <description>`: the pointer is `> ` on the
+  cursor row and two spaces elsewhere, the box `[x]` or `[ ]`, the name padded to the widest; trailing spaces are
+  trimmed, so an empty description leaves no padding. The cursor row reads `  > [x] claude  …`, the others
+  `    [ ] codex   …`. The help line `  ↑/↓ move · Space toggle · Enter accept` follows. Keys: ↑/↓ or `k`/`j` move the
+  cursor (clamped, no wrap); Space toggles the cursor row; `a` selects all; `n` selects none; Enter accepts the
+  marked items; any other key is ignored without a redraw, as is `ESC` followed by a byte other than `[`, or `ESC [`
+  followed by anything but `A` or `B`. On accept the list is redrawn once with the pointer column as two spaces and
+  without the help line: `    [x] <name>  <description>`.
+- End of input on any prompt is `read answer: input closed` (`unexpected_error`, exit 1); any other read error is
+  `read answer: <err>`. Ctrl-C in the multi-select prints nothing more, restores the terminal, and ends the command
+  `interrupted` (exit 130, 3.5).
 
 ## 4. Project choices and files
 
@@ -762,28 +777,25 @@ Project name [ledger]:
 Current objective, one line (optional): Track shared household expenses
 
 Runtimes that will run this project's sessions:
-  [x] 1  claude   Claude Code: CLAUDE.md import, .claude/skills, .claude/agents, state guard hook
-  [ ] 2  codex    Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook
-Toggle numbers, Enter to accept: 1 2
+    [x] claude  Claude Code: CLAUDE.md import, .claude/skills, .claude/agents, state guard hook
+    [x] codex   Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook
 
 Model for the adversarial reviewer in Claude Code, different from your main session model
 (blank = runtime default): opus
 
 Extensions, by decision type. A choice in a stack group is recorded as your approved decision in
-docs/decisions.md. Enter skips a group; add more later with `solomonar extension add`.
+docs/decisions.md. Enter with nothing selected skips a group; add more later with
+`solomonar extension add`.
 
 Language:
-  [ ] 1  go      Go code
-Toggle numbers, Enter to accept: 1
+    [x] go  Go code
 
 Frontend:
-  [ ] 1  htmx    Server-rendered HTML fragments driven by hx-* attributes
-  [ ] 2  templ   Type-checked Go HTML components (requires go)
-Toggle numbers, Enter to accept: 1 2
+    [x] htmx   Server-rendered HTML fragments driven by hx-* attributes
+    [x] templ  Type-checked Go HTML components (requires go)
 
 Testing:
-  [ ] 1  tdd     A failing test first for each behavior, then the code
-Toggle numbers, Enter to accept: 1
+    [x] tdd  A failing test first for each behavior, then the code
 
 Plan
   framework 0.1.0
@@ -2435,7 +2447,7 @@ provenance (rules §3), extension-command permission (orchestrator §1), acting 
 | CLI-D2 | How the CLI knows the acting orchestrator | a) `--as <owner>` with `SOLOMONAR_OWNER` default; b) no check, ownership stays behavioral | a: rules §7 promises ownership validation; it remains a behavioral contract, not authentication | **a**, author, 2026-10-20 |
 | CLI-D3 | Claude Code root instructions (G10) | a) create a one-line `CLAUDE.md` (`@AGENTS.md`) when absent, never modify an existing one; b) nothing, if Claude Code is verified to load `AGENTS.md` natively | a, unless the verification at implementation time shows b | open |
 | CLI-D4 | Does `init` commit on main | a) never; print the commit command; `doctor` fails until committed; b) `--commit` flag; c) always | a: commits on main stay the user's; b can be added later | open |
-| CLI-D5 | Prompt implementation | a) line-based prompts with the standard library; b) a full-screen prompt library (a new dependency, needs approval) | a: no dependency, scriptable, testable with piped input | open |
+| CLI-D5 | Prompt implementation | a) line-based prompts with the standard library; b) a full-screen prompt library (a new dependency, needs approval) | a: no dependency, scriptable, testable with piped input | **decided**, author, 2026-10-21: text prompts and confirmations line-based with the standard library; the multi-select key-driven (↑/↓, Space, Enter) in raw terminal mode through `golang.org/x/term` (architecture AD-1) |
 | CLI-D6 | Extension sources in v0.1 | a) embedded catalog and local directories; b) a, plus Git URLs | a: remote sources bring pinning and trust questions; add later with a recorded commit and hash | open |
 | CLI-D7 | Adapter file form | a) stubs that point to `docs/solomonar/`; b) full copies; c) symlinks | a: one source of content, small diffs, works where symlinks do not | open |
 | CLI-D8 | Binary name: `go install ./cmd/cli` produces `cli` | a) rename the package directory to `cmd/solomonar`; b) keep `cmd/cli`, document `go build -o solomonar ./cmd/cli` and set the name in release builds; c) `main.go` at the module root, so `go install github.com/madalinpopa/solomonar` yields `solomonar` | c: the repository holds one binary | **c**, author, 2026-10-21 (architecture AD-13) |
