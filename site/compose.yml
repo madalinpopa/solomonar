@@ -1,7 +1,7 @@
 services:
   site:
     image: ${SITE_IMAGE:-ghcr.io/madalinpopa/solomonar-site:latest}
-    restart: unless-stopped
+    restart: always
     expose:
       - "8080"
     read_only: true
