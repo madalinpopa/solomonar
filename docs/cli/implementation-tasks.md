@@ -1107,9 +1107,9 @@ architecture §6 (`Groups`).
 - [x] prompt wiring for name, objective, runtimes, models, extensions (with the `Resolve` re-ask)
 - [x] `Proceed?` confirmation and cancel; tests with `Env.Interactive`, scripted stdin, and a no-op `RawMode`
 
-### Stage 10.3 — Interactive `init`: header, `git init` question, `AGENTS.md` adoption (`internal/cli`; UC-1, UC-4) `[~]`
+### Stage 10.3 — Interactive `init`: header, `git init` question, `AGENTS.md` adoption (`internal/cli`; UC-1, UC-4) `[x]`
 
-Decisions (orchestrator, awaiting the author's confirmation):
+Decisions (author, 2026-10-21; orchestrator proposals confirmed):
 - when `init` prompts (10.2 rule), it first prints the header `solomonar <cli version> · framework <fw> · <dir>
   (git, branch <b>)` and a blank line: `<dir>` is the worktree root (the target directory when it is not a
   repository), `<b>` the current branch (also unborn), `(git, detached HEAD)` when detached, `(not a Git repository)`
@@ -1123,9 +1123,16 @@ Decisions (orchestrator, awaiting the author's confirmation):
   section?", true)`; no asks `confirm("  Replace it with the framework template, discarding its content?", false)`;
   yes plans again as with `--overwrite AGENTS.md`; no cancels; `--dry-run` asks neither (it shows the adoption);
 - each question is its own block (blank-line rule of 10.2).
+also (implementer, confirmed): Adopt and Replace form one block; a declined question
+ends its block with a blank line before the cancel line; the adoption question is skipped when the plan has other
+conflicts (`file_conflict` as before); the header prints on every prompting run, a no-op re-run included, and not when
+opening the repository fails otherwise; outside a repository `<dir>` is the absolute target as given; `git.Repo.Branch`
+(`symbolic-ref --short --quiet HEAD`, "" when detached) also serves `unbornMain`; `project.Change.Adopted()`; the
+framework version is read before the repository is opened; `openTarget`/`beforePlan` extracted for the complexity limit.
+Specs updated: UC-1 (header), UC-4 (`git init` question, adoption and replace questions).
 
-- [ ] header line; `git init` question
-- [ ] `AGENTS.md` adoption and replace questions; tests (scripted stdin, a non-repository directory, an existing
+- [x] header line; `git init` question
+- [x] `AGENTS.md` adoption and replace questions; tests (scripted stdin, a non-repository directory, an existing
   `AGENTS.md`, declines, `--dry-run`)
 
 - Stage 10.4 `[ ]` — The grouped, summarized interactive plan (UC-1)
