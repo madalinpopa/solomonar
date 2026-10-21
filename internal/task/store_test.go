@@ -301,3 +301,14 @@ func TestPushTimeoutWarnsPushFailed(t *testing.T) {
 	assert.Equal(t, "push_failed", warning.Code)
 	assert.Contains(t, warning.Message, "context deadline exceeded")
 }
+
+func TestReadSchema(t *testing.T) {
+	_, present, err := newStore(t).ReadSchema(t.Context())
+	require.NoError(t, err)
+	assert.False(t, present)
+
+	schema, present, err := createdStore(t).ReadSchema(t.Context())
+	require.NoError(t, err)
+	assert.True(t, present)
+	assert.Equal(t, SchemaVersion, schema)
+}
