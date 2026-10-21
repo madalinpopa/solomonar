@@ -100,7 +100,8 @@ behavior.
 - Full SHAs appear wherever a value will be copied into another command; a short SHA (7) appears only beside
   a full one or in tables.
 - File plans use one verb per line: `create`, `update`, `unchanged`, `keep` (project-modified, left as is),
-  `remove`, `conflict`, `skip` (project-owned, never touched).
+  `remove`, `conflict`, `skip` (project-owned, never touched). An unmanaged file whose content equals what the CLI
+  would write is adopted into the manifest and shown as `unchanged (adopted)` (CLI-D17).
 - Every writing command ends with what was written (commit, files) and, when useful, a `Next:` block.
 
 ### 3.4 JSON output
@@ -144,6 +145,12 @@ On failure `ok` is `false`, `data` is absent, and `error` is present:
 | 3 | Rejected: a validation, ownership, transition, or fact check failed | nothing |
 | 4 | Conflict: a managed file differs from what the CLI would write, or the registry compare-and-swap kept losing | nothing |
 | 5 | Checks failed: `doctor` found a `fail`, or `sync --check` found stale files | nothing |
+| 130, 143 | Interrupted by SIGINT or SIGTERM (128 + signal) before anything was written (`interrupted`) | nothing; a partial file write is rolled back |
+
+The exit code reports what was written, not only that a signal arrived (CLI-D18). A signal after the registry
+compare-and-swap succeeded leaves the write in place: the command exits 0 with the warning `push_interrupted`, so a
+retry never repeats a write such as `task plan`. A second signal ends the process at once. For `dashboard`, SIGINT
+is the normal stop and exits 0.
 
 ### 3.6 Errors
 
@@ -161,7 +168,13 @@ The error code catalog for task commands is in 8.4; project commands use `not_a_
 `already_initialized`, `file_conflict`, `unknown_runtime`, `unknown_extension`, `core_item`,
 `name_collision`, `invalid_value`, `unknown_group`, `extension_requires`, `extension_conflict`, `decision_not_found`,
 `decision_not_approved`, `registry_exists_invalid`, `manifest_invalid`, `interactive_required`,
-`checks_failed`.
+`checks_failed`, `cli_outdated`, `interrupted`.
+
+`cli_outdated` (exit 3, CLI-D19): the manifest's `framework_version` or `schema_version`, or the registry's
+`schema_version`, is newer than this CLI supports. The CLI checks the versions before decoding either file
+strictly, so a newer project is never reported as `manifest_invalid` or `registry_invalid`. Every command that reads
+the manifest or the registry rejects with it and writes nothing, with the fix "install solomonar <version> or
+later". `version` still prints both versions, and `doctor` reports it as a `fail`.
 
 ### 3.7 Prompts
 
@@ -617,7 +630,9 @@ error: init found different choices (already_initialized)
   fix:   change extensions with `solomonar extension add|remove`; init never changes choices
 ```
 
-Exit 3. A managed file edited since installation, or an unmanaged file in a target path, is a conflict:
+Exit 3. A managed file edited since installation, or an unmanaged file in a target path whose content differs
+from what the CLI would write, is a conflict; an unmanaged file with identical content is adopted (3.3), so a re-run
+after an interrupted `init` completes it:
 
 ```
 $ solomonar init --runtime claude --yes
@@ -938,7 +953,7 @@ Next: commit on main as "chore: upgrade solomonar framework to 0.2.0"; running t
 ```
 
 An upgrade that changes `state.json`'s `schema_version` also migrates the registry with one compare-and-swap commit
-`state: migrate schema 1 -> 2`, shown in the plan. Downgrade is rejected (`already_initialized`, fix: install the
+`state: migrate schema 1 -> 2`, shown in the plan. Downgrade is rejected (`cli_outdated`, fix: install the
 matching CLI). The upgrade never commits on main.
 
 ### UC-10 Check the project
@@ -981,6 +996,7 @@ Exit 5 when any `fail`, else 0. Check catalog:
 | git | Git version ≥ 2.40; repository; `main` has a commit; worktrees usable | fail |
 | git | `.jj/` present | warn |
 | registry | ref exists; `state.json` parses; schema valid; every record valid for its status | fail |
+| registry, files | registry or manifest schema, and project framework version, not newer than this CLI (`cli_outdated`) | fail |
 | registry | remote configured and local ref published | warn |
 | files | manifest valid; managed files present | fail |
 | files | managed files committed on main | fail |
@@ -1413,7 +1429,8 @@ solomonar 0.1.0 (embedded framework 0.1.0)
 project   framework 0.1.0 · registry schema 1
 ```
 
-Outside a project the `project` line reads `not initialized`. `--json`: `{"cli": "0.1.0", "framework": "0.1.0",
+Outside a project the `project` line reads `not initialized`; in a project newer than the CLI it adds
+`(newer than this CLI; install solomonar <version> or later)`, and `version` still exits 0. `--json`: `{"cli": "0.1.0", "framework": "0.1.0",
 "project_framework": "0.1.0", "registry_schema": 1}`.
 
 ## 8. Reference: task validation
@@ -1504,8 +1521,10 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `spec_ref_not_final` | 3 | Not the last `spec(<ID>)` commit merged | shows the derived `spec_ref` |
 | `invalid_value` | 2 | Malformed flag value | names the expected format |
 | `cas_exhausted` | 4 | Lost the compare-and-swap 5 times | retry |
+| `cli_outdated` | 3 | Registry or manifest written by a newer CLI | install solomonar `<version>` or later |
+| `interrupted` | 130, 143 | Signal before the compare-and-swap | rerun; nothing was written |
 
-Warnings (exit 0): `push_failed`, `no_remote`, `dependency_not_done`, `title_changed`, `forge_unavailable`.
+Warnings (exit 0): `push_failed`, `push_interrupted`, `no_remote`, `dependency_not_done`, `title_changed`, `forge_unavailable`.
 
 ### 8.5 Registry commits
 
@@ -1636,3 +1655,6 @@ template, the `solomonar` entry skill with the "Route a request" section of `AGE
 | CLI-D15 | The user's entry point to the process | a) a core skill `solomonar`, invoked only by the user, that routes a request to `prototype`, `spec`, or the orchestrator role taken in the same top-level session, plus a short "Route a request" section in `AGENTS.md` for sessions started without it; b) the orchestrator rules move into `AGENTS.md`, so every session is an orchestrator; c) a skill that delegates the orchestrator to a subagent | a: b loads about 600 lines into every session and every delegated role, and contradicts the implementer and reviewer contracts; c fails because a delegated subagent cannot delegate the implementer and reviewers | **a**, author, 2026-10-21; framework files installed under `docs/solomonar/` instead of `docs/framework/` |
 | CLI-D14 | Core boundary | a) core = what `rules.md` names as a process step or required role: `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`; `prototype`, `spec`, `work-spec`; b) core = `orchestrator`, `implementer`, `work-spec`; reviewers and discovery skills become extensions | a: the review gates and the prototype-to-spec flow are the process; making them optional turns a required review into a choice | **a**, author, 2026-10-20: the current framework in `assets/framework/` is the core, with language-neutral core reviewers and Go rules in the `go` extension (CLI-D1, revised 2026-10-21) |
 | CLI-D16 | How the prior status of a `blocked`, `paused`, or `cancelled` task is known | a) derived from registry history: the last status other than `blocked` or `paused`; b) derived from the record: a task is `reserved` exactly while at `setup`, so the prior status is `reserved` at `setup` and `running` later | b: no walk of registry history on every `unblock` or resume, and the rule is a pure check on one record | **b**, author, 2026-10-21 |
+| CLI-D17 | An unmanaged file whose content equals what the CLI would write | a) conflict, as any unmanaged file; b) adopted into the manifest, shown as `unchanged (adopted)` | b: a re-run after an `init` killed before its manifest write completes instead of failing on the run's own files; nothing is lost, since the recorded base is the file's content | **b**, author, 2026-10-21 |
+| CLI-D18 | Exit code of an interrupted command | a) 1, as an unexpected failure; b) 130 or 143 whenever a signal arrives; c) the exit code reports what was written: 128 + signal with `interrupted` when nothing was written, 0 with `push_interrupted` after the compare-and-swap | c: after a successful write, a failure exit makes a script or agent retry and repeat a non-idempotent write such as `task plan` | **c**, author, 2026-10-21 |
+| CLI-D19 | A project or registry written by a newer CLI | a) `already_initialized` for a downgrade only; b) `cli_outdated` (exit 3) for every command that reads the manifest or the registry, checked before strict decoding; `version` and `doctor` report instead of rejecting | b: with strict decoding, a newer schema would otherwise read as `registry_invalid` with the wrong fix | **b**, author, 2026-10-21 |
