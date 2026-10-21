@@ -269,7 +269,8 @@ succeeds (AD-6, F-09).
    its own flags (`bind`) beside the shared ones, and parses the rest with the interspersed helper. Malformed input
    stops here: exit 2.
 2. `cli` locates the repository (`git rev-parse --git-common-dir` from `-C` or the working directory), reads the
-   manifest for `main_branch` and `remote`, and resolves `--as` from the flag or `SOLOMONAR_OWNER`.
+   manifest for `main_branch` and `remote` (`main` and `origin` when absent; newer or invalid rejects before the
+   registry, nothing written), and resolves `--as` from the flag or `SOLOMONAR_OWNER`.
 3. `store.Update(ctx, fn)`: read the tip and `state.json`; `fn` looks up the record, rejects a done record
    (`done_final`), checks ownership, applies `Record.Move`, then runs the fact checks (`git merge-base
    --is-ancestor`, worktree spec lookup). A rejection returns at once: exit 3, nothing written. A move that changes
