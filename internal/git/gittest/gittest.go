@@ -4,6 +4,7 @@ package gittest
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -82,15 +83,36 @@ func Resolved(t *testing.T, path string) string {
 	return resolvedPath
 }
 
-// FakeGH sets PATH to a lone gh script that prints stdout and stderr and exits with code.
+// FakeGH sets PATH to a gh script that prints stdout and stderr and exits with code, next to git.
 func FakeGH(t *testing.T, stdout, stderr string, code int) {
 	t.Helper()
-	dir := t.TempDir()
-	script := fmt.Sprintf("#!/bin/sh\nprintf '%%s' %s\nprintf '%%s' %s >&2\nexit %d\n", quote(stdout), quote(stderr), code)
-	if err := os.WriteFile(filepath.Join(dir, "gh"), []byte(script), 0o755); err != nil { //nolint:gosec // the fake gh must be executable
-		t.Fatalf("write fake gh: %v", err)
+	dir := NoGH(t)
+	writeScript(t, filepath.Join(dir, "gh"),
+		fmt.Sprintf("printf '%%s' %s\nprintf '%%s' %s >&2\nexit %d", quote(stdout), quote(stderr), code))
+}
+
+// NoGH sets PATH to a directory holding only a git wrapper, so gh is not found, and returns it.
+func NoGH(t *testing.T) string {
+	t.Helper()
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		t.Fatalf("find git: %v", err)
 	}
+	gitPath, err = filepath.Abs(gitPath)
+	if err != nil {
+		t.Fatalf("find git: %v", err)
+	}
+	dir := t.TempDir()
+	writeScript(t, filepath.Join(dir, "git"), "exec "+quote(gitPath)+` "$@"`)
 	t.Setenv("PATH", dir)
+	return dir
+}
+
+func writeScript(t *testing.T, path, body string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte("#!/bin/sh\n"+body+"\n"), 0o755); err != nil { //nolint:gosec // the script must be executable
+		t.Fatalf("write %s: %v", path, err)
+	}
 }
 
 func quote(s string) string {
