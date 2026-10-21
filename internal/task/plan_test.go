@@ -50,6 +50,17 @@ func TestPlanRejectsBadReferences(t *testing.T) {
 	}
 }
 
+func TestPlanRejectsBlankTitle(t *testing.T) {
+	registry := NewRegistry()
+
+	_, _, err := registry.Plan("  ", nil, "", time.Time{})
+
+	rejection, ok := errors.AsType[*Rejection](err)
+	require.True(t, ok, err)
+	assert.Equal(t, "invalid_value", rejection.Code)
+	assert.Empty(t, registry.Tasks)
+}
+
 func TestSubjectIncludesStageWhenSet(t *testing.T) {
 	record := &Record{Status: StatusRunning, Stage: StageImplementation}
 
