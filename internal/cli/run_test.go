@@ -20,13 +20,18 @@ type result struct {
 
 func runCLI(t *testing.T, assets fs.FS, args ...string) result {
 	t.Helper()
+	return runCLIWithEnv(t, assets, func(string) string { return "" }, args...)
+}
+
+func runCLIWithEnv(t *testing.T, assets fs.FS, getenv func(string) string, args ...string) result {
+	t.Helper()
 	var stdout, stderr bytes.Buffer
 	exit := Run(t.Context(), Env{
 		Args:   args,
 		Stdin:  &bytes.Buffer{},
 		Stdout: &stdout,
 		Stderr: &stderr,
-		Getenv: func(string) string { return "" },
+		Getenv: getenv,
 		Now:    func() time.Time { return time.Date(2026, 10, 21, 12, 0, 0, 0, time.UTC) },
 		Assets: assets,
 	})
