@@ -64,7 +64,7 @@ func TestCheckStatusTransition(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assertTransition(t, checkTransition(tt.before, tt.after, tt.resume), tt.code)
+			assertCode(t, checkTransition(tt.before, tt.after, tt.resume), tt.code)
 		})
 	}
 }
@@ -115,7 +115,7 @@ func TestCheckStageTransition(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assertTransition(t, checkTransition(tt.before, tt.after, false), tt.code)
+			assertCode(t, checkTransition(tt.before, tt.after, false), tt.code)
 		})
 	}
 }
@@ -185,7 +185,7 @@ func TestAllowedStages(t *testing.T) {
 	}
 }
 
-func assertTransition(t *testing.T, err error, code string) {
+func assertCode(t *testing.T, err error, code string) {
 	t.Helper()
 	if code == "" {
 		require.NoError(t, err)
