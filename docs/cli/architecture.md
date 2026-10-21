@@ -92,7 +92,7 @@ Section 10 enforces these with lint rules.
 | AD-9 | Process inputs (args, standard streams, environment lookup, clock, terminal detection, embedded assets) reach `cli.Run` as one `Env` value. | In-process tests of every use case, without building the binary or touching `os` globals. | Reading `os.Args`, `os.Getenv`, `time.Now` inside commands. |
 | AD-10 | CLI version from `runtime/debug.ReadBuildInfo`: `go install …@vX.Y.Z` records the module version, and `go build` in a checkout stamps it from the Git tag (with `+dirty` for local changes). Framework version from the embedded `rules.md` header. | No version constant and no `-ldflags -X` to forget. | A hand-maintained `const Version`. |
 | AD-11 | Platforms: macOS and Linux. Windows is deferred. | Windows changes hook command quoting, path handling in the guard, and terminal detection; no user needs it yet. | Windows from the start. |
-| AD-12 | Distribution: `go install github.com/madalinpopa/solomonar@vX.Y.Z` now; release binaries built with `-trimpath` from a tag when there is a first release. | AD-10 makes both carry the right version without extra flags. A release tool is a build tool and stays out of `go.mod`. | Package managers before a first release. |
+| AD-12 | Distribution: `go install github.com/madalinpopa/solomonar@vX.Y.Z` now; release binaries for linux and darwin on amd64 and arm64, built by GoReleaser with `-trimpath` from a `vX.Y.Z` tag on `main` (section 10). | AD-10 makes both carry the right version without extra flags. A release tool is a build tool and stays out of `go.mod`. | Package managers before a first release. |
 | AD-13 | The entry point is `main.go` at the module root, not `cmd/solomonar/main.go`; it also holds `//go:embed assets` and passes the tree to `cli.Run` in `Env`. | The repository holds one binary, which is the official layout for "a command with supporting packages" (go.dev/doc/modules/layout); the install path shortens to the module path; the `assets` package and its global disappear. | `cmd/solomonar/`: meant for repositories with several binaries. A `cmd` package holding the command handlers (the Cobra convention): in Go, `cmd/<name>` means a `main` package, so it misleads readers and `go install ./cmd/...`. |
 | AD-14 | Tests use testify: `require` when the test cannot continue after a failure (errors, setup), `assert` for the remaining checks. `mock` and `suite` are not used. | Author decision, 2026-10-21. Shorter, uniform assertions with readable diffs (`assert.JSONEq` for the `--json` envelopes). Without `mock` and `suite`, tests keep real repositories and plain test functions (section 11). | The standard `testing` package alone. |
 
@@ -109,7 +109,8 @@ internal/
   project/               manifest, file plans and apply, catalog and rendering, adapters, decisions
   git/                   git and gh process runner, typed helpers, -v tracing
   dashboard/             HTTP server and embedded page (increment 3 only)
-Taskfile.yml  .golangci.yml  go.mod
+Taskfile.yml  .golangci.yml  .goreleaser.yaml  go.mod
+.github/                 CI and release workflows, Dependabot
 ```
 
 | Package | Owns | Why it is a separate package |
@@ -234,6 +235,7 @@ func (p Plan) Conflicts() []Change
 type Want struct {
 	Path, Owner string
 	Content     []byte
+	CreateOnly  bool
 }
 
 func Classify(root *os.Root, m *Manifest, wants []Want, keep, overwrite []string) (Plan, map[string]File, error)
@@ -241,6 +243,7 @@ func Classify(root *os.Root, m *Manifest, wants []Want, keep, overwrite []string
 type Choices struct{ Name, Objective, FrameworkVersion string }
 
 func CoreWants(assets fs.FS, c Choices) ([]Want, error)
+func RuntimeWants(assets fs.FS, runtimes []string, models map[string]string, framework string) ([]Want, error)
 
 func ManifestVersions(data []byte) (schema int, framework string, err error)
 
@@ -250,7 +253,8 @@ type Requested struct {
 }
 
 func (m *Manifest) CheckChoices(r Requested) error
-func InitPlan(root *os.Root, existing *Manifest, wants []Want, keep, overwrite []string, p Project, framework string) (Plan, *Manifest, error)
+func InitPlan(root *os.Root, existing *Manifest, wants []Want, keep, overwrite []string, p Project,
+	runtimes map[string]Runtime, framework string) (Plan, *Manifest, error)
 
 type Journal struct{ /* each touched path's previous content and mode, or its absence */ }
 
@@ -261,6 +265,8 @@ func (j *Journal) Rollback() error
 `Classify` applies I §4.5's rules and returns the plan with the manifest `files` entries for the wanted paths.
 `CoreWants` returns the core files from `framework/` as `docs/solomonar/`, then `AGENTS.md` and `docs/README.md`
 from `templates/`, rendered with `text/template`.
+`RuntimeWants` returns the adapter stubs of I §4.2 per runtime, in the order `claude`, `codex`; a `CreateOnly` want
+(`CLAUDE.md`) present and unmanaged is `skip`, never a conflict, and `InitPlan` records `runtimes` in the manifest.
 `InitPlan` runs `Classify`, builds the manifest from its entries, and appends the manifest change last (I §4.5).
 `ManifestVersions` reads the manifest's `schema_version` and `framework_version` with the header validation and no
 newer-than check; the strict decoder builds on it, and `version` calls it alone (UC-24).
@@ -361,7 +367,7 @@ the name, at most 100 characters per line), and nothing requires one (revive `ex
 
 ## 10. Tooling
 
-`Taskfile.yml` is the single entry point for development and CI; it pins the tool versions and installs them into
+`Taskfile.yml` is the single entry point for local development; it pins the tool versions and installs them into
 `.bin/` with `go install`, so they are built with the project's Go toolchain and never enter `go.mod`.
 
 | Task | Runs |
@@ -375,7 +381,7 @@ the name, at most 100 characters per line), and nothing requires one (revive `ex
 | `task fmt` | `golangci-lint fmt` (gofumpt, goimports with the module as local prefix). |
 | `task lint` | `go mod tidy -diff`, then `golangci-lint run` (includes `go vet`, `gosec`, format checks). |
 | `task security` | `govulncheck ./...`. |
-| `task check` | `lint`, `test`, `security`: what CI runs. |
+| `task check` | `lint`, `test`, `security`: the commands CI runs. |
 | `task tools` | Installs golangci-lint v2.15.0 and govulncheck v1.9.0 into `.bin/`; skipped when the pinned versions are there. `task tools --force` rebuilds after a Go upgrade. |
 | `task clean` | Removes `bin/` and coverage output. |
 
@@ -402,6 +408,22 @@ the name, at most 100 characters per line), and nothing requires one (revive `ex
 | godoclint (basic, `max-len` 100) | Section 9 |
 | gosec, with `G204` excluded in `internal/git` and file modes `0755`/`0644` | Running `git` with arguments is the design (AD-3); project files are ordinary repository files |
 | nolintlint: every `//nolint` names its linter and gives a reason | Exceptions stay visible |
+
+### CI and release
+
+GitHub Actions run the `task check` commands through the official actions, with the same pinned tool versions.
+Actions are pinned to commit SHAs; Dependabot updates them and the Go modules weekly, after a 7-day cooldown.
+
+| Workflow | Trigger | Jobs |
+|---|---|---|
+| `ci-solomonar.yml` | pull request, push to `main`, manual, called by release | In parallel: `lint` (`go mod tidy -diff`, golangci-lint), `test` (`go test -race` with coverage), `vulncheck` (govulncheck), `build` (`goreleaser release --snapshot` for every target, then `version` and `help` on linux/amd64). |
+| `ci-solomonar.yml` | weekly schedule | `vulncheck` only. |
+| `ci-release-solomonar.yml` | push of a `v*.*.*` tag | `ci` reruns every check on the tagged commit; `verify` requires a semver tag, a commit on `main`, and no existing release; then `release` runs GoReleaser. |
+
+`.goreleaser.yaml` builds linux and darwin on amd64 and arm64 with `CGO_ENABLED=0`, `-trimpath`, `-s -w`, and the
+commit time as file timestamp, then writes `tar.gz` archives, SHA-256 checksums, and GitHub-generated release notes;
+a tag with a prerelease suffix publishes a prerelease. `dist/` is ignored by Git, since an untracked file would stamp
+the version `+dirty` (AD-10). Only the `release` job can write, and it builds without a Go cache.
 
 ## 11. Testing
 
