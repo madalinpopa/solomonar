@@ -41,7 +41,8 @@ question. Load only the routed file and the files its first lines require.
    tasks with owner, stage, and blockers; `planned` tasks; the number of `done` tasks. The record shows what
    orchestrators last wrote, not whether their sessions are alive; `solomonar task status <ID>` shows Git facts.
 3. End with at most two next steps, e.g. "Answer W-001/D-1 in orchestrator-1's session" or "Start W-002: open a
-   new top-level session and run `/solomonar work on W-002`".
+   new top-level session and use the solomonar skill to work on W-002". For an explicit invocation, use
+   `/solomonar` in Claude Code, `$solomonar` in Codex CLI/IDE, or the portable prompt "Use the solomonar skill".
 
 ## 4. Taking the orchestrator role
 
