@@ -472,11 +472,28 @@ func TestInitRejections(t *testing.T) {
 			stderr: "  found: claude is not selected\n",
 		},
 		{
-			name: "unknown extension", args: []string{"init", "--ext", "none", "--ext", "go", "--yes"}, exit: 2,
+			name: "extension none beside a name", args: []string{"init", "--ext", "go,none", "--ext", "rust", "--yes"},
+			exit: 2,
+			stderr: "error: init rejected (invalid_value)\n" +
+				"  check: --ext names extensions or none\n" +
+				"  found: none cannot be combined with go\n" +
+				"  fix:   pass --ext none alone\n",
+		},
+		{
+			name: "unknown extension", args: []string{"init", "--runtime", "none", "--ext", "go,rust", "--yes"}, exit: 2,
 			stderr: "error: init rejected (unknown_extension)\n" +
-				"  check: --ext names an available extension\n" +
-				"  found: \"go\" is not available; available: none\n" +
-				"  fix:   pass --ext none\n",
+				"  check: --ext names a catalog extension\n" +
+				"  found: \"rust\" is not in the catalog; known: go\n" +
+				"  fix:   pass --ext with a known name, or none\n",
+		},
+		{
+			name: "extension path", args: []string{"init", "--runtime", "none", "--ext", "./extensions/go", "--yes"},
+			exit: 2, stderr: "  found: \"./extensions/go\" is not in the catalog; known: go\n",
+		},
+		{
+			name: "extension checked before the model's runtime",
+			args: []string{"init", "--ext", "rust", "--adversarial-model", "claude=opus", "--yes"}, exit: 2,
+			stderr: "error: init rejected (unknown_extension)\n",
 		},
 		{
 			name: "keep without conflict", args: initArgs("--keep", "docs/solomonar/rules.md"), exit: 2,
