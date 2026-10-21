@@ -3,10 +3,11 @@ package project
 // Action is what a plan does to one path (I §3.3).
 type Action string
 
-// Plan actions; Apply acts only on create, update, and remove.
+// Plan actions; Apply acts only on create, update, append (written like update), and remove.
 const (
 	ActionCreate    Action = "create"
 	ActionUpdate    Action = "update"
+	ActionAppend    Action = "append"
 	ActionUnchanged Action = "unchanged"
 	ActionKeep      Action = "keep"
 	ActionRemove    Action = "remove"
