@@ -89,3 +89,15 @@ func commandError(ctx context.Context, program string, args []string, stderr *by
 	}
 	return gitErr
 }
+
+// Branch returns the branch HEAD points to, also an unborn one, or "" when HEAD is detached.
+func (r *Repo) Branch(ctx context.Context) (string, error) {
+	branch, err := r.Run(ctx, "symbolic-ref", "--short", "--quiet", "HEAD")
+	if gitErr, ok := errors.AsType[*Error](err); ok && gitErr.ExitCode == 1 {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("read HEAD: %w", err)
+	}
+	return branch, nil
+}
