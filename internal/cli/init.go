@@ -151,31 +151,53 @@ func (f *initFlags) run(ctx context.Context, env Env, flags sharedFlags, args []
 			dir = filepath.Join(flags.dir, dir)
 		}
 	}
-	fix := "run `git init -b " + cmp.Or(f.requested.MainBranch, defaultMainBranch) + "` first, or rerun with --git-init"
-	repo, err := openRepo(ctx, env, flags, dir, fix)
-	gitInit := false
-	if notRepo, ok := errors.AsType[*Error](err); ok && notRepo.Code == "not_a_repository" && f.gitInit {
-		gitInit = true
-		repo = &git.Repo{Dir: absDir(dir), Trace: traceWriter(env, flags)}
-		err = checkVersion(ctx, repo.Trace)
-	}
-	if err != nil {
-		return output{}, err
-	}
 	framework, err := frameworkVersion(env.Assets)
 	if err != nil {
 		return output{}, err
+	}
+	var ask *initPrompts
+	if env.Interactive && !f.yes && !flags.json {
+		ask = &initPrompts{prompter: newPrompter(env)}
+	}
+	repo, gitInit, err := f.openTarget(ctx, env, flags, dir, framework, ask)
+	if err != nil {
+		return ask.cancelOn(err, nil)
 	}
 	root, err := os.OpenRoot(repo.Dir)
 	if err != nil {
 		return output{}, fmt.Errorf("open worktree: %w", err)
 	}
 	defer root.Close()
-	var ask *initPrompts
-	if env.Interactive && !f.yes && !flags.json {
-		ask = &initPrompts{prompter: newPrompter(env)}
-	}
 	return f.initialize(ctx, env, repo, gitInit, root, framework, catalog, ask)
+}
+
+// openTarget opens the repository containing dir, else plans git init on --git-init or a yes (UC-4).
+func (f *initFlags) openTarget(ctx context.Context, env Env, flags sharedFlags, dir, framework string,
+	ask *initPrompts,
+) (*git.Repo, bool, error) {
+	mainBranch := cmp.Or(f.requested.MainBranch, defaultMainBranch)
+	repo, err := openRepo(ctx, env, flags, dir, "run `git init -b "+mainBranch+"` first, or rerun with --git-init")
+	repoErr, _ := errors.AsType[*Error](err)
+	notRepo := repoErr != nil && repoErr.Code == "not_a_repository"
+	if ask != nil && (err == nil || notRepo) {
+		if err := ask.header(ctx, framework, repo, absDir(dir)); err != nil {
+			return nil, false, err
+		}
+	}
+	switch {
+	case !notRepo || (ask == nil && !f.gitInit):
+		return repo, false, err
+	case !f.gitInit:
+		yes, err := ask.confirmGitInit(mainBranch)
+		if err != nil {
+			return nil, false, err
+		}
+		if !yes {
+			return nil, false, errDeclined
+		}
+	}
+	repo = &git.Repo{Dir: absDir(dir), Trace: traceWriter(env, flags)}
+	return repo, true, checkVersion(ctx, repo.Trace)
 }
 
 // knownRuntimes returns the given runtimes sorted and unique; a given none requests an empty list.
@@ -373,8 +395,8 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 	if r.plan, r.decisions, err = f.plan(env, root, existing, p, r); err != nil {
 		return output{}, err
 	}
-	if ask != nil {
-		ask.section()
+	if err := f.beforePlan(env, root, existing, p, &r, ask); err != nil {
+		return ask.cancelOn(err, r.warnings)
 	}
 	if conflicts := r.plan.Conflicts(); len(conflicts) > 0 {
 		return output{text: "Plan\n" + planLines(conflicts)}, fileConflict(conflicts)
@@ -435,14 +457,37 @@ func unbornMain(ctx context.Context, repo *git.Repo, mainBranch string) (unborn,
 	if gitErr, ok := errors.AsType[*git.Error](err); !ok || gitErr.ExitCode != 1 {
 		return false, false, fmt.Errorf("check main branch: %w", err)
 	}
-	head, err := repo.Run(ctx, "symbolic-ref", "--quiet", "HEAD")
-	if gitErr, ok := errors.AsType[*git.Error](err); ok && gitErr.ExitCode == 1 {
-		head, err = "", nil
-	}
+	branch, err := repo.Branch(ctx)
 	if err != nil {
-		return false, false, fmt.Errorf("read HEAD: %w", err)
+		return false, false, err
 	}
-	return true, head != "refs/heads/"+mainBranch, nil
+	return true, branch != mainBranch, nil
+}
+
+// beforePlan asks to adopt or replace an unmanaged AGENTS.md, then opens the plan's block (UC-4).
+func (f *initFlags) beforePlan(env Env, root *os.Root, existing *project.Manifest, p project.Project, r *initRun,
+	ask *initPrompts,
+) error {
+	if ask == nil {
+		return nil
+	}
+	adopts := slices.ContainsFunc(r.plan.Changes, func(c project.Change) bool {
+		return c.Path == "AGENTS.md" && c.Adopted()
+	})
+	if !f.dryRun && adopts && len(r.plan.Conflicts()) == 0 {
+		replace, err := ask.adoption()
+		if err != nil {
+			return err
+		}
+		if replace {
+			f.overwrite = append(f.overwrite, "AGENTS.md")
+			if r.plan, r.decisions, err = f.plan(env, root, existing, p, *r); err != nil {
+				return err
+			}
+		}
+	}
+	ask.section()
+	return nil
 }
 
 func jujutsuWarnings(root *os.Root) []warning {
