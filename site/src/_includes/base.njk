@@ -1,17 +1,48 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" prefix="og: https://ogp.me/ns#">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% if title %}{{ title }} · {% endif %}solomonar</title>
-  <meta name="description" content="{{ description or site.description }}">
+  {% set pageTitle = (title + ' · ' + site.name) if title else site.name %}
+  {% set pageDescription = description or site.description %}
+  <title>{{ pageTitle | escape }}</title>
+  <meta name="description" content="{{ pageDescription | escape }}">
   <meta name="color-scheme" content="dark light">
   <meta name="theme-color" content="#1A1614">
-  <link rel="canonical" href="{{ page.url | absolute }}">
+  {% if noindex %}
+  <meta name="robots" content="noindex, follow">
+  {% else %}
+  <meta name="robots" content="max-image-preview:large">
+  <link rel="canonical" href="{{ page.url | absolute | escape }}">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="{{ title or 'From intent to verified code' }} · solomonar">
-  <meta property="og:description" content="{{ description or site.description }}">
-  <meta property="og:url" content="{{ page.url | absolute }}">
+  <meta property="og:site_name" content="{{ site.name }}">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:title" content="{{ pageTitle | escape }}">
+  <meta property="og:description" content="{{ pageDescription | escape }}">
+  <meta property="og:url" content="{{ page.url | absolute | escape }}">
+  <meta property="og:image" content="{{ site.socialImage | absolute | escape }}">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="{{ site.socialImageAlt | escape }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ pageTitle | escape }}">
+  <meta name="twitter:description" content="{{ pageDescription | escape }}">
+  <meta name="twitter:image" content="{{ site.socialImage | absolute | escape }}">
+  <meta name="twitter:image:alt" content="{{ site.socialImageAlt | escape }}">
+  {% endif %}
+  {% if home %}
+  {% set structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareSourceCode',
+    'name': site.name,
+    'description': site.description,
+    'url': '/' | absolute,
+    'codeRepository': site.repository,
+    'license': site.repository + '/blob/main/LICENSE'
+  } %}
+  <script type="application/ld+json">{{ structuredData | jsonLd | safe }}</script>
+  {% endif %}
   <link rel="icon" href="{{ '/favicon.svg' | url }}" type="image/svg+xml">
   <link rel="preload" href="{{ '/assets/fonts/newsreader-latin.woff2' | url }}" as="font" type="font/woff2" crossorigin>
   <script>
