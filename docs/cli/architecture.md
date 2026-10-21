@@ -238,9 +238,10 @@ func Apply(root *os.Root, p Plan) error
    stops here: exit 2.
 2. `cli` locates the repository (`git rev-parse --git-common-dir` from `-C` or the working directory), reads the
    manifest for `main_branch` and `remote`, and resolves `--as` from the flag or `SOLOMONAR_OWNER`.
-3. `store.Update(ctx, fn)`: read the tip and `state.json`; `fn` checks ownership, applies `Record.Move`, then runs
-   the fact checks (`git merge-base --is-ancestor`, worktree spec lookup). A rejection returns at once: exit 3,
-   nothing written.
+3. `store.Update(ctx, fn)`: read the tip and `state.json`; `fn` looks up the record, rejects a done record
+   (`done_final`), checks ownership, applies `Record.Move`, then runs the fact checks (`git merge-base
+   --is-ancestor`, worktree spec lookup). A rejection returns at once: exit 3, nothing written. A move that changes
+   nothing skips steps 4–5.
 4. The store writes `hash-object` → `mktree` → `commit-tree -p <old>` → `update-ref <new> <old>`. A lost swap
    re-reads the tip and re-runs `fn`; five losses give `cas_exhausted` (exit 4).
 5. With a remote, `git push <remote> workflow-state` under a time limit; failure is the warning `push_failed`,
