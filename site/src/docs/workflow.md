@@ -1,9 +1,10 @@
 ---
 title: From specification to reviewed code
+navTitle: The task lifecycle
 description: Follow a Solomonar task from acceptance criteria through AI implementation, independent review, pull request integration, and verified closure.
-kind: How-to guide
-group: Understand
-order: 3
+kind: Explanation
+group: Learn the framework
+order: 6
 sources:
   - assets/framework/rules.md
   - assets/framework/skills/work-spec/SKILL.md
@@ -11,7 +12,7 @@ sources:
   - docs/cli/interface.md
 ---
 
-> **Framework walkthrough:** this page explains the agreed workflow. The complete CLI path is still under development, including initialization and status inspection. Use [Getting started]({{ '/docs/getting-started/' | url }}) for commands you can run against the current source build.
+This page explains each stage of a managed task and the rule behind it. For a hands-on walk through the same path, start with [Run your first task]({{ '/docs/first-task/' | url }}).
 
 ## Start with one useful outcome
 
@@ -80,4 +81,4 @@ After the merge is confirmed, `task done` verifies the merge and the final `spec
 
 On restart, inspect the stored record and actual Git, worktree, PR, and check state before repeating an action. Preserve uncommitted changes. Continue the same task rather than creating another worktree or PR.
 
-The planned `task status` command is designed to show facts and drift; it does not infer whether an agent is alive from its last reported assignment. See [task state]({{ '/docs/task-state/' | url }}).
+`solomonar task status <ID>` shows those facts, any drift from the record, and the commands valid next. It does not infer whether an agent is alive from its last reported assignment. See [task state]({{ '/docs/task-state/' | url }}).
