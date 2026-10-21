@@ -75,3 +75,51 @@ tasks:
   clean:
     desc: Remove build outputs and coverage
     cmd: rm -rf {{.BIN}} coverage.out
+
+  release:next:
+    desc: Tag and push the next patch release
+    cmds:
+      - task: release:patch
+
+  release:patch:
+    desc: Tag and push the next patch release (vX.Y.Z+1)
+    cmds:
+      - task: _release
+        vars: {BUMP: patch}
+
+  release:minor:
+    desc: Tag and push the next minor release (vX.Y+1.0)
+    cmds:
+      - task: _release
+        vars: {BUMP: minor}
+
+  release:major:
+    desc: Tag and push the next major release (vX+1.0.0)
+    cmds:
+      - task: _release
+        vars: {BUMP: major}
+
+  _release:
+    internal: true
+    vars:
+      LATEST:
+        sh: git fetch --quiet --tags origin && git tag --list 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true
+      NEXT:
+        sh: |
+          v='{{.LATEST | default "v0.0.0"}}'; v=${v#v}
+          M=${v%%.*}; r=${v#*.}; m=${r%%.*}; p=${r#*.}
+          case '{{.BUMP}}' in
+            major) echo "v$((M + 1)).0.0" ;;
+            minor) echo "v$M.$((m + 1)).0" ;;
+            patch) echo "v$M.$m.$((p + 1))" ;;
+          esac
+    preconditions:
+      - sh: git fetch --quiet origin main && git merge-base --is-ancestor HEAD origin/main
+        msg: HEAD is not on origin/main; push main first, since the release workflow rejects other commits.
+      - sh: '! git rev-parse -q --verify "refs/tags/{{.NEXT}}" >/dev/null'
+        msg: Tag {{.NEXT}} already exists.
+    prompt: Tag {{.LATEST | default "no release"}} -> {{.NEXT}} and push it to start the release?
+    cmds:
+      - git tag -a {{.NEXT}} -m "Release {{.NEXT}}"
+      - git push origin {{.NEXT}}
+      - echo "Pushed {{.NEXT}}; the release workflow runs on GitHub Actions."
