@@ -84,7 +84,7 @@ func newRejectionError(command string, rejection task.Rejection, cause error) *E
 
 func rejectionExit(code string) int {
 	switch code {
-	case "invalid_value", "owner_required":
+	case "invalid_value", "owner_required", "unknown_runtime", "unknown_extension":
 		return exitUsage
 	case "registry_invalid", "manifest_invalid":
 		return 1
