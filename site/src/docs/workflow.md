@@ -1,6 +1,6 @@
 ---
-title: Follow a task
-description: Trace the framework's intended path from a selected outcome to a reviewed, integrated change.
+title: From specification to reviewed code
+description: Follow a Solomonar task from acceptance criteria through AI implementation, independent review, pull request integration, and verified closure.
 kind: How-to guide
 group: Understand
 order: 3
