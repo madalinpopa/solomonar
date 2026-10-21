@@ -1,4 +1,4 @@
-package git
+package git_test
 
 import (
 	"os"
@@ -8,12 +8,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/madalinpopa/solomonar/internal/git"
+	"github.com/madalinpopa/solomonar/internal/git/gittest"
 )
 
 func TestDiscoverFromMainCheckout(t *testing.T) {
-	dir := newRepo(t)
+	dir := gittest.NewRepo(t)
 
-	repo, err := Discover(t.Context(), dir, nil)
+	repo, err := git.Discover(t.Context(), dir, nil)
 
 	require.NoError(t, err)
 	assert.Equal(t, dir, repo.Dir)
@@ -21,24 +24,24 @@ func TestDiscoverFromMainCheckout(t *testing.T) {
 }
 
 func TestDiscoverFromSubdirectoryFindsWorktreeRoot(t *testing.T) {
-	dir := newRepo(t)
+	dir := gittest.NewRepo(t)
 	sub := filepath.Join(dir, "a", "b")
 	require.NoError(t, os.MkdirAll(sub, 0o755))
 
-	repo, err := Discover(t.Context(), sub, nil)
+	repo, err := git.Discover(t.Context(), sub, nil)
 
 	require.NoError(t, err)
 	assert.Equal(t, dir, repo.Dir)
 }
 
 func TestDiscoverFromWorktreeSharesCommonDir(t *testing.T) {
-	mainDir := newRepo(t)
-	commit(t, mainDir, "initial")
-	featureDir := worktree(t, mainDir, "feature/T-1")
+	mainDir := gittest.NewRepo(t)
+	gittest.Commit(t, mainDir, "initial")
+	featureDir := gittest.Worktree(t, mainDir, "feature/T-1")
 
-	mainRepo, err := Discover(t.Context(), mainDir, nil)
+	mainRepo, err := git.Discover(t.Context(), mainDir, nil)
 	require.NoError(t, err)
-	featureRepo, err := Discover(t.Context(), featureDir, nil)
+	featureRepo, err := git.Discover(t.Context(), featureDir, nil)
 	require.NoError(t, err)
 
 	assert.Equal(t, mainRepo.CommonDir, featureRepo.CommonDir)
@@ -47,10 +50,10 @@ func TestDiscoverFromWorktreeSharesCommonDir(t *testing.T) {
 }
 
 func TestDiscoverTracesAndKeepsTrace(t *testing.T) {
-	dir := newRepo(t)
+	dir := gittest.NewRepo(t)
 	var trace strings.Builder
 
-	repo, err := Discover(t.Context(), dir, &trace)
+	repo, err := git.Discover(t.Context(), dir, &trace)
 
 	require.NoError(t, err)
 	assert.Same(t, &trace, repo.Trace)
@@ -58,22 +61,22 @@ func TestDiscoverTracesAndKeepsTrace(t *testing.T) {
 }
 
 func TestDiscoverOutsideRepositoryReturnsErrNotRepository(t *testing.T) {
-	isolateGit(t)
-	dir := resolved(t, t.TempDir())
+	gittest.Isolate(t)
+	dir := gittest.Resolved(t, t.TempDir())
 	t.Setenv("GIT_CEILING_DIRECTORIES", filepath.Dir(dir))
 
-	_, err := Discover(t.Context(), dir, nil)
+	_, err := git.Discover(t.Context(), dir, nil)
 
-	require.ErrorIs(t, err, ErrNotRepository)
+	require.ErrorIs(t, err, git.ErrNotRepository)
 	assert.Contains(t, err.Error(), dir)
 }
 
 func TestDiscoverInMissingDirectoryIsNotErrNotRepository(t *testing.T) {
-	isolateGit(t)
+	gittest.Isolate(t)
 	missing := filepath.Join(t.TempDir(), "missing")
 
-	_, err := Discover(t.Context(), missing, nil)
+	_, err := git.Discover(t.Context(), missing, nil)
 
 	require.Error(t, err)
-	assert.NotErrorIs(t, err, ErrNotRepository)
+	assert.NotErrorIs(t, err, git.ErrNotRepository)
 }
