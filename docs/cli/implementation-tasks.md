@@ -102,7 +102,14 @@ fields in record order (UC-13 example updated).
 - [x] `Store.Update`: `hash-object` → `mktree` → `commit-tree -p <old>` → `update-ref <new> <old>`; a lost swap
       re-reads and re-runs `fn`, five attempts, then `cas_exhausted` (AD-5, UC-21)
 - [x] Push to the remote with a 30-second limit; failure is `push_failed`, no remote is `no_remote` (I §8.4, §8)
-- Stage 4.2 `[ ]` — Cancellation (`interrupted`, `push_interrupted`), `cli_outdated`
+### Stage 4.2 — Cancellation and rejection mapping `[x]`
+
+- [x] Store: a cancel before the swap writes nothing; a cancel during the push keeps the commit and warns
+      `push_interrupted`; a push timeout stays `push_failed` (CLI-D18, I §3.5)
+- [x] `cli` maps `task.Rejection` codes to exit classes with one table (I §8.4, §3.5)
+- [x] `interrupted` exits 128 + signal (130 for SIGINT, 143 for SIGTERM) with fix "rerun"
+- [x] Warnings in the output: `warning: <message>` on stderr, `warnings` in the JSON envelope (I §3.3, §3.4)
+- [x] `cli_outdated` (exit 3) reaches the user unchanged (CLI-D19)
 - Stage 4.3 `[ ]` — `task plan` and `task show` commands (UC-11, UC-16 show, UC-21)
 
 ## Step 5: `task register`, `task move`
