@@ -42,6 +42,7 @@ func commands() []command {
 			description: "Print help for a command; '-h' on any command is equivalent.",
 			bind:        withoutFlags(runHelp),
 		},
+		initCommand(),
 		{
 			name:    "version",
 			summary: "Print CLI, embedded framework, and project framework versions",
