@@ -126,7 +126,7 @@ func TestMoveSubject(t *testing.T) {
 		{name: "spec and short revision", record: full, changed: []string{"spec", "revision"}, want: "spec " + specPath + ", revision 7cd18e4"},
 		{name: "tier and agents", record: full, changed: []string{"tier", "active_agents"}, want: "tier 2, agents sec-1 cor-1"},
 		{name: "agents cleared", record: moving(StatusRunning, StageImplementation, nil), changed: []string{"active_agents"}, want: "agents none"},
-		{name: "pr and next", record: full, changed: []string{"pr", "next_action"}, want: "pr https://github.com/acme/ledger/pull/42, next orchestrator-1"},
+		{name: "next and pr", record: full, changed: []string{"next_action", "pr"}, want: "next orchestrator-1, pr https://github.com/acme/ledger/pull/42"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
