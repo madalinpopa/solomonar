@@ -1,9 +1,10 @@
 ---
 title: AI coding agent workflow examples
+navTitle: Workflow examples
 description: Explore ten Solomonar workflow examples with agent prompts for product discovery, specifications, bug fixes, parallel tasks, reviews, and recovery.
 kind: How-to examples
-group: Understand
-order: 2.5
+group: Guides
+order: 9
 sources:
   - assets/framework/skills/solomonar/SKILL.md
   - assets/framework/skills/prototype/SKILL.md
@@ -17,7 +18,7 @@ sources:
 
 These examples follow **Ledger**, a fictional shared-expenses project. Its expense screens and CSV export are example product features, not features built into Solomonar. Start with the situation that matches your work.
 
-> **Before you try them:** agent prompts assume the framework and its runtime adapters are installed in your project. The full CLI setup path, including `init`, is still under development. Read [Getting started]({{ '/docs/getting-started/' | url }}) for what the current build supports. Task commands below require an existing initialized registry; task IDs are illustrative.
+> **Before you try them:** the prompts assume a project prepared with `solomonar init`. If you have not done that yet, follow [Set up a project]({{ '/docs/set-up-a-project/' | url }}). Task IDs below are illustrative.
 
 Paste **agent prompts** into a top-level agent session. The portable wording is “Use the solomonar skill.” Codex also accepts `$solomonar`; Claude Code uses `/solomonar`. **Terminal commands** go in your shell. The binary checks and records work; the agent session coordinates it.
 
@@ -212,7 +213,7 @@ Resuming reconciles the record with the worktree, decisions, and PR. Uncommitted
 
 If ownership must change, explicitly request the handoff and confirm the previous execution stopped. Only then does the new session take ownership before writing. Elapsed time alone never transfers ownership.
 
-**You leave with:** the same task, worktree, and PR, with a known next action. `task show` reports the stored record, not live agent activity. See [task state]({{ '/docs/task-state/' | url }}) for the distinction between recorded state and Git or forge facts.
+**You leave with:** the same task, worktree, and PR, with a known next action. `task show` reports the stored record, not live agent activity; `task status W-001` compares it with the actual worktree and PR. See [task state]({{ '/docs/task-state/' | url }}) for the distinction between recorded state and Git or forge facts.
 
 ## Finish the task and handle a later regression
 
@@ -238,4 +239,4 @@ solomonar task plan --title "Fix CSV quoting regression" --related W-001
 
 ---
 
-These examples adapt the framework/CLI design review of 21 October 2026 and are checked against the source contracts below. They illustrate the workflow; they are not a claim that the fictional Ledger project or the complete setup path was executed. For installation, runtime management, extensions, synchronization, and upgrades, consult the [CLI availability table]({{ '/docs/cli/#planned-commands' | url }}) and [configuration guide]({{ '/docs/configuration/' | url }}).
+These examples adapt the framework/CLI design review of 21 October 2026 and are checked against the source contracts below. They illustrate the workflow; they are not a claim that the fictional Ledger project or the complete setup path was executed. For runtime management, extensions, synchronization, and upgrades, consult the [planned commands]({{ '/docs/cli/#planned-commands' | url }}) and the [project files reference]({{ '/docs/configuration/' | url }}).
