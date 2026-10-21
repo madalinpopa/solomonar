@@ -5,6 +5,10 @@ validation) is fixed by [the interface spec](interface.md) (cited as `I §n`); t
 When the two differ, the interface spec wins for behavior and this document wins for structure. Decisions here are
 `AD-n`; questions still open are in section 13.
 
+This is an implementation contract; `main.go` remains a placeholder. The accepted workflow-audit fixes are
+recorded in the [updated HTML report](../reviews/2026-10-21-framework-cli-audit.html), with runtime verification
+kept separate from completion of the design changes.
+
 Contents: 1 Scope · 2 Analysis of the interface design · 3 Toolchain · 4 Architectural decisions · 5 Layout and
 packages · 6 Key types · 7 Execution flow · 8 Errors, cancellation, and file safety · 9 Code conventions ·
 10 Tooling · 11 Testing · 12 Implementation plan · 13 Open questions · 14 Non-goals and deferred work
@@ -37,7 +41,7 @@ rejections, and exit code. The points below are where it affects the build, orde
 | F3 | "A partial file write is rolled back" (I §3.5) for commands that write tens of files. | Plan first, apply with a journal, roll back the files this run touched (AD-6). | Adopted. |
 | F4 | An unmanaged file identical to what `init` would write is a conflict, so a re-run after a crash fails on the run's own files. | Treat identical content as `unchanged (adopted)` and record it in the manifest. | Decided, CLI-D17. |
 | F5 | `upgrade --diff` needs a text diff; the standard library has none. | `git diff --no-index --no-color <tmp-embedded> <path>`. | Adopted. |
-| F6 | The guard (UC-22) recognizes registry writes inside arbitrary shell commands. | Best effort, as the spec says: match `state.json` paths for file tools, `workflow-state` tokens for shell tools; a table test of real commands. | Adopted. |
+| F6 | The guard (UC-22) recognizes registry writes inside arbitrary shell commands. | Best effort: resolve protected Git ref paths for file tools and recognize mutating shell operations on `workflow-state`. Ordinary product `state.json` files and read-only inspection are allowed; test real payloads. | Adopted; narrowed by audit F-06. |
 | F7 | `--runtime` defaults to "detected on `PATH`" also with `--yes`. | Keep; the plan and the JSON `choices` show the detected list. | No change. |
 | F8 | Interrupt handling is not specified. | The exit code reports what was written: 128 + signal before the swap, 0 with `push_interrupted` after it. | Decided, CLI-D18. |
 | F9 | CLI-D8 (binary name) was still "deferred". | Root `main.go` (AD-13). | Decided, CLI-D8 c; applied. |
@@ -82,7 +86,7 @@ Section 10 enforces these with lint rules.
 | AD-3 | Git and `gh` through their executables, never a Go Git library. | Atomic `update-ref <new> <old>` and `git worktree list --porcelain` are the contract (rules §7); the user's Git configuration and identity apply; Git ≥ 2.40 is already required. | go-git: no worktree parity, a second implementation of the swap semantics, a large dependency. |
 | AD-4 | Commands return data or a typed error; one renderer writes human or JSON form; `main` alone calls `os.Exit`. | One place enforces the envelope (I §3.4) and the exit table (I §3.5); packages stay testable. | Printing inside domain code: the two output forms would drift. |
 | AD-5 | Registry writes as `Update(ctx, fn)`: read tip, run `fn` on a copy, build the tree, swap; on a lost swap re-read and re-run `fn`, up to 5 attempts. | Re-running the whole validation on the new tip is exactly UC-21; callers cannot forget it. | Validate once, retry only the swap: wrong after a concurrent claim of the same ID. |
-| AD-6 | Every file-writing command computes a `Plan` before writing; `Apply` writes temp + rename inside `os.Root`, journals the previous content, and restores it on failure. Files first, registry next, manifest last. | `--dry-run`, plan display, conflict detection, and rollback share one structure. | Writing while deciding: no reliable dry run, no rollback. |
+| AD-6 | Every file-writing command computes a `Plan` before writing; `Apply` writes temp + rename inside `os.Root`, journals the previous content, and restores it on handled failure. Include the manifest in that file plan and finalize it before any registry CAS. Keep rollback available until the CAS succeeds. | `--dry-run`, conflict detection, and rollback share one structure; no fallible project-file write remains after the registry commit point (audit F-09). | Writing while deciding, or a manifest write after CAS: no truthful "nothing written" guarantee on failure. |
 | AD-7 | `state.json` and the manifest are decoded strictly and validated after decoding; written with stable key order and a trailing newline. Their version fields are read first, and a newer version is `cli_outdated` (CLI-D19) before strict decoding runs. | The registry is the authority; a hand edit or a newer schema fails loudly (`registry_invalid`, `manifest_invalid`) instead of losing fields on the next write. | Lenient decoding: unknown fields vanish on rewrite. |
 | AD-8 | Task rules are pure functions over the record; fact checks are a separate step that takes the repository. | The I §8.1 and §8.2 tables are tested without Git; `allowed_next` (I §9.3) comes from the same tables, so validation and the oracle cannot disagree. | Rules and Git calls interleaved: every rule test needs a repository. |
 | AD-9 | Process inputs (args, standard streams, environment lookup, clock, terminal detection, embedded assets) reach `cli.Run` as one `Env` value. | In-process tests of every use case, without building the binary or touching `os` globals. | Reading `os.Args`, `os.Getenv`, `time.Now` inside commands. |
@@ -126,8 +130,9 @@ main → cli → task      → git
            → dashboard → task
 ```
 
-`task` does not import `project`: `cli` passes the installed roles for `--agent` validation (I §8.3) as a
-`[]string`. `project` receives the embedded tree as an `fs.FS`, so its tests use `testing/fstest.MapFS`.
+`task` does not import `project`: `cli` passes the core delegated roles plus extension agents whose manifest
+state is `installed` for `--agent` validation (I §8.3) as a `[]string`; draft agent files are excluded.
+`project` receives the embedded tree as an `fs.FS`, so its tests use `testing/fstest.MapFS`.
 
 Not created, and why: no `pkg/` (no public API); no `config` package (settings are three manifest fields read by
 `project`); no `output` or `ui` package (rendering is `cli`); no package per command; no `doctor` or `guard`
@@ -237,8 +242,14 @@ Exit 0 whatever the drift.
 
 **Project write** (`init`, `extension add`, `sync`, `upgrade`, `runtime add|remove`): load the manifest (absent
 for `init`); take choices from flags, then prompts when interactive; build the `Plan` from the embedded assets and
-the files on disk; show it; stop on conflicts (exit 4) or after `--dry-run`; confirm; `Apply`; for `init` create
-the registry after the files; write the manifest last; print `Next:`.
+the files on disk; show it; stop on conflicts (exit 4) or after `--dry-run`; confirm; `Apply` every project file,
+including the manifest. For `init` create the registry, or for a schema-changing `upgrade` migrate it, only after
+all file writes succeed. Keep the file journal until that CAS succeeds, rolling back this run's changes on a
+handled failure. With an existing valid init registry, reuse it unchanged; successful file apply is then the
+local commit point. Publish only after local success; print `Next:`.
+
+For init, validate an existing registry and its version before any file apply. A valid registry is reused; an
+invalid one is rejected without touching either the registry or project files (I UC-3).
 
 ## 8. Errors, cancellation, and file safety
 
@@ -251,9 +262,11 @@ the registry after the files; write the manifest last; print `Next:`.
 - Cancellation (CLI-D18): one context from `signal.NotifyContext(os.Interrupt, syscall.SIGTERM)`; after it is
   done, `main` calls `stop()` so a second signal ends the process. Local Git commands run without a time limit;
   `git push` and `gh` get 30 seconds each. Before the registry swap, cancellation rolls back `Apply` and exits
-  128 + signal with `interrupted`. The swap is the commit point: after it, the remaining local steps (the
-  manifest write for `init`) run on a context detached from the signal (`context.WithoutCancel`), only the push
-  stays cancellable, and an interrupted push is the warning `push_interrupted` with exit 0.
+  128 + signal with `interrupted`. The swap is the commit point: no project-file write remains after it; only
+  optional publication and result rendering remain. An interrupted push is `push_interrupted` with exit 0.
+  A project-only command, including init reusing an existing valid registry, commits locally when its entire
+  file plan succeeds. Journal rollback covers handled errors/signals, not SIGKILL or machine crashes; repeated
+  init recovers by adopting identical files and preserving an existing registry (I UC-3).
 - Files: every project path goes through one `os.Root` opened at the worktree root; writes are temp file + rename
   in the same directory; updates keep their mode, new files get `0o644`; nothing outside the repository is written
   except Git's own objects and refs.
@@ -334,12 +347,36 @@ Assertions use testify (AD-14); test helpers that build repositories take `t`, c
 `require`. Tests require `git` ≥ 2.40 on `PATH` and fail with that message otherwise. `gh` is never called in tests:
 `--no-forge`, or a fake `gh` script placed first on `PATH`.
 
+### Accepted workflow-audit scenarios
+
+These are implementation acceptance checks, not claims that the placeholder CLI already passes them. Keep the
+contract walkthrough and the runtime smoke results distinct in the audit report.
+
+| Audit | Scenario | Required result |
+|---|---|---|
+| F-01, F-03 | README-only correction in an empty product repository; maintenance in an existing application with unknown run commands | Assigned documentation is permitted; no new application baseline is added. The first authorized executable outcome still establishes only its needed baseline. |
+| F-02 | Offered A, local B, `init --keep`, upgrade C, keep B, repeat C, then upgrade D | Base hashes follow A → C; B is preserved, repeated C keeps B, and D conflicts rather than overwriting B. Cover rendered assets and the managed part of AGENTS. |
+| F-04 | Main changes a contract used by a feature in a different file; separate control changes only an unrelated logo | CI reruns in both; affected or uncertain reviews rerun for the contract, while unrelated changes permit justified reuse. Use the audit's exporter/policy counterexample. |
+| F-05 | Real Claude Code and Codex sessions after init/runtime add, including a feature worktree | The documented invocation discovers the skill, loads the portable source, takes the orchestrator role in the same top-level session, and delegates with the assigned worktree/revision. Record runtime versions; file-tree assertions alone do not pass this check. |
+| F-06 | Real hook payloads for product state.json, read-only registry inspection, task move, and direct protected-ref writes | Product writes and authorized CLI/read calls are allowed; direct registry mutations are denied. Include linked-worktree Git paths and packed refs. |
+| F-07 | `new → list/show → sync/doctor → add → repeated add`, for a skill and an agent | Draft is visible but inactive and needs no decision; adoption validates metadata and installs once; a repeated identical adoption is a no-op. Test local-directory flags with no terminal. |
+| F-08 | Add htmx, add templ, remove templ | Every remaining installed frontend extension points to the approved decision for the full new selection; old decisions remain in history; doctor does not fail on the valid transition. |
+| F-09 | Inject errors writing the manifest and at registry CAS; separately fail push after CAS | Manifest failure creates no new ref; CAS failure restores the manifest and other files; successful CAS plus failed push returns local success with warning. Existing valid init registry is preserved, and invalid registry is rejected before file apply. |
+| F-10 | Review an io.Reader implementation and a new project-owned cancellable API | The imposed Read signature is accepted; the new API still propagates context. A signature exception is not a blanket exemption from cancellation discipline. |
+
+Manual runtime smoke checks belong to the runtime adapter's increment; they need not turn rule/fixture tests
+into model-provider calls. Use the existing human/JSON, rollback, concurrency, and use-case suites for the other
+acceptance scenarios instead of duplicating them in another layer.
+
 Deferred: transcript tests (`rsc.io/script` or `testscript`). The use cases are transcripts, so they would fit,
 but they are a dependency; reconsider if the in-process tests read worse than the transcripts.
 
 ## 12. Implementation plan (increment 1)
 
 Increment 1 of I §10: `init`, every `task` command, `version`, `help`. Each step ends with `task check` green.
+
+This is an internal milestone. The full new-project journey with a stack chosen after discovery also requires
+`extension add` in increment 2; label that limitation in demos and release notes.
 
 | Step | Objective and scope | Acceptance criteria | Tests |
 |---|---|---|---|
@@ -350,7 +387,7 @@ Increment 1 of I §10: `init`, every `task` command, `version`, `help`. Each ste
 | 5 | **`task register`, `task move`.** Ownership, I §8.3 fact checks, every UC-14 rejection. | UC-12, UC-13, UC-14, UC-18 pass in human and JSON form. | Real repositories with `feature/<ID>` branches and worktrees. |
 | 6 | **`task block`, `unblock`, `handoff`, `done`.** Blocker IDs, prior status from the stage, merge and `spec_ref` checks. | UC-15, UC-19, UC-20 pass; a squash merge is rejected with `merge_not_merge_commit`. | Repositories with a merge commit, a squash, and a rebased branch. |
 | 7 | **`task status`.** Facts, drift, `allowed_next`, optional `gh`. | UC-16 (`status`) and UC-17 pass; without `gh` the forge facts are `unknown`, never passing. | Fake `gh` on `PATH`; each drift row produced by a repository state. |
-| 8 | **`init`, non-interactive, core only.** Manifest, plan/apply with rollback, core files, `AGENTS.md` and `docs/README.md` from templates, registry creation, re-run no-op, conflicts, `--keep`/`--overwrite`, `--dry-run`. | UC-2 with `--runtime none --ext none`, UC-3, and the non-interactive UC-4 cases pass; a re-run over files left without a manifest adopts them (CLI-D17). | File-tree assertions; a failing write rolls back every file of the run. |
+| 8 | **`init`, non-interactive, core only.** Manifest, plan/apply with rollback, core files, `AGENTS.md` and `docs/README.md` from templates, registry creation, re-run no-op, conflicts, `--keep`/`--overwrite`, `--dry-run`. | UC-2 with `--runtime none --ext none`, UC-3, and the non-interactive UC-4 cases pass; a re-run over files left without a manifest adopts them (CLI-D17); keep preserves the upstream base; manifest apply precedes registry CAS. | File-tree assertions plus F-02/F-09: a failing file write or CAS rolls back this run's entire file plan, including the manifest. |
 | 9 | **`init` with runtimes and catalog extensions.** Adapter stubs, `.claude/settings.json` merge, extension rendering, `requires`/`conflicts`, `P/D-n` entries, `docs/stack.md`. | UC-2 with `--runtime claude,codex --ext go`; a repeated `init` stays a no-op. | `fstest.MapFS` catalog with `With` sections; the settings merge keeps foreign keys. |
 | 10 | **Interactive `init`.** Line prompts, multi-select, `AGENTS.md` adoption, `--git-init` prompt, `interactive_required`. | UC-1 and the interactive UC-4 branches pass with scripted stdin. | Prompt tests with `strings.Reader`. |
 
