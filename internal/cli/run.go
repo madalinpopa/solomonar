@@ -20,6 +20,7 @@ type Env struct {
 	Getenv      func(string) string
 	Now         func() time.Time
 	Interactive bool
+	RawMode     func() (restore func(), err error)
 	Assets      fs.FS
 }
 
