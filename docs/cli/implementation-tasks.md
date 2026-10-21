@@ -475,7 +475,34 @@ fake `gh` there. UC-16, UC-17 updated to match.
 
 ## Step 8: `init`, non-interactive, core only
 
-- Stage 8.1 `[ ]` — Manifest model, strict decoding, hashes
+### Stage 8.1 — Manifest model, strict decoding, hashes (`internal/project`) `[x]`
+
+Decisions (author, 2026-10-21): a new package `internal/project` (architecture §5)
+holds `Manifest` with the I §4.7 fields and JSON keys; `DecodeManifest(data, framework)` reads `schema_version` and
+`framework_version` first, and a newer one than this CLI (`ManifestSchemaVersion = 1`, `framework` the embedded
+framework version, compared as `major.minor.patch`) is `cli_outdated` with the registry's texts, before decoding
+strictly (`encoding/json/v2`, unknown members and duplicate keys rejected; CLI-D19, AD-7); every other failure is
+`manifest_invalid` (exit 1, like `registry_invalid`; fix `inspect .solomonar/manifest.json; never edit it by hand`)
+naming the field; `Encode` writes struct order, sorted map keys, two-space indent, trailing newline; validation:
+`project.name`, `main_branch`, `remote` non-empty; runtime keys `claude` or `codex`, value `{"adversarial_model"?}`;
+extension names `[a-z][a-z0-9-]*`, `state` `installed` or `draft`, `kind` `skill` or `agent`, `group` one of the
+nine I §4.3 groups, `source` `catalog` or `path` (with a clean repo-relative `path`, which only `path` sources
+carry), an installed stack-group extension has `decision` `P/D-<n>`, a `workflow`/`review` or draft extension has
+none, drafts have no `rendered_with`, `rendered_with` names known extensions; `files` keys are clean repo-relative
+paths, `owner` one of `core`, `ext:<name>`, `project-ext:<name>`, `decision`, `core+notes`, `runtime:<name>`,
+`seed`, `manifest` with `<name>` a known extension or runtime; `sha256` (64 lowercase hex) is required for `core`,
+`ext:`, `project-ext:`, `core+notes`, and `runtime:` files except a runtime `entry` file, which has `entry` instead;
+`decision` files have `entries` (`P/D-<n>`), `seed` and `manifest` files have neither; `Hash(content)` is the
+lowercase hex SHA-256; `ReadManifest(root *os.Root, framework)` returns nil without error when
+`.solomonar/manifest.json` is absent; `cli_outdated` keeps the fix `install a newer solomonar release` for the
+registry and the manifest (specs aligned); `project.Rejection` mirrors `task.Rejection` and the CLI maps both, with
+`manifest_invalid` exit 1 like `registry_invalid`; `project` keeps its own clean-path check; draft lists use
+`omitzero`; `runtimes`, `extensions`, `files` must be present; `schema_version` is checked before
+`framework_version`, numerically per part; owner sources, `requires`/`conflicts` names, duplicate `entries`, and an
+empty `adversarial_model` are not validated. I §3.6, I §4.7, I §8.4 updated to match.
+
+- [x] `Manifest` types, `DecodeManifest` with the version check first, `Encode` (I §4.7, AD-7, CLI-D19)
+- [x] Validation above, `manifest_invalid` texts, `Hash`, `ReadManifest`
 - Stage 8.2 `[ ]` — `Plan`/`Apply` with journal and rollback
 - Stage 8.3 `[ ]` — Core file plan, `AGENTS.md` and `docs/README.md` templates, adoption (CLI-D17)
 - Stage 8.4 `[ ]` — `init` command, registry creation after file apply, `--keep`/`--overwrite`/`--dry-run`,
