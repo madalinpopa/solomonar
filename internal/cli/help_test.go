@@ -13,6 +13,7 @@ Commands:
   help            Print help for a command
   version         Print CLI, embedded framework, and project framework versions
   task block      Add a blocker to a task
+  task done       Complete a task after its merge
   task handoff    Hand off a task to a new owner
   task move       Apply a validated status, stage, or field change
   task plan       Plan a task under the next free ID
