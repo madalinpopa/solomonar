@@ -19,6 +19,7 @@ Commands:
   task plan       Plan a task under the next free ID
   task register   Reserve a task for an orchestrator
   task show       Print the registry overview or one stored record
+  task status     Show a task's record, Git and forge facts, drift, and allowed next commands
   task unblock    Clear a blocker of a task
 
 Global flags:
