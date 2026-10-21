@@ -352,3 +352,57 @@ func TestHashIsLowercaseHexSHA256(t *testing.T) {
 	assert.Equal(t, emptyHash, Hash(nil))
 	assert.Equal(t, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", Hash([]byte("hello")))
 }
+
+func TestManifestVersionsReadsNewerVersions(t *testing.T) {
+	schema, framework, err := ManifestVersions([]byte(`{"schema_version": 2, "framework_version": "0.10.0", "added_in_v2": true}`))
+
+	require.NoError(t, err)
+	assert.Equal(t, 2, schema)
+	assert.Equal(t, "0.10.0", framework)
+}
+
+func TestManifestVersionsRejectsUnreadableVersions(t *testing.T) {
+	tests := []struct {
+		name, data, found string
+	}{
+		{name: "not json", data: `{`, found: "decode manifest.json"},
+		{name: "missing schema version", data: `{"framework_version": "0.1.0"}`, found: "schema_version is missing"},
+		{name: "schema version string", data: `{"schema_version": "1", "framework_version": "0.1.0"}`, found: `schema_version "1" is not a positive integer`},
+		{name: "missing framework version", data: `{"schema_version": 2}`, found: "framework_version is missing"},
+		{name: "malformed framework version", data: `{"schema_version": 1, "framework_version": "0.1"}`, found: `framework_version "0.1" is not major.minor.patch`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, _, err := ManifestVersions([]byte(tt.data))
+
+			rejection := rejectionOf(t, err)
+			assert.Equal(t, "manifest_invalid", rejection.Code)
+			assert.Contains(t, rejection.Found, tt.found)
+		})
+	}
+}
+
+func TestNewerFrameworkComparesEachPartNumerically(t *testing.T) {
+	tests := []struct {
+		name, project, shipped string
+		want                   bool
+	}{
+		{name: "newer minor", project: "0.10.0", shipped: "0.2.0", want: true},
+		{name: "older minor", project: "0.2.0", shipped: "0.10.0", want: false},
+		{name: "equal", project: "0.1.0", shipped: "0.1.0", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			newer, err := NewerFramework(tt.project, tt.shipped)
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, newer)
+		})
+	}
+}
+
+func TestNewerFrameworkRejectsMalformedEmbeddedVersion(t *testing.T) {
+	_, err := NewerFramework("0.1.0", "dev")
+
+	require.EqualError(t, err, `compare framework versions: embedded version "dev" is not major.minor.patch`)
+}
