@@ -250,3 +250,17 @@ func TestCoreWantsRendersTheExtensionsBlock(t *testing.T) {
 		})
 	}
 }
+
+func TestCoreWantsListsTheCreatedDocumentsInTheReadme(t *testing.T) {
+	assets := fstest.MapFS{
+		"framework/rules.md":       {Data: []byte("rules\n")},
+		"templates/AGENTS.md":      {Data: []byte("a\n")},
+		"templates/docs/README.md": {Data: []byte("# {{ .ProjectName }}\n\n## Documents\n\n- `x`\n\n## Next\n")},
+	}
+
+	wants, err := CoreWants(assets, Choices{Name: "ledger", Documents: []string{decisionsIndex, stackIndex}})
+
+	require.NoError(t, err)
+	assert.Equal(t, "# ledger\n\n## Documents\n\n- `x`\n"+decisionsIndex+"\n"+stackIndex+"\n\n## Next\n",
+		wantedContent(t, wants, "docs/README.md"))
+}
