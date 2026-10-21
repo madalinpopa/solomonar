@@ -1,4 +1,4 @@
-package git
+package git_test
 
 import (
 	"context"
@@ -8,11 +8,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/madalinpopa/solomonar/internal/git"
+	"github.com/madalinpopa/solomonar/internal/git/gittest"
 )
 
 func TestRunReturnsTrimmedStdout(t *testing.T) {
-	dir := newRepo(t)
-	repo := &Repo{Dir: dir}
+	dir := gittest.NewRepo(t)
+	repo := &git.Repo{Dir: dir}
 
 	out, err := repo.Run(t.Context(), "rev-parse", "--show-toplevel")
 
@@ -21,11 +24,11 @@ func TestRunReturnsTrimmedStdout(t *testing.T) {
 }
 
 func TestRunFailureReturnsErrorWithExitStatusAndStderr(t *testing.T) {
-	repo := &Repo{Dir: newRepo(t)}
+	repo := &git.Repo{Dir: gittest.NewRepo(t)}
 
 	_, err := repo.Run(t.Context(), "rev-parse", "--verify", "missing")
 
-	gitErr, ok := errors.AsType[*Error](err)
+	gitErr, ok := errors.AsType[*git.Error](err)
 	require.True(t, ok, "want *git.Error, got %v", err)
 	assert.Equal(t, []string{"rev-parse", "--verify", "missing"}, gitErr.Args)
 	assert.Equal(t, 128, gitErr.ExitCode)
@@ -34,7 +37,7 @@ func TestRunFailureReturnsErrorWithExitStatusAndStderr(t *testing.T) {
 }
 
 func TestRunInputFeedsStdin(t *testing.T) {
-	repo := &Repo{Dir: newRepo(t)}
+	repo := &git.Repo{Dir: gittest.NewRepo(t)}
 
 	id, err := repo.RunInput(t.Context(), strings.NewReader("hello\n"), "hash-object", "--stdin")
 
@@ -43,7 +46,7 @@ func TestRunInputFeedsStdin(t *testing.T) {
 }
 
 func TestRunWithCancelledContextReturnsCanceled(t *testing.T) {
-	repo := &Repo{Dir: newRepo(t)}
+	repo := &git.Repo{Dir: gittest.NewRepo(t)}
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
@@ -54,7 +57,7 @@ func TestRunWithCancelledContextReturnsCanceled(t *testing.T) {
 
 func TestRunWritesTraceLineBeforeCommand(t *testing.T) {
 	var trace strings.Builder
-	repo := &Repo{Dir: newRepo(t), Trace: &trace}
+	repo := &git.Repo{Dir: gittest.NewRepo(t), Trace: &trace}
 
 	_, err := repo.Run(t.Context(), "rev-parse", "--git-dir")
 	require.NoError(t, err)
@@ -65,7 +68,7 @@ func TestRunWritesTraceLineBeforeCommand(t *testing.T) {
 }
 
 func TestRunWithoutTraceSucceeds(t *testing.T) {
-	repo := &Repo{Dir: newRepo(t)}
+	repo := &git.Repo{Dir: gittest.NewRepo(t)}
 
 	_, err := repo.Run(t.Context(), "status")
 
