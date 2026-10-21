@@ -83,7 +83,7 @@ description, and a pointer to `solomonar help` for the global flags.
 | `-C <path>` | current directory | Run as if started in `<path>`, as `git -C` does. Any worktree of the repository works. |
 | `--json` | off | Machine output on stdout (3.4). Never prompts: a command that would prompt needs `--yes` or fails with `interactive_required`. |
 | `--no-color` | color when stdout is a TTY | Disable color. `NO_COLOR` set to any value has the same effect. |
-| `-v`, `--verbose` | off | Also print each Git and `gh` command run, on stderr. |
+| `-v`, `--verbose` | off | Also print each Git and `gh` command run, on stderr, as `+ git …` or `+ gh …` before it runs. |
 | `-h`, `--help` | - | Help for the command. |
 
 Command flags shared by several commands:
@@ -1838,7 +1838,8 @@ rejection) unless the command was cancelled; any other Git failure is `unexpecte
 | `unexpected_error` | 1 | I/O, Git error, corrupt object (3.5) | - |
 | `interrupted` | 130, 143 | Signal before the compare-and-swap | rerun (the error form already states nothing was written) |
 
-Warnings (exit 0): `push_failed`, `push_interrupted`, `no_remote`, `dependency_not_done`, `title_changed`, `forge_unavailable`, `cancelled_resumed`.
+Warnings (exit 0): `push_failed`, `push_interrupted`, `no_remote`, `dependency_not_done`, `title_changed`, `forge_unavailable`
+(`task status`, 9.1), `cancelled_resumed`.
 
 ### 8.5 Registry commits
 
@@ -1864,14 +1865,44 @@ previous tip.
 
 | Fact | Source | When unavailable |
 |---|---|---|
-| branch, tip | `git rev-parse feature/<ID>` | `missing` |
-| worktree | `git worktree list --porcelain`, by branch | `missing` |
-| HEAD vs `revision` | `git rev-list --count <revision>..HEAD` in the worktree | `unknown` without a worktree |
-| dirty paths | `git status --porcelain=v2` in the worktree | `unknown` without a worktree |
-| spec present | the worktree file, and `git cat-file -e <revision>:<spec>` | `missing` |
-| merged | first merge commit on main whose ancestry contains `revision` (`git rev-list --ancestry-path --merges --reverse <revision>..main`) | `no` |
-| derived `spec_ref` | first commit in `git log --topo-order --format="%H %s" <merge>^2` whose subject (never a body line) starts with `spec(<ID>):`, with the recorded `spec` path | absent before merge |
-| PR, checks | `gh pr view feature/<ID> --json number,url,state,mergeCommit,statusCheckRollup` | `unknown`, never passing (J6) |
+| branch, tip | `git rev-parse feature/<ID>` | `exists` false, `tip` null |
+| branch contains `revision` | `git merge-base --is-ancestor <revision> feature/<ID>` | null without a revision or branch |
+| worktree | `git worktree list --porcelain`, by branch | `worktree` null |
+| HEAD vs `revision` | `git rev-list --count <revision>..HEAD` in the worktree | null without a worktree or revision |
+| dirty paths | `git status --porcelain=v2` in the worktree | `worktree` null |
+| spec present | the worktree file, and `git cat-file -t <revision>:<spec>` is `blob` | false |
+| merged | first merge commit on main whose ancestry contains `revision` (`git rev-list --ancestry-path --merges --reverse <revision>..main`) | `merged` false, also without a revision |
+| derived `spec_ref` | first commit in `git log --topo-order --format="%H %s" <merge>^2` whose subject (never a body line) starts with `spec(<ID>):`, with the recorded `spec` path | null before merge |
+| PR, checks | `gh pr view feature/<ID> --json number,url,state,mergeCommit,statusCheckRollup` | `pr` null, `checks` `unknown`, never passing (J6) |
+
+Branch containment feeds the drift `revision_not_on_branch` (9.2). A recorded `revision` Git does not know (exit
+128, e.g. rewritten or garbage-collected history) is not an error: `contains_revision` and `at_revision` are false,
+`ahead_of_revision` is null, and `merged` is false. A `done` record's merge facts come from its recorded
+`merge_commit` and `spec_ref`, not from a search: `merged` is true, and an empty `merge_commit` or `spec_ref` gives
+null for that fact.
+
+Dirty paths come from `git status --porcelain=v2` entries, in Git's order, with paths as Git prints them (quoting
+included); entries other than `1`, `2`, `u`, and `?` (ignored ones among them) are skipped. States: `modified`,
+`added`, `deleted`, `type_changed` (entries `1`, the worktree side of XY, else the index side), `copied` (entries
+`2` whose XY contains `C`) and otherwise `renamed` (entries `2`), both with the new path, `untracked` (`?`), and
+`unmerged` (`u`).
+
+`checks` summarizes `statusCheckRollup`: `none` when it is empty, otherwise the first match wins:
+
+- `failing`: any check concluded `FAILURE`, `CANCELLED`, `TIMED_OUT`, `ACTION_REQUIRED`, `ERROR`, or
+  `STARTUP_FAILURE` (a check run's `conclusion`, a status context's `state`).
+- `pending`: any check not completed: a check run whose `status` is not `COMPLETED`, or a status `PENDING` or
+  `EXPECTED`.
+- `unknown`: any completed check outside `SUCCESS`, `NEUTRAL`, and `SKIPPED`, or an entry with neither `status` nor
+  `state`; also no PR, no `gh`, and `--no-forge`.
+- `passing`: every check is `SUCCESS`, `NEUTRAL`, or `SKIPPED`; never reached through an unrecognised value (J6).
+
+The forge is unavailable when `gh pr view` cannot be used: warning `forge_unavailable` (exit 0), message
+`gh unavailable: gh not found` when `gh` is not on `PATH`, `gh unavailable: <first stderr line>` when it fails,
+`gh unavailable: exit status <n>` when it fails with empty stderr, and `gh unavailable: unreadable gh pr view
+output` for malformed JSON. Stderr containing "no pull requests found" is not a failure, whatever the exit code:
+the forge is available with no PR. A cancelled run (e.g. Ctrl-C) is no warning: the command fails with
+`interrupted`. `--no-forge` skips `gh` and warns nothing; the forge facts are those of an unavailable forge.
 
 ### 9.2 Drift
 
@@ -1898,7 +1929,8 @@ previous tip.
   "record": { },
   "registry_commit": "2d4f6a8c0e1b3d5f7a9c1e2b4d6f8a0c2e3b5d7f",
   "facts": {
-    "branch": {"name": "feature/W-001", "exists": true, "tip": "992051e56493f5bb8abb4faadcdbc5f271195498"},
+    "branch": {"name": "feature/W-001", "exists": true, "tip": "992051e56493f5bb8abb4faadcdbc5f271195498",
+               "contains_revision": true},
     "worktree": {"path": "/work/ledger-worktrees/W-001", "head": "992051e56493f5bb8abb4faadcdbc5f271195498",
                  "ahead_of_revision": 1, "dirty": [{"path": "internal/auth/session_test.go", "state": "modified"}]},
     "spec": {"in_worktree": true, "at_revision": true},
@@ -1915,6 +1947,20 @@ previous tip.
   ]
 }
 ```
+
+Facts never omit a key; an unavailable fact is null, `false`, or `unknown` as 9.1 states:
+
+- `branch`: `{"name", "exists", "tip", "contains_revision"}`; `tip` null when the branch is missing.
+- `worktree`: null without a worktree, otherwise `{"path", "head", "ahead_of_revision", "dirty"}`;
+  `ahead_of_revision` null without a revision or with one Git does not know, `dirty` `[]` when clean, each entry
+  `{"path", "state"}`.
+- `spec`: `{"in_worktree", "at_revision"}`.
+- `merge`: `{"merged", "merge_commit", "derived_spec_ref"}`; both null while `merged` is false, and each null for
+  a `done` record that left it empty.
+- `forge`: `{"available", "pr", "checks"}`, `pr` null or `{"number", "url", "state", "merge_commit"}`, `state` as
+  `gh` prints it (`OPEN`, `MERGED`, `CLOSED`) and `merge_commit` null until `gh` reports one. Without
+  `gh`, on a `gh` failure, or with `--no-forge`: `{"available": false, "pr": null, "checks": "unknown"}`; with no
+  PR for the branch: `{"available": true, "pr": null, "checks": "unknown"}`.
 
 `allowed_next` lists commands valid from the record under 8.1 and 8.2, filled with the recorded owner as `--as`
 and known values (`--merge`, the
