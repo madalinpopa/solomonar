@@ -861,8 +861,48 @@ Decisions (author, 2026-10-21):
 - [x] runtime values, PATH default, `--adversarial-model`, the manifest runtimes, `CheckChoices` on models
 - [x] wants with `RuntimeWants`; `Next:` paths and invocations; JSON choices; tests (UC-2 with `--runtime claude`,
   both runtimes, PATH detection, models, a re-run no-op, `already_initialized` on runtimes and models)
-- Stage 9.3 `[ ]` — Extension rendering, `requires`/`conflicts` (split further when detailed)
-- Stage 9.4 `[ ]` — `P/D-n` entries, `docs/decisions.md`, `docs/stack.md`
+Decision (author, 2026-10-21): the extension engine is generic and tested with `fstest.MapFS` catalogs; the
+embedded catalog holds only `go` until the author writes `htmx`, `templ`, and `tdd` as framework content. Step-9
+limitation (task list only): `--ext` takes catalog names and `none`; a local path (project extension, UC-7) waits
+for increment 2. Orchestrator split: 9.3 catalog, resolution, rendering; 9.4 extension files, `AGENTS.md`
+extensions block, adapter stubs, manifest entries; 9.5 decisions and documents; 9.6 the `init --ext` command.
+
+### Stage 9.3 — Catalog, resolution, rendering (`internal/project`; I §4.3) `[x]`
+
+Decisions (author, 2026-10-21):
+- `LoadCatalog(assets fs.FS) (Catalog, error)` with `Catalog map[string]CatalogExtension`; each
+  `extensions/<group>/<name>/extension.json` decodes strictly (`encoding/json/v2`, unknown members rejected) into
+  `CatalogExtension{Name, Kind, Group, Title string; Requires, Conflicts []string; AppliesWhen string; Paths
+  []string}` plus `Dir` (the catalog directory); checks: `name` equals the directory and matches `[a-z][a-z0-9-]*`,
+  `group` equals its directory and is one of the nine I §4.3 groups, `kind` `skill` (directory holds `SKILL.md`) or
+  `agent` (directory holds `<name>.md`), `title` and `applies_when` non-empty, `requires`/`conflicts` name catalog
+  extensions; any failure is an error `read catalog <dir>: <reason>` (an embedded-asset defect, exit 1);
+- `(c Catalog) Resolve(names []string) ([]string, error)`: returns the sorted unique names; checks in order, each
+  over the sorted names: unknown → `unknown_extension` (exit 2), check `--ext names a catalog extension`, found
+  `"<v>" is not in the catalog; known: <sorted names>`, fix `pass --ext with a known name, or none`; a missing
+  requirement → `extension_requires` (exit 3), check `every required extension is selected`, found `<name> requires
+  <missing, comma-joined>`, fix `add --ext <missing, comma-joined>`; a conflict → `extension_conflict` (exit 3),
+  check `no selected extensions conflict`, found `<a> conflicts with <b>`, fix `drop --ext <a> or --ext <b>`;
+  `unknown_extension`, `extension_requires`, `extension_conflict` are `project.Rejection`s;
+- `Render(content []byte, self string, installed []string, decision string) (rendered []byte, with []string)`: a
+  section starts at a line `## With <...>` followed by the line `<!-- solomonar:with <a>[,<b>...] -->` and runs to the
+  next line starting `## ` or the end; it is kept, without its marker line, when every named extension is installed,
+  and dropped otherwise; `with` is the sorted union of the names in kept sections (`rendered_with`); one provenance
+  line goes under the first `# ` title line, separated by blank lines: `Installed by <decision>; rendered with: <a>,
+  <b>.`, `Installed by <decision>.` when nothing was kept, and `solomonar` in place of `<decision>` when it is empty
+  (workflow and review groups); content without a title gets no line;
+- the step-8 `unknown_extension` texts in `internal/cli` stay until 9.6 replaces them with `Resolve`.
+also: catalog entries are `extensions/*/*/extension.json`, a directory without one is ignored and a missing
+`extensions` directory is an empty catalog (`known: none`); per-entry check order and reason texts as in I §4.3
+(duplicate names `name "<n>" is also in <dir>`; `requires`, then `conflicts`, checked after all entries load); a
+conflict declared on one side only is still found, reported from the declaring side; `extension_requires` joins
+with `, ` in found and `,` in fix; a `## With` heading without a valid marker line is ordinary text; a dropped
+section takes its trailing blank lines (and, at the end, the blank lines before it); `rendered_with` excludes the
+extension itself; the provenance line has exactly one blank line on each side. Specs updated: I §4.3 (catalog
+checks, selection table, Generation), UC-7 (`unknown_extension` exit 2), architecture §6.
+
+- [x] `LoadCatalog`, `CatalogExtension`, validation; the embedded catalog (`go`) loads
+- [x] `Resolve` with the three rejections; `Render` with sections, markers, provenance, `rendered_with`
 
 ## Step 10: Interactive `init`
 
