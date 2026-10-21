@@ -31,7 +31,7 @@ func (r *Record) Move(m Move, now time.Time) (changed []string, err error) {
 	changed = changedFields(r, after)
 	if len(changed) > 0 {
 		*r = *after
-		r.UpdatedAt = now.UTC().Truncate(time.Second).Format(time.RFC3339)
+		r.UpdatedAt = timestamp(now)
 	}
 	return changed, nil
 }
