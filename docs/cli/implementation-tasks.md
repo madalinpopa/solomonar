@@ -110,7 +110,26 @@ fields in record order (UC-13 example updated).
 - [x] `interrupted` exits 128 + signal (130 for SIGINT, 143 for SIGTERM) with fix "rerun"
 - [x] Warnings in the output: `warning: <message>` on stderr, `warnings` in the JSON envelope (I §3.3, §3.4)
 - [x] `cli_outdated` (exit 3) reaches the user unchanged (CLI-D19)
-- Stage 4.3 `[ ]` — `task plan` and `task show` commands (UC-11, UC-16 show, UC-21)
+### Stage 4.3 — `task plan`, `task show` `[x]`
+
+Decisions (author, 2026-10-21): `not_a_repository` exits 3; Git older than 2.40 is `git_too_old` (exit 1, fix
+"install git 2.40 or later"); `task plan --dry-run` prints `Would plan <ID>: <title>` and JSON `"dry_run": true`
+without a commit; an unpushed write ends with `registry @ <sha>` and the warning; `task show --json` data is
+`{"registry", "commit"}`, or `{"id", "record", "commit"}` with an ID.
+
+Decisions confirmed at review (author, 2026-10-21): each command registers its own flags (`bind`) and receives
+the shared flags; `task` alone or with an unknown subcommand is `unknown_command`; `help task plan` equals
+`task plan -h`; a rejection under `task show <ID>` reads `task show <ID> rejected`; `--dry-run` reads the
+registry and applies `Plan` without `Update`; the overview ends with `registry <ref> @ <sha7> · <commit time,
+RFC 3339 UTC>`; STATUS is padded to the width of `cancelled`; NEXT shows the summary for `done`,
+`<actor>: <action>` otherwise, `-` when empty; IDs sort numerically.
+
+- [x] Repository context in `cli`: discovery from `-C`, Git ≥ 2.40, `-v` trace on stderr, `not_a_repository`;
+      remote `origin` and main branch `main` until the manifest exists (I §3.2)
+- [x] Two-word commands `task plan` and `task show` in the command table and help
+- [x] `task plan`: next `W-NNN`, `--title`, `--depends-on`, `--related`, `--dry-run`; commit subject (I §8.5);
+      human and JSON output (UC-11)
+- [x] `task show [<ID>]`: overview table sorted by ID, raw record, JSON forms (UC-16)
 
 ## Step 5: `task register`, `task move`
 
