@@ -208,14 +208,7 @@ func moveSummary(header, id string, result task.MoveResult, record *task.Record,
 	}
 	var b strings.Builder
 	b.WriteString(header + "\n")
-	details := slices.Concat(lead, moveDetails(id, result, record))
-	width := 0
-	for _, d := range details {
-		width = max(width, len(d.label))
-	}
-	for _, d := range details {
-		fmt.Fprintf(&b, "  %-*s  %s\n", width, d.label, d.value)
-	}
+	writeDetails(&b, slices.Concat(lead, moveDetails(id, result, record)))
 	if result.To.Status == task.StatusCancelled && result.From.Status != task.StatusCancelled {
 		kept := "branch feature/" + id + " and its worktree are"
 		if record.PR != "" {
@@ -225,6 +218,17 @@ func moveSummary(header, id string, result task.MoveResult, record *task.Record,
 	}
 	fmt.Fprintf(&b, "  %s\n", result.Subject)
 	return b.String()
+}
+
+// writeDetails writes each detail indented, its label padded to the widest label.
+func writeDetails(b *strings.Builder, details []detail) {
+	width := 0
+	for _, d := range details {
+		width = max(width, len(d.label))
+	}
+	for _, d := range details {
+		fmt.Fprintf(b, "  %-*s  %s\n", width, d.label, d.value)
+	}
 }
 
 func positionText(p task.Position) string {
