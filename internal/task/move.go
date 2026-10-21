@@ -14,9 +14,23 @@ type Move struct {
 	ResumeCancelled                               bool
 }
 
+// CheckOwner rejects a write by anyone but the record's owner.
+func (r *Record) CheckOwner(id, as string) error {
+	if as == r.Owner {
+		return nil
+	}
+	return &Rejection{
+		Code:  "owner_mismatch",
+		Check: "only the owner writes a task's record",
+		Found: fmt.Sprintf("owner is %s; acting as %s", r.Owner, as),
+		Fix: fmt.Sprintf("act as %s, or ask the user for an explicit handoff: solomonar task handoff %s --owner %s",
+			r.Owner, id, as),
+	}
+}
+
 // Move applies m to r when every check passes and returns the JSON names of the changed fields.
-func (r *Record) Move(m Move, now time.Time) (changed []string, err error) {
-	after, err := m.apply(r)
+func (r *Record) Move(m Move, roles []string, now time.Time) (changed []string, err error) {
+	after, err := m.apply(r, roles)
 	if err != nil {
 		return nil, err
 	}
@@ -36,9 +50,9 @@ func (r *Record) Move(m Move, now time.Time) (changed []string, err error) {
 	return changed, nil
 }
 
-func (m Move) apply(r *Record) (*Record, error) {
+func (m Move) apply(r *Record, roles []string) (*Record, error) {
 	after := *r
-	if err := cmp.Or(m.applyStatus(&after), m.applyStage(&after), m.applyCommit(&after), m.applyWork(&after)); err != nil {
+	if err := cmp.Or(m.applyStatus(&after), m.applyStage(&after), m.applyCommit(&after), m.applyWork(&after, roles)); err != nil {
 		return nil, err
 	}
 	return &after, nil
@@ -107,12 +121,15 @@ func (m Move) applyCommit(r *Record) error {
 	return nil
 }
 
-func (m Move) applyWork(r *Record) error {
+func (m Move) applyWork(r *Record, roles []string) error {
 	if m.Spec != "" {
+		if err := checkSpec(m.Spec); err != nil {
+			return err
+		}
 		r.Spec = m.Spec
 	}
 	if len(m.Agents) > 0 {
-		agents, _, err := parseAgents(m.Agents)
+		agents, _, err := parseAgents(m.Agents, roles)
 		if err != nil {
 			return err
 		}
@@ -123,9 +140,24 @@ func (m Move) applyWork(r *Record) error {
 		if err != nil {
 			return err
 		}
+		if err := checkActor(r, next.Actor, m.Next); err != nil {
+			return err
+		}
 		r.NextAction = next
 	}
 	return nil
+}
+
+// checkActor accepts user, the owner, or an agent active after the move (I §8.3).
+func checkActor(r *Record, actor, value string) error {
+	actors := []string{"user", r.Owner}
+	for _, agent := range r.ActiveAgents {
+		actors = append(actors, agent.ID)
+	}
+	if slices.Contains(actors, actor) {
+		return nil
+	}
+	return invalidValue("--next actor is user, the owner, or an active agent", value, "allowed actors: "+join(actors))
 }
 
 // checkFieldRules applies the field rules of I §8.2; --agent and --next need no rule, done is final.
