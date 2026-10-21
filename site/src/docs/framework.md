@@ -1,6 +1,6 @@
 ---
-title: The framework
-description: A shared book, focused spells, capable dragons, and one pair of hands on the reins.
+title: How the spec-driven framework works
+description: Learn how Solomonar connects specifications, agent skills, orchestration, independent code review, and Git integration in a language-agnostic framework.
 kind: Explanation
 group: Understand
 order: 2
