@@ -1,7 +1,7 @@
 # Solomonar CLI v0.1: implementation tasks (increment 1)
 
 Tracks the [architecture](architecture.md) §12 plan as reviewable stages of at most 500 changed lines each,
-tests included. Each stage is implemented test-first and ends with `task check` green and the author's review.
+tests included (a target; a moderate overrun is acceptable). Each stage is implemented test-first and ends with `task check` green and the author's review.
 Later stages are outlines; each is detailed into tasks when it starts.
 
 Status: `[ ]` open · `[~]` in progress · `[r]` awaiting review · `[x]` accepted
@@ -48,8 +48,16 @@ flags.
 
 ## Step 3: Registry model and rules (no Git)
 
-- Stage 3.1 `[ ]` — `Registry`/`Record` types, strict decoding, version check before decoding, validation,
-  stable encoding
+### Stage 3.1 — Registry model, decoding, validation, encoding `[x]`
+
+- [x] `Registry`, `Record`, `Status`, `Stage`, `Agent`, `Blocker`, `NextAction` types (rules §7 Fields, §6)
+- [x] `task.Rejection{Code, Check, Found, Fix}` (§6)
+- [x] `schema_version` read first; newer is `cli_outdated` (CLI-D19, AD-7)
+- [x] Strict decoding: unknown and duplicate keys are `registry_invalid` (AD-7)
+- [x] Record validation: IDs, enums, formats, required and forbidden fields per status (rules §7)
+- [x] Stable encoding: struct field order, sorted task keys, two-space indent, trailing newline (AD-7)
+
+Stage 3.1 does not include the transition rules or the `reserved`-at-`setup` invariant; those are stage 3.2.
 - Stage 3.2 `[ ]` — I §8.1 status and §8.2 stage transitions as tables, CLI-D16 invariant
 - Stage 3.3 `[ ]` — Field rules, ID allocation, blocker IDs
 
