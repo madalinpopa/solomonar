@@ -16,8 +16,22 @@ Solomonar is a way of working, not a technology stack. The core holds only the m
 
 | Part | Contains |
 | - | - |
-| Core | Skills `solomonar` (your entry point: `/solomonar <request>`), `prototype`, `spec`, `work-spec`. Agents `orchestrator`, `implementer`, and four language-agnostic reviewers: `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`. Always installed. |
+| Core | Skills `solomonar` (your entry point), `prototype`, `spec`, `work-spec`. Agents `orchestrator`, `implementer`, and four language-agnostic reviewers: `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`. Always installed. |
 | Extensions | Skills with the rules of a language, library, or practice (for example `go`, `htmx`, `templ`, `tdd`), and agents that add a specialist reviewer. Added by the CLI; the process never depends on one. |
+
+### Start every request with `/solomonar`
+
+One small skill, invoked only by the user, routes a request to the skill or role that owns it, in the same session. It writes nothing itself. Sessions started without it follow the same routes from `AGENTS.md`.
+
+| Request | Route |
+| - | - |
+| None | Overview: what waits on you, what is blocked, what can start next. |
+| Start a product; explore or change a flow | `prototype` |
+| Flows ready for spec, or product behavior you decided outside a task | `spec` |
+| A new, planned, or resumed task, e.g. `/solomonar work on W-002` | This session takes the `orchestrator` role. |
+| Adopt or drop a technology | You run `solomonar extension add\|remove`; your command records the decision. |
+
+**The session takes the role; it is never delegated.** The orchestrator delegates the implementer and every reviewer, and a delegated subagent cannot delegate further, so the orchestrator must be the top-level session, one task per session. An answer to a pending decision goes back to the session that asked for it.
 
 ## 1 / 5 · The full cycle, from prototype to closure
 
@@ -29,7 +43,7 @@ Solomonar is a way of working, not a technology stack. The core holds only the m
 
 ![The orchestrator is the hub: it delegates the work spec to the implementer, sends the same revision to the required language-agnostic specialists (security, correctness, spec, plus installed extension reviewers) in parallel, then to the adversarial reviewer for tier 2 tasks, asks the user to approve decisions, writes state through solomonar task, reads it back with task status against Git, and opens the PR.](docs/images/workflow-task-loop.svg)
 
-**Agents talk only to the orchestrator.** The user starts each orchestrator as a top-level session. The implementer writes its approach first and raises every architecture or dependency decision in one `NEEDS_DECISION`, before touching tracked files. Specialists review the same revision in parallel; the triage records a risk tier in state and marks a specialty that does not apply as "not required", never as a fabricated PASS. The adversarial review runs only on tier 2 tasks, after the specialist blockers are closed, on a different model when the runtime allows. No response is not approval. After two rounds with no progress on the same blocker, the orchestrator stops the loop and takes the problem to the user. **The orchestrator decides; the CLI checks.** Each `solomonar task` write is checked against Git: the revision exists on the feature branch, the spec exists, and the stage respects the recorded tier. `task status` reports what Git shows and where the record has drifted. The CLI never launches agents or stores verdicts.
+**Agents talk only to the orchestrator.** The user starts each orchestrator as a top-level session, usually with `/solomonar`, which takes the role in that same session. The implementer writes its approach first and raises every architecture or dependency decision in one `NEEDS_DECISION`, before touching tracked files. Specialists review the same revision in parallel; the triage records a risk tier in state and marks a specialty that does not apply as "not required", never as a fabricated PASS. The adversarial review runs only on tier 2 tasks, after the specialist blockers are closed, on a different model when the runtime allows. No response is not approval. After two rounds with no progress on the same blocker, the orchestrator stops the loop and takes the problem to the user. **The orchestrator decides; the CLI checks.** Each `solomonar task` write is checked against Git: the revision exists on the feature branch, the spec exists, and the stage respects the recorded tier. `task status` reports what Git shows and where the record has drifted. The CLI never launches agents or stores verdicts.
 
 ### Core reviewers
 
