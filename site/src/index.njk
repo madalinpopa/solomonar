@@ -29,24 +29,112 @@ home: true
       </div>
       <button class="story-motion" type="button" aria-pressed="false" hidden>Pause story</button>
       <div class="chapter-caption">
-        <p data-chapter-caption="0"><span>One book. Every secret.</span><a href="{{ '/docs/framework/#the-book-specifications' | url }}">Your book: specs <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a></p>
-        <p data-chapter-caption="1" hidden><span>Knowledge becomes a method.</span><a href="{{ '/docs/framework/#the-spells-skills' | url }}">Your spells: skills <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a></p>
-        <p data-chapter-caption="2" hidden><span>A dragon. A storm to command.</span><a href="{{ '/docs/framework/#the-dragons-agents' | url }}">Your dragons: agents <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a></p>
-        <p data-chapter-caption="3" hidden><span>Every dragon needs a little direction.</span><a href="{{ '/docs/framework/#the-reins-orchestration' | url }}">You hold the reins <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a></p>
+        <p data-chapter-caption="0"><span>One book. Every secret.</span><a href="#book">Your book: specs <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a></p>
+        <p data-chapter-caption="1" hidden><span>Knowledge becomes a method.</span><a href="#spells">Your spells: skills <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a></p>
+        <p data-chapter-caption="2" hidden><span>A dragon. A storm to command.</span><a href="#dragon">Your dragons: agents <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a></p>
+        <p data-chapter-caption="3" hidden><span>Every dragon needs a little direction.</span><a href="#direction">You hold the reins <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a></p>
       </div>
     </div>
   </section>
   <div class="embroidery-seam" aria-hidden="true"></div>
-  <section class="story-to-software wrap" aria-labelledby="workflow-title">
-    <h2 id="workflow-title">Give your agents a shared specification.</h2>
-    <p>When requirements live in chat history, agents can lose context and reviewers have no shared definition of done. Solomonar keeps agreed behavior in version-controlled specifications, gives each task acceptance criteria, and separates implementation from review.</p>
-    <p><strong>Spec-driven development</strong> means agreeing on what software should do before asking an agent to implement it, then checking the result against that specification. The framework connects <a href="{{ '/docs/framework/#the-book-specifications' | url }}">specifications</a>, <a href="{{ '/docs/framework/#the-spells-skills' | url }}">agent skills</a>, and <a href="{{ '/docs/framework/#the-reins-orchestration' | url }}">orchestration and review</a> in one workflow.</p>
-    <p>The design targets Claude Code and Codex, with a language-agnostic core. Runtime adapter installation and project initialization are still in development. See the <a href="{{ '/docs/cli/' | url }}">current CLI commands</a> and <a href="{{ '/docs/use-cases/' | url }}">workflow examples with agent prompts</a>.</p>
-    <div class="hero-actions"><a class="text-link" href="{{ '/docs/framework/' | url }}">Explore the framework <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a><a class="text-link" href="{{ '/docs/getting-started/#build-from-source' | url }}">Build the CLI from source</a></div>
-  </section>
-  <section class="home-story wrap" aria-labelledby="name-title">
-    <h2 id="name-title">Every dragon needs a little direction.</h2>
-    <p>In Romanian folklore, a <dfn>solomonar</dfn> learns from a single book and rides a dragon to command the storms. Your project has its book (specs), spells (skills), and dragons (agents).</p>
-    <a class="text-link" href="{{ '/docs/story/' | url }}">The story behind Solomonar <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a>
+  <section class="tale wrap" aria-labelledby="tale-title">
+    <header class="tale-intro">
+      <h2 id="tale-title">The same tale, told in your repository.</h2>
+      <p>Agents work fast and forget fast. When requirements live in chat history, every new session starts from nothing and no reviewer shares a definition of done. Solomonar gives the work the shape of the old story: one book, a few spells, dragons with distinct jobs, and someone holding the reins.</p>
+    </header>
+    <ol class="tale-thread">
+      <li class="tale-chapter" id="book">
+        <div class="tale-text">
+          <h3><span class="chapter-number">01</span> The book</h3>
+          <p class="tale-folk">The solomonar learned every secret from a single book.</p>
+          <p>Your book is the specification: version-controlled files that say what the software must do. The <code>spec</code> skill keeps what a prototype happened to do apart from what you agreed, and leaves the rest as open questions.</p>
+          <a class="text-link" href="{{ '/docs/framework/#the-book-specifications' | url }}">How specifications work <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a>
+        </div>
+        <figure class="swatch">
+          <figcaption>docs/specs/expenses.md</figcaption>
+<pre><code>## Rules
+
+- expenses/R-1 · <b>Agreed</b> · If the amount is not a
+  positive number, then the system shall show an error
+  and add no expense. · user 2026-10-21
+- expenses/R-2 · <i>Observed</i> · When the page reloads,
+  the system shall still list a saved expense.
+
+## Open questions
+
+- expenses/Q-1 · Where are expenses stored?
+  · needs decision: yes</code></pre>
+        </figure>
+      </li>
+      <li class="tale-chapter" id="spells">
+        <div class="tale-text">
+          <h3><span class="chapter-number">02</span> The spells</h3>
+          <p class="tale-folk">Knowledge became a method, spoken when needed.</p>
+          <p>Skills are short procedures your agent loads on demand: try a flow as a clickable prototype, turn it into rules, prepare one task. You call them in plain words from a Claude Code or Codex session.</p>
+          <a class="text-link" href="{{ '/docs/use-cases/' | url }}">Prompts for real situations <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a>
+        </div>
+        <figure class="swatch">
+          <figcaption>Your agent session</figcaption>
+<pre class="copyable"><code><b>/solomonar</b> Prototype adding a shared expense.
+Let me try the empty list, a valid expense,
+and an invalid amount. Use fictional data;
+do not choose a production stack yet.</code></pre>
+        </figure>
+      </li>
+      <li class="tale-chapter" id="dragon">
+        <div class="tale-text">
+          <h3><span class="chapter-number">03</span> The dragon</h3>
+          <p class="tale-folk">A dragon carried the storm, but never chose its course.</p>
+          <p>Agents do the heavy work, each with one job. An implementer builds the change. Separate reviewers check security, correctness, and the spec, and risky changes face a reviewer whose only aim is to break them. No agent approves its own work.</p>
+          <a class="text-link" href="{{ '/docs/framework/#the-dragons-agents' | url }}">Meet the agents <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a>
+        </div>
+        <figure class="swatch">
+          <figcaption>.claude/agents/</figcaption>
+<pre><code>implementer.md            builds one candidate
+security-reviewer.md      trust boundaries, secrets
+correctness-reviewer.md   rules, edge cases
+spec-reviewer.md          scope and contracts
+adversarial-reviewer.md   tries to break tier 2</code></pre>
+        </figure>
+      </li>
+      <li class="tale-chapter" id="direction">
+        <div class="tale-text">
+          <h3><span class="chapter-number">04</span> The direction</h3>
+          <p class="tale-folk">Every dragon needs a little direction.</p>
+          <p>You hold the reins through one orchestrator session per task, and a CLI that records each step in Git. The orchestrator decides; the CLI checks, and refuses a step the record cannot support.</p>
+          <a class="text-link" href="{{ '/docs/workflow/' | url }}">Follow a task to merge <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a>
+        </div>
+        <figure class="swatch">
+          <figcaption>Terminal</figcaption>
+<pre><code>$ solomonar task move W-001 --as orchestrator-1 \
+    --stage implementation
+<b>error:</b> task move W-001 rejected (spec_required)
+  check: a stage from implementation onward
+         needs a recorded spec
+  fix:   pass --spec &lt;worktree-relative path&gt;
+nothing was written</code></pre>
+        </figure>
+      </li>
+    </ol>
+    <section class="first-stitch" aria-labelledby="first-stitch-title">
+      <div class="tale-text">
+        <h2 id="first-stitch-title">Start with one stitch.</h2>
+        <p>Build the CLI, then run <code>init</code> in your repository. It copies the book, the spells, and the agents into your project and creates the task registry. The CLI never calls a model: your agent runtime does the work, and the CLI keeps the record honest.</p>
+        <div class="hero-actions"><a class="button" href="{{ '/docs/getting-started/' | url }}">Get started <svg aria-hidden="true"><use href="{{ '/assets/icons.svg#arrow-right' | url }}"></use></svg></a><a class="text-link" href="{{ '/docs/story/' | url }}">The story behind the name</a></div>
+        <p class="development-note"><span class="status-dot" aria-hidden="true"></span> <span>Available today: <code>init</code> and the task commands. Extensions, <code>doctor</code>, and upgrades come next.</span></p>
+      </div>
+      <figure class="swatch">
+        <figcaption>Terminal</figcaption>
+<pre><code>$ solomonar init --runtime claude --runtime codex
+Initialized solomonar 0.1.0 in ~/ledger
+  39 files created
+  registry  refs/heads/workflow-state @ d769ccf
+
+Next:
+  1. First commit required before task worktrees
+  2. Start a top-level session:
+       Claude Code: /solomonar Explore the next useful flow.</code></pre>
+      </figure>
+    </section>
   </section>
 </main>
