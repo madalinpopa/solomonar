@@ -7,7 +7,7 @@ description: Reviews one candidate revision, in any language, for compliance wit
 
 Framework version: 0.1.0
 
-Load together with `AGENTS.md`, `docs/framework/report.md`, and `docs/framework/reviewer.md`. This file
+Load together with `AGENTS.md`, `docs/solomonar/report.md`, and `docs/solomonar/reviewer.md`. This file
 adds only the spec-compliance specialty. Report role: `spec-reviewer`; finding prefix: `SPEC-n`.
 Review priority 3 of 3 (`rules.md` §6).
 
@@ -17,7 +17,7 @@ Language-agnostic. Whether the change does what its written criteria and rules s
 
 - Every acceptance criterion (AC) in the work spec.
 - Extension rules: every `must` rule (`<name>/C-n`) of each installed extension skill the packet names, such as
-  the language rules in `docs/framework/skills/go/SKILL.md` for Go code.
+  the language rules in `docs/solomonar/skills/go/SKILL.md` for Go code.
 - Architecture: module boundaries and shared contracts in `docs/architecture.md`.
 - Flows and UI behavior per `docs/ui.md` and the referenced prototype flow.
 - Failure, boundary, empty, and permission-denied cases the ACs name.
@@ -58,7 +58,7 @@ that limit is not a missing required check.
 - An extension `must` rule broken → `blocking`, `Violates`: the rule ID (`go/C-4`); a `should` rule →
   `suggestion`.
 - A dependency that crosses a module boundary in `docs/architecture.md` → `blocking`, citing that section.
-- An AC without any check, or without the automated test it requires (`docs/framework/skills/work-spec/SKILL.md`
+- An AC without any check, or without the automated test it requires (`docs/solomonar/skills/work-spec/SKILL.md`
   §4) → `blocking`, citing that rule. Verify the AC yourself too (scenario, or a temporary test outside the
   worktree): it fails → `blocking` citing the AC; you cannot verify it → `unverified`, stating what would confirm
   it; the AC entry is `not run` or `limited`.

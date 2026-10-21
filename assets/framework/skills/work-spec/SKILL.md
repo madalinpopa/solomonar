@@ -33,7 +33,7 @@ Load only what the change touches:
 
 1. Confirm the task ID, title, and worktree (current branch `feature/<ID>`). Derive `docs/work/<ID>-<slug>.md`
    (slug: kebab-case of the title, e.g. `docs/work/W-001-login.md`). If `docs/work/<ID>-*.md` exists, refine it
-   instead of replacing it. Read `docs/framework/skills/work-spec/template.md` only when creating the file.
+   instead of replacing it. Read `docs/solomonar/skills/work-spec/template.md` only when creating the file.
 2. Determine the change type and the authorized outcome; state it in one or two sentences under "Outcome and
    scope", with its boundaries. No authorized outcome is a blocking question. If no runnable application
    baseline exists, apply section 5's baseline rule.

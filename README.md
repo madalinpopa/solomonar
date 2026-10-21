@@ -107,4 +107,4 @@ State holds decisions; Git holds what happened. A fact Git can derive is never s
 
 ---
 
-Source: `docs/framework/` (rules.md, report.md, reviewer.md, agents, skills) · Logo: [`docs/logo/`](docs/logo/README.md) · Solomonar v0.1.0
+Source: `docs/solomonar/` (rules.md, report.md, reviewer.md, agents, skills) · Logo: [`docs/logo/`](docs/logo/README.md) · Solomonar v0.1.0

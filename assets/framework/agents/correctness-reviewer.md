@@ -7,7 +7,7 @@ description: Reviews one candidate revision for business-logic correctness, in a
 
 Framework version: 0.1.0
 
-Load together with `AGENTS.md`, `docs/framework/report.md`, and `docs/framework/reviewer.md`. This file
+Load together with `AGENTS.md`, `docs/solomonar/report.md`, and `docs/solomonar/reviewer.md`. This file
 adds only the business-logic specialty. Report role: `correctness-reviewer`; finding prefix: `COR-n`.
 Review priority 2 of 3 (`rules.md` §6).
 

@@ -7,7 +7,7 @@ description: Coordinates one managed task end to end, from registration to merge
 
 Framework version: 0.1.0
 
-Load together with `AGENTS.md`, `docs/framework/rules.md`, and `docs/framework/report.md`. This file is the
+Load together with `AGENTS.md`, `docs/solomonar/rules.md`, and `docs/solomonar/report.md`. This file is the
 operating procedure; the governing rules live in those files. `§n` means `rules.md` §n unless another file is named.
 
 ## 1. Mission and boundaries
@@ -120,7 +120,7 @@ present a listed alternative (§3).
 ## 4. Delegation packets
 
 ```text
-Task: W-001, <title>           Role: implementer; follow docs/framework/agents/implementer.md
+Task: W-001, <title>           Role: implementer; follow docs/solomonar/agents/implementer.md
 Worktree: <path> on feature/W-001; modify nothing outside it
 Objective: <outcome to deliver>
 Work spec: <worktree-relative path>    References: <spec sections, AC IDs, W-001/D-n, contracts>
@@ -128,7 +128,7 @@ Area of responsibility: <packages, files, flows>
 Extensions: <installed extensions whose applies_when or paths match the change, e.g. go; or none>
 Baseline: <full SHA>; known failures: <refs or none>; checks available: <command; result; SHA>
 Constraints: ports <…>; test data <…>; commands per docs/README.md
-Output: report per docs/framework/report.md; Revision = the committed candidate you hand off
+Output: report per docs/solomonar/report.md; Revision = the committed candidate you hand off
 ```
 
 ```text
@@ -140,17 +140,17 @@ Output: READY_FOR_REVIEW lists each addressed W-001/F-n with the check that show
 ```
 
 ```text
-Task: W-001, <title>    Role: <security-reviewer | correctness-reviewer | spec-reviewer | extension agent>; docs/framework/agents/<role>.md
+Task: W-001, <title>    Role: <security-reviewer | correctness-reviewer | spec-reviewer | extension agent>; docs/solomonar/agents/<role>.md
 Worktree: <path>; read-only: modify no tracked file; reproductions in <temp dir> with isolated test data
 Revision: <full SHA>           Diff: <base SHA>..<full SHA>; on a recheck, base = last reviewed revision
 Objective: review the candidate for <specialty>; recheck <none, or each W-001/F-n entry in report.md §7 form>
 Work spec / References / Area of responsibility / Extensions / Checks available: <as in the implementer packet>
 Baseline: <full SHA>; known failures: <refs or none>   Constraints: ports <…>; test data <…>
-Output: report per docs/framework/report.md; Revision must equal the SHA above
+Output: report per docs/solomonar/report.md; Revision must equal the SHA above
 ```
 
 ```text
-Task: W-001, <title>           Role: adversarial-reviewer; docs/framework/agents/adversarial-reviewer.md
+Task: W-001, <title>           Role: adversarial-reviewer; docs/solomonar/agents/adversarial-reviewer.md
 <same fields as the specialist packet>
 Form your own hypotheses from the requirements and the code BEFORE reading the block below.
 === EARLIER REVIEW SUMMARIES (read last) ===

@@ -3,7 +3,7 @@
 Framework version: 0.1.0
 
 Every agent report, the consolidated correction list, and the PR Verification section follow this file.
-`rules.md` below means `docs/framework/rules.md`, which owns orchestration, routing, arbitration, and state.
+`rules.md` below means `docs/solomonar/rules.md`, which owns orchestration, routing, arbitration, and state.
 
 ## 1. General rules
 
@@ -42,7 +42,7 @@ Result: <result value>
 - Header: exactly these three lines, in this order; the orchestrator routes on them alone. `<Task ID>`: the
   task ID from the delegation packet (e.g. `W-001`). `Result`: exactly one value from §3.
 - `<Role>`: one of `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`,
-  `adversarial-reviewer`, or an installed extension agent. `<Role>` is a role file in `docs/framework/agents/`; `docs/framework/reviewer.md` is
+  `adversarial-reviewer`, or an installed extension agent. `<Role>` is a role file in `docs/solomonar/agents/`; `docs/solomonar/reviewer.md` is
   a shared contract, not a role.
 - `Revision`: the full SHA of a committed candidate. Implementer: the commit it hands off. Reviewer: the
   exact commit it reviewed. Uncommitted work is never a candidate. A review of one revision says nothing

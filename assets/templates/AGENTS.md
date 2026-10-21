@@ -1,6 +1,6 @@
 # Project instructions
 
-Framework version: {{ .FrameworkVersion }}. Framework files: `docs/framework/`.
+Framework version: {{ .FrameworkVersion }}. Framework files: `docs/solomonar/`.
 
 ## Language
 
@@ -8,7 +8,7 @@ Write framework artifacts, specs, reports, commit messages, and PR text in Engli
 
 ## Load your context
 
-- Load your role from `docs/framework/agents/<role>.md` and every file its first lines require. A new or
+- Load your role from `docs/solomonar/agents/<role>.md` and every file its first lines require. A new or
   resumed managed task takes the `orchestrator` role, which the user starts as a top-level session, never as a
   delegated subagent; other roles start only from an orchestrator packet.
 - Load only: the invoked skill, the assigned work spec, the relevant global rules (Context routes), the
@@ -17,13 +17,13 @@ Write framework artifacts, specs, reports, commit messages, and PR text in Engli
 - Load the installed extension skills your packet names; without a packet, those whose "applies when" in
   Extensions matches your change.
 - With no work spec, start from `docs/README.md` and the user's selected outcome.
-- Orchestrators also load `docs/framework/rules.md`; other roles do not. Every role loads
-  `docs/framework/report.md`.
+- Orchestrators also load `docs/solomonar/rules.md`; other roles do not. Every role loads
+  `docs/solomonar/report.md`.
 - A document index never loads its targets automatically.
 
 ## Skills
 
-Load `docs/framework/skills/<skill>/SKILL.md` before using a skill.
+Load `docs/solomonar/skills/<skill>/SKILL.md` before using a skill.
 
 - `prototype`: start a product, or explore or change a flow in `prototype/`.
 - `spec`: record a prototype handoff or a user decision in `docs/specs/<capability>.md` and `docs/ui.md`.
@@ -67,7 +67,7 @@ Cite a rule as `AGENTS.md rule n`.
 7. Unresolved blockers, missing required reviews, or failed or unperformed required checks prevent advancement.
 8. Mark a task `done` only after a confirmed merge into main.
 9. Update the canonical project specs before merge. Commit the final task spec separately.
-10. Close the task per `docs/framework/rules.md` §9 and keep verifiable Git references.
+10. Close the task per `docs/solomonar/rules.md` §9 and keep verifiable Git references.
 11. Never commit or report secrets, credentials, or real personal data.
 12. Commit messages: English, `<type>(<scope>): <summary>`. Your role or skill file defines the type and scope.
 13. Tests and code comments cite spec rule IDs (`<capability>/R-n`), never task or AC IDs, which leave the tree

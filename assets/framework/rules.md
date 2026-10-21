@@ -3,8 +3,8 @@
 Framework version: 0.1.0
 
 These rules apply to every managed task. Orchestrators load this file together with `AGENTS.md`. Report
-format, result values, finding fields, and the PR Verification section: `docs/framework/report.md`. Role
-procedures: `docs/framework/agents/<role>.md`. Skill procedures: `docs/framework/skills/<skill>/SKILL.md`.
+format, result values, finding fields, and the PR Verification section: `docs/solomonar/report.md`. Role
+procedures: `docs/solomonar/agents/<role>.md`. Skill procedures: `docs/solomonar/skills/<skill>/SKILL.md`.
 
 ## 1. Scope and authority
 

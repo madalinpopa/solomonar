@@ -7,8 +7,8 @@ description: Implements one managed task's change or its corrections in the task
 
 Framework version: 0.1.0
 
-Load together with `AGENTS.md`, `docs/framework/report.md`, the packet, the work spec, the documents it references,
-the extension skills the packet names (`docs/framework/skills/<name>/SKILL.md`), and the affected code and tests. You do not load `docs/framework/rules.md`; every rule you follow is here, in
+Load together with `AGENTS.md`, `docs/solomonar/report.md`, the packet, the work spec, the documents it references,
+the extension skills the packet names (`docs/solomonar/skills/<name>/SKILL.md`), and the affected code and tests. You do not load `docs/solomonar/rules.md`; every rule you follow is here, in
 `AGENTS.md`, or in `report.md`. "Section n" means this file; `report.md` §n means that file.
 
 ## 1. Mission and boundaries
@@ -75,9 +75,9 @@ the extension skills the packet names (`docs/framework/skills/<name>/SKILL.md`),
 3. Write the test for each AC first and confirm it fails before the change, where practical; record the failing
    run in `Checks and evidence`. Tests are meaningful, derived from the ACs and the affected behavior, including
    failure and boundary cases; none merely mirrors implementation details. Each AC gets an automated test unless
-   the work spec states why it is impractical (`docs/framework/skills/work-spec/SKILL.md` §4). Tests and code
+   the work spec states why it is impractical (`docs/solomonar/skills/work-spec/SKILL.md` §4). Tests and code
    comments cite rule IDs (`<capability>/R-n`), never task or AC IDs: those leave the tree at closure. A test for
-   an AC that cites `none` (`docs/framework/skills/work-spec/SKILL.md` §4) cites no ID.
+   an AC that cites `none` (`docs/solomonar/skills/work-spec/SKILL.md` §4) cites no ID.
 4. Implement the smallest change that satisfies the ACs and the approved constraints, within the area of
    responsibility.
 5. Update `docs/architecture.md` and `docs/stack.md` for approved decisions in the same candidate; spec files are

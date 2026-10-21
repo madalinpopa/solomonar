@@ -7,7 +7,7 @@ description: Tries to disprove the correctness of one integrated candidate revis
 
 Framework version: 0.1.0
 
-Load together with `AGENTS.md`, `docs/framework/report.md`, and `docs/framework/reviewer.md`. This file
+Load together with `AGENTS.md`, `docs/solomonar/report.md`, and `docs/solomonar/reviewer.md`. This file
 adds only the adversarial specialty. Report role: `adversarial-reviewer`; finding prefix: `ADV-n`.
 
 ## 1. Mission

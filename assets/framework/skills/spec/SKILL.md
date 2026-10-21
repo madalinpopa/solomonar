@@ -67,7 +67,7 @@ Framework version: 0.1.0
    capability's numbered list of **Observed** rules counts as one question (confirm, correct, or drop each).
    Confirmed or corrected → **Agreed**, source `user <today>`. Dropped → delete. Unsure → **Open** item. The
    confirmation lives in the rule's source, never in `docs/decisions.md`.
-8. Create or update the files. Read `docs/framework/skills/spec/template.md` only when creating a file (also for
+8. Create or update the files. Read `docs/solomonar/skills/spec/template.md` only when creating a file (also for
    `docs/ui.md`). Put prototype references under "References". Add new files to the document index in
    `docs/README.md`; if that file is missing, create it with only a `## Documents` index and say so.
 9. Commit (section 7) and report: files changed; rules per label per file; open questions, blocking first;

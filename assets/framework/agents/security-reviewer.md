@@ -7,7 +7,7 @@ description: Reviews one candidate revision, in any language, for bugs (crashes,
 
 Framework version: 0.1.0
 
-Load together with `AGENTS.md`, `docs/framework/report.md`, and `docs/framework/reviewer.md`. This file
+Load together with `AGENTS.md`, `docs/solomonar/report.md`, and `docs/solomonar/reviewer.md`. This file
 adds only the bugs and security specialty. Report role: `security-reviewer`; finding prefix: `SEC-n`.
 Review priority 1 of 3 (`rules.md` §6).
 

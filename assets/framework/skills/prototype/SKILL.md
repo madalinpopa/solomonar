@@ -24,7 +24,7 @@ Framework version: 0.1.0
    Mission and Intended users are user-owned: you may propose them here; record them only after the user confirms.
 3. Agree on the next useful flow; ask one question only if it is unclear. Architecture, stack, and layout may be
    unknown: do not ask about them.
-4. Read `docs/framework/skills/prototype/template.md` only when creating `prototype/README.md` for the first time.
+4. Read `docs/solomonar/skills/prototype/template.md` only when creating `prototype/README.md` for the first time.
 
 ## 3. Build rules
 

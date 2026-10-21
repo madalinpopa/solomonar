@@ -60,9 +60,9 @@ Parallel execution requirement: the user starts tasks one at a time. Each orches
 | `docs/ui.md` | Shared layout and interaction rules plus relevant prototype references. |
 | `docs/decisions.md` | Scoped decisions, rationale, pending choices, and links to the rules they affect. |
 | `prototype/` | Static HTML, CSS, and JavaScript used for product discovery. |
-| `docs/framework/rules.md` | Reusable orchestration, approval, review, state, and closure rules; identifies the framework version. |
-| `docs/framework/agents/<role>.md` | One concise contract per core role (orchestrator, implementer, security, correctness, spec, adversarial) or installed extension agent. |
-| `docs/framework/skills/<skill>/SKILL.md` | The procedure for a core skill (`prototype`, `spec`, `work-spec`) or the rules of an installed extension skill; small templates live beside the skill and are loaded when needed. |
+| `docs/solomonar/rules.md` | Reusable orchestration, approval, review, state, and closure rules; identifies the framework version. |
+| `docs/solomonar/agents/<role>.md` | One concise contract per core role (orchestrator, implementer, security, correctness, spec, adversarial) or installed extension agent. |
+| `docs/solomonar/skills/<skill>/SKILL.md` | The procedure for a core skill (`prototype`, `spec`, `work-spec`) or the rules of an installed extension skill; small templates live beside the skill and are loaded when needed. |
 
 These are portable source locations. The selected runtime may need a small registration adapter; references alone do not register a skill. Application documents are created only when useful. The versioned registry is `state.json` on the dedicated `workflow-state` branch, described below.
 
@@ -86,11 +86,11 @@ The use of short references and on-demand loading is also described in [Anthropi
 # Project instructions
 
 - Write framework artifacts, reports, commit messages, and PR text in English.
-- Load your assigned role from docs/framework/agents/.
+- Load your assigned role from docs/solomonar/agents/.
 - Load only the invoked skill, assigned work spec, relevant global rules,
   referenced documents, and affected code/tests. Expand for discovered dependencies.
 - If no work spec exists, start from docs/README.md and the user's selected outcome.
-- Orchestrators also load docs/framework/rules.md.
+- Orchestrators also load docs/solomonar/rules.md.
 
 ## Context routes
 - Product behavior: docs/specs/<capability>.md.
@@ -186,7 +186,7 @@ The four core reviewers are language-agnostic (FW-2). Language, library, and pra
 | - | Adversarial (`adversarial-reviewer`) | The integrated feature as a whole (next section). | The risk tier requires it (rules §6), after the specialists pass. |
 
 - Priority applies after every code change. The three specialists still run in parallel on the same revision; they run in priority order only when the runtime cannot run them in parallel or their checks interfere. The orchestrator orders the consolidated correction list by priority, and when two corrections conflict, the higher-priority one is applied and the other re-examined. The authority order still decides between requirements; priority never overrides evidence.
-- Language rules live in the language's extension skill, never in a reviewer. Choosing Go at `init` (or `solomonar extension add go`) installs `docs/framework/skills/go/SKILL.md` (source: [`assets/extensions/language/go/`](../../assets/extensions/language/go/SKILL.md)) with rules `go/C-n`; the implementer follows them and the Spec reviewer checks every `must` rule.
+- Language rules live in the language's extension skill, never in a reviewer. Choosing Go at `init` (or `solomonar extension add go`) installs `docs/solomonar/skills/go/SKILL.md` (source: [`assets/extensions/language/go/`](../../assets/extensions/language/go/SKILL.md)) with rules `go/C-n`; the implementer follows them and the Spec reviewer checks every `must` rule.
 - Spec checks that the change does what its written criteria and rules say. Correctness checks that the domain logic holds in every case those rules cover, including cases no AC names. The orchestrator deduplicates a defect both report.
 - Language-specific checks and tools (for example `go vet` or `govulncheck`) are suggested by the extension that applies; a reviewer runs them when available and records any check not run.
 - During triage, the orchestrator records which reviewers are required and why. A reviewer that does not apply is marked not required with a reason. An installed extension agent is required when its `applies_when` matches the change.

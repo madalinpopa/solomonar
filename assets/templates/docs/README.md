@@ -17,7 +17,7 @@
 <!-- The `spec` skill indexes spec files; the role that creates `docs/architecture.md`, `docs/stack.md`, or
 `docs/decisions.md` adds its line. Add a document only when it exists. -->
 
-- `docs/framework/`: framework rules, roles, and skills
+- `docs/solomonar/`: framework rules, roles, and skills
 - `prototype/README.md`: prototype flows (when it exists)
 
 ## Commands

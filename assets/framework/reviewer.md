@@ -2,8 +2,8 @@
 
 Framework version: 0.1.0
 
-Load together with `AGENTS.md`, `docs/framework/report.md`, your role file, the packet, the work spec, the
-documents it references, the diff, and the affected code and tests. You do not load `docs/framework/rules.md`;
+Load together with `AGENTS.md`, `docs/solomonar/report.md`, your role file, the packet, the work spec, the
+documents it references, the diff, and the affected code and tests. You do not load `docs/solomonar/rules.md`;
 every rule you follow is here, in your role file, in `AGENTS.md`, or in `report.md`.
 
 ## 1. Applies to
@@ -16,7 +16,7 @@ agents. Role files add only role specifics. Every core reviewer is language-agno
 - Start from the packet, the work spec (a packet `spec_ref` is read with `git show "<spec_ref>"`), every spec
   section, decision (`W-001/D-n`), and contract it references, the diff (`<base>..<revision>` from the packet),
   and the affected code and tests.
-- Load every extension skill the packet names (`docs/framework/skills/<name>/SKILL.md`). Cite its rules as
+- Load every extension skill the packet names (`docs/solomonar/skills/<name>/SKILL.md`). Cite its rules as
   `<name>/C-n`.
 - Expand only for a discovered dependency, shared contract, or security rule that may affect correctness. Name
   each addition in `Summary`.
