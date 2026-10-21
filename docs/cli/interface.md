@@ -118,7 +118,13 @@ behavior.
   a full one or in tables.
 - File plans use one verb per line: `create`, `update`, `unchanged`, `keep` (project-modified, left as is; 4.5),
   `remove`, `conflict`, `skip` (project-owned, never touched). An unmanaged file whose content equals what the CLI
-  would write is adopted into the manifest and shown as `unchanged (adopted)` (CLI-D17).
+  would write is adopted into the manifest and shown as `unchanged  <path>  adopted` (CLI-D17).
+- A plan line is `  <action padded to 9>  <path>`; when the change has a reason, two spaces and the reason follow,
+  with paths padded to the widest path that has a reason. `init`'s registry line is `  registry   create
+  refs/heads/workflow-state with an empty state.json` or `  registry   unchanged refs/heads/workflow-state`.
+- A counts line is `<n> file(s) <first action>, <n> <action>, …` over the non-zero actions in the order created,
+  updated, kept, unchanged, skipped; the manifest counts. Only the first count carries `file` (one) or `files`
+  (`1 file created, 17 unchanged, 1 skipped`); a conflict count is `1 conflict` or `<n> conflicts`.
 - Every writing command ends with what was written (commit, files) and, when useful, a `Next:` block.
 
 ### 3.4 JSON output
@@ -727,6 +733,11 @@ Postconditions: the files exist uncommitted on main; each chosen group has an ap
 }
 ```
 
+`reason` appears in a `files` item only when the change has one. `decisions` is `[]` when no stack decision is made.
+`registry.commit` is the tip and `registry.pushed` is `false` when the registry is `unchanged`. With `--dry-run` the
+data adds `"dry_run": true`, `registry` is `{"ref", "action"}`, and `next` is absent; a no-op (UC-3) has
+`"next": []`.
+
 ### UC-2 Initialize non-interactively
 
 Actor: user or script.
@@ -742,22 +753,33 @@ solomonar init [<dir>]
   [--main-branch <name>]               default: main
   [--remote <name>]                    default: origin
   [--git-init]                         run git init -b <main-branch> when <dir> is not a repository
-  [--overwrite <path>]... [--keep <path>]...   resolve conflicts (UC-3)
+  [--overwrite <path>]... [--keep <path>]...   resolve conflicts (UC-3); one path per flag
   [-y|--yes] [--dry-run] [--json]
 ```
+
+`--runtime` and `--ext` split their values on commas; `--keep` and `--overwrite` take one path per flag, so a path
+may contain commas. A relative `<dir>` is joined to `-C`, an absolute one is used as is; the files are written at the
+root of the worktree containing `<dir>`.
 
 ```
 $ solomonar init --runtime claude --ext go,tdd --objective "Track shared household expenses" --yes
 Initialized solomonar 0.1.0 in /work/ledger
   36 files created
   registry  refs/heads/workflow-state @ 3a5c0d7e9f1b2a4c6d8e0f1a3b5c7d9e1f2a4b6c
-  warning: no remote "origin"; workflow-state stays local (rules §7)
 
 Next:
   1. git add AGENTS.md CLAUDE.md .claude .solomonar docs && git commit -m "chore: initialize solomonar 0.1.0"
   2. Start a top-level Claude Code session in /work/ledger:
        /solomonar Explore the next useful flow.
+warning: no remote "origin"; workflow-state stays local (rules §7)
 ```
+
+The warning goes to stderr. The success form is `Initialized solomonar <fw> in <root>`, `  <counts>` (3.3),
+`  registry  refs/heads/workflow-state @ <sha>` (`  registry  refs/heads/workflow-state @ <tip> unchanged`, with no
+`pushed` line, when an existing registry is reused), `  pushed    <remote>/workflow-state` when pushed, a blank
+line, and `Next:`: step 1 is `git add <generated paths> && git commit -m "chore: initialize solomonar <fw>"`, step 2
+the top-level session start.
+A failed push is a warning, exit 0 (F-09).
 
 Without a terminal and without `--yes`:
 
@@ -765,9 +787,22 @@ Without a terminal and without `--yes`:
 $ solomonar init --runtime claude < /dev/null
 error: init needs a confirmation (interactive_required)
   fix: pass --yes to accept the plan, or --dry-run to print it
+nothing was written
 ```
 
-Exit 2.
+Exit 2. A no-op (UC-3) needs no confirmation; every other run does, including one where every file matches but the
+registry is absent. `--dry-run` prints `Plan`, every file line, the registry line (`  registry   create
+refs/heads/workflow-state with an empty state.json`, or `  registry   unchanged refs/heads/workflow-state` with an
+existing registry), then, with no blank line, `Would initialize solomonar <fw> in <root>` and `  <counts>`, and
+writes nothing.
+
+Checks run in this order: usage and values; the repository (`not_a_repository`, UC-4) and the Git version; the
+manifest (`cli_outdated`, `manifest_invalid`); the recorded choices (`already_initialized`, UC-3), after which
+choices not given come from the manifest, else the worktree root's base name, `main`, and `origin`; the registry
+(absent: create; valid: reuse; invalid: `registry_exists_invalid`; newer: `cli_outdated`); the plan (`invalid_value`
+from `--keep`/`--overwrite`) and its conflicts (`file_conflict`); `--dry-run`; the confirmation; the file apply; the
+registry creation on the chosen remote when absent. A failure before the registry commit succeeds (a failed
+creation, cancellation) restores every file this run wrote (architecture §8).
 
 ### UC-3 Re-run init on an initialized project
 
@@ -780,8 +815,11 @@ Already initialized with solomonar 0.1.0; nothing to do.
   Change choices with `solomonar runtime|extension add|remove`; move versions with `solomonar upgrade`.
 ```
 
-Exit 0. The CLI fills the choices not given from the manifest. A given choice that differs from the manifest is
-rejected, so that `init` never becomes a second way to change choices:
+Exit 0. The no-op form applies only when the registry exists and the plan creates, updates, or removes nothing;
+when every file matches but the registry is absent, `init` takes the normal path (UC-2) and needs the confirmation.
+The second line is `  <counts> · registry refs/heads/workflow-state unchanged` (3.3). The CLI fills the
+choices not given from the manifest. A given choice that differs from the manifest is rejected, so that `init` never
+becomes a second way to change choices:
 
 ```
 $ solomonar init --ext go --yes
@@ -810,18 +848,22 @@ interrupted `init` completes it:
 ```
 $ solomonar init --runtime claude --yes
 Plan
-  conflict  docs/solomonar/rules.md      modified since installation (manifest sha256 differs)
-  conflict  .claude/agents/implementer.md   exists and is not managed by solomonar
-error: 2 conflicts; nothing was written (file_conflict)
-  fix: rerun with --keep <path> to keep the project's file, or --overwrite <path> to replace it;
-       see the difference with: solomonar upgrade --diff <path>
+  conflict  docs/solomonar/rules.md        modified since installation (manifest sha256 differs)
+  conflict  .claude/agents/implementer.md  exists and is not managed by solomonar
+error: init found 2 conflicts (file_conflict)
+  check: no planned file conflicts with the project's files
+  found: 2 conflicts: docs/solomonar/rules.md, .claude/agents/implementer.md
+  fix:   rerun with --keep <path> to keep the project's file, or --overwrite <path> to replace it
+nothing was written
 ```
 
-Exit 4. `--keep` preserves the project's bytes and records the offered distributed base hash, never the kept
-content's hash (4.5); `--overwrite` writes the embedded version and records that same base. The registry is never
-recreated: an existing valid `workflow-state` is `unchanged`; an invalid one stops
-`init` with `registry_exists_invalid` (exit 3) and the fix "inspect with git show refs/heads/workflow-state:state.json;
-the CLI never overwrites a registry".
+Exit 4. `Plan` and the conflict lines go to stdout, the error to stderr; JSON carries no `data`. `--keep` preserves
+the project's bytes and records the offered distributed base hash, never the kept content's hash (4.5);
+`--overwrite` writes the embedded version and records that same base. The registry is never recreated: an existing
+valid `workflow-state` is reused, `unchanged`, and its tip is reported; an invalid one stops `init` with
+`registry_exists_invalid` (exit 3), check `an existing workflow-state holds a valid registry`, the registry's own
+found text, and the fix "inspect with git show refs/heads/workflow-state:state.json; the CLI never overwrites a
+registry".
 
 ### UC-4 Initialize an existing repository
 
