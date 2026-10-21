@@ -1,18 +1,34 @@
 ---
 title: Install the CLI
 navTitle: Install the CLI
-description: Build the Solomonar CLI from source with Go, put it on your PATH, and check the binary, its embedded framework version, and its JSON output.
+description: Install the Solomonar CLI with Homebrew or build it from source with Go, put it on your PATH, and check the binary, its embedded framework version, and its JSON output.
 kind: Tutorial
 group: Start here
 order: 2
 sources:
   - go.mod
+  - .goreleaser.yaml
   - Taskfile.yml
   - internal/cli/run.go
 ---
 
-There are no prebuilt releases yet. You build the binary from source; it takes a few seconds.
+{% if release.version == "dev" %}There are no prebuilt releases yet. You build the binary from source; it takes a few seconds. From the first release on, the CLI also installs with Homebrew.
+{% else %}Install a release with Homebrew, or build the binary from source.
 
+## Install with Homebrew
+
+On macOS and Linux:
+
+```sh
+brew install --cask madalinpopa/tap/solomonar
+```
+
+The cask puts `solomonar` on your `PATH`, so you can go straight to [checking the binary](#check-the-binary). On macOS it removes the quarantine attribute, because the binaries are not notarized. Upgrade to a new release with:
+
+```sh
+brew upgrade --cask solomonar
+```
+{% endif %}
 ## Build from source
 
 Clone the repository and build:
@@ -46,7 +62,7 @@ solomonar devel (embedded framework 0.1.0)
 project   not initialized
 ```
 
-A build from a Git checkout may show a source-derived version instead of `devel`, with `+dirty` when the checkout has local changes. Outside an initialized project, the project line reads `not initialized`.
+{% if release.version != "dev" %}A Homebrew install shows the release version instead of `devel`. {% endif %}A build from a Git checkout may show a source-derived version instead of `devel`, with `+dirty` when the checkout has local changes. Outside an initialized project, the project line reads `not initialized`.
 
 List the commands this build supports:
 
