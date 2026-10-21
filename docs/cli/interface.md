@@ -1378,10 +1378,16 @@ W-001  blocked/implementation → running/implementation
   registry @ 4f6a8c0e2b4d6f8a1c3e5b7d9f0a2c4e6b8d1f3a
 ```
 
+The human output is the `task move` form (UC-13) with a first detail line `blocker B-<n> <kind>: <summary> (<ref>)`
+(no parenthetical without a ref) on `block`, or `cleared B-<n> <kind>: <summary>` on `unblock`, then the other
+changed fields, labels aligned.
+
 `--json` data has the `task move` shape: `{"id": "W-001", "from": {"status": "running", "stage": "implementation"},
 "to": {"status": "blocked", "stage": "implementation"}, "changed": ["status", "blockers", "next_action"], "record":
 { }, "commit": "<sha>", "pushed": true}` for the block above; `changed` lists `blockers` (never `last_blocker`) in
-record order, with `status` and `next_action` when they change.
+record order, with `status` and `next_action` when they change. `--dry-run` prints `Would block ` or `Would unblock `
+before the header, then the detail lines and the subject, with no registry line; `--dry-run --json` data is the same
+without `commit` and `pushed`, with `"dry_run": true`.
 
 Rules: blocker IDs are `B-n`, stable within the task, never reused (the record's `last_blocker` holds the
 highest `n` issued); `--kind decision` requires `--ref <ID>/D-n`; `--summary` is at most 80 characters;
@@ -1393,7 +1399,13 @@ blocked`, is `blockers_required` (exit 3, check `a blocked task needs an open bl
 that is not an open blocker of the task, unknown or malformed, is `blocker_not_found` (exit 3, found `<blocker ID>
 is not an open blocker of <ID>`, fix `solomonar task show <ID>`). Both commands check, in order, that the task
 exists, `done_final`, and ownership (`--as` / `SOLOMONAR_OWNER`, as `task move`), then apply the blocker change and
-the `--status`/`--next` shorthand as one validated write.
+the `--status`/`--next` shorthand as one validated write. Rejections read `task block <ID> rejected` and `task
+unblock <ID> rejected` (3.6).
+
+Usage errors exit 2 and write nothing, checked before anything is read: a missing ID is `invalid_usage` (`task ID is
+required`), and so are `unblock` without the blocker ID (`blocker ID is required`) and `block` without `--kind` or
+`--summary` (`--kind is required`, `--summary is required`); no `--as` and no `SOLOMONAR_OWNER` is `owner_required`
+(`task block needs an acting owner` or `task unblock needs an acting owner`, fix `pass --as <owner>`).
 
 ### UC-16 Inspect state
 
