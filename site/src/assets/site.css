@@ -164,6 +164,7 @@ h2 { font-size: clamp(2.5rem, 4.2vw, 3.6rem); line-height: 1.12; letter-spacing:
 .doc-content li + li { margin-top: 8px; }
 .doc-content code { font: .85em/1.7 var(--mono); background: var(--surface); padding: 3px 5px; border-radius: 2px; }
 .doc-content pre { position: relative; background: var(--code); border: 1px solid var(--line); border-left: 2px solid var(--thread); padding: 24px 64px 24px 22px; overflow-x: auto; margin-block: 25px; font: 13px/1.85 var(--mono); }
+.doc-content pre:has(code.language-text) { white-space: pre-wrap; }
 .doc-content pre code { padding: 0; background: none; font: inherit; color: var(--ink); }
 .copy-button { position: absolute; top: 10px; right: 10px; border: 1px solid var(--line); width: 36px; height: 36px; display: grid; place-items: center; background: var(--surface); }
 .copy-button svg { width: 17px; height: 17px; }
