@@ -685,8 +685,37 @@ Decisions (author, 2026-10-21):
 - [x] tests: UC-2 core-only, UC-3 no-op and `already_initialized`, an interrupted init completed by adoption, F-02
   `keep`, conflicts with `--keep`/`--overwrite`, `registry_exists_invalid`, `--dry-run`, F-09 (a failing manifest
   write creates no ref; a failing CAS restores every file; a failing push warns, exit 0)
-- Stage 8.7 `[ ]` — `--git-init` (moved from 10.2), the `not_a_repository` fix of UC-4, an empty repository's
-  `Next:`, the `.jj/` warning (UC-4)
+
+### Stage 8.7 — `--git-init`, empty repository, `.jj/` (`internal/cli`; UC-4) `[x]`
+
+Decisions (author, 2026-10-21):
+- `not_a_repository` from `init` keeps the message `<absolute dir> is not a Git repository` with the fix ``run `git
+  init -b <main-branch>` first, or rerun with --git-init`` (UC-4);
+- `--git-init` (usage `[--git-init]`, help line updated): when the directory is not a repository, `init` plans
+  against that directory as the root (it must exist; otherwise the existing unexpected error), with no manifest
+  check against Git and the registry `create`; the plan's first line is `  git        init -b <main-branch>` (JSON
+  `"git_init": true` in `data`, `false` otherwise); the plan counts as a write, so it needs `--yes`; after the
+  confirmation `init` runs `git init -b <main-branch> <dir>`, discovers the new repository, then applies and creates
+  the registry as before; a failure after `git init` rolls back the files but leaves the new `.git` (a re-run
+  adopts the files; architecture §8); `--git-init` inside a repository is ignored; `--dry-run` never runs `git init`;
+- empty repository: when `refs/heads/<main-branch>` has no commit (always after `--git-init`), the success text's
+  `Next:` step 1 reads `  1. First commit required before task worktrees:` followed by the command lines indented
+  seven spaces (`git switch --orphan <main-branch>` first when HEAD is not on `<main-branch>`, then `git add AGENTS.md
+  .solomonar docs && git commit -m "chore: initialize solomonar <fw>"`); JSON `"first_commit_required": true`
+  (`false` otherwise) and `next` lists the same commands;
+- `.jj/` at the worktree root: `init` adds the warning `jujutsu_detected`, message `Jujutsu detected; v0.1 supports
+  Git only. Never run jj commands on workflow-state.` (UC-4; stderr / envelope), also with `--dry-run`; other
+  commands do not warn yet (`doctor` reports it later).
+- also: a detached HEAD counts as not on the main branch (`git switch --orphan` first); `jujutsu_detected` comes
+  before the registry's warnings; any `.jj` `Lstat` error means no warning; the `--git-init` root is `absDir(dir)`,
+  not symlink-resolved; a `file_conflict` under `--git-init` lists only the conflicts; a failing `git init` reads
+  `git init: %w` (exit 1), and a failing discovery after it returns as is (nothing written yet); help line
+  `--git-init runs git init -b <main-branch> when <dir> is not a repository.`; `checkVersion` and `traceWriter` split
+  from `openRepo`; tests use `GIT_CEILING_DIRECTORIES` and `GIT_TEMPLATE_DIR` through `t.Setenv`. I §3.2, I §3.3,
+  UC-1, UC-4, architecture §8 updated to match.
+
+- [x] `not_a_repository` fix; `--git-init` planning, confirmation, `git init`, rollback (UC-4)
+- [x] empty repository `Next:` and `first_commit_required`; the `jujutsu_detected` warning
 - Stage 8.8 `[ ]` — task commands read `main_branch` and `remote` from the manifest (architecture §7 step 2)
 
 ## Step 9: `init` with runtimes and catalog extensions
