@@ -145,7 +145,7 @@ On failure `ok` is `false`, `data` is absent, and `error` is present:
     "message": "task move W-001 rejected",
     "check": "--revision must be a full SHA reachable from feature/W-001",
     "found": "1902e3d6fc4e78a0bcc50ba12b882769afbf4a8c is not on feature/W-001",
-    "fix": "commit the candidate on feature/W-001 and pass its full SHA: git -C <worktree> rev-parse HEAD"
+    "fix": "commit the candidate on feature/W-001 and pass its full SHA: git -C <worktree path> rev-parse HEAD"
   },
   "warnings": []
 }
@@ -180,7 +180,7 @@ Human form, on stderr:
 error: task move W-001 rejected (revision_not_on_branch)
   check: --revision must be a full SHA reachable from feature/W-001
   found: 1902e3d6fc4e78a0bcc50ba12b882769afbf4a8c is not on feature/W-001
-  fix:   commit the candidate on feature/W-001 and pass its full SHA: git -C <worktree> rev-parse HEAD
+  fix:   commit the candidate on feature/W-001 and pass its full SHA: git -C <worktree path> rev-parse HEAD
 nothing was written
 ```
 
@@ -1265,6 +1265,9 @@ W-001  running/specification → running/implementation
   registry @ 8e1f3a5c7b9d0e2f4a6c8b0d1e3f5a7c9b1d2e4f
 ```
 
+The `spec` line names where the spec was found: the worktree path, or the short revision when it is found only
+there (`(found at 7cd18e4)`).
+
 `READY_FOR_REVIEW` at a committed SHA, triage recorded tier 2, specialists launched:
 
 ```
@@ -1299,7 +1302,7 @@ nothing was written
 $ solomonar task move W-001 --as orchestrator-1 --revision 7cd18e4 --tier 1 --stage specialized_review
 error: task move W-001 rejected (revision_not_full_sha)
   check: --revision must be a full 40-character SHA
-  fix:   git -C /work/ledger-worktrees/W-001 rev-parse 7cd18e4
+  fix:   git rev-parse 7cd18e4
 nothing was written
 
 $ solomonar task move W-001 --as orchestrator-1 --stage adversarial_review
@@ -1646,10 +1649,10 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 |---|---|---|
 | `--revision` | full 40-hex SHA | `revision_not_full_sha` |
 | `--revision` | `feature/<ID>` exists locally | `branch_missing` |
-| `--revision` | `git merge-base --is-ancestor <sha> feature/<ID>` | `revision_not_on_branch` |
+| `--revision` | `git merge-base --is-ancestor <sha> feature/<ID>`; a SHA Git does not know fails too | `revision_not_on_branch` |
 | `--stage specification` from `setup` | `feature/<ID>` exists and a worktree has it checked out (`git worktree list --porcelain`) | `branch_missing`, `worktree_missing` |
 | `--spec` | clean path relative to the worktree: not absolute, no `..` element, not `.`, already in clean form (`./a`, `a//b`, `a/`, `a/../b` are rejected) | `invalid_value` |
-| `--spec` | exists in the worktree located by `git worktree list --porcelain`, or at the recorded `revision` | `spec_not_found` |
+| `--spec` given, or the move enters `implementation` | `spec` is a regular file in the worktree on `feature/<ID>` (located by `git worktree list --porcelain`), or a blob at the recorded `revision` (`git cat-file -t <revision>:<spec>` is `blob`; a directory does not count) | `spec_not_found` |
 | `--agent` | `<id>:<role>` split at the first `:`, id `[a-z]+-[0-9]+`, a core delegated role or an extension agent whose manifest state is `installed`, never a draft or `orchestrator`; the fix lists the allowed roles | `invalid_value` |
 | `--next` | `<actor>:<action>` split at the first `:`, actor `user`, the owner, or an `active_agents` id after the move, so an agent added by `--agent` in the same `task move` may act (`user` or the owner on `task register`); the fix lists the allowed actors; action 1 to 120 characters (runes) after trimming, on every command that takes `--next`, including `task register` | `invalid_value` |
 | `task register --owner` | agent ID `[a-z]+-[0-9]+` | `invalid_value` |
@@ -1680,10 +1683,10 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `revision_required` | 3 | Review stage without a revision | pass `--revision` |
 | `revision_not_full_sha` | 3 | Short or malformed SHA | `git rev-parse <short>` |
 | `branch_missing` | 3 | `feature/<ID>` does not exist | create the branch and worktree (rules §4) |
-| `worktree_missing` | 3 | `feature/<ID>` exists but no worktree has it checked out | `git worktree add ../<repo>-worktrees/<ID> feature/<ID>` |
-| `revision_not_on_branch` | 3 | SHA not reachable from `feature/<ID>` | commit on the feature branch |
+| `worktree_missing` | 3 | `feature/<ID>` exists but no worktree has it checked out | `git worktree add ../<repo>-worktrees/<ID> feature/<ID>`, `<repo>` the main checkout's directory name |
+| `revision_not_on_branch` | 3 | SHA unknown to Git or not reachable from `feature/<ID>` | commit the candidate on `feature/<ID>` and pass its full SHA: `git -C <worktree path> rev-parse HEAD`, or `git rev-parse feature/<ID>` without a worktree |
 | `spec_required` | 3 | `implementation` without `spec` | pass `--spec` |
-| `spec_not_found` | 3 | The spec path does not exist | commit the work spec in the worktree |
+| `spec_not_found` | 3 | The spec is neither a regular file in the `feature/<ID>` worktree nor a blob at the recorded revision; found names where it looked (`<spec> is not in the feature/<ID> worktree or at the recorded revision`, or only the one present), or `no worktree on feature/<ID> and no recorded revision to look for <spec>` | commit the work spec in the worktree |
 | `next_required` | 3 | Pause or cancel without `--next` | pass `--next <actor>:<action>` |
 | `blockers_required` | 3 | `blocked` without an open blocker | `task block` first, or pass `--status blocked` to it |
 | `blocker_not_found` | 3 | Unknown blocker ID | `task show <ID>` |
