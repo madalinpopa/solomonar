@@ -209,9 +209,29 @@ match.
 - [x] `branch_missing`, `worktree_missing` for `setup` → `specification` (I §8.2, §8.3)
 - [x] `spec_not_found` through `git worktree list --porcelain` or the recorded `revision` (I §8.3)
 
-- Stage 5.5 `[ ]` — `task move` command, `--as` and `SOLOMONAR_OWNER` (`owner_required`), every UC-14 rejection
-  (UC-13, UC-14, UC-18); its rejections name the ID (`task move W-001 rejected`) through `rejectedAs`, as I §3.6
-  states
+### Stage 5.5 — `Registry.MoveTask` and the move commit (domain) `[x]`
+
+Decisions (author, 2026-10-21): the move subject lists every changed field in record order (`status running,
+stage implementation, spec <path>, agents impl-1, next impl-1`), as I §8.5 states, and the UC-13 examples follow
+it; a move that changes nothing writes no commit and exits 0.
+
+Decisions (author, 2026-10-21): `task move` splits into this domain stage and the
+CLI stage 5.6; `MoveTask` runs lookup, `done_final`, ownership, `Record.Move`, then the fact checks; `Store.Update`
+writes nothing when `fn` returns an empty subject and returns the current tip unpushed; subject parts are `revision
+<short>`, `tier <n>`, `agents <id> <id>` or `agents none`, `pr <value>`, `next <actor>`; resuming a cancelled task
+warns `cancelled_resumed` with the UC-18 text, when the status leaves `cancelled`; a move that changes nothing
+still runs every check; `done_final` found is `done -> <status>`, or `done -> done` without `--status`. UC-13,
+UC-18, I §8.4, I §8.5, and architecture §7 updated to match.
+
+- [x] `Registry.MoveTask`: lookup, `done_final`, `owner_mismatch`, `Record.Move`, `CheckFacts`; returns from, to,
+      changed, where the spec was found, the subject, and warnings (I §7 step 3 of the architecture, UC-13, UC-18)
+- [x] Commit subject of I §8.5 from the changed fields; empty when nothing changed
+- [x] `Store.Update` skips the commit for an empty subject
+- [x] `cancelled_resumed` warning on `--resume-cancelled` (UC-18)
+
+- Stage 5.6 `[ ]` — `task move` command: `--as` and `SOLOMONAR_OWNER` (`owner_required`), installed roles from
+  the embedded core agents, UC-13 and UC-18 output, every UC-14 rejection; rejections name the ID (`task move
+  W-001 rejected`) through `rejectedAs`, as I §3.6 states
 
 ## Step 6: `block`, `unblock`, `handoff`, `done`
 
