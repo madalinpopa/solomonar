@@ -411,6 +411,32 @@ description: Rules for templ components in this project. Use when a change touch
 | `applies_when` | Skill: when an agent loads it. Agent: when triage requires it | rendered into `AGENTS.md` (4.6) and into the skill's `description` |
 | `paths` | Globs of files the extension governs | rendered into `AGENTS.md`; the orchestrator uses them to name extensions in a packet; the CLI never inspects a change |
 
+Catalog entries are the files `extensions/*/*/extension.json`; a directory without `extension.json` is ignored and
+a missing `extensions` directory is an empty catalog. Each entry is checked in this order, the first failure being the
+reason: `extension.json` decodes strictly (`decode extension.json: <err>`, unknown members rejected); `name` equals
+its directory (`name "<n>" does not match the directory`) and matches `[a-z][a-z0-9-]*` (`name "<n>" is not a name
+of [a-z][a-z0-9-]*`); `group` equals its directory (`group "<g>" does not match the directory`) and is one of the
+nine groups (`group "<g>" is not one of <groups>`); `kind` is `skill` or `agent` (`kind "<k>" is not skill or
+agent`); the directory holds the regular file `SKILL.md` for a skill or `<name>.md` for an agent (`kind <k> has no
+<file>`); `title`, then `applies_when`, is not empty or whitespace-only (`title is missing`, `applies_when is
+missing`); the name is in no earlier entry (`name "<n>" is also in <dir>`). After all entries load, each one in
+sorted name order has every `requires` entry (`requires "<n>" is not a catalog extension`), then every `conflicts`
+entry (`conflicts "<n>" is not a catalog extension`), naming a catalog extension. A defect is an embedded-asset bug,
+so it is an unexpected error (exit 1) `read catalog <dir>: <reason>`.
+
+Selection checks run on the sorted unique names, in this order, each over the sorted names; the first failure wins:
+
+| Code | Exit | check | found | fix |
+|---|---|---|---|---|
+| `unknown_extension` | 2 | `--ext names a catalog extension` | `"<v>" is not in the catalog; known: <sorted names>` | `pass --ext with a known name, or none` |
+| `extension_requires` | 3 | `every required extension is selected` | `<name> requires <missing, comma-joined>` | `add --ext <missing, comma-joined>` |
+| `extension_conflict` | 3 | `no selected extensions conflict` | `<a> conflicts with <b>` | `drop --ext <a> or --ext <b>` |
+
+With an empty catalog the `unknown_extension` found ends `known: none`. `extension_requires` joins the missing
+names with `, ` in found and with `,` in fix, so the fix is a valid flag value (`go requires sql, templ`, `add --ext
+sql,templ`). A conflict declared on one side only is still found: the check walks each selected name, then its
+sorted `conflicts`, and reports the first pair from the side that declares it (`<a>` declares `<b>`).
+
 **Project extension lifecycle.** The manifest records `state: draft|installed` for every extension. `extension
 new` creates a project-owned `draft`; `extension add <name>` adopts that draft, while adding a catalog name or
 local directory installs it directly. Drafts appear in `extension list` and `show`, but not in `--installed`,
@@ -420,11 +446,19 @@ incomplete drafts. An already installed name with unchanged choices is a no-op, 
 Removing a draft untracks it and leaves its project-owned source in place; it has no adapters or decision to
 remove. Upgrades preserve draft and installed project-extension content alike.
 
-**Generation.** The CLI renders each skill or agent file for the installed set: a `## With <name>` section marked
-`<!-- solomonar:with <name>[,<name>...] -->` is kept only when every named extension is installed, and dropped
-otherwise. Adding or removing an extension re-renders every installed one that refers to it. Rendering is
-deterministic templating from embedded files; it never calls a model (J1). The rendered file gets one line under its
-title: `Installed by P/D-2; rendered with: htmx.`
+**Generation.** The CLI renders each skill or agent file for the installed set. A section starts at a line
+`## With <...>` followed by the marker line `<!-- solomonar:with <name>[,<name>...] -->` and runs to the next line
+starting `## `, or the end. A `## With` heading without a valid marker line right after it is ordinary text. Marker
+names are split on `,` and trimmed. A section is kept, without its marker line, when every named extension is
+installed, and dropped otherwise; a dropped section takes its trailing blank lines with it, and one at the end of the
+file also trims the blank lines before it, so the file ends with one newline. `rendered_with` is the sorted unique
+union of the names in kept sections, without the extension itself; it is empty when no other name is kept. Adding or
+removing an extension re-renders every installed one that refers to it. Rendering is deterministic templating from
+embedded files; it never calls a model (J1). One provenance line goes under the first `# ` title line with exactly
+one blank line on each side: blank lines after the title collapse into one, and no blank line follows when the
+title is the last line. It reads `Installed by <decision>; rendered with: <a>, <b>.`, or `Installed by <decision>.`
+when `rendered_with` is empty; `<decision>` is `solomonar` for `workflow` and `review`, which record no decision
+(`Installed by P/D-2; rendered with: htmx.`). Content without a `# ` title gets no line.
 
 **Loading.** Runtimes trigger extension skills by their `description`, but the process does not rely on that: the
 orchestrator names the installed extensions whose `applies_when` or `paths` match the change in every packet, the
@@ -1239,8 +1273,8 @@ group and `applies_when`, or takes them from the flags in UC-6. `list` shows dra
 prints the state and source. `add <draft-name>` is activation, not a name collision. An identical installed
 selection is a no-op. Rejections (exit 3): `core_item` for `extension remove work-spec` or `extension remove
 security-reviewer`; `name_collision` for a different extension with the same name (fix: choose another positional
-name on `new`, or rename the source directory); `unknown_extension` for a name absent from both manifest and
-catalog; `invalid_value` naming a missing frontmatter
+name on `new`, or rename the source directory); `unknown_extension` (exit 2, 4.3) for a name absent from both
+manifest and catalog; `invalid_value` naming a missing frontmatter
 field. A skill's `name` must match its directory (G11).
 
 ### UC-8 Sync adapters after editing the portable source
