@@ -13,10 +13,11 @@ import (
 
 const fixChoices = "; init never changes choices"
 
-// Requested holds the choices given to init; an empty string or nil list was not given.
+// Requested holds the choices given to init; an empty string or a nil list or map was not given.
 type Requested struct {
 	Name, MainBranch, Remote string
 	Runtimes, Extensions     []string
+	AdversarialModels        map[string]string
 }
 
 // InitPlan plans init's files and builds the manifest, whose change comes last (I §4.7).
@@ -88,6 +89,19 @@ func (m *Manifest) CheckChoices(r Requested) error {
 				fmt.Sprintf("manifest %s %s; requested %s", l.field, formatList(l.recorded), formatList(requested)),
 				fmt.Sprintf("change %s with `solomonar %s add|remove`", l.field, strings.TrimSuffix(l.field, "s")))
 		}
+	}
+	for _, runtime := range slices.Sorted(maps.Keys(r.AdversarialModels)) {
+		recorded, requested := m.Runtimes[runtime].AdversarialModel, r.AdversarialModels[runtime]
+		if requested == recorded {
+			continue
+		}
+		shown := "none"
+		if recorded != "" {
+			shown = fmt.Sprintf("%q", recorded)
+		}
+		return alreadyInitialized(
+			fmt.Sprintf("manifest adversarial_model %s %s; requested %q", runtime, shown, requested),
+			"change models with `solomonar runtime add "+runtime+" --adversarial-model <model>`")
 	}
 	return nil
 }
