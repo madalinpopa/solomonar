@@ -528,9 +528,40 @@ match.
 - [x] `Apply` with temp + rename, modes, directories, the journal, rollback on failure or cancellation
 - [x] `Journal.Rollback`; tests including a failing write midway and a rollback after a successful apply (F-09)
 
-- Stage 8.3 `[ ]` — Plan classification: `create`, `update`, `unchanged`, `unchanged (adopted)`, `keep`, `conflict`,
-  `skip` from the manifest base hash and the disk, `--keep`/`--overwrite`, base hash recording (I §3.3, I §4.5,
-  CLI-D17, F-02)
+### Stage 8.3 — Plan classification (`internal/project`) `[x]`
+
+Decision (author, 2026-10-21): a managed file modified locally (disk differs from the manifest base) while the
+offered content equals that base is `keep`, not a conflict (F-02: a repeated offer keeps the edit); it is a conflict
+only when the offered content also differs from the base; the UC-3 example is aligned (the conflict follows a
+framework change).
+
+Decisions (author, 2026-10-21): `Classify(root, manifest, wants, keep, overwrite)`
+returns the `Plan` and the manifest `files` entries for the wanted paths; a `Want` is a path, an owner, and the
+offered content; the recorded base is always the hash of the offered content (I §4.5); rules, per path, with `disk`
+the current file, `base` the manifest `sha256`, `offer` the offered content:
+- `seed` owner: absent → `create`; present → `skip` (project-owned), no hash recorded;
+- absent → `create`;
+- not a regular file (directory, symlink) → `conflict`, reason `exists and is not a regular file`;
+- managed (`base` recorded): `disk` = `offer` → `unchanged`; `disk` = `base` → `update`; `offer` = `base` → `keep`;
+  otherwise `conflict`, reason `modified since installation (manifest sha256 differs)`;
+- unmanaged: `disk` = `offer` → `unchanged`, reason `adopted` (CLI-D17); otherwise `conflict`, reason `exists and
+  is not managed by solomonar`;
+- a conflict on a path given to `--keep` becomes `keep`, to `--overwrite` becomes `update`; both record the offered
+  base;
+- `--keep`/`--overwrite` naming a path that is not a conflict, or the same path in both, is `invalid_value` (exit 2):
+  check `--keep and --overwrite resolve conflicts`, found `<path> is not a conflict` or `<path> is in both --keep and
+  --overwrite`, fix `pass --keep or --overwrite once per conflicting path`;
+- the plan lists the wanted paths in the given order; `core+notes` (`AGENTS.md` managed part) is handled in 8.4.
+- also: only conflicts and `adopted` carry a reason; a resolved conflict is a plain `keep` or `update`; `Content` is
+  set for `create` and `update` only; entries for unresolved conflicts carry the offered base and nothing is written
+  while the plan has a conflict; the both-flags check runs first, then `--keep` and `--overwrite` paths in order (a
+  path the plan does not list is "not a conflict"); a present `seed` is `skip` even when not regular; managed `disk` =
+  `offer` is tested first; an inspection failure other than absence is an unexpected error. I §3.3, I §4.5, UC-3,
+  architecture §6 updated to match.
+
+- [x] `Want`, `Classify` with the rules above, the manifest entries, `--keep`/`--overwrite`
+- [x] Tests for every row, F-02 (offered A, local B, keep, offer C, keep B, offer C again, offer D), CLI-D17
+
 - Stage 8.4 `[ ]` — Core file set, `AGENTS.md` and `docs/README.md` templates, `AGENTS.md` adoption (UC-4)
 - Stage 8.5 `[ ]` — `init` command, registry creation after file apply, `--keep`/`--overwrite`/`--dry-run`,
   F-02/F-09 (UC-2, UC-3, UC-4); outside a repository `init` keeps its own `not_a_repository` fix from UC-4
