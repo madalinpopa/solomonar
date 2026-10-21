@@ -253,8 +253,31 @@ before the subject. UC-13, UC-14, UC-18, I §3.1, I §8.3 updated to match.
 
 ## Step 6: `block`, `unblock`, `handoff`, `done`
 
-- Stage 6.1 `[ ]` — `task block`, `task unblock`, prior status from the stage (UC-15)
-- Stage 6.2 `[ ]` — `task handoff`, `task done` with merge and `spec_ref` checks (UC-19, UC-20)
+### Stage 6.1 — `BlockTask`, `UnblockTask` (domain) `[x]`
+
+Decision (author, 2026-10-21): unblocking the last blocker of a `blocked` task without `--status` is
+`blockers_required` (exit 3, fix `pass --status <prior status>`); the CLI never picks the status.
+
+Decisions (author, 2026-10-21): `task block` and `task unblock` split into this
+domain stage and the CLI stage 6.2; both run lookup, `done_final`, ownership, then the blocker change and the
+`--status`/`--next` shorthand through `Record.Move` on the same copy, and return a `MoveResult`; `changed` lists
+`blockers` (not `last_blocker`, which is bookkeeping) in record order with `status` and `next_action`; the subject
+is always `block B-<n> <kind>` or `unblock B-<n>` (I §8.5); an unknown or malformed blocker ID is
+`blocker_not_found`; block checks kind, summary, and ref, then `--status`, then the move rules; a successful
+block or unblock always sets `updated_at`; `--status blocked` on the last unblock gets the same rejection;
+`changed` and the move subject follow the record order exactly (`next_action` before `pr`, stage 3.4). UC-13,
+UC-15, I §8.4, I §8.5 updated to match.
+
+- [x] `BlockTask`: new blocker `B-<n>` from `last_blocker`, `--kind`, `--summary`, `--ref` checks, optional
+      `--status blocked` and `--next` in the same write (UC-15, rules §7)
+- [x] `UnblockTask`: remove the blocker, `blocker_not_found`, optional `--status <prior>` and `--next`; the
+      last-blocker rule above (UC-15, I §8.1)
+- [x] Subjects `block B-<n> <kind>` and `unblock B-<n>` (I §8.5)
+
+- Stage 6.2 `[ ]` — `task block`, `task unblock` commands, UC-15 output
+- Stage 6.3 `[ ]` — `task handoff` (UC-19)
+- Stage 6.4 `[ ]` — `task done` with merge and `spec_ref` checks, domain (UC-20)
+- Stage 6.5 `[ ]` — `task done` command (UC-20)
 
 ## Step 7: `task status`
 
