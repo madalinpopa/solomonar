@@ -1,71 +1,62 @@
 ---
-title: Getting started with the CLI
-description: Build Solomonar from source, check your CLI installation, and learn which parts of the spec-driven AI development workflow are available today.
-kind: Tutorial
+title: Get started with Solomonar
+navTitle: Get started
+description: What Solomonar is, what you need before you start, and the four steps from a fresh repository to your first reviewed task with an AI coding agent.
+kind: Overview
 group: Start here
 order: 1
 sources:
-  - go.mod
-  - Taskfile.yml
+  - README.md
   - internal/cli/run.go
   - docs/cli/implementation-tasks.md
 ---
 
-Solomonar is a lightweight, spec-driven workflow for people building software with AI coding agents. It gives a project shared specifications, focused skills, clear agent responsibilities, and review gates.
+Solomonar is a spec-driven workflow for building software with AI coding agents. You agree on what the software should do, an agent builds one focused task against that agreement, separate agents review it, and a small CLI records every step in Git.
 
-> **Current status:** the framework contracts are defined at v0.1.0. The CLI is being implemented incrementally. Project initialization and the complete managed-task workflow are not available yet. The examples below build and inspect the working CLI; they do not initialize a managed project.
+It has two parts:
+
+- **The framework:** Markdown rules, skills, and agent roles that live in your repository under `docs/solomonar/`. Your agent runtime, Claude Code or Codex, reads them.
+- **The CLI:** the `solomonar` binary. It installs the framework into a project and keeps the task record honest. It never calls a model or starts an agent.
 
 ## Before you begin
 
-- Use macOS or Linux; Windows support is deferred in the v0.1 design.
-- Install the Go toolchain required by [`go.mod`]({{ 'go.mod' | source }}), currently Go 1.27.3.
-- Install Git 2.40 or later. The CLI uses your Git executable and configuration.
+You need:
 
-The CLI does not require a model-provider API key. The selected agent runtime runs sessions; the Solomonar binary does not call models or launch agents.
+- macOS or Linux. Windows is not supported in v0.1.
+- Git 2.40 or later.
+- Go 1.27.3 or later, to build the CLI from source.
+- Claude Code or Codex, to run the agent sessions.
 
-## Build from source
+No model-provider API key is needed by the CLI itself.
 
-Clone the repository and build the binary:
+## Your path through the docs
 
-```sh
-git clone https://github.com/madalinpopa/solomonar.git
-cd solomonar
-go build -trimpath -o bin/solomonar .
-```
+Read these in order. Each step ends where the next one starts.
 
-The output is `bin/solomonar`. Keep the `./bin/` prefix in the examples below; no system-wide installation is needed.
+1. [Install the CLI]({{ '/docs/install/' | url }}): build the binary and check it runs.
+2. [Set up a project]({{ '/docs/set-up-a-project/' | url }}): run `solomonar init` in a repository and make the first commit.
+3. [Run your first task]({{ '/docs/first-task/' | url }}): start an agent session, prototype a flow, and take one task from specification to merge.
+4. [How the framework works]({{ '/docs/framework/' | url }}): the ideas behind what you just did.
 
-## Check your build
-
-```sh
-./bin/solomonar version
-./bin/solomonar help
-./bin/solomonar task plan --help
-```
-
-`version` reports the CLI and embedded framework versions. A development checkout may report `devel` or a source-derived version, with `+dirty` for local changes; outside an initialized project, the project line reads `not initialized`.
-
-For structured output:
-
-```sh
-./bin/solomonar version --json
-```
-
-You should receive one JSON object with `ok`, `command`, `data`, and `warnings` fields. See [the output contract]({{ '/docs/cli/#output-formats' | url }}).
+After that, use the [workflow examples]({{ '/docs/use-cases/' | url }}) for everyday situations and the [CLI reference]({{ '/docs/cli/' | url }}) when you need a flag.
 
 ## What works today
 
-The current command table contains `help`, `version`, and these task commands: `plan`, `register`, `show`, `move`, `block`, `unblock`, `handoff`, and `done`.
+The framework contracts are defined at v0.1.0. The CLI is built in increments:
 
-Task commands require an initialized registry on `refs/heads/workflow-state`. Because `init` is still planned, these commands are useful for implementation and validation in prepared repositories. Do not create or edit the registry by hand to work around missing initialization.
+| Area | Status |
+| --- | --- |
+| `init` with the core framework and Claude Code or Codex adapters | Available |
+| Task commands: `plan`, `register`, `show`, `status`, `move`, `block`, `unblock`, `handoff`, `done` | Available |
+| Interactive `init` prompts | Planned; use `--yes` or `--dry-run` |
+| Extensions at `init` and `extension` commands | Planned |
+| `doctor`, `sync`, `runtime`, `guard`, `upgrade`, `dashboard` | Planned |
 
-The [CLI reference]({{ '/docs/cli/' | url }}) separates current commands from the rest of the interface design.
+The [CLI reference]({{ '/docs/cli/#planned-commands' | url }}) keeps the full list of planned commands.
 
-## Choose your next read
+## How these docs are organized
 
-- New to the model? Read [the framework]({{ '/docs/framework/' | url }}) and its book, spells, dragons, and reins.
-- Looking for a concrete starting point? Try the [framework use cases]({{ '/docs/use-cases/' | url }}) for discovery, implementation, maintenance, and recovery.
-- Want to understand a task from start to finish? Follow [the workflow]({{ '/docs/workflow/' | url }}).
-- Need flags or errors? Open [the CLI reference]({{ '/docs/cli/' | url }}) or [troubleshooting]({{ '/docs/troubleshooting/' | url }}).
-
-For contributor checks, the repository's `Taskfile.yml` is authoritative. This website has its own [build and maintenance instructions]({{ 'site/README.md' | source }}).
+- **Start here:** the steps above, in order.
+- **Learn the framework:** why the workflow is shaped the way it is.
+- **Guides:** prompts and commands for specific situations, and fixes when something fails.
+- **Reference:** every command, flag, file, and setting.
