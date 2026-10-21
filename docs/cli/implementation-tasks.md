@@ -189,11 +189,26 @@ with the UC-14 texts. I §8.3 updated to match.
       (`invalid_value`, I §8.3)
 - [x] `--spec`: a relative path under the worktree, no `..` (`invalid_value`, I §8.3)
 
-- Stage 5.4 `[ ]` — Git fact checks of I §8.3: `branch_missing`, `revision_not_on_branch`, `spec_not_found`
-  through `git worktree list --porcelain` or the recorded `revision`, the worktree required by `setup` →
-  `specification` (I §8.2). Decision (author, 2026-10-21): that move is `branch_missing` without the branch and
-  `worktree_missing` (exit 3, fix `git worktree add ../<repo>-worktrees/<ID> feature/<ID>`) with the branch but no
-  worktree; I §8.4 gains the code
+### Stage 5.4 — Git fact checks (domain) `[x]`
+
+Decision (author, 2026-10-21): the stage move `setup` → `specification` is `branch_missing` without the branch
+and `worktree_missing` (exit 3, fix `git worktree add ../<repo>-worktrees/<ID> feature/<ID>`) with the branch but
+no worktree; I §8.4 gains the code.
+
+Decisions (author, 2026-10-21): a `--revision` Git does not know is
+`revision_not_on_branch`; the spec existence check runs when `--spec` is given or the move enters
+`implementation`, and the spec must be a regular file in the worktree or a blob at the recorded `revision`; the
+check returns where the spec was found (the worktree path or the short revision) for the UC-13 line; the UC-14
+`revision_not_full_sha` fix becomes `git rev-parse <short>`, as I §8.4 states, since the object database is
+shared by every worktree; the revision lookup needs a blob (`git cat-file -t`), so a directory does not count;
+any `os.Stat` error means the spec is not in the worktree; the `revision_not_on_branch` fix names the real
+worktree path; `spec_not_found` found names where it looked. I §3.4, §3.6, §8.3, §8.4, UC-13, UC-14 updated to
+match.
+
+- [x] `branch_missing`, `revision_not_on_branch` for `--revision` (I §8.3)
+- [x] `branch_missing`, `worktree_missing` for `setup` → `specification` (I §8.2, §8.3)
+- [x] `spec_not_found` through `git worktree list --porcelain` or the recorded `revision` (I §8.3)
+
 - Stage 5.5 `[ ]` — `task move` command, `--as` and `SOLOMONAR_OWNER` (`owner_required`), every UC-14 rejection
   (UC-13, UC-14, UC-18); its rejections name the ID (`task move W-001 rejected`) through `rejectedAs`, as I §3.6
   states
