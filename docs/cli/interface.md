@@ -1592,11 +1592,16 @@ W-001  running/integration → done/complete
   state(W-001): done/complete, merged 14091a9
   registry @ 6c8e0a2d4f6b8c1e3a5d7f9b0c2e4a6d8f1b3c5e
 Compact record
-  {"title": "Login", "status": "done", "stage": "complete",
-   "summary": "Password login and logout with server-side sessions",
-   "spec_ref": "10ec7f36405c2d9eae3871433246dfd650c19e81:docs/work/W-001-login.md",
-   "merge_commit": "14091a9f2461267ee7e02525b4f1f2923f1c9849",
-   "pr": "https://github.com/acme/ledger/pull/42", "updated_at": "2026-10-20T17:03:22Z"}
+  {
+    "title": "Login",
+    "status": "done",
+    "stage": "complete",
+    "pr": "https://github.com/acme/ledger/pull/42",
+    "summary": "Password login and logout with server-side sessions",
+    "spec_ref": "10ec7f36405c2d9eae3871433246dfd650c19e81:docs/work/W-001-login.md",
+    "merge_commit": "14091a9f2461267ee7e02525b4f1f2923f1c9849",
+    "updated_at": "2026-10-20T17:03:22Z"
+  }
 Next: delete the worktree only after confirming it holds no uncommitted or unmerged work:
   git worktree remove ../ledger-worktrees/W-001
 ```
@@ -1618,6 +1623,30 @@ The Git checks follow in this order: `merge_not_on_main`, `merge_not_merge_commi
 --topo-order --format="%H %s" <merge>^2` (topological order, not commit date) whose subject (never a body line;
 `--grep` is not used) starts with `spec(<ID>):`; `--spec-ref` must name that commit and the recorded `spec`.
 Rejections read `task done <ID> rejected` (3.6).
+
+`--as` resolves as on `task move`: `SOLOMONAR_OWNER` is the fallback, and neither is `owner_required` (exit 2).
+Usage errors come before the registry is read, in this order: `task ID is required`, `--merge is required`,
+`--spec-ref is required`, `--summary is required` (`invalid_usage`, exit 2).
+
+The human output starts with the `Verified` block, its labels aligned: `merge <merge short 8> is a merge commit
+reachable from <main>`, `revision <revision short 8> is contained in the merge`, `spec_ref resolves; <spec commit
+short 8> is the last spec(<ID>) commit merged`. Then come the `task move` header (UC-13), the subject, and the
+registry line, then `Compact record` and the compact record as indented JSON (two-space indent, record field order),
+each line prefixed by two spaces. The `Next:` lines follow only when a worktree has `feature/<ID>` checked out:
+`Next: delete the worktree only after confirming it holds no uncommitted or unmerged work:` and `  git worktree
+remove <path>`. `<path>` is the conventional path in the `task register` form (`../<repo>-worktrees/<ID>` from the
+main checkout, absolute from another worktree) when the worktree is there, otherwise the worktree's absolute path.
+
+`--dry-run` prints the `Verified` block, then `Would complete ` before the header, the subject, and `Compact
+record` with the record, with no registry line and no `Next:` lines.
+
+`--json` data has the `task move` shape with `record` the compact record: `{"id": "W-001", "from": {"status":
+"running", "stage": "integration"}, "to": {"status": "done", "stage": "complete"}, "changed": [...], "record": { },
+"commit": "<sha>", "pushed": true}`. `changed` lists, in record order, every field that differs between the record
+before and the compact record, whether added, changed, or removed, except the bookkeeping fields `updated_at` and
+`last_blocker`; for the task above: `["status", "stage", "owner", "branch", "spec", "revision", "tier",
+"active_agents", "next_action", "summary", "spec_ref", "merge_commit"]`. `--dry-run --json` data is the same without
+`commit` and `pushed`, with `"dry_run": true`.
 
 ### UC-21 Concurrent writes
 
