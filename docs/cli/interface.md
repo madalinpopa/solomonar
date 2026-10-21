@@ -1424,12 +1424,15 @@ Outside a project the `project` line reads `not initialized`. `--json`: `{"cli":
 |---|---|---|---|
 | (none) | `planned` | `task plan` | - |
 | (none), `planned` | `reserved` | `task register` | owner not in use |
-| `reserved` | `running`, `blocked`, `paused`, `cancelled` | `task move` / `task block` | `blocked` needs an open blocker; `paused` and `cancelled` need `--next` |
+| `reserved` | `running`, `blocked`, `paused`, `cancelled` | `task move` / `task block` | `running` only with the stage move out of `setup`; `blocked` needs an open blocker; `paused` and `cancelled` need `--next` |
 | `running` | `blocked`, `paused`, `cancelled` | `task move` / `task block` | as above |
 | `running` | `done` | `task done` only | 8.3 |
-| `blocked`, `paused` | the prior status (`reserved` or `running`), `cancelled` | `task move` / `task unblock` | the prior status is derived from registry history: the task's last status other than `blocked` or `paused` |
-| `cancelled` | `reserved`, `running` | `task move --resume-cancelled` | explicit flag |
+| `blocked`, `paused` | the prior status, `cancelled` | `task move` / `task unblock` | the prior status is derived from the record: `reserved` at stage `setup`, `running` at any later stage |
+| `cancelled` | the prior status | `task move --resume-cancelled` | explicit flag; prior status as above |
 | `done` | none | - | `done_final` |
+
+Invariant (CLI-D16): a task is `reserved` exactly while at stage `setup`. A write that leaves `running` at `setup`
+or `reserved` past it is `transition_not_allowed`, with the fix `--status running --stage specification`.
 
 ### 8.2 Stage transitions
 
@@ -1601,7 +1604,8 @@ This spec assumes the following framework changes. Each needs the author's decis
 Applied 2026-10-21 and removed from the table: the language-neutral core reviewers with review priority (rules §6),
 the `go` extension (`assets/extensions/language/go/`), installed extension agents in triage, extension `must` rules
 as approved global rules (rules §1, `report.md` `Violates`), the "Extensions" section of the `AGENTS.md`
-template, and the `solomonar` entry skill with the "Route a request" section of `AGENTS.md` (CLI-D15).
+template, the `solomonar` entry skill with the "Route a request" section of `AGENTS.md` (CLI-D15), and the
+`reserved`-at-`setup` invariant in rules §7 Stages (CLI-D16).
 
 | Change | Files |
 |---|---|
@@ -1631,3 +1635,4 @@ template, and the `solomonar` entry skill with the "Route a request" section of 
 | CLI-D13 | v0.1 extension catalog | a) a catalog for every group; b) a small catalog matching the stack in use | b: `go`, `htmx`, `templ`, `tdd`; other groups take project extensions until catalog ones are written | **b**, author, 2026-10-20: `go`, `htmx`, `templ`, `tdd` |
 | CLI-D15 | The user's entry point to the process | a) a core skill `solomonar`, invoked only by the user, that routes a request to `prototype`, `spec`, or the orchestrator role taken in the same top-level session, plus a short "Route a request" section in `AGENTS.md` for sessions started without it; b) the orchestrator rules move into `AGENTS.md`, so every session is an orchestrator; c) a skill that delegates the orchestrator to a subagent | a: b loads about 600 lines into every session and every delegated role, and contradicts the implementer and reviewer contracts; c fails because a delegated subagent cannot delegate the implementer and reviewers | **a**, author, 2026-10-21; framework files installed under `docs/solomonar/` instead of `docs/framework/` |
 | CLI-D14 | Core boundary | a) core = what `rules.md` names as a process step or required role: `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`; `prototype`, `spec`, `work-spec`; b) core = `orchestrator`, `implementer`, `work-spec`; reviewers and discovery skills become extensions | a: the review gates and the prototype-to-spec flow are the process; making them optional turns a required review into a choice | **a**, author, 2026-10-20: the current framework in `assets/framework/` is the core, with language-neutral core reviewers and Go rules in the `go` extension (CLI-D1, revised 2026-10-21) |
+| CLI-D16 | How the prior status of a `blocked`, `paused`, or `cancelled` task is known | a) derived from registry history: the last status other than `blocked` or `paused`; b) derived from the record: a task is `reserved` exactly while at `setup`, so the prior status is `reserved` at `setup` and `running` later | b: no walk of registry history on every `unblock` or resume, and the rule is a pure check on one record | **b**, author, 2026-10-21 |

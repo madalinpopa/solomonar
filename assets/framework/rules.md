@@ -248,6 +248,9 @@ Verification section (`report.md` §8).
   this from the recorded `tier`; no stage after `implementation` without one.
 - `planned` or `reserved` → `running` → `done`. `done` comes only with stage `complete`, set by `task done`.
 - `reserved` or `running` → `blocked` or `paused` → back to the prior status at the preserved stage.
+- A task is `reserved` exactly while at stage `setup`: the move out of `setup` sets `running`, and no stage
+  returns to `setup`. The prior status of a `blocked`, `paused`, or resumed `cancelled` task is therefore
+  `reserved` at `setup` and `running` at any later stage.
 - `cancelled` resumes only on explicit user instruction after inspecting preserved work.
 - A `done` task stays `done`. A regression or revert is a new task linked via `related_task`.
 - Corrections return to `implementation` without a new task ID.
