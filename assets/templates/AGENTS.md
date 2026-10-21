@@ -30,6 +30,9 @@ Load `docs/solomonar/skills/<skill>/SKILL.md` before using a skill.
 - `spec`: record a prototype handoff or a user decision in `docs/specs/<capability>.md` and `docs/ui.md`.
 - `work-spec`: specify one registered task in `docs/work/<ID>-<slug>.md` (orchestrator, `specification` stage).
 
+Invoke `solomonar` with `/solomonar` in Claude Code, `$solomonar` in Codex CLI/IDE, or the portable prompt
+"Use the solomonar skill". A known outcome or a CLI/API task can start directly without a UI prototype.
+
 ## Route a request
 
 When the user does not invoke `solomonar`, route the same way (`docs/solomonar/skills/solomonar/SKILL.md` §2):
@@ -42,8 +45,9 @@ When the user does not invoke `solomonar`, route the same way (`docs/solomonar/s
 
 ## Extensions
 
-Installed with `solomonar`. Load every extension skill whose "applies when" matches your change, before writing or
-reviewing code, and cite its rules as `<name>/C-n`. The orchestrator names the matching extensions in each packet.
+Installed with `solomonar`; draft project extensions are not active. Load every installed extension skill whose
+"applies when" matches your change, before writing or reviewing code, and cite its rules as `<name>/C-n`.
+The orchestrator names the matching extensions in each packet.
 
 {{ .Extensions }}
 
