@@ -339,7 +339,7 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 		manifestRuntimes[runtime] = project.Runtime{AdversarialModel: models[runtime]}
 	}
 	r.plan, _, err = project.InitPlan(root, existing, slices.Concat(wants, adapters), f.keep, f.overwrite, p,
-		manifestRuntimes, nil, framework)
+		manifestRuntimes, nil, project.Decisions{}, framework)
 	if err != nil {
 		return output{}, err
 	}
