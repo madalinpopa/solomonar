@@ -23,3 +23,25 @@ changelog:
 
 release:
   prerelease: auto
+
+homebrew_casks:
+  - name: solomonar
+    binaries: [solomonar]
+    homepage: https://github.com/madalinpopa/solomonar
+    description: Spec-driven workflow for coding agents, from intent to verified code
+    license: MIT
+    # A prerelease tag leaves the tap on the last stable version.
+    skip_upload: auto
+    repository:
+      owner: madalinpopa
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    commit_msg_template: "solomonar {{ .Tag }}"
+    # The binaries are not notarized, so Gatekeeper would block them.
+    custom_block: |
+      postflight_steps do
+        on_macos do
+          run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ "{{staged_path}}" }}/solomonar"]
+        end
+      end
