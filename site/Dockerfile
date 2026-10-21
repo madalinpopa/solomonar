@@ -8,7 +8,8 @@ COPY docs/logo/ /app/docs/logo/
 COPY docs/images/ /app/docs/images/
 ARG SITE_ORIGIN=https://solomonar.dev
 ARG SITE_BASE_PATH=/
-ENV SITE_ORIGIN=${SITE_ORIGIN} SITE_BASE_PATH=${SITE_BASE_PATH}
+ARG SITE_VERSION=dev
+ENV SITE_ORIGIN=${SITE_ORIGIN} SITE_BASE_PATH=${SITE_BASE_PATH} SITE_VERSION=${SITE_VERSION}
 RUN npm run build && npm run check
 
 FROM nginx:stable-alpine@sha256:970364228b1e4f932abc22d321932816782cca8a20b85a77552a7cfe9acfb3b5
