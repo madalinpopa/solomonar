@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/term"
+
 	"github.com/madalinpopa/solomonar/internal/cli"
 )
 
@@ -39,6 +41,7 @@ func run(ctx context.Context) int {
 		Getenv:      os.Getenv,
 		Now:         time.Now,
 		Interactive: isTerminal(os.Stdin) && isTerminal(os.Stdout),
+		RawMode:     rawMode,
 		Assets:      assets,
 	})
 }
@@ -46,4 +49,13 @@ func run(ctx context.Context) int {
 func isTerminal(f *os.File) bool {
 	info, err := f.Stat()
 	return err == nil && info.Mode()&os.ModeCharDevice != 0
+}
+
+func rawMode() (restore func(), err error) {
+	fd := int(os.Stdin.Fd())
+	state, err := term.MakeRaw(fd)
+	if err != nil {
+		return nil, fmt.Errorf("raw terminal: %w", err)
+	}
+	return func() { _ = term.Restore(fd, state) }, nil
 }
