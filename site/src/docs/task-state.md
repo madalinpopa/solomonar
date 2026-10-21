@@ -1,6 +1,6 @@
 ---
-title: Task state
-description: Separate whether work can advance from where it is in the workflow, and keep decisions distinct from Git facts.
+title: Task state and workflow tracking
+description: Understand Solomonar task status, workflow stages, blockers, and Git-backed state validation so AI coding sessions can resume from recorded evidence.
 kind: Reference
 group: Use the CLI
 order: 7
