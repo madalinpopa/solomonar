@@ -47,15 +47,15 @@ func (s *statusFlags) run(ctx context.Context, env Env, flags sharedFlags, args 
 	case len(args) > 1:
 		return output{}, unexpectedArgument(args[1])
 	}
-	store, err := openStore(ctx, env, flags)
+	store, mainBranch, err := openStore(ctx, env, flags)
 	if err != nil {
-		return output{}, err
+		return output{}, rejectedAs("task status "+args[0], err)
 	}
-	out, err := s.status(ctx, env, store, args[0])
+	out, err := s.status(ctx, env, store, mainBranch, args[0])
 	return out, rejectedAs("task status "+args[0], err)
 }
 
-func (s *statusFlags) status(ctx context.Context, env Env, store *task.Store, id string) (output, error) {
+func (s *statusFlags) status(ctx context.Context, env Env, store *task.Store, mainBranch, id string) (output, error) {
 	reg, tip, err := store.Read(ctx)
 	if err != nil {
 		return output{}, err
@@ -64,7 +64,7 @@ func (s *statusFlags) status(ctx context.Context, env Env, store *task.Store, id
 	if err != nil {
 		return output{}, err
 	}
-	facts, err := task.GitFacts(ctx, store.Git, id, defaultMainBranch, record)
+	facts, err := task.GitFacts(ctx, store.Git, id, mainBranch, record)
 	if err != nil {
 		return output{}, err
 	}
@@ -76,17 +76,17 @@ func (s *statusFlags) status(ctx context.Context, env Env, store *task.Store, id
 	}
 	data := statusData{
 		ID: id, Record: record, RegistryCommit: tip, Facts: facts,
-		Drift:       task.DriftOf(id, defaultMainBranch, record, facts, env.Getenv("SOLOMONAR_OWNER")),
+		Drift:       task.DriftOf(id, mainBranch, record, facts, env.Getenv("SOLOMONAR_OWNER")),
 		AllowedNext: task.AllowedNext(id, record, facts),
 	}
-	return output{data: data, text: s.statusText(data), warnings: outputWarnings(warnings)}, nil
+	return output{data: data, text: s.statusText(data, mainBranch), warnings: outputWarnings(warnings)}, nil
 }
 
-func (s *statusFlags) statusText(d statusData) string {
+func (s *statusFlags) statusText(d statusData, mainBranch string) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "%s  %s\n", d.ID, d.Record.Title)
 	writeSection(&b, "record", recordDetails(d.Record, d.RegistryCommit))
-	writeSection(&b, "git", gitDetails(d.ID, d.Record, d.Facts))
+	writeSection(&b, "git", gitDetails(d.ID, d.Record, d.Facts, mainBranch))
 	writeSection(&b, "forge (gh)", s.forgeDetails(d.Facts))
 	drift := make([]detail, len(d.Drift))
 	for i, entry := range d.Drift {
@@ -156,7 +156,7 @@ func blockersText(blockers []task.Blocker) string {
 	return strings.Join(parts, "; ")
 }
 
-func gitDetails(id string, r *task.Record, f task.StatusFacts) []detail {
+func gitDetails(id string, r *task.Record, f task.StatusFacts, mainBranch string) []detail {
 	branch := f.Branch.Name + " missing"
 	if f.Branch.Exists {
 		branch = f.Branch.Name + " @ " + *f.Branch.Tip
@@ -170,7 +170,7 @@ func gitDetails(id string, r *task.Record, f task.StatusFacts) []detail {
 	}
 	merged := "no"
 	if f.Merge.MergeCommit != nil {
-		merged = "yes, by " + *f.Merge.MergeCommit + " (merge commit on " + defaultMainBranch + ")"
+		merged = "yes, by " + *f.Merge.MergeCommit + " (merge commit on " + mainBranch + ")"
 	}
 	details := []detail{
 		{"branch", branch},
