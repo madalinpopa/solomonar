@@ -1,7 +1,8 @@
 # Solomonar CLI v0.1: implementation tasks (increment 1)
 
-Tracks the [architecture](architecture.md) §12 plan as reviewable stages of at most 500 changed lines each,
-tests included (a target; a moderate overrun is acceptable). Each stage is implemented test-first and ends with `task check` green and the author's review.
+Tracks the [architecture](architecture.md) §12 plan as reviewable stages of about 500 changed lines each,
+tests included; a moderate overrun is acceptable. Each stage is implemented test-first and ends with
+`task check` green and the author's review.
 Later stages are outlines; each is detailed into tasks when it starts.
 
 Status: `[ ]` open · `[~]` in progress · `[r]` awaiting review · `[x]` accepted
@@ -58,7 +59,15 @@ flags.
 - [x] Stable encoding: struct field order, sorted task keys, two-space indent, trailing newline (AD-7)
 
 Stage 3.1 does not include the transition rules or the `reserved`-at-`setup` invariant; those are stage 3.2.
-- Stage 3.2 `[ ]` — I §8.1 status and §8.2 stage transitions as tables, CLI-D16 invariant
+### Stage 3.2 — Status and stage transitions `[x]`
+
+- [x] Status transitions of I §8.1 as a table: `transition_not_allowed` names the allowed targets,
+      `done_final`, `cancelled_requires_flag`
+- [x] Prior status of `blocked`, `paused`, `cancelled` derived from the stage (CLI-D16)
+- [x] Stage transitions of I §8.2 by tier as a table: `stage_not_allowed` names the allowed stages,
+      `tier_required`; a stage changes only while `running` (`reserved` only at `setup`)
+- [x] Invariant: `reserved` exactly while at `setup` (CLI-D16)
+- [x] Allowed next statuses and stages from the same tables, for `allowed_next` (AD-8, I §9.3)
 - Stage 3.3 `[ ]` — Field rules, ID allocation, blocker IDs
 
 ## Step 4: Store, `task plan`, `task show`
