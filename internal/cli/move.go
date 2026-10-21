@@ -92,9 +92,9 @@ func (m *moveFlags) run(ctx context.Context, env Env, flags sharedFlags, args []
 	if err != nil {
 		return output{}, err
 	}
-	store, err := openStore(ctx, env, flags)
+	store, _, err := openStore(ctx, env, flags)
 	if err != nil {
-		return output{}, err
+		return output{}, rejectedAs("task move "+args[0], err)
 	}
 	out, err := m.moveTask(ctx, env, store, args[0], as)
 	return out, rejectedAs("task move "+args[0], err)
