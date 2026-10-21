@@ -1067,5 +1067,65 @@ Specs updated: I §3.7, UC-1 transcript, CLI-D5; architecture AD-1, §2, §3, §
 
 - [x] `golang.org/x/term`, depguard, `Env.RawMode` in `main`
 - [x] `text`, `confirm`, `choose` with tests over byte streams (keys, redraws, defaults, re-ask, EOF, Ctrl-C)
-- Stage 10.2 `[ ]` — Interactive `init`, `AGENTS.md` adoption, the `git init` question, `interactive_required`
-  (UC-1, UC-4)
+### Stage 10.2 — Interactive `init`: choices and confirmation (`internal/cli`; UC-1, I §3.7) `[x]`
+
+Decisions (author, 2026-10-21):
+- declining a confirmation prints `Cancelled; nothing was written.` on stdout and exits 0;
+- an interactive extension selection that fails `Resolve` prints `  <found>; <fix>` and asks every group again, with
+  the previous selection marked;
+- the grouped, summarized plan of UC-1 is stage 10.4; until then the interactive plan is the flat list.
+
+Decisions (author, 2026-10-21; orchestrator proposals confirmed):
+- `init` prompts when `Env.Interactive` and neither `--yes` nor `--json` (I §3.7); otherwise behavior is unchanged
+  (`interactive_required` without `--yes`); `--dry-run` still prompts for choices, never for the confirmation;
+- choices are prompted only without a manifest (a re-run takes them from the manifest), each only when its flag was
+  not given, in this order, with UC-1's texts and blank lines:
+  - `Project name [<default>]: `; `Current objective, one line (optional): `;
+  - `Runtimes that will run this project's sessions:` then `choose` over `claude` (`Claude Code: CLAUDE.md import,
+    .claude/skills, .claude/agents, state guard hook`) and `codex` (`Codex: AGENTS.md (native), .agents/skills,
+    .codex/agents, state guard hook`), the runtimes found on `PATH` marked;
+  - per selected runtime without `--adversarial-model`, in the order claude, codex: `Model for the adversarial
+    reviewer in <Claude Code|Codex>, different from your main session model` then `(blank = runtime default): `;
+    blank records no model;
+  - when the catalog is not empty and `--ext` was not given: the paragraph `Extensions, by decision type. A choice
+    in a stack group is recorded as your approved decision in` / ``docs/decisions.md. Enter with nothing selected
+    skips a group; add more later with`` / `` `solomonar extension add`. ``, then per group with catalog extensions,
+    in I §4.3 order, `<Group>:` (first letter capitalized) and `choose` over its extensions (`<title>`, plus ` (requires
+    <a>, <b>)` when `requires` is not empty), `go` marked when the 9.6 default applies; then `Resolve`;
+- after the plan (when it writes and has no conflict, and not `--dry-run`): `Plan`, the flat plan lines, the registry
+  line, then `Proceed? [Y/n] `; yes applies as with `--yes`, no is the cancel above;
+- the prompts take the defaults the flags would take (name from the root, runtimes from `PATH`, `go` from `go.mod`).
+also (implementer, confirmed): choices are asked after the manifest checks and before
+the runtime selection, and answers are written back into the flag fields; both model prompts form one block; a blank
+line separates asked blocks, precedes `Plan` only when something was asked, and follows the `Proceed?` answer; the
+re-ask prints the rejection right after the last list and repeats every group but not the paragraph; extensions are
+listed by name; an empty interactive selection means none; a re-run asks only `Proceed?`; `project.Groups()` exported;
+the test catalog's `SKILL.md` files gained frontmatter.
+Specs updated: I §3.5, §3.7, UC-1 (transcript model prompts, Prompts paragraph), UC-2 (check order, `--dry-run`);
+architecture §6 (`Groups`).
+
+- [x] prompt wiring for name, objective, runtimes, models, extensions (with the `Resolve` re-ask)
+- [x] `Proceed?` confirmation and cancel; tests with `Env.Interactive`, scripted stdin, and a no-op `RawMode`
+
+### Stage 10.3 — Interactive `init`: header, `git init` question, `AGENTS.md` adoption (`internal/cli`; UC-1, UC-4) `[~]`
+
+Decisions (orchestrator, awaiting the author's confirmation):
+- when `init` prompts (10.2 rule), it first prints the header `solomonar <cli version> · framework <fw> · <dir>
+  (git, branch <b>)` and a blank line: `<dir>` is the worktree root (the target directory when it is not a
+  repository), `<b>` the current branch (also unborn), `(git, detached HEAD)` when detached, `(not a Git repository)`
+  outside one; `<cli version>` as `solomonar version` prints it;
+- outside a repository without `--git-init`: `confirm("Initialize a Git repository here with main branch
+  \"<main-branch>\"?", false)`; yes continues exactly as `--git-init`; no is the 10.2 cancel (`Cancelled; nothing
+  was written.`, exit 0); non-interactively `not_a_repository` is unchanged;
+- an unmanaged `AGENTS.md` planned for adoption (reason `adopted; existing content moved under "## Project notes"`)
+  and not named by `--overwrite`: before the plan display, `AGENTS.md exists and is not managed by solomonar.` then
+  `confirm("  Adopt it: write the framework part above \"## Project notes\" and move the current content into that
+  section?", true)`; no asks `confirm("  Replace it with the framework template, discarding its content?", false)`;
+  yes plans again as with `--overwrite AGENTS.md`; no cancels; `--dry-run` asks neither (it shows the adoption);
+- each question is its own block (blank-line rule of 10.2).
+
+- [ ] header line; `git init` question
+- [ ] `AGENTS.md` adoption and replace questions; tests (scripted stdin, a non-repository directory, an existing
+  `AGENTS.md`, declines, `--dry-run`)
+
+- Stage 10.4 `[ ]` — The grouped, summarized interactive plan (UC-1)
