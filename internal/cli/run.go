@@ -63,7 +63,7 @@ func findCommand(name string) (command, bool) {
 func Run(ctx context.Context, env Env) int {
 	var flags sharedFlags
 	name, out, err := dispatch(ctx, env, &flags)
-	return render(env, flags.json, name, out, err)
+	return render(ctx, env, flags.json, name, out, err)
 }
 
 func dispatch(ctx context.Context, env Env, flags *sharedFlags) (string, output, error) {
