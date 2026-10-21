@@ -1601,10 +1601,23 @@ Next: delete the worktree only after confirming it holds no uncommitted or unmer
   git worktree remove ../ledger-worktrees/W-001
 ```
 
-`task done` uses only Git (J6). Its checks are in 8.3. The compact record keeps `title`, `status`, `stage`,
-`summary`, `spec_ref`, `merge_commit`, `pr` (when recorded), `updated_at`, and the optional `related_task`; every other
-field leaves the record and stays in registry history. A failed `task done` writes nothing; the orchestrator fixes
-the cause and reruns it, never reverting the merge (rules §9).
+`task done` uses only Git (J6). Its checks are in 8.3. The compact record keeps `title`, `status` `done`, `stage`
+`complete`, `summary` (trimmed), `spec_ref`, `merge_commit`, `pr` (when recorded), `related_task` (when recorded), and
+`updated_at`; every other field leaves the record and stays in registry history. A failed `task done` writes
+nothing; the orchestrator fixes the cause and reruns it, never reverting the merge (rules §9).
+
+Checks run in order: the lookup (`task_not_found`), `done_final`, ownership (`owner_required` / `owner_mismatch`, as
+`task move`), status `running` and stage `integration` (`transition_not_allowed`, found `<ID> is <status>/<stage>`,
+fix `solomonar task status <ID>`), `blockers_open` (found `<ID> has open blockers B-1, B-2`, fix `solomonar task
+unblock <ID> <blocker-id>`), then the flag values (`invalid_value`, exit 2): `--summary` 1 to 120 characters (runes)
+after trimming, stored trimmed; `--merge` a full 40-hex SHA (fix `git rev-parse <short>`); `--spec-ref` `<full
+SHA>:<path>` with a clean relative path as for `--spec` (fix `copy it from the PR "Final specification" line`).
+The Git checks follow in this order: `merge_not_on_main`, `merge_not_merge_commit` (parents from `git rev-list
+--parents -n 1 <merge>`), `revision_not_merged`, `spec_ref_invalid`, `spec_ref_not_final`; their found texts are in
+8.4. The derived `spec_ref` is `<commit>:<recorded spec>`, where `<commit>` is the first commit in `git log
+--topo-order --format="%H %s" <merge>^2` (topological order, not commit date) whose subject (never a body line;
+`--grep` is not used) starts with `spec(<ID>):`; `--spec-ref` must name that commit and the recorded `spec`.
+Rejections read `task done <ID> rejected` (3.6).
 
 ### UC-21 Concurrent writes
 
@@ -1738,11 +1751,18 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `task register --owner` | agent ID `[a-z]+-[0-9]+` | `invalid_value` |
 | `task plan --title`, `task register --title` | not blank or whitespace-only | `invalid_value` |
 | `--pr` | a positive PR number or an `https://` URL, stored as given | `invalid_value` |
-| `task done --merge` | full SHA, reachable from main, has two or more parents | `merge_not_on_main`, `merge_not_merge_commit` |
+| `task done` | status `running`, stage `integration`, then no open blocker, checked before the flag values | `transition_not_allowed`, `blockers_open` |
+| `task done --summary` | 1 to 120 characters (runes) after trimming; stored trimmed | `invalid_value` |
+| `task done --merge` | full 40-hex SHA | `invalid_value` |
+| `task done --spec-ref` | `<full SHA>:<path>`, the path clean and relative as for `--spec` | `invalid_value` |
+| `task done --merge` | `git merge-base --is-ancestor <merge> <main>` against the local main branch; a SHA Git does not know fails too | `merge_not_on_main` |
+| `task done --merge` | two or more parents, read with `git rev-list --parents -n 1 <merge>` | `merge_not_merge_commit` |
 | `task done` | recorded `revision` is an ancestor of the merge commit | `revision_not_merged` |
-| `task done --spec-ref` | `git show "<spec_ref>"` resolves | `spec_ref_invalid` |
-| `task done --spec-ref` | the commit is the last commit with subject `spec(<ID>):` reachable from the merge commit's second parent | `spec_ref_not_final` |
-| `task done` | stage `integration`, status `running`, no open blocker | `transition_not_allowed`, `blockers_open` |
+| `task done --spec-ref` | `git cat-file -e <spec_ref>` succeeds | `spec_ref_invalid` |
+| `task done --spec-ref` | the commit is the first line of `git log --topo-order --format="%H %s" <merge>^2` (topological order, not commit date) whose subject starts with `spec(<ID>):`; only subjects count, never body lines (`--grep` is not used); and the path equals the recorded `spec` | `spec_ref_not_final` |
+
+For `task done`, exit 1 or 128 from `git merge-base --is-ancestor` or `git cat-file -e` fails the check (the
+rejection) unless the command was cancelled; any other Git failure is `unexpected_error`.
 
 ### 8.4 Error codes (task commands)
 
@@ -1757,7 +1777,7 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `owner_required` | 2 | No `--as` and no `SOLOMONAR_OWNER` | pass `--as <owner>` |
 | `owner_mismatch` | 3 | Acting owner differs from the record | act as the owner, or `task handoff` on the user's instruction |
 | `owner_in_use` | 3 | The owner owns a `reserved`, `running`, `blocked`, or `paused` task | choose a new owner ID |
-| `transition_not_allowed` | 3 | Status change not in 8.1 | names the allowed targets |
+| `transition_not_allowed` | 3 | Status change not in 8.1; on `task done`, found `<ID> is <status>/<stage>` | names the allowed targets; on `task done`, `solomonar task status <ID>` |
 | `stage_not_allowed` | 3 | Stage change not in 8.2 or not allowed by the tier | names the allowed stages |
 | `field_not_allowed` | 3 | A field flag outside the stages that accept it (8.2 field rules) | names the stages that accept it |
 | `tier_required` | 3 | A stage after `implementation` without a tier | pass `--tier` with `--revision` |
@@ -1771,15 +1791,15 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `next_required` | 3 | Pause or cancel without `--next` | pass `--next <actor>:<action>` |
 | `blockers_required` | 3 | `blocked` without an open blocker, including after the last `unblock` | `task block` first, or pass `--status blocked` to it; on `unblock`, pass `--status <prior status>` |
 | `blocker_not_found` | 3 | The ID is not an open blocker of the task (unknown or malformed); found `<blocker ID> is not an open blocker of <ID>` | `solomonar task show <ID>` |
-| `blockers_open` | 3 | `task done` with open blockers | `task unblock` |
+| `blockers_open` | 3 | `task done` with open blockers; found `<ID> has open blockers B-1, B-2` | `solomonar task unblock <ID> <blocker-id>` |
 | `cancelled_requires_flag` | 3 | Resuming a cancelled task without the flag | `--resume-cancelled`, on the user's instruction |
 | `handoff_same_owner` | 3 | Handoff to the current owner; found `<ID> is owned by <owner>` | - |
 | `done_final` | 3 | Any write to a `done` task, checked before ownership | register a related task (`--related`) |
-| `merge_not_on_main` | 3 | Merge commit not reachable from main | fetch and update main, then rerun |
-| `merge_not_merge_commit` | 3 | The commit has one parent (squash or rebase) | `spec_ref` cannot survive; report to the user (rules §11) |
-| `revision_not_merged` | 3 | The reviewed revision is not in the merge | check that the right PR merged |
-| `spec_ref_invalid` | 3 | `spec_ref` does not resolve | copy it from the PR "Final specification" line |
-| `spec_ref_not_final` | 3 | Not the last `spec(<ID>)` commit merged | shows the derived `spec_ref` |
+| `merge_not_on_main` | 3 | Merge commit unknown to Git or not reachable from the local main branch; found `<merge short 8> is not reachable from <main>` | `fetch and update <main>, then rerun` |
+| `merge_not_merge_commit` | 3 | The commit has fewer than two parents (squash or rebase); found `<merge short 8> has one parent`, or `<merge short 8> has no parent` for a root commit | `spec_ref` cannot survive; report to the user (rules §11) |
+| `revision_not_merged` | 3 | The reviewed revision is not in the merge; found `<revision short 8> is not contained in <merge short 8>` | check that the right PR merged |
+| `spec_ref_invalid` | 3 | `spec_ref` does not resolve; found `<spec_ref> does not resolve` | copy it from the PR "Final specification" line |
+| `spec_ref_not_final` | 3 | Not the last `spec(<ID>)` commit merged, or the path differs from the recorded `spec`; found `<commit short 8>:<path> is not the last spec(<ID>) commit merged`, or `no spec(<ID>) commit is reachable from <merge short 8>^2` when none exists | `pass --spec-ref <derived full SHA>:<recorded spec>`; none when no `spec(<ID>)` commit exists |
 | `invalid_value` | 2 | Malformed flag value | names the expected format |
 | `unknown_command` | 2 | No command, a command group alone, or an unknown command or subcommand | run solomonar help |
 | `invalid_usage` | 2 | Unknown flag, missing required flag, or unexpected argument | run solomonar help |
@@ -1821,7 +1841,7 @@ previous tip.
 | dirty paths | `git status --porcelain=v2` in the worktree | `unknown` without a worktree |
 | spec present | the worktree file, and `git cat-file -e <revision>:<spec>` | `missing` |
 | merged | first merge commit on main whose ancestry contains `revision` (`git rev-list --ancestry-path --merges --reverse <revision>..main`) | `no` |
-| derived `spec_ref` | last `spec(<ID>):` commit reachable from the merge's second parent | absent before merge |
+| derived `spec_ref` | first commit in `git log --topo-order --format="%H %s" <merge>^2` whose subject (never a body line) starts with `spec(<ID>):`, with the recorded `spec` path | absent before merge |
 | PR, checks | `gh pr view feature/<ID> --json number,url,state,mergeCommit,statusCheckRollup` | `unknown`, never passing (J6) |
 
 ### 9.2 Drift
