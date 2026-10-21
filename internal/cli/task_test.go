@@ -127,6 +127,10 @@ func TestTaskPlanRejections(t *testing.T) {
 				"  fix:   solomonar task show\n",
 		},
 		{
+			name: "blank title", args: []string{"--title", "  "}, exit: 2,
+			stderr: "error: task plan rejected (invalid_value)\n",
+		},
+		{
 			name: "malformed related", args: []string{"--title", "t", "--related", "7"}, exit: 2,
 			stderr: "error: task plan rejected (invalid_value)\n",
 		},
