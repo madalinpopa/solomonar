@@ -1,6 +1,6 @@
 ---
-title: Troubleshooting
-description: Understand actionable rejections, missing setup, ownership mistakes, and the limits of the current build.
+title: CLI troubleshooting
+description: Diagnose Solomonar CLI errors, missing initialization, task ownership conflicts, rejected transitions, and exit codes with actionable recovery steps.
 kind: How-to guide
 group: Use the CLI
 order: 8
