@@ -1,0 +1,13 @@
+**
+!site/
+!site/**
+!docs/
+!docs/logo/
+!docs/logo/mark.svg
+!docs/logo/favicon.svg
+!docs/images/
+!docs/images/*.svg
+site/node_modules/
+site/_site/
+site/.cache/
+site/.DS_Store
