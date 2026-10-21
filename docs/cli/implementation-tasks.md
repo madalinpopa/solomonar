@@ -562,7 +562,32 @@ the current file, `base` the manifest `sha256`, `offer` the offered content:
 - [x] `Want`, `Classify` with the rules above, the manifest entries, `--keep`/`--overwrite`
 - [x] Tests for every row, F-02 (offered A, local B, keep, offer C, keep B, offer C again, offer D), CLI-D17
 
-- Stage 8.4 `[ ]` — Core file set, `AGENTS.md` and `docs/README.md` templates, `AGENTS.md` adoption (UC-4)
+### Stage 8.4 — Core file set, templates, `AGENTS.md` adoption (`internal/project`) `[x]`
+
+Decisions (author, 2026-10-21): `CoreWants(assets fs.FS, c Choices) ([]Want, error)`
+with `Choices{Name, Objective, FrameworkVersion}` returns, in this order: every file under `framework/` copied to
+`docs/solomonar/` (owner `core`, path order sorted), `AGENTS.md` (owner `core+notes`) rendered from
+`templates/AGENTS.md`, and `docs/README.md` (owner `seed`) rendered from `templates/docs/README.md`, with
+`text/template` (`FrameworkVersion`, `Extensions`, `ProjectName`, `Objective`); with no extensions the
+`{{ .Extensions }}` block renders `- Skills: none.` and `- Agents: none. An installed agent is a specialist reviewer,
+required by triage when its "applies when" matches.` (I §4.6); the manifest itself is added by `init` (8.5).
+`AGENTS.md` (I §4.5 `core+notes`): the managed part is everything before the line `## Project notes`, the notes
+part is that line and everything after it; only the managed part is hashed and classified by the I §4.5 rules, and
+a written file is the offered managed part followed by the file's own notes part (the template's when the file has
+none); an unmanaged `AGENTS.md` whose content differs from the offer is adopted (UC-4, default with `--yes`): action
+`update`, reason `adopted; existing content moved under "## Project notes"`, written as the offered managed part,
+`## Project notes`, a blank line, and the old content unchanged; `--overwrite AGENTS.md` writes the template and
+discards the old content; `--keep AGENTS.md` on an unmanaged file is `invalid_value`
+(the framework needs its `AGENTS.md`), check `--keep and --overwrite resolve conflicts`, found `AGENTS.md cannot be
+kept`, fix `adopt it (default) or pass --overwrite AGENTS.md`. Author decision: `--overwrite AGENTS.md` on a
+managed conflict replaces only the managed part and keeps the file's notes; only an unmanaged file's overwrite
+writes the full template. Also: the split is at the first line exactly `## Project notes`; an unmanaged file is
+compared on its managed part (equal → `unchanged (adopted)` whatever its notes); a non-regular `AGENTS.md` keeps the
+generic conflict; framework files are sorted by target path; render errors read `render <name>: %w`. I §4.5, I §4.6,
+UC-4, architecture §6 updated to match.
+
+- [x] `Choices`, `CoreWants`, template rendering, the empty extensions block (I §4.1, I §4.6)
+- [x] `AGENTS.md` managed part, notes preservation, adoption, `--keep`/`--overwrite` (I §4.5, UC-4)
 - Stage 8.5 `[ ]` — `init` command, registry creation after file apply, `--keep`/`--overwrite`/`--dry-run`,
   F-02/F-09 (UC-2, UC-3, UC-4); outside a repository `init` keeps its own `not_a_repository` fix from UC-4
 
