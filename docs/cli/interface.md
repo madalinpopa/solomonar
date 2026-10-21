@@ -1457,8 +1457,8 @@ forge (gh)
   pr        none for feature/W-001
   checks    unknown (no PR)
 drift
-  head_ahead_of_revision  HEAD moved past the reviewed revision while reviews run (rules §6 Candidate stability)
-  dirty_worktree          uncommitted work during review; preserve it, do not discard
+  head_ahead_of_revision  HEAD is 1 commit past the recorded revision
+  dirty_worktree          1 uncommitted path; preserve it (rules §10)
 allowed next
   solomonar task move W-001 --as orchestrator-1 --stage implementation --next <actor>:<action>
   solomonar task move W-001 --as orchestrator-1 --stage adversarial_review
@@ -1906,20 +1906,29 @@ the forge is available with no PR. A cancelled run (e.g. Ctrl-C) is no warning: 
 
 ### 9.2 Drift
 
-| Code | Condition | Suggested command |
-|---|---|---|
-| `branch_missing` | status `running` past `setup`, no `feature/<ID>` | `task block --kind environment` |
-| `worktree_missing` | branch exists, no worktree | `git worktree add ../<repo>-worktrees/<ID> feature/<ID>` |
-| `head_ahead_of_revision` | HEAD has commits after `revision` | record the new candidate with `task move --revision` once reported |
-| `revision_not_on_branch` | `revision` no longer reachable (history rewritten) | `task move --stage implementation`; reviews rerun |
-| `dirty_worktree` | uncommitted changes | preserve them (rules §10) |
-| `spec_missing` | recorded `spec` not found | commit the work spec, or correct `--spec` |
-| `blocked_without_blockers` | status `blocked`, no open blocker | `task move --status <prior>` |
-| `tier_missing` | stage after `implementation`, no tier | `task move --tier` |
-| `merged_not_done` | merge found, status not `done` | `task done` with the derived values |
-| `pr_not_recorded` | `gh` shows a PR, record has none | `task move --pr <url>` |
-| `pr_mismatch` | recorded PR differs from the branch's PR | `task move --pr <url>` |
-| `owned_by_other` | `SOLOMONAR_OWNER` set and differs from the owner | stop; handoff only on the user's instruction |
+| Code | Condition | Message | Suggested command |
+|---|---|---|---|
+| `branch_missing` | status `running` past `setup`, no `feature/<ID>` | `feature/<ID> does not exist` | `task block --kind environment` |
+| `worktree_missing` | branch exists, no worktree | `feature/<ID> has no worktree` | `git worktree add ../<repo>-worktrees/<ID> feature/<ID>` |
+| `head_ahead_of_revision` | HEAD has commits after `revision` | `HEAD is <n> commits past the recorded revision` | record the new candidate with `task move --revision` once reported |
+| `revision_not_on_branch` | `contains_revision` false (history rewritten) | `<revision short 8> is not on feature/<ID>` | `task move --stage implementation`; reviews rerun |
+| `dirty_worktree` | uncommitted changes | `<n> uncommitted paths; preserve them (rules §10)` | preserve them (rules §10) |
+| `spec_missing` | recorded `spec` neither in the worktree nor at `revision` | `<spec> is not in the worktree or at the revision` | commit the work spec, or correct `--spec` |
+| `blocked_without_blockers` | status `blocked`, no open blocker | `blocked without an open blocker` | `task move --status <prior>` (guidance only; not in `allowed_next`) |
+| `tier_missing` | stage `specialized_review`, `adversarial_review`, or `integration`, no tier | `stage <stage> needs a tier` | `task move --tier` with `--revision` |
+| `merged_not_done` | merge found, status not `done` | `feature/<ID> is merged into <main> but the record is not done` | `task done` with `--merge`; `spec_ref` from the PR (C14 a) |
+| `pr_not_recorded` | `gh` shows a PR, record has none | `gh shows PR #<n> for feature/<ID>; the record has none` | `task move --pr <url>` |
+| `pr_mismatch` | recorded PR differs from the branch's PR | `the record has PR <pr>; gh shows #<n> for feature/<ID>` | `task move --pr <url>` |
+| `owned_by_other` | `SOLOMONAR_OWNER` set and differs from the owner | `SOLOMONAR_OWNER is <x>; <ID> is owned by <owner>` | stop; handoff only on the user's instruction |
+
+Drift rows apply to `reserved`, `running`, `blocked`, and `paused` records, except `owned_by_other`, which applies
+to every status whenever the record has an owner; `planned`, `cancelled`, and `done` get only `owned_by_other`.
+Entries appear in table order. With one, the messages read `HEAD is 1 commit past the recorded revision` and `1
+uncommitted path; preserve it (rules §10)`. A recorded `pr` equal to the PR's number or URL is no `pr_mismatch`.
+`<revision short 8>` is the first 8 characters of the recorded `revision`; `<main>` is the main branch name.
+
+Each drift entry carries only `code` and `message`. The suggested command is guidance for the orchestrator, not
+output; runnable commands appear in `allowed_next` (9.3).
 
 ### 9.3 JSON shape
 
@@ -1938,12 +1947,15 @@ the forge is available with no PR. A cancelled run (e.g. Ctrl-C) is no warning: 
     "forge": {"available": true, "pr": null, "checks": "unknown"}
   },
   "drift": [
-    {"code": "head_ahead_of_revision", "message": "HEAD moved past the reviewed revision while reviews run"},
-    {"code": "dirty_worktree", "message": "uncommitted work during review; preserve it"}
+    {"code": "head_ahead_of_revision", "message": "HEAD is 1 commit past the recorded revision"},
+    {"code": "dirty_worktree", "message": "1 uncommitted path; preserve it (rules §10)"}
   ],
   "allowed_next": [
     "solomonar task move W-001 --as orchestrator-1 --stage implementation --next <actor>:<action>",
-    "solomonar task move W-001 --as orchestrator-1 --stage adversarial_review"
+    "solomonar task move W-001 --as orchestrator-1 --stage adversarial_review",
+    "solomonar task block W-001 --as orchestrator-1 --kind <kind> --summary <text>",
+    "solomonar task move W-001 --as orchestrator-1 --status paused --next <actor>:<action>",
+    "solomonar task move W-001 --as orchestrator-1 --status cancelled --next <actor>:<action>"
   ]
 }
 ```
@@ -1962,9 +1974,42 @@ Facts never omit a key; an unavailable fact is null, `false`, or `unknown` as 9.
   `gh`, on a `gh` failure, or with `--no-forge`: `{"available": false, "pr": null, "checks": "unknown"}`; with no
   PR for the branch: `{"available": true, "pr": null, "checks": "unknown"}`.
 
-`allowed_next` lists commands valid from the record under 8.1 and 8.2, filled with the recorded owner as `--as`
-and known values (`--merge`, the
-derived `spec_ref`) when drift supplies them. It never judges which one the orchestrator should run (J1).
+`allowed_next` lists the commands valid from the record under 8.1 and 8.2, one string each, by status:
+
+| Status | Commands |
+|---|---|
+| `planned` | `task register <ID> --title <title> --owner <owner>` |
+| `reserved` | `task move <ID> --as <owner> --status running --stage specification`, block, pause, cancel |
+| `running` | the stage moves 8.2 allows for the tier; at `integration`, `task done`; block, pause, cancel |
+| `blocked` | `task unblock <ID> --as <owner> <B-n>` per open blocker, with `--status <prior>` appended only when exactly one blocker is open (`task unblock W-001 --as orchestrator-1 B-1 --status running`); with two or more, no line carries `--status`; block, cancel. With no open blocker, only block and cancel |
+| `paused` | `task move <ID> --as <owner> --status <prior>`, cancel |
+| `cancelled` | `task move <ID> --as <owner> --status <prior> --resume-cancelled` |
+| `done` | none |
+
+Order: stage moves in stage order, then `task done`, then block, pause, cancel. The forms, each prefixed
+`solomonar`:
+
+- block: `task block <ID> --as <owner> --kind <kind> --summary <text>`
+- pause: `task move <ID> --as <owner> --status paused --next <actor>:<action>`
+- cancel: `task move <ID> --as <owner> --status cancelled --next <actor>:<action>`
+- stage move: `task move <ID> --as <owner> --stage <stage>`; a back move adds `--next <actor>:<action>`
+- done:
+  `task done <ID> --as <owner> --merge <full-sha> --spec-ref <PR "Final specification" line> --summary <one sentence>`
+
+`--as` is the recorded owner, written after the ID. Placeholders are `<actor>:<action>`, `<kind>`, `<text>`,
+`<path>`, `<full-sha>`, `<n>`, `<title>`, `<owner>`, and `<one sentence>`; the prior status (`<prior>`, 8.1) and
+blocker IDs (`<B-n>`, in record order) are filled from the record. A flag a move requires (8.2) appears as a
+placeholder only when the record lacks it: `--spec <path>` only on the forward move from `specification` into
+`implementation` (back moves into `implementation` carry only `--next`), and `--revision <full-sha>` and
+`--tier <n>` on forward moves out of `implementation`. At `implementation` without a tier, both forward targets are
+listed: `specialized_review` with `--tier <n>`, `integration` with `--tier 0`. At `specialized_review` or later
+without a tier, only the back moves are listed, since `--tier` without `--revision` is not accepted there (8.2
+field rules). `task done` fills `--merge` with the merge commit when merged and the commit is known, otherwise
+`<full-sha>`; `--spec-ref` stays the placeholder,
+since the orchestrator takes `spec_ref` from the PR's "Final specification" line (C14 a) and the derived one is a
+cross-check (C14 b). When the branch is merged and the record is not done, `allowed_next` lists only `task done`.
+`task handoff` is never listed: it runs only on the user's instruction. `allowed_next` never judges which command
+the orchestrator should run (J1).
 
 ## 10. Delivery order
 
