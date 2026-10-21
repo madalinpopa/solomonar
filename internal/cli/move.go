@@ -121,15 +121,15 @@ func (m *moveFlags) moveTask(ctx context.Context, env Env, store *task.Store, id
 	if err != nil {
 		return output{}, err
 	}
-	return changeTask(ctx, store, id, "move", m.dryRun, func(reg *task.Registry) (task.MoveResult, []detail, error) {
+	return changeTask(ctx, store, id, "move", positionHeader(id), m.dryRun, func(reg *task.Registry) (task.MoveResult, []detail, error) {
 		result, err := reg.MoveTask(ctx, store.Git, id, as, m.move, roles, env.Now())
 		return result, nil, err
 	})
 }
 
-// changeTask applies change as a dry run or one registry write, rendered in the task move form.
+// changeTask applies change as a dry run or one registry write, rendered under header.
 func changeTask(
-	ctx context.Context, store *task.Store, id, verb string, dryRun bool,
+	ctx context.Context, store *task.Store, id, verb string, header func(task.MoveResult) string, dryRun bool,
 	change func(*task.Registry) (task.MoveResult, []detail, error),
 ) (output, error) {
 	var result task.MoveResult
@@ -151,7 +151,7 @@ func changeTask(
 		}
 		return output{
 			data:     moveDryRunData{moveData: newMoveData(id, result, record), DryRun: true},
-			text:     "Would " + verb + " " + moveSummary(id, result, record, lead),
+			text:     "Would " + verb + " " + moveSummary(header(result), id, result, record, lead),
 			warnings: outputWarnings(result.Warnings),
 		}, nil
 	}
@@ -159,7 +159,7 @@ func changeTask(
 	if err != nil {
 		return output{}, err
 	}
-	text := moveSummary(id, result, record, lead)
+	text := moveSummary(header(result), id, result, record, lead)
 	if result.Subject != "" {
 		text += registryLine(store, commit) + "\n"
 	}
@@ -191,13 +191,20 @@ func installedRoles(assets fs.FS) ([]string, error) {
 	return roles, nil
 }
 
-func moveSummary(id string, result task.MoveResult, record *task.Record, lead []detail) string {
-	header := id + "  " + positionText(result.From)
+// positionHeader names the task and its position change.
+func positionHeader(id string) func(task.MoveResult) string {
+	return func(result task.MoveResult) string {
+		header := id + "  " + positionText(result.From)
+		if result.From != result.To {
+			header += " → " + positionText(result.To)
+		}
+		return header
+	}
+}
+
+func moveSummary(header, id string, result task.MoveResult, record *task.Record, lead []detail) string {
 	if result.Subject == "" {
 		return header + " (unchanged)\n"
-	}
-	if result.From != result.To {
-		header += " → " + positionText(result.To)
 	}
 	var b strings.Builder
 	b.WriteString(header + "\n")
