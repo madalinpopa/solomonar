@@ -62,7 +62,7 @@ func (b *blockFlags) run(ctx context.Context, env Env, flags sharedFlags, args [
 	if err != nil {
 		return output{}, err
 	}
-	out, err := changeTask(ctx, store, id, "block", b.dryRun, func(reg *task.Registry) (task.MoveResult, []detail, error) {
+	out, err := changeTask(ctx, store, id, "block", positionHeader(id), b.dryRun, func(reg *task.Registry) (task.MoveResult, []detail, error) {
 		result, err := reg.BlockTask(id, as, b.block, env.Now())
 		if err != nil {
 			return result, nil, err
@@ -114,7 +114,7 @@ func (u *unblockFlags) run(ctx context.Context, env Env, flags sharedFlags, args
 	if err != nil {
 		return output{}, err
 	}
-	out, err := changeTask(ctx, store, id, "unblock", u.dryRun, func(reg *task.Registry) (task.MoveResult, []detail, error) {
+	out, err := changeTask(ctx, store, id, "unblock", positionHeader(id), u.dryRun, func(reg *task.Registry) (task.MoveResult, []detail, error) {
 		var cleared task.Blocker
 		if record := reg.Tasks[id]; record != nil {
 			if i := slices.IndexFunc(record.Blockers, func(b task.Blocker) bool { return b.ID == blockerID }); i >= 0 {
