@@ -50,6 +50,7 @@ func commands() []command {
 				`Outside a project the project line reads "not initialized".`,
 			bind: withoutFlags(runVersion),
 		},
+		taskMoveCommand(),
 		taskPlanCommand(),
 		taskRegisterCommand(),
 		taskShowCommand(),
