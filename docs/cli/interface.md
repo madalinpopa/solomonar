@@ -1624,7 +1624,7 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `invalid_value` | 2 | Malformed flag value | names the expected format |
 | `cas_exhausted` | 4 | Lost the compare-and-swap 5 times | retry |
 | `cli_outdated` | 3 | Registry or manifest written by a newer CLI | install solomonar `<version>` or later |
-| `interrupted` | 130, 143 | Signal before the compare-and-swap | rerun; nothing was written |
+| `interrupted` | 130, 143 | Signal before the compare-and-swap | rerun (the error form already states nothing was written) |
 
 Warnings (exit 0): `push_failed`, `push_interrupted`, `no_remote`, `dependency_not_done`, `title_changed`, `forge_unavailable`.
 
