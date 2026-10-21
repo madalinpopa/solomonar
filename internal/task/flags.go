@@ -63,11 +63,15 @@ func parseNextAction(value string) (*NextAction, error) {
 
 // checkSpec accepts a clean worktree-relative path; existence is checked against Git separately.
 func checkSpec(value string) error {
-	if value != "." && path.Clean(value) == value && filepath.IsLocal(filepath.FromSlash(value)) {
+	if cleanRelativePath(value) {
 		return nil
 	}
 	return invalidValue("--spec takes a clean path relative to the worktree, without ..", value,
 		"pass --spec docs/work/<task ID>-<slug>.md")
+}
+
+func cleanRelativePath(value string) bool {
+	return value != "." && path.Clean(value) == value && filepath.IsLocal(filepath.FromSlash(value))
 }
 
 func parseTier(value string) (*int, error) {
