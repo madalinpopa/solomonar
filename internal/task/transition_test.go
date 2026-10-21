@@ -129,7 +129,9 @@ func TestCheckTransitionFixNamesAllowedTargets(t *testing.T) {
 		fix    string
 	}{
 		{name: "status", before: record(StatusRunning, StageImplementation, nil), after: record(StatusPlanned, StageImplementation, nil), found: "running -> planned", fix: "allowed: blocked, paused, cancelled"},
-		{name: "stage", before: record(StatusRunning, StageImplementation, nil), after: record(StatusRunning, StageIntegration, new(1)), found: "implementation -> integration", fix: "allowed: specification, specialized_review"},
+		{name: "stage", before: record(StatusRunning, StageSetup, nil), after: record(StatusRunning, StageImplementation, nil), found: "setup -> implementation", fix: "allowed: specification"},
+		{name: "tier", before: record(StatusRunning, StageImplementation, nil), after: record(StatusRunning, StageIntegration, new(1)), found: "implementation -> integration", fix: "--stage specialized_review, or record tier 0 if the triage changed: --tier 0"},
+		{name: "tier from integration", before: record(StatusRunning, StageIntegration, new(0)), after: record(StatusRunning, StageSpecializedReview, new(0)), found: "integration -> specialized_review", fix: "--stage implementation, or record tier 1 if the triage changed: --tier 1"},
 		{name: "done", before: record(StatusRunning, StageIntegration, new(1)), after: record(StatusDone, StageComplete, new(1)), found: "running -> done", fix: "use task done"},
 		{name: "invariant", before: record(StatusReserved, StageSetup, nil), after: record(StatusRunning, StageSetup, nil), found: "running at setup", fix: "--status running --stage specification"},
 	}
