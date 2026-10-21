@@ -247,6 +247,20 @@ func RuntimeWants(assets fs.FS, runtimes []string, models map[string]string, fra
 
 func ManifestVersions(data []byte) (schema int, framework string, err error)
 
+type CatalogExtension struct {
+	Name, Kind, Group, Title string
+	Requires, Conflicts      []string
+	AppliesWhen              string
+	Paths                    []string
+	Dir                      string
+}
+
+type Catalog map[string]CatalogExtension
+
+func LoadCatalog(assets fs.FS) (Catalog, error)
+func (c Catalog) Resolve(names []string) ([]string, error)
+func Render(content []byte, self string, installed []string, decision string) ([]byte, []string)
+
 type Requested struct {
 	Name, MainBranch, Remote string
 	Runtimes, Extensions     []string
@@ -269,6 +283,9 @@ from `templates/`, rendered with `text/template`.
 `RuntimeWants` returns the adapter stubs of I §4.2 per runtime, in the order `claude`, `codex`; a `CreateOnly` want
 (`CLAUDE.md`) present and unmanaged is `skip`, never a conflict, and `InitPlan` records `runtimes` in the manifest.
 `InitPlan` runs `Classify`, builds the manifest from its entries, and appends the manifest change last (I §4.5).
+`LoadCatalog` decodes and checks every `extensions/<group>/<name>/extension.json` (I §4.3, a defect is `read catalog
+<dir>: …`), `Resolve` returns the sorted unique selection or the first of its three rejections, and `Render` keeps
+the satisfied `## With` sections, adds the provenance line, and returns the kept names (`rendered_with`).
 `ManifestVersions` reads the manifest's `schema_version` and `framework_version` with the header validation and no
 newer-than check; the strict decoder builds on it, and `version` calls it alone (UC-24).
 `CheckChoices` rejects a given choice that differs from the manifest with `already_initialized` (UC-3), adversarial
