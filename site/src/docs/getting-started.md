@@ -64,6 +64,7 @@ The [CLI reference]({{ '/docs/cli/' | url }}) separates current commands from th
 ## Choose your next read
 
 - New to the model? Read [the framework]({{ '/docs/framework/' | url }}) and its book, spells, dragons, and reins.
+- Looking for a concrete starting point? Try the [framework use cases]({{ '/docs/use-cases/' | url }}) for discovery, implementation, maintenance, and recovery.
 - Want to understand a task from start to finish? Follow [the workflow]({{ '/docs/workflow/' | url }}).
 - Need flags or errors? Open [the CLI reference]({{ '/docs/cli/' | url }}) or [troubleshooting]({{ '/docs/troubleshooting/' | url }}).
 
