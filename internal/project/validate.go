@@ -10,6 +10,9 @@ import (
 	"strings"
 )
 
+// Groups lists the extension groups in the I §4.3 order.
+func Groups() []string { return groups() }
+
 func groups() []string {
 	return []string{
 		"language", "architecture", "frontend", "backend", "persistence", "testing", "operations", "workflow", "review",
