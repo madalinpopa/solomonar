@@ -85,6 +85,7 @@ func (s *Store) Create(ctx context.Context) (Commit, error) {
 }
 
 // Update runs fn on the tip registry and swaps in the result, re-running fn on a lost swap.
+// An empty subject from fn means no change: Update writes nothing and returns the current tip.
 func (s *Store) Update(ctx context.Context, fn func(*Registry) (subject string, err error)) (Commit, error) {
 	for range maxSwapAttempts {
 		reg, old, err := s.Read(ctx)
@@ -94,6 +95,9 @@ func (s *Store) Update(ctx context.Context, fn func(*Registry) (subject string, 
 		subject, err := fn(reg)
 		if err != nil {
 			return Commit{}, err
+		}
+		if subject == "" {
+			return Commit{SHA: old}, nil
 		}
 		sha, err := s.writeCommit(ctx, reg, subject, old)
 		if err != nil {
