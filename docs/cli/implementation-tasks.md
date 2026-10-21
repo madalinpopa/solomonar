@@ -229,9 +229,27 @@ UC-18, I §8.4, I §8.5, and architecture §7 updated to match.
 - [x] `Store.Update` skips the commit for an empty subject
 - [x] `cancelled_resumed` warning on `--resume-cancelled` (UC-18)
 
-- Stage 5.6 `[ ]` — `task move` command: `--as` and `SOLOMONAR_OWNER` (`owner_required`), installed roles from
-  the embedded core agents, UC-13 and UC-18 output, every UC-14 rejection; rejections name the ID (`task move
-  W-001 rejected`) through `rejectedAs`, as I §3.6 states
+### Stage 5.6 — `task move` command `[x]`
+
+Decisions (author, 2026-10-21): `--as` falls back to `SOLOMONAR_OWNER`, otherwise
+`owner_required` (exit 2, message `task move needs an acting owner`, fix `pass --as <owner>`); a missing ID is
+`invalid_usage`, and so is a move without a field flag (UC-13); the installed roles are the embedded core agents
+(`framework/agents/*.md`) without `orchestrator` until the manifest exists (step 8); the header is `<ID>
+<from> → <to>`, or `<ID>  <status>/<stage>` when the position does not change; detail lines follow for every
+changed field other than status and stage, in record order, labels aligned: `spec <path> (found in <worktree>)`
+or `(found at <short>)`, `revision <sha> (on feature/<ID>)`, `tier <n>: <meaning>` (0 `no review stages`, 1
+`specialists only`, 2 `specialists, then adversarial`), `agents <id> <role>, …` or `none`, `pr <value>`, `next
+<actor>: <action>`; a move to `cancelled` adds `note: branch feature/<ID>, its worktree, and PR are kept untouched
+(rules §10)`, without `, and PR` when none is recorded; then the subject and the registry line; `--dry-run` prints
+`Would move ` before the header, the details, and the subject; `--json` data is `{"id", "from", "to", "changed",
+"record", "commit", "pushed"}`, or with `"dry_run": true` instead of `commit` and `pushed`; usage checks run before the roles are read and the store opens; the roles are read with
+`fs.ReadDir`, a read error is `unexpected_error`; an unchanged move prints only its header; the cancel note sits
+before the subject. UC-13, UC-14, UC-18, I §3.1, I §8.3 updated to match.
+
+- [x] `task move <ID>` in the command table and help; flags of UC-13; `--as` and `SOLOMONAR_OWNER`
+      (`owner_required`); roles from the embedded core agents
+- [x] Human output of UC-13 and UC-18, the unchanged form, `--dry-run`, JSON, warnings
+- [x] Every UC-14 rejection end to end, named `task move <ID> rejected` (I §3.6)
 
 ## Step 6: `block`, `unblock`, `handoff`, `done`
 
