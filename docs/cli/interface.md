@@ -261,13 +261,15 @@ the runtime frontmatter plus a one-line body that loads the portable file, so th
 | State guard | `PreToolUse` hook running `solomonar guard --runtime claude`, merged into `.claude/settings.json` | `PreToolUse` hook running `solomonar guard --runtime codex`, merged into `.codex/hooks.json`; Codex runs it only after the user trusts the project's `.codex/` layer and reviews the hook (`doctor` warns until then) |
 | Adversarial model | `--adversarial-model claude=<model>` writes `model: <model>` in its role stub | `--adversarial-model codex=<model>` writes `model = "<model>"` in its role stub |
 
-Delegated roles are every `docs/solomonar/agents/` role except `orchestrator`; skills are the installed skills. Each
-stub copies `name` and `description` verbatim from the portable file's frontmatter; its path uses the skill directory
-or role file name instead (the two match for every shipped file).
+Delegated roles are every `docs/solomonar/agents/` role except `orchestrator`, installed extension agents included;
+skills are the core skills and the installed extension skills (4.3). Each stub copies `name` and `description`
+verbatim from the portable file's frontmatter, for an extension the installed file under `docs/solomonar/`; its path
+uses the skill directory or role file name instead (the two match for every shipped file). An extension agent takes
+the reviewer form: claude `tools: Read, Grep, Glob, Bash`; codex the role TOML without `model`.
 
 Plan order: runtimes always in the order `claude`, `codex`, whatever the flag order. `claude`: `CLAUDE.md`, skill
-stubs, role stubs; `codex`: skill stubs, `.agents/skills/solomonar/agents/openai.yaml`, role TOMLs. Skills and roles
-are sorted by directory or file name.
+stubs, role stubs; `codex`: skill stubs, `.agents/skills/solomonar/agents/openai.yaml`, role TOMLs. Skills and roles,
+core and extension together, are sorted by directory or file name.
 
 Skill stub (identical for both runtimes, except that the claude `solomonar` stub adds `disable-model-invocation:
 true`):
@@ -408,7 +410,7 @@ description: Rules for templ components in this project. Use when a change touch
 | `title` | One-line name | shown by `extension list` and `extension show` |
 | `requires` | Extensions that must be installed with it | `extension_requires` (exit 3) naming the missing ones; never added silently |
 | `conflicts` | Extensions that cannot be installed with it | `extension_conflict` (exit 3) |
-| `applies_when` | Skill: when an agent loads it. Agent: when triage requires it | rendered into `AGENTS.md` (4.6) and into the skill's `description` |
+| `applies_when` | Skill: when an agent loads it. Agent: when triage requires it | rendered into `AGENTS.md` (4.6); the skill or agent `description` is authored in the catalog file and copied as is, never generated from it |
 | `paths` | Globs of files the extension governs | rendered into `AGENTS.md`; the orchestrator uses them to name extensions in a packet; the CLI never inspects a change |
 
 Catalog entries are the files `extensions/*/*/extension.json`; a directory without `extension.json` is ignored and
@@ -436,6 +438,11 @@ With an empty catalog the `unknown_extension` found ends `known: none`. `extensi
 names with `, ` in found and with `,` in fix, so the fix is a valid flag value (`go requires sql, templ`, `add --ext
 sql,templ`). A conflict declared on one side only is still found: the check walks each selected name, then its
 sorted `conflicts`, and reports the first pair from the side that declares it (`<a>` declares `<b>`).
+
+**Installing a catalog extension.** A skill installs every file of its catalog directory except `extension.json`
+to `docs/solomonar/skills/<name>/`, keeping relative paths; an agent installs only `<name>.md`, to
+`docs/solomonar/agents/<name>.md`. `SKILL.md` and the agent file are rendered (Generation), other files are copied
+verbatim; every installed file has owner `ext:<name>` (4.5). Files are planned by extension name, then path.
 
 **Project extension lifecycle.** The manifest records `state: draft|installed` for every extension. `extension
 new` creates a project-owned `draft`; `extension add <name>` adopts that draft, while adding a catalog name or
@@ -520,7 +527,7 @@ content before release.
 
 | Extension | Kind | Group | Requires | Applies when | Main rules | Renders with |
 |---|---|---|---|---|---|---|
-| `go` | skill | `language` | - | A change touches Go code (`**/*.go`) | Go Code Review Comments; errors wrapped with context and checked; context propagated in project APIs, with imposed-signature exceptions (go/C-8); goroutines with an owner and a stop path; transactions closed on every path; `govulncheck` for dependency changes (suggested check) | `tdd`: test layout rules |
+| `go` | skill | `language` | - | A change touches Go code (*.go, go.mod, go.sum) | Go Code Review Comments; errors wrapped with context and checked; context propagated in project APIs, with imposed-signature exceptions (go/C-8); goroutines with an owner and a stop path; transactions closed on every path; `govulncheck` for dependency changes (suggested check) | `tdd`: test layout rules |
 | `htmx` | skill | `frontend` | - | A change touches `hx-*` attributes or endpoints that return fragments | Endpoints targeted by `hx-*` return HTML fragments, never JSON; state changes use `hx-post`, `hx-put`, `hx-patch`, `hx-delete`, never `hx-get`, and carry the CSRF token; a URL reached by full navigation or `hx-push-url` renders the whole page without htmx; error responses render a fragment the page can show | `templ` |
 | `templ` | skill | `frontend` | `go` | A change touches `*.templ` files or the handlers that render them | Generated `*_templ.go` files never edited by hand and checked current in CI; no `templ.Raw` with user data; components take page view models, not domain entities | `htmx`: one handler renders the fragment on `HX-Request`, the page otherwise |
 | `tdd` | skill | `testing` | - | A change adds or changes behavior | A failing test for each behavior AC before the production code, its failing run recorded in "Checks and evidence"; red, green, refactor, with refactoring only on green; a test that weakens or deletes an assertion needs an AC or a decision; tests cite rule IDs (`AGENTS.md` rule 13). Turns "where practical" (G9) into `must`, unless the work spec states why a test first is impossible | `go`: table tests with one `t.Run` per case |
@@ -609,23 +616,28 @@ Installed with `solomonar`; draft project extensions are not active. Load every 
 The orchestrator names the matching extensions in each packet.
 
 - Skills
-  - `go` (language): a change touches Go code (`**/*.go`)
-  - `htmx` (frontend): `hx-*` attributes or endpoints that return fragments
-  - `templ` (frontend): `*.templ` files or the handlers that render them (`**/*.templ`)
-  - `tdd` (testing): a change adds or changes behavior
+  - `go` (language): A change touches Go code (*.go, go.mod, go.sum); paths: `**/*.go`, `**/go.mod`, `**/go.sum`
+  - `htmx` (frontend): A change touches `hx-*` attributes or endpoints that return fragments
+  - `templ` (frontend): A change touches *.templ files or the handlers that render them; paths: `**/*.templ`
+  - `tdd` (testing): A change adds or changes behavior
 - Agents: none. An installed agent is a specialist reviewer, required by triage when its "applies when" matches.
 ```
 
-With no installed extension, the list renders `- Skills: none.` and `- Agents: none. An installed agent is a
-specialist reviewer, required by triage when its "applies when" matches.`
+An extension line is `` - `<name>` (<group>): <applies_when> ``, with `applies_when` verbatim, followed by
+`` ; paths: `<glob>`, `<glob>` `` when `paths` is not empty. Installed skills render a line `- Skills`, then one
+nested line each; installed agents render a line `- Agents: an installed agent is a specialist reviewer, required by
+triage when its "applies when" matches.`, then one nested line each. Each list is ordered by group (4.3 table order),
+then name. An empty list renders `- Skills: none.` or `- Agents: none. An installed agent is a specialist reviewer,
+required by triage when its "applies when" matches.`
 
 ### 4.7 Manifest
 
 `.solomonar/manifest.json` is committed on main, written only by the CLI, and records the choices and every managed
 file. `extensions` maps a name to its state, kind, group, source (`catalog`, or `path` with the repo-relative source
 directory), the decision for its current installed group selection (stack groups only), and the extensions it was
-rendered with. Project-extension metadata also includes `title`, `requires`, `conflicts`, `applies_when`, and
-`paths`. Drafts have no `decision` or `rendered_with`; `files`
+rendered with. A catalog extension entry holds `state` `installed`, `kind`, `group`, `source` `catalog`,
+`decision` (stack groups only), and `rendered_with` (omitted when empty). Project-extension metadata also includes
+`title`, `requires`, `conflicts`, `applies_when`, and `paths`. Drafts have no `decision` or `rendered_with`; `files`
 keys are repo-relative paths:
 
 ```json
