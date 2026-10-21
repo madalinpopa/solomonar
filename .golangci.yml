@@ -46,6 +46,7 @@ linters:
           allow:
             - $gostd
             - github.com/madalinpopa/solomonar
+            - golang.org/x/term # raw mode for the key-driven multi-select (CLI-D5)
         tests:
           list-mode: strict
           files: ["$test"]
