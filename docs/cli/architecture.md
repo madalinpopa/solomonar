@@ -227,12 +227,20 @@ type Plan struct{ Changes []Change }
 
 func (p Plan) Conflicts() []Change
 
+type Want struct {
+	Path, Owner string
+	Content     []byte
+}
+
+func Classify(root *os.Root, m *Manifest, wants []Want, keep, overwrite []string) (Plan, map[string]File, error)
+
 type Journal struct{ /* each touched path's previous content and mode, or its absence */ }
 
 func Apply(ctx context.Context, root *os.Root, p Plan) (*Journal, error)
 func (j *Journal) Rollback() error
 ```
 
+`Classify` applies I §4.5's rules and returns the plan with the manifest `files` entries for the wanted paths.
 `Apply` returns its `Journal` so the caller can still roll back a successful apply until the registry CAS
 succeeds (AD-6, F-09).
 
