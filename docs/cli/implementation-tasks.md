@@ -994,7 +994,39 @@ Specs updated: I §3.3 (`append`), §4.3 (titles, numbering, entries, documents,
 - [x] `PlanDecisions`: numbering, entries, documents, re-run carry-over, `ActionAppend`
 - [x] README index lines (created and present README); `InitPlan` integration
 
-### Stage 9.6 — `init --ext` (`internal/cli`; UC-2, UC-3, I §4.3) `[ ]`
+### Stage 9.6 — `init --ext` (`internal/cli`; UC-2, UC-3, I §4.3) `[x]`
+
+Decisions (author, 2026-10-21): an `append` change counts as `updated` in the counts line (I §3.3).
+
+Decisions (author, 2026-10-21; orchestrator proposals confirmed):
+- `--ext` values split on commas; `none` requests an empty selection; `none` beside another value is
+  `invalid_value` (exit 2), check `--ext names extensions or none`, found `none cannot be combined with <v>`, fix
+  `pass --ext none alone`; otherwise the names go through `Catalog.Resolve` (`unknown_extension` exit 2,
+  `extension_requires`/`extension_conflict` exit 3, `init rejected`), in the usage-and-values phase after the
+  `--adversarial-model` syntax (UC-2 check order); a path value is `unknown_extension` (step-9 limitation);
+  `noExtensions` and its step-8 texts go;
+- selection: the requested names, else the manifest's extension names (re-run), else `go` when the worktree root has
+  a regular file `go.mod` and `go` is in the catalog, else none; a manifest name missing from the catalog is an
+  unexpected error `read extension <name>: not in the catalog`;
+- the plan: `PlanDecisions(root, existing, selected, <env.Now() as YYYY-MM-DD>)`; `CoreWants` with `Extensions`
+  and `Documents: decisions.Index`; wants = core, `ExtensionWants(…, decisions.ByGroup)`, `RuntimeWants(…,
+  selected)`; `InitPlan(…, extension entries, decisions, …)`; plan order core, extensions, runtime stubs, decision
+  documents, manifest (a flat list; UC-1's grouped plan comes with step 10);
+- JSON: `choices.extensions` maps each group with a selection to its sorted names (`{}` when none); `decisions` is
+  `Decisions.Records` (`[]` when none) as `{"id", "group", "selected"}`;
+- no new human lines: success, dry-run, no-op, and `Next:` keep their forms (`docs` already covers the decision
+  documents); the I §4.3 note distinguishing instructions from packages belongs to `extension add` plans.
+also (implementer, confirmed): the no-op check counts `append` as a write (UC-3); the
+help usage shows `[--ext <name|none>]...` (step-9 limitation; the spec keeps `<name|path|none>`); `go.mod` is checked
+with `Lstat` (a symlink does not count); only requested names go through `Resolve`, not the manifest selection or the
+`go` default; the catalog loads right after the `--adversarial-model` syntax check and is passed to `initialize`.
+Specs updated: I §3.3 (counts), UC-1 (JSON), UC-2 (`--ext`, defaults, check order, plan order), UC-3; architecture §7.
+
+- [x] `--ext` values, `none`, `Resolve`; default selection (`go.mod`); manifest selection on a re-run
+- [x] plan wiring (decisions, extension files, stubs, `AGENTS.md`, README index); counts `append` as updated
+- [x] JSON `choices.extensions` and `decisions`; tests (UC-2 with `--ext go`, default via `go.mod`, `none`, unknown,
+  requires/conflict with a test catalog if the CLI env allows it, a re-run no-op, `already_initialized` on extensions,
+  an existing `docs/decisions.md` appended)
 
 ## Step 10: Interactive `init`
 
