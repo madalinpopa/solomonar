@@ -274,7 +274,19 @@ UC-15, I §8.4, I §8.5 updated to match.
       last-blocker rule above (UC-15, I §8.1)
 - [x] Subjects `block B-<n> <kind>` and `unblock B-<n>` (I §8.5)
 
-- Stage 6.2 `[ ]` — `task block`, `task unblock` commands, UC-15 output
+### Stage 6.2 — `task block`, `task unblock` commands `[x]`
+
+Decisions (author, 2026-10-21): both resolve `--as` like `task move` (`owner_required`
+names the command); usage errors before the store opens: `task ID is required`, `blocker ID is required` (unblock),
+`--kind is required` and `--summary is required` (block); rejections read `task block <ID> rejected` and `task
+unblock <ID> rejected`; the human form is the `task move` form with a first detail line `blocker B-<n> <kind>:
+<summary> (<ref>)` (no parenthetical without a ref) or `cleared B-<n> <kind>: <summary>`, then the other changed
+fields, labels aligned; `--dry-run` prints `Would block ` or `Would unblock ` before the header; `--json` has the
+`task move` shape; `actingOwner` and `changeTask` are shared with `task move`; `invalid_value` stays exit 2
+(I §8.4). UC-15 updated to match.
+
+- [x] `task block <ID>` and `task unblock <ID> <blocker-id>` in the command table and help, flags of UC-15
+- [x] UC-15 human output, `--dry-run`, JSON, rejections end to end
 - Stage 6.3 `[ ]` — `task handoff` (UC-19)
 - Stage 6.4 `[ ]` — `task done` with merge and `spec_ref` checks, domain (UC-20)
 - Stage 6.5 `[ ]` — `task done` command (UC-20)
