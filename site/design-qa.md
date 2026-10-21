@@ -71,3 +71,21 @@ Added on 2026-10-21, using the supplied `2026-10-21-framework-cli-audit.html` an
 - Root and `/solomonar/` builds pass static checks for 11 HTML pages. The root output is approximately 1112 KB. The updated Docker image builds and checks successfully; Nginx serves the new page and sitemap entry with HTTP 200.
 
 The original visual direction and earlier verification limits remain applicable. Final result for this addition: passed.
+
+## SEO and social previews
+
+Updated on 2026-10-21. The initial audit found useful static HTML, readable documentation URLs, canonical links, a sitemap, robots.txt, a small deferred browser script, and correct Nginx 404 handling. The highest-impact gaps were a homepage title and H1 that described only the folktale, generic documentation metadata, missing social images and X cards, and an indexable 404 with its own canonical.
+
+- The homepage now explains spec-driven development for AI coding agents, the intended developer audience, the context problem, and the path to documentation and source. The illustrated story and branding remain. Current CLI availability stays explicit.
+- Each documentation page has a distinct title and description matching its topic. Existing URLs, heading anchors, examples, sidebar links, and reading navigation remain valid.
+- Shared server-rendered metadata supplies Open Graph and X large-image cards with absolute URLs and image alternatives. The shared PNG is 1200 × 630 and 58,267 bytes; its editable SVG source reuses the existing dragon. Normal browser loads do not download the preview image.
+- The homepage has `SoftwareSourceCode` JSON-LD with the repository and MIT license. The 404 is `noindex, follow`, has no canonical, and is absent from the sitemap. `.nojekyll` supports publishing the generated files on GitHub Pages.
+- The static checker passes all 11 HTML pages at the production root and at a GitHub Pages project subpath with a different origin, including a trailing slash on `SITE_ORIGIN`. It checks unique metadata, social cards and image dimensions, canonical/sitemap agreement, robots, JSON-LD, heading order, and local links and fragments.
+- Browser checks at 320, 390, 768, 1024, and 1440 pixels found no homepage horizontal overflow. The framework page also fits at 390 pixels. The homepage content, navigation, and getting-started link work with JavaScript disabled; reduced-motion mode starts paused. Desktop and mobile screenshots are under ignored `.cache/seo/`.
+- Browser JavaScript remains unchanged at 4,571 bytes. One unthrottled local mobile sample recorded LCP at 124 ms and CLS at 0. This is a local observation, not field Core Web Vitals evidence; INP was not measured.
+- The production Docker image builds and passes the checks. Its homepage, documentation, PNG, sitemap, robots, and health endpoint return HTTP 200 with appropriate content types. Unknown paths, including nested paths, return the custom page with HTTP 404 and noindex metadata.
+- Compose validates with `restart: always`; an isolated Compose service was inspected and confirmed to run with the `always` restart policy. A real VPS/daemon reboot was not performed. Redeployment applies the changed policy, and the Docker daemon must start on boot.
+
+Public deployment, Search Console submission, indexing, and X/WhatsApp previews remain unverified. Social platforms can cache previous previews. No runtime dependency or browser JavaScript was added.
+
+References: [Google's title and canonical guidance](https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics), [Open Graph metadata](https://ogp.me/), [GitHub Pages custom 404 files](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-custom-404-page-for-your-github-pages-site), and [Schema.org SoftwareSourceCode](https://schema.org/SoftwareSourceCode).
