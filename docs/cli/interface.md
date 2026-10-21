@@ -119,8 +119,9 @@ behavior.
 - Results go to stdout; warnings and errors go to stderr, prefixed `warning:` or `error:`.
 - Full SHAs appear wherever a value will be copied into another command; a short SHA (7) appears only beside
   a full one or in tables.
-- File plans use one verb per line: `create`, `update`, `unchanged`, `keep` (project-modified, left as is; 4.5),
-  `remove`, `conflict`, `skip` (project-owned, never touched). An unmanaged file whose content equals what the CLI
+- File plans use one verb per line: `create`, `update`, `append` (content added at the end of an existing file; 4.3),
+  `unchanged`, `keep` (project-modified, left as is; 4.5), `remove`, `conflict`, `skip` (project-owned, never
+  touched). An unmanaged file whose content equals what the CLI
   would write is adopted into the manifest and shown as `unchanged  <path>  adopted` (CLI-D17).
 - A plan line is `  <action padded to 9>  <path>`; when the change has a reason, two spaces and the reason follow,
   with paths padded to the widest path that has a reason. `init`'s registry line is `  registry   create
@@ -348,17 +349,17 @@ apply together with htmx, and nothing about React.
 | `skill` | Knowledge (the rules of a language, library, or practice) or a supporting procedure | `docs/solomonar/skills/<name>/` | a skill stub per runtime (4.2) |
 | `agent` | An extra specialist reviewer, with the condition that makes it required | `docs/solomonar/agents/<name>.md` | a role stub per runtime, read-only tools |
 
-| Group | Decision type | Records a decision | Document the CLI updates |
-|---|---|---|---|
-| `language` | Programming languages | yes | `docs/stack.md` |
-| `architecture` | Structural style and module boundaries | yes | `docs/architecture.md` |
-| `frontend` | UI rendering and interaction | yes | `docs/stack.md` |
-| `backend` | HTTP serving and API style | yes | `docs/stack.md` |
-| `persistence` | Data store and data access | yes | `docs/stack.md` |
-| `testing` | Test practice and tools beyond the language | yes | `docs/stack.md` |
-| `operations` | Build, packaging, deployment | yes | `docs/stack.md` |
-| `workflow` | Procedures that support the process (for example recording a baseline) | no | - |
-| `review` | Extra specialist reviewers (for example accessibility) | no | - |
+| Group | Decision type | Records a decision | Entry title | Document the CLI updates |
+|---|---|---|---|---|
+| `language` | Programming languages | yes | Programming languages | `docs/stack.md` |
+| `architecture` | Structural style and module boundaries | yes | Architecture style | `docs/architecture.md` |
+| `frontend` | UI rendering and interaction | yes | Frontend technologies | `docs/stack.md` |
+| `backend` | HTTP serving and API style | yes | Backend technologies | `docs/stack.md` |
+| `persistence` | Data store and data access | yes | Persistence technologies | `docs/stack.md` |
+| `testing` | Test practice and tools beyond the language | yes | Testing practice | `docs/stack.md` |
+| `operations` | Build, packaging, deployment | yes | Build and deployment | `docs/stack.md` |
+| `workflow` | Procedures that support the process (for example recording a baseline) | no | - | - |
+| `review` | Extra specialist reviewers (for example accessibility) | no | - | - |
 
 The groups are fixed. The first seven are stack groups: adopting or dropping one of their extensions is an
 architecture or dependency decision. `workflow` and `review` configure how the process runs and record no decision.
@@ -488,10 +489,13 @@ entry:
   (`decision_not_found`, `decision_not_approved`, exit 3), and records the ID with the extensions. This is the path
   for an orchestrator applying a task decision such as `W-002/D-1`.
 - Without it, the user's command is the decision: the CLI appends a project-scoped entry `P/D-n` per affected group
-  with status `approved`. When the group already has an approved `P/D-n`, the new entry lists the full new
+  with status `approved`, in table order, `<n>` counting on from the highest `<n>` of a line starting exactly
+  `## P/D-`, digits, `:` in `docs/decisions.md` (0 when absent); the file is read only when some group needs a new
+  decision. When the group already has an approved `P/D-n`, the new entry lists the full new
   selection and sets the old one to `superseded`, naming its replacement (rules §3).
-- In both cases the CLI appends one line per group to the group's document (table above), creating the document
-  with a title and an index line in `docs/README.md` when absent. It never edits other entries or lines.
+- In both cases the CLI appends one line per group to the group's document (table above), `- <group>: <a>, <b>
+  (P/D-<n>)` in table order, creating the document with a title and an index line in `docs/README.md` when absent.
+  It never edits other entries or lines.
 - The decision covers the complete resulting installed selection in its group. In the same plan, rebind
   **every remaining installed extension in that group** to the new approved decision, including ones not named
   in this add/remove call. Refresh their CLI-managed rendered provenance without overwriting project-owned
@@ -511,6 +515,28 @@ Entry written by the CLI, in the fixed format from rules §3 that it also reads 
 - Date: 2026-10-20
 - References: `docs/solomonar/skills/htmx/SKILL.md`, `docs/solomonar/skills/templ/SKILL.md`
 ```
+
+The title is the group's entry title (table above). `init` writes Rejected options `none`, Scope ``project; <group>
+extensions `<a>`, `<b>` ``, Rationale ``selected by the user with `solomonar init` ``, Date `YYYY-MM-DD`, and References
+the installed main files (each extension's `SKILL.md` or agent file), sorted by name; selected names are sorted too.
+
+A created document starts with its title and a blank line (`# Decisions`, `# Stack`, `# Architecture`) and is
+`create`. An existing regular file is `append`, and the full new content is written: a missing final newline is added
+first; in `docs/decisions.md` one more blank line follows unless the file already ends with a blank line, so each
+entry is preceded by one blank line; stack and architecture lines follow directly. An empty existing file gets no
+separator. A document with nothing to add gets no change unless the manifest records it (4.5). A present document
+that is not a regular file is an unexpected error, `read <path>: not a regular file`.
+
+The index lines for the documents a plan creates, in the order decisions, stack, architecture, are
+``- `docs/decisions.md`: decision entries and their status``, ``- `docs/stack.md`: technologies and practices, with
+the decisions that adopted them``, and ``- `docs/architecture.md`: structure and contracts, with the decisions that
+adopted them``. A created `docs/README.md` lists them after its "Documents" items. A present one is `append` when it
+has a line `## Documents`; the section runs to the next line starting `## ` or the end of the file. With items, the
+lines go right after the last `- ` line, with no blank lines added. Without items, they go after the blank line that
+follows the heading (inserting one first when there is none, as at the end of the file), and a blank line follows
+them when anything follows in the file. Without the section it stays `skip` with reason
+`exists; add under "## Documents": <line>; <line>`. A non-regular `docs/README.md` is the unexpected error `read docs/README.md: not a
+regular file` when index lines are to be added, and `skip` otherwise.
 
 **Commands in extensions.** Extensions list typical checks (`go test ./...`, `go vet ./...`, `templ generate`,
 `govulncheck ./...`) as suggestions only. No extension writes commands into `docs/README.md`; they stay "not
@@ -541,11 +567,11 @@ No `workflow` or `review` extension is in the v0.1 catalog (CLI-D10); both group
 | `core` | `docs/solomonar/**` except extensions | create | update if unmodified, else conflict | - |
 | `ext:<name>` | a catalog extension's skill directory or agent file | create, rendered | as `core`, rendered for the installed set | re-render when the installed set changes |
 | `project-ext:<name>` | extensions added from a local directory or created with `extension new` | create | never | never |
-| `decision` entries | `P/D-n` entries in `docs/decisions.md`; one line per group in `docs/stack.md` or `docs/architecture.md` | append; create the file when absent | never | never |
+| `decision` entries | `P/D-n` entries in `docs/decisions.md`; one line per group in `docs/stack.md` or `docs/architecture.md` | `append`; `create` the file when absent (4.3); a re-run plans recorded files `unchanged` | never | never |
 | `core+notes` | `AGENTS.md` | create, or adopt an existing file (UC-4) | the part above `## Project notes` as `core`; the section from that heading on is project-owned | rendered lists (4.6) |
 | `runtime:<name>` | adapter stubs, `CLAUDE.md` when created | create | regenerate | regenerate |
 | `runtime:<name>` entry | the guard hook entry inside `.claude/settings.json` or `.codex/hooks.json` | merge the entry; never touch other keys | merge | merge |
-| `seed` | `docs/README.md` | create when absent, else `skip`; append a "Documents" index line when the CLI creates a document | never | never |
+| `seed` | `docs/README.md` | create when absent, else `skip`; when the CLI creates a document, a present file with `## Documents` gets the index lines (`append`), else `skip` with the reason (4.3) | never | never |
 | `manifest` | `.solomonar/manifest.json` | create | update | update |
 
 "Unmodified" means the file's SHA-256 equals the manifest's `sha256`: the hash of the last distributed or
@@ -562,7 +588,7 @@ path is `skip` even when it is not a regular file, and a managed file whose `dis
 
 | Path | Condition | Action |
 |---|---|---|
-| `seed` owner | absent / present | `create` / `skip` (project-owned; no hash recorded) |
+| `seed` owner | absent / present | `create` / `skip` (project-owned; no hash recorded; index lines, 4.3) |
 | create-only (`CLAUDE.md`), unmanaged | absent / present, regular or not | `create` / `skip`, never a conflict, not recorded; reason `exists; add this line …` unless a line is exactly `@AGENTS.md` (4.2) |
 | any other | absent | `create` |
 | any other | not a regular file (directory, symlink) | `conflict`, `exists and is not a regular file` |
@@ -599,9 +625,17 @@ resolve conflicts`, found `AGENTS.md cannot be kept`, fix `adopt it (default) or
 The manifest is planned last, as one change for `.solomonar/manifest.json` with owner `manifest`, and is never
 classified by the table above (it has no hash): `create` when absent, `unchanged` when its bytes equal the canonical
 encoding of the new manifest, `update` otherwise. When it exists but cannot be read as a file (for example a
-directory), `init` stops with an unexpected error (`read manifest: …`, exit 1) instead of planning a conflict. The new manifest records `files` for every wanted path plus
-`.solomonar/manifest.json` `{"owner": "manifest"}`, with empty `runtimes` and `extensions` for a core-only `init`. It
-is built even when the plan has conflicts, but nothing is written then.
+directory), `init` stops with an unexpected error (`read manifest: …`, exit 1) instead of planning a conflict. The new
+manifest records `files` for every wanted path, each `decision` file as `{"owner": "decision", "entries": [...]}`
+listing the IDs the CLI wrote to it in this and earlier runs (below), and `.solomonar/manifest.json` `{"owner": "manifest"}`,
+with empty `runtimes` and `extensions` for a core-only `init`. It is built even when the plan has conflicts, but
+nothing is written then.
+
+Decision files are planned by 4.3, before the manifest, not by the table above. On a re-run (UC-3) the existing
+manifest's `decision` files are carried over and planned `unchanged` without being read, and a group whose decision
+the manifest records keeps that ID and adds nothing: the ID of the group's first installed extension, by name, whose
+manifest entry has a `decision`, of any form (a task decision such as `W-002/D-1` too). A document's `entries` are the
+carried entries followed by the new IDs.
 
 ### 4.6 Rendered `AGENTS.md`
 
@@ -934,7 +968,7 @@ Already initialized with solomonar 0.1.0; nothing to do.
   Change choices with `solomonar runtime|extension add|remove`; move versions with `solomonar upgrade`.
 ```
 
-Exit 0. The no-op form applies only when the registry exists and the plan creates, updates, or removes nothing;
+Exit 0. The no-op form applies only when the registry exists and the plan creates, updates, appends, or removes nothing;
 when every file matches but the registry is absent, `init` takes the normal path (UC-2) and needs the confirmation.
 The second line is `  <counts> · registry refs/heads/workflow-state unchanged` (3.3). The CLI fills the
 choices not given from the manifest. A given choice that differs from the manifest is rejected, so that `init` never
