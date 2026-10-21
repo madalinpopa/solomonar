@@ -217,7 +217,7 @@ func required(code, check, found, fix string) *Rejection {
 	return &Rejection{Code: code, Check: check, Found: found, Fix: fix}
 }
 
-// changedFields lists the written fields that differ, in record field order.
+// changedFields lists the fields that differ in record order, except last_blocker and updated_at.
 func changedFields(before, after *Record) []string {
 	changed := []string{}
 	add := func(name string, differs bool) {
@@ -225,9 +225,11 @@ func changedFields(before, after *Record) []string {
 			changed = append(changed, name)
 		}
 	}
+	add("title", before.Title != after.Title)
 	add("status", before.Status != after.Status)
 	add("stage", before.Stage != after.Stage)
 	add("owner", before.Owner != after.Owner)
+	add("branch", before.Branch != after.Branch)
 	add("spec", before.Spec != after.Spec)
 	add("revision", before.Revision != after.Revision)
 	add("tier", !samePointee(before.Tier, after.Tier))
@@ -235,6 +237,12 @@ func changedFields(before, after *Record) []string {
 	add("blockers", !slices.Equal(before.Blockers, after.Blockers))
 	add("next_action", !samePointee(before.NextAction, after.NextAction))
 	add("pr", before.PR != after.PR)
+	add("depends_on", !slices.Equal(before.DependsOn, after.DependsOn))
+	add("related_task", before.RelatedTask != after.RelatedTask)
+	add("session_ref", before.SessionRef != after.SessionRef)
+	add("summary", before.Summary != after.Summary)
+	add("spec_ref", before.SpecRef != after.SpecRef)
+	add("merge_commit", before.MergeCommit != after.MergeCommit)
 	return changed
 }
 
