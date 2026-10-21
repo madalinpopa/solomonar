@@ -80,10 +80,17 @@ number or an `https://` URL, stored as given; `--agent` roles are checked agains
       `--revision` full SHA, `--pr <url|number>`, blocker `--kind`, `--ref`, `--summary` (I §8.4
       `invalid_value`, `revision_not_full_sha`)
 
-### Stage 3.4 — `Record.Move` and field rules `[ ]`
+### Stage 3.4 — `Record.Move` and field rules `[x]`
 
-- [ ] `Move` input applied to a copy, then `checkTransition`; `changed` fields; `updated_at` from the clock
-- [ ] Field rules of I §8.2 and `spec_required`, `revision_required`, `next_required`, `blockers_required`
+Decisions (author, 2026-10-21): `field_not_allowed` (exit 3) for a field flag outside its stages; `changed` lists
+fields in record order (UC-13 example updated).
+
+- [x] `Move` input parsed with the stage 3.3 parsers, applied to a copy, then `checkTransition`; the record
+      changes only on success
+- [x] `changed` fields in record order; `updated_at` from the clock, RFC 3339 UTC seconds
+- [x] Field rules of I §8.2 (`field_not_allowed`) and `spec_required`, `revision_required`, `tier_required`,
+      `next_required`, `blockers_required`
+- [x] UC-14 check and fix texts for `tier_required` and `stage_not_allowed`
 
 ## Step 4: Store, `task plan`, `task show`
 
