@@ -30,7 +30,7 @@ type journalEntry struct {
 	createdDir bool
 }
 
-// Apply writes the plan's create, update, and remove changes in order, rolling back on failure.
+// Apply writes the plan's acting changes in order, rolling back on failure.
 func Apply(ctx context.Context, root *os.Root, p Plan) (*Journal, error) {
 	j := &Journal{root: root}
 	for _, c := range p.Changes {
@@ -49,7 +49,7 @@ func (j *Journal) apply(c Change) error {
 	switch c.Action {
 	case ActionCreate:
 		return j.create(c.Path, c.Content)
-	case ActionUpdate:
+	case ActionUpdate, ActionAppend:
 		return j.update(c.Path, c.Content)
 	case ActionRemove:
 		return j.remove(c.Path)
