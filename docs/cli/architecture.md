@@ -240,10 +240,14 @@ type Want struct {
 
 func Classify(root *os.Root, m *Manifest, wants []Want, keep, overwrite []string) (Plan, map[string]File, error)
 
-type Choices struct{ Name, Objective, FrameworkVersion string }
+type Choices struct {
+	Name, Objective, FrameworkVersion string
+	Extensions                        []CatalogExtension
+}
 
 func CoreWants(assets fs.FS, c Choices) ([]Want, error)
-func RuntimeWants(assets fs.FS, runtimes []string, models map[string]string, framework string) ([]Want, error)
+func RuntimeWants(assets fs.FS, runtimes []string, models map[string]string, framework string,
+	extensions []CatalogExtension) ([]Want, error)
 
 func ManifestVersions(data []byte) (schema int, framework string, err error)
 
@@ -260,6 +264,8 @@ type Catalog map[string]CatalogExtension
 func LoadCatalog(assets fs.FS) (Catalog, error)
 func (c Catalog) Resolve(names []string) ([]string, error)
 func Render(content []byte, self string, installed []string, decision string) ([]byte, []string)
+func ExtensionWants(assets fs.FS, installed []CatalogExtension, decisions map[string]string) ([]Want,
+	map[string]Extension, error)
 
 type Requested struct {
 	Name, MainBranch, Remote string
@@ -269,7 +275,7 @@ type Requested struct {
 
 func (m *Manifest) CheckChoices(r Requested) error
 func InitPlan(root *os.Root, existing *Manifest, wants []Want, keep, overwrite []string, p Project,
-	runtimes map[string]Runtime, framework string) (Plan, *Manifest, error)
+	runtimes map[string]Runtime, extensions map[string]Extension, framework string) (Plan, *Manifest, error)
 
 type Journal struct{ /* each touched path's previous content and mode, or its absence */ }
 
@@ -279,13 +285,21 @@ func (j *Journal) Rollback() error
 
 `Classify` applies I §4.5's rules and returns the plan with the manifest `files` entries for the wanted paths.
 `CoreWants` returns the core files from `framework/` as `docs/solomonar/`, then `AGENTS.md` and `docs/README.md`
-from `templates/`, rendered with `text/template`.
-`RuntimeWants` returns the adapter stubs of I §4.2 per runtime, in the order `claude`, `codex`; a `CreateOnly` want
-(`CLAUDE.md`) present and unmanaged is `skip`, never a conflict, and `InitPlan` records `runtimes` in the manifest.
+from `templates/`, rendered with `text/template`, with the `AGENTS.md` extension lists of I §4.6 from
+`Choices.Extensions`.
+`RuntimeWants` returns the adapter stubs of I §4.2 per runtime, in the order `claude`, `codex`, extension skills and
+agents sorted with the core ones; a `CreateOnly` want (`CLAUDE.md`) present and unmanaged is `skip`, never a conflict,
+and `InitPlan` records `runtimes` and `extensions` (nil records `{}`) in the manifest.
 `InitPlan` runs `Classify`, builds the manifest from its entries, and appends the manifest change last (I §4.5).
 `LoadCatalog` decodes and checks every `extensions/<group>/<name>/extension.json` (I §4.3, a defect is `read catalog
 <dir>: …`), `Resolve` returns the sorted unique selection or the first of its three rejections, and `Render` keeps
 the satisfied `## With` sections, adds the provenance line, and returns the kept names (`rendered_with`).
+`ExtensionWants` returns the installed files of each extension (I §4.3), rendered for the installed set and ordered
+by extension name, then file path, and their manifest entries; only a skill directory's top-level `extension.json` is
+excluded. `decisions` maps a stack group to its decision ID: a stack-group extension without a non-empty one is
+`render <name>: no decision for group <group>`, and `workflow` and `review` ignore any given one (`Installed by
+solomonar`, no manifest `decision`); an unreadable file is `read extension <name>: <err>`, and an extension's
+frontmatter error in `RuntimeWants` is `read frontmatter <dir>/<file>: <reason>`.
 `ManifestVersions` reads the manifest's `schema_version` and `framework_version` with the header validation and no
 newer-than check; the strict decoder builds on it, and `version` calls it alone (UC-24).
 `CheckChoices` rejects a given choice that differs from the manifest with `already_initialized` (UC-3), adversarial
