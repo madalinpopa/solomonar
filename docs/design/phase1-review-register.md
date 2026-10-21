@@ -271,3 +271,35 @@ Applied 2026-10-20 in the working copy (not committed). Abbreviations as above; 
 | J7 | DN Delivery phases (Phase 2 row and paragraph) |
 
 Skipped: none. Pending: none. Section numbers unchanged.
+
+## L. Workflow audit corrections (2026-10-21)
+
+The author accepted all findings and workflow suggestions from the
+[HTML audit](../reviews/2026-10-21-framework-cli-audit.html) on 2026-10-21. The changes below are **done in the
+framework assets and CLI contracts**; the executable is still a placeholder. Runtime, CLI acceptance, and
+fault-injection tests are specified in [architecture §11](../cli/architecture.md#11-testing), not reported as run.
+Historical resolutions above remain evidence of their original decisions; this section supersedes their
+conflicting wording, including G7's path-only review-reuse criterion.
+
+| Finding | Applied change | Current source |
+|---|---|---|
+| F-01 | The implementer may edit documentation named in its work spec; reserved canonical/spec/decision/state ownership stays explicit. Documentation tasks keep tier 0 when no behavior or requirement changes. | I §1, §5; R §6 |
+| F-02 | The manifest hash tracks the offered distributed/rendered base, never a kept project edit. Keep advances only the upstream base on upgrade. | CLI interface §4.5, §4.7, UC-3, UC-9; architecture §11–12 |
+| F-03 | Unknown commands trigger discovery and verification limits, not a new application baseline. A baseline is required only for the first authorized executable outcome. | sk:work-spec §3, §5; I §5; README template |
+| F-04 | Review reuse checks changed relevant contracts, dependencies, and requirements as well as paths/conflicts; unclear impact reruns the affected review. CI always reruns. | R §8; O §3 integration; README |
+| F-05 | Claude `/solomonar`, Codex CLI/IDE `$solomonar` or `/skills`, and a portable prompt are shown at session entry and in init Next. Runtime smoke checks exercise discovery and delegation. | README; A Skills; sk:solomonar §3; CLI interface §4.2, UC-1/2; architecture §11 |
+| F-06 | Guard protects resolved registry ref storage and mutating operations; ordinary product state.json files and read-only inspection remain allowed. | R §7; CLI interface UC-22; architecture §2, §11 |
+| F-07 | Explicit draft/installed extension state; drafts are discoverable for authoring but inactive until adoption. Local/draft metadata flags are enumerated, with non-interactive errors for missing required values. | CLI interface §4.3, §4.7, UC-6/7/8/10, §8.3; architecture §5, §11 |
+| F-08 | Add/remove rebinds every remaining installed group member to the approved decision for the complete selection and refreshes managed provenance. | R §3; O §1; CLI interface §4.3, UC-6/10; architecture §11 |
+| F-09 | The manifest is included in the file plan before registry CAS; the existing journal remains available until local success. No project-file write remains after CAS. | CLI interface §1; architecture AD-6, §7–8, §11–12 |
+| F-10 | Go context propagation distinguishes project-controlled APIs from imposed interfaces, callbacks, and entry points, preserving cancellation discipline where the signature permits it. | go/C-8; CLI catalog summary; architecture §11 |
+
+Additional workflow suggestions applied: a concise new-project/brownfield/direct-CLI path, CLI availability and
+remote/PR prerequisites, per-call `--as` in owner examples and oracle output, the distinction between extension
+rules and installed application packages, sync help pointing to portable source, and the internal-only scope of
+increment 1 until later stack adoption is available. No new role, review tier, daemon, or runtime feature was
+added. Existing sound flows (prototype/spec confirmation, review correction loop, pause/cancel/handoff, CAS,
+closure, and the read-only dashboard) are retained and their report use cases marked as reviewed.
+
+Verification of the applied contracts and the updated HTML is recorded in the audit's evidence JSON. The
+original audit evidence and source hashes remain preserved alongside the post-change results.
