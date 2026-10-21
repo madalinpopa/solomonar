@@ -18,7 +18,7 @@ npm run build
 npm run check
 ```
 
-Output is `_site/`, ignored alongside `node_modules/` and `.cache/`. Checks cover local links and fragments, assets, metadata, unique IDs, heading structure, JavaScript syntax, and an 8 KB browser-script budget. Visual and interaction checks are recorded in `design-qa.md`.
+Output is `_site/`, ignored alongside `node_modules/` and `.cache/`. Checks cover local links and fragments, assets, unique page metadata, social cards, canonical URLs, sitemap coverage, robots, 404 indexability, JSON-LD, unique IDs, heading structure, JavaScript syntax, and an 8 KB browser-script budget. Visual and interaction checks are recorded in `design-qa.md`.
 
 ## Docker
 
@@ -40,6 +40,8 @@ The multi-stage Dockerfile pins the official Node and Nginx images by digest, in
 3. If the GHCR package is private, configure registry pull credentials in Dokploy; alternatively make the website package public in GitHub. Keep credentials outside the Compose file.
 4. Add `solomonar.dev` in Dokploy's **Domains** tab, select service `site`, container port **8080**, and enable HTTPS. Point the domain's DNS to the Dokploy server.
 5. Deploy. Dokploy supplies the routing labels and network configuration. The Compose service exposes port 8080 internally and does not bind a host port.
+
+The service uses `restart: always` so Docker starts the existing container again after the daemon or VPS restarts. Docker itself must be enabled to start on boot. After changing this policy on a server, redeploy the Compose service to apply it to the existing container.
 
 This uses [Dokploy's native domain management](https://docs.dokploy.com/docs/core/docker-compose/domains), without hardcoded Traefik router names or a `container_name`.
 
@@ -75,6 +77,18 @@ SITE_BASE_PATH=/solomonar/ npm run check
 ```
 
 A container built with a subpath needs a matching proxy mount; the supplied Nginx configuration serves the domain root.
+
+## Search and social previews
+
+The homepage focuses on **spec-driven development for AI coding agents**. Documentation pages cover distinct tasks: getting started, the framework, workflow examples, task execution, state tracking, configuration, CLI commands, troubleshooting, and the name's origin. Keep each page's front matter title and description specific to its content. Shared metadata lives in `src/_includes/base.njk` and `src/_data/site.js`.
+
+Open Graph and X large-image cards use each page's title, description, and canonical URL, plus the shared `src/assets/social-card.png`. The card is a 1200 × 630 PNG; `social-card.svg` is its editable source, reusing the supplied dragon geometry. Export the SVG at those dimensions when updating the card. The PNG is referenced in HTML metadata and adds no image request to normal page loads.
+
+The homepage describes the open-source project with `SoftwareSourceCode` JSON-LD. The sitemap lists only canonical content pages. The custom 404 is `noindex, follow`, has no canonical, and stays out of the sitemap. There are no client-side redirects or catch-all routes.
+
+For GitHub Pages, publish the generated `_site/` directory, including `.nojekyll` and `404.html`. For a project site, build and check with both `SITE_ORIGIN=https://<owner>.github.io` and `SITE_BASE_PATH=/<repository>/`. For a custom domain, use that domain as `SITE_ORIGIN`. A crawler only reads `/robots.txt` at the host root: a project subpath's `robots.txt` does not control the host. Submit the absolute project sitemap URL directly to Search Console when root robots management is unavailable.
+
+After deployment, check the public page source and social image URL, then submit `sitemap.xml` in Search Console. Social services cache previews, so an existing shared URL may retain its earlier preview until recrawled. Local checks validate the supplied metadata, not a platform's eventual preview or search ranking.
 
 ## Design and asset provenance
 
