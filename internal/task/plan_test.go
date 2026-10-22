@@ -10,6 +10,8 @@ import (
 )
 
 func TestPlanAddsPlannedRecordUnderNextID(t *testing.T) {
+	t.Parallel()
+
 	registry := NewRegistry()
 	registry.Tasks["W-001"] = plannedTask("first")
 	now := time.Date(2026, 10, 20, 14, 58, 3, 500, time.FixedZone("CEST", 2*3600))
@@ -26,6 +28,8 @@ func TestPlanAddsPlannedRecordUnderNextID(t *testing.T) {
 }
 
 func TestPlanRejectsBadReferences(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		dependsOn []string
@@ -38,6 +42,8 @@ func TestPlanRejectsBadReferences(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			registry := NewRegistry()
 
 			_, _, err := registry.Plan("title", tt.dependsOn, tt.related, time.Time{})
@@ -51,6 +57,8 @@ func TestPlanRejectsBadReferences(t *testing.T) {
 }
 
 func TestPlanRejectsBlankTitle(t *testing.T) {
+	t.Parallel()
+
 	registry := NewRegistry()
 
 	_, _, err := registry.Plan("  ", nil, "", time.Time{})
@@ -62,12 +70,16 @@ func TestPlanRejectsBlankTitle(t *testing.T) {
 }
 
 func TestSubjectIncludesStageWhenSet(t *testing.T) {
+	t.Parallel()
+
 	record := &Record{Status: StatusRunning, Stage: StageImplementation}
 
 	assert.Equal(t, "state(W-001): running/implementation, status running", record.Subject("W-001", "status running"))
 }
 
 func TestIDsSortsNumerically(t *testing.T) {
+	t.Parallel()
+
 	registry := NewRegistry()
 	for _, id := range []string{"W-1000", "W-002", "W-999"} {
 		registry.Tasks[id] = &Record{}
@@ -77,6 +89,8 @@ func TestIDsSortsNumerically(t *testing.T) {
 }
 
 func TestRecordEncodeMatchesRegistryIndent(t *testing.T) {
+	t.Parallel()
+
 	data, err := plannedTask("one").Encode()
 
 	require.NoError(t, err)
