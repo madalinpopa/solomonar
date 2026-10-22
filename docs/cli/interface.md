@@ -2,8 +2,8 @@
 
 Status: design candidate, 2026-10-20. Phase 2 reference for the `solomonar` command-line interface: every command,
 its arguments, its interaction, and its output, written as use cases. Behavior that the framework already fixes
-(`assets/framework/rules.md` §7, register sections G and J) is restated here only as interface; when the two differ,
-`rules.md` wins until §11 below is applied. Example SHAs, hashes, and paths are illustrative but have their real
+(`assets/framework/rules.md` section 7, register sections G and J) is restated here only as interface; when the two differ,
+`rules.md` wins until section 11 below is applied. Example SHAs, hashes, and paths are illustrative but have their real
 length and shape.
 
 Increment 1 (section 10) is implemented and released as v0.1.0; this spec keeps the final v0.1 behavior. The
@@ -19,7 +19,7 @@ status` · 10 Delivery order · 11 Framework alignment · 12 Open decisions
   decided, and reports what Git shows. It never launches agents, calls model providers, stores review verdicts or
   reports, or runs a daemon. The only long-running command is the read-only `dashboard`.
 - **One writer for state.** Only `solomonar task` commands write `refs/heads/workflow-state:state.json`, each
-  write one compare-and-swap commit (rules §7).
+  write one compare-and-swap commit (rules section 7).
 - **Project files are copied, then owned.** `init` and the commands that add content copy embedded assets into
   the project and record each managed file in a manifest. A repeated operation with identical content is a no-op;
   a differing file is a conflict, never a silent overwrite.
@@ -260,7 +260,7 @@ Core boundary (CLI-D14, decided): the core is the current framework in `assets/f
 names as a step or a required role of the process. The core carries no technology-specific content: Go rules live in the `go`
 extension, and the four core reviewers stay language-neutral (CLI-D1; design note "Light core and extensions").
 
-A project whose stack is not known yet starts with no stack extension: the stack is decided later (rules §3), and
+A project whose stack is not known yet starts with no stack extension: the stack is decided later (rules section 3), and
 `solomonar extension add` follows that decision (UC-6).
 
 ### 4.2 Runtime adapters
@@ -274,7 +274,7 @@ the runtime frontmatter plus a one-line body that loads the portable file, so th
 |---|---|---|
 | Root instructions | `CLAUDE.md` containing `@AGENTS.md`, create-only (CLI-D3): Claude Code reads `AGENTS.md` natively only when no `CLAUDE.md` exists, so the import stays | `AGENTS.md`, read natively; nothing generated |
 | Skills | `.claude/skills/<skill>/SKILL.md` stub per installed skill | `.agents/skills/<skill>/SKILL.md` stub per installed skill |
-| Roles | `.claude/agents/<role>.md` per delegated role; reviewers get a read-only tool list; `adversarial-reviewer` gets the configured model | `.codex/agents/<role>.toml` per delegated role (`name`, `description`, `developer_instructions`, `model` for `adversarial-reviewer`); no tool allowlist, so read-only reviewers are a behavioral contract (rules §11) |
+| Roles | `.claude/agents/<role>.md` per delegated role; reviewers get a read-only tool list; `adversarial-reviewer` gets the configured model | `.codex/agents/<role>.toml` per delegated role (`name`, `description`, `developer_instructions`, `model` for `adversarial-reviewer`); no tool allowlist, so read-only reviewers are a behavioral contract (rules section 11) |
 | Orchestrator | no native agent file: it is a top-level session (G13) | same |
 | State guard | `PreToolUse` hook running `solomonar guard --runtime claude`, merged into `.claude/settings.json` | `PreToolUse` hook running `solomonar guard --runtime codex`, merged into `.codex/hooks.json`; Codex runs it only after the user trusts the project's `.codex/` layer and reviews the hook (`doctor` warns until then) |
 | Adversarial model | `--adversarial-model claude=<model>` writes `model: <model>` in its role stub | `--adversarial-model codex=<model>` writes `model = "<model>"` in its role stub |
@@ -347,12 +347,12 @@ is `skip`, never a conflict, and is not recorded in the manifest, even when it i
 exactly `@AGENTS.md`, else `exists and imports AGENTS.md`. A managed `CLAUDE.md` follows the 4.5 table.
 
 Tool lists (Claude Code): `implementer` inherits the session's tools; every reviewer gets `Read, Grep, Glob, Bash`
-(read-only for tracked files is a behavioral contract, rules §11; `Bash` is needed to run checks).
+(read-only for tracked files is a behavioral contract, rules section 11; `Bash` is needed to run checks).
 
 **Starting a session.** Print the selected runtime's invocation in `Next`: Claude Code uses `/solomonar`, Codex
 CLI/IDE uses `$solomonar` or selection from `/skills`. The portable prompt is "Use the solomonar skill". A new
 managed task takes the orchestrator role in that same top-level session. Adapter acceptance includes a real
-skill-discovery and delegation smoke test, not just checking generated paths (architecture §11).
+skill-discovery and delegation smoke test, not just checking generated paths (architecture section 11).
 
 ### 4.3 Extensions
 
@@ -488,16 +488,16 @@ when `rendered_with` is empty; `<decision>` is `solomonar` for `workflow` and `r
 **Loading.** Runtimes trigger extension skills by their `description`, but the process does not rely on that: the
 orchestrator names the installed extensions whose `applies_when` or `paths` match the change in every packet, the
 implementer loads them before writing code, and `spec-reviewer` checks their `must` rules. Triage lists installed extension
-agents beside the core specialists, required when their `applies_when` matches (rules §6).
+agents beside the core specialists, required when their `applies_when` matches (rules section 6).
 
 **Rule IDs and force** (CLI-D12). Extension rules have stable IDs `<name>/C-n`, never reused across versions. `must`
-rules are approved global rules (rules §1 authority 2) once the decision that installed the extension is approved; a
-violation is a blocking finding (rules §6). `should` rules are suggestions. Findings cite them as they cite
+rules are approved global rules (rules section 1 authority 2) once the decision that installed the extension is approved; a
+violation is a blocking finding (rules section 6). `should` rules are suggestions. Findings cite them as they cite
 `<capability>/R-n`.
 
 **What a stack extension approves.** The decision that installs it approves the technology or practice and its
 rules. It approves no version (the manifests hold versions) and no further dependency: each one still follows
-rules §3.
+rules section 3.
 
 **Decision recording** (CLI-D11). Every change to the installed set of a stack group is tied to an approved decision
 entry:
@@ -509,7 +509,7 @@ entry:
   with status `approved`, in table order, `<n>` counting on from the highest `<n>` of a line starting exactly
   `## P/D-`, digits, `:` in `docs/decisions.md` (0 when absent); the file is read only when some group needs a new
   decision. When the group already has an approved `P/D-n`, the new entry lists the full new
-  selection and sets the old one to `superseded`, naming its replacement (rules §3).
+  selection and sets the old one to `superseded`, naming its replacement (rules section 3).
 - In both cases the CLI appends one line per group to the group's document (table above), `- <group>: <a>, <b>
   (P/D-<n>)` in table order, creating the document with a title and an index line in `docs/README.md` when absent.
   It never edits other entries or lines.
@@ -519,7 +519,7 @@ entry:
   extension content. Superseding an old decision must not leave any installed extension referring to it.
   A no-op does not supersede or append a decision.
 
-Entry written by the CLI, in the fixed format from rules §3 that it also reads for `--decision`:
+Entry written by the CLI, in the fixed format from rules section 3 that it also reads for `--decision`:
 
 ```markdown
 ## P/D-2: Frontend technologies
@@ -557,7 +557,7 @@ regular file` when index lines are to be added, and `skip` otherwise.
 
 **Commands in extensions.** Extensions list typical checks (`go test ./...`, `go vet ./...`, `templ generate`,
 `govulncheck ./...`) as suggestions only. No extension writes commands into `docs/README.md`; they stay "not
-established" until the implementer records the real ones (rules §11).
+established" until the implementer records the real ones (rules section 11).
 
 Installing an extension installs its instructions and adapters, not application packages, tooling binaries, or
 manifest/lockfile dependencies. Print this distinction in stack-extension plans; approved package/version changes
@@ -1031,7 +1031,7 @@ choices not given come from the manifest, else the worktree root's base name, `m
 (absent: create; valid: reuse; invalid: `registry_exists_invalid`; newer: `cli_outdated`); the plan (`invalid_value`
 from `--keep`/`--overwrite`) and its conflicts (`file_conflict`); `--dry-run`; the confirmation; the file apply; the
 registry creation on the chosen remote when absent. A failure before the registry commit succeeds (a failed
-creation, cancellation) restores every file this run wrote (architecture §8).
+creation, cancellation) restores every file this run wrote (architecture section 8).
 
 ### UC-3 Re-run init on an initialized project
 
@@ -1117,7 +1117,7 @@ Git and the registry `create`; the plan's first line is `  git        init -b <m
 The plan counts as a write, so it needs the confirmation or `--yes`; `--dry-run` never runs `git init`. After the
 confirmation `init` runs `git init -b <main-branch> <dir>`, then applies the files and creates the registry as in
 UC-2. A failure after `git init` rolls back the files but leaves the new `.git`; a re-run adopts the files
-(architecture §8). A failing `git init` is `unexpected_error` reading `git init: <git error>` (exit 1), with nothing
+(architecture section 8). A failing `git init` is `unexpected_error` reading `git init: <git error>` (exit 1), with nothing
 written. A `file_conflict` under `--git-init` prints only the conflict lines, with no `git` line, like any conflict.
 Inside a repository `--git-init` is ignored.
 
@@ -1138,7 +1138,7 @@ are separate blocks, each separated by a blank line (UC-1).
 
 Non-interactively, adoption is the default with `--yes`; `--overwrite AGENTS.md` on this unmanaged file writes the
 full template and discards the old content; `--keep AGENTS.md` is rejected, because the framework cannot run without
-its `AGENTS.md` (I §4.5):
+its `AGENTS.md` (I section 4.5):
 
 ```
 error: init rejected (invalid_value)
@@ -1264,7 +1264,7 @@ Plan
 Record P/D-2 as your approved decision for the frontend group? [Y/n] y
 Added extension htmx (frontend skill) under P/D-2.
   note: P/D-2 approves the technology and its rules; versions stay in the manifests, and every further
-        dependency still needs approval (rules §3).
+        dependency still needs approval (rules section 3).
 Next: commit on main: git add AGENTS.md .solomonar .claude .agents docs && git commit -m "docs: adopt the htmx extension (P/D-2)"
 ```
 
@@ -1321,7 +1321,7 @@ $ solomonar extension add tdd --decision W-002/D-2
 error: extension add rejected (decision_not_approved)
   check: --decision must name an approved entry in docs/decisions.md
   found: W-002/D-2 has status pending
-  fix:   wait for the user's approval (rules §3), then rerun
+  fix:   wait for the user's approval (rules section 3), then rerun
 nothing was written
 ```
 
@@ -1510,7 +1510,7 @@ runtimes
   warn  codex: state guard hook not trusted yet; review it with /hooks
 forge
   ok    gh 2.62.0 authenticated for github.com/acme/ledger
-  ok    merge commits allowed (rules §11)
+  ok    merge commits allowed (rules section 11)
   warn  squash merges also allowed; the orchestrator must use merge commits only
 project
   warn  docs/README.md commands: run, build, test, lint not established
@@ -1542,7 +1542,7 @@ Exit 5 when any `fail`, else 0. Check catalog:
 
 ## 6. Use cases: task state
 
-All examples continue in `/work/ledger`. Worktrees live at `/work/ledger-worktrees/<ID>` (rules §4 step 4). Each
+All examples continue in `/work/ledger`. Worktrees live at `/work/ledger-worktrees/<ID>` (rules section 4 step 4). Each
 successful write prints the commit and, when a remote is configured, the push result. Every writing command accepts
 `--dry-run` and `--json`.
 
@@ -1613,7 +1613,7 @@ ID exists and is not `planned`; found `<ID> is <status>`; fix: `solomonar task s
 instead`); `owner_in_use` (the owner has a `reserved`, `running`, `blocked`, or
 `paused` task; found `<owner> owns <ID> (<status>)`; fix: choose a new owner ID such as `orchestrator-3`, since an
 orchestrator owns exactly one task). `dependency_not_done` is a warning per dependency that is not `done`, not a
-rejection: `<ID> is not done; register, then block with task block --kind dependency` (rules §4). The success line
+rejection: `<ID> is not done; register, then block with task block --kind dependency` (rules section 4). The success line
 "Registration confirmed" appears only after the compare-and-swap commit exists; `--dry-run` never prints it.
 
 `--title` and `--owner` are required; a missing one is `invalid_usage` (`--title is required`, `--owner is
@@ -1621,7 +1621,7 @@ required`); when both are missing, the error is `--title is required`. The workt
 `../<repo>-worktrees/<ID>`, where `<repo>` is the main checkout's directory name: relative when the command runs in
 the main checkout, absolute when it runs in another worktree. The base is the main branch
 (`main` until the manifest names it). Without a successful push the registry line ends at `registry @ <sha>`, the
-warnings follow on stderr, and "Registration confirmed" still prints, since a push is not required (rules §4
+warnings follow on stderr, and "Registration confirmed" still prints, since a push is not required (rules section 4
 step 3). Warnings come in the order `title_changed`, `dependency_not_done`, then the push warning (`no_remote`,
 `push_failed`, `push_interrupted`); JSON `warnings` keep that order.
 
@@ -1708,7 +1708,7 @@ W-001  running/implementation → running/specialized_review
 
 The remaining moves follow the same shape: `--stage adversarial_review --agent adv-1:adversarial-reviewer`;
 `--stage implementation` with a correction round; `--stage integration`; `--pr 42`; `--revision` for each closure
-commit (rules §9). `--json` data: `{"id": "W-001", "from": {"status": "running", "stage": "implementation"}, "to":
+commit (rules section 9). `--json` data: `{"id": "W-001", "from": {"status": "running", "stage": "implementation"}, "to":
 {"status": "running", "stage": "specialized_review"}, "changed": ["stage", "revision", "tier", "active_agents",
 "next_action"], "record": { }, "commit": "<sha>", "pushed": true}`; `changed` lists the fields in record order.
 `--dry-run` prints `Would move ` before the header, then the detail lines, the note of a cancel move (UC-18), and
@@ -1742,7 +1742,7 @@ nothing was written
 
 $ solomonar task move W-001 --as orchestrator-1 --stage adversarial_review
 error: task move W-001 rejected (stage_not_allowed)
-  check: tier 1 skips adversarial_review (rules §7)
+  check: tier 1 skips adversarial_review (rules section 7)
   found: specialized_review -> adversarial_review
   fix:   --stage integration, or record tier 2 if the triage changed: --tier 2
 nothing was written
@@ -1762,7 +1762,7 @@ without a field flag (`at least one field flag is required`); no `--as` and no `
 ### UC-15 Wait for a user decision
 
 The implementer returned `NEEDS_DECISION` on session storage. The orchestrator records the blocker and the user as
-next actor in one write, then sets `blocked` because no independent work remains (rules §3):
+next actor in one write, then sets `blocked` because no independent work remains (rules section 3):
 
 ```
 solomonar task block <ID> --kind <decision|dependency|check|environment> --summary <text> [--ref <ref>]
@@ -1850,7 +1850,7 @@ Rows are sorted by ID number. STATUS is as wide as `cancelled`; NEXT shows the `
 `--json` data: `{"registry": <state.json>, "commit": "<sha>"}`; with an ID, `{"id": "W-001", "record": { },
 "commit": "<sha>"}`.
 
-The oracle (rules §7, J3):
+The oracle (rules section 7, J3):
 
 ```
 $ solomonar task status W-001
@@ -1876,7 +1876,7 @@ forge (gh)
   checks  unknown (no PR)
 drift
   head_ahead_of_revision  HEAD is 1 commit past the recorded revision
-  dirty_worktree          1 uncommitted path; preserve it (rules §10)
+  dirty_worktree          1 uncommitted path; preserve it (rules section 10)
 allowed next
   solomonar task move W-001 --as orchestrator-1 --stage implementation --next <actor>:<action>
   solomonar task move W-001 --as orchestrator-1 --stage adversarial_review
@@ -1962,7 +1962,7 @@ W-002  paused/specification → running/specification
 $ solomonar task move W-004 --as orchestrator-4 --status cancelled --next "user:Superseded by W-005; branch and worktree kept"
 W-004  running/implementation → cancelled/implementation
   next  user: Superseded by W-005; branch and worktree kept
-  note: branch feature/W-004, its worktree, and PR are kept untouched (rules §10)
+  note: branch feature/W-004, its worktree, and PR are kept untouched (rules section 10)
   state(W-004): cancelled/implementation, status cancelled, next user
   registry @ 811967098dec97801a7bfb982e1165f9946ff5a6
 
@@ -1970,11 +1970,11 @@ $ solomonar task move W-004 --as orchestrator-4 --status running --resume-cancel
 W-004  cancelled/implementation → running/implementation
   state(W-004): running/implementation, status running
   registry @ c473d7af3f586cf94fc8d9877fc10a73c9895ab9
-warning: resuming a cancelled task requires the user's explicit instruction (rules §7)
+warning: resuming a cancelled task requires the user's explicit instruction (rules section 7)
 ```
 
 The warning goes to stderr. Without a recorded PR the note is `note: branch feature/<ID> and its worktree are kept
-untouched (rules §10)`.
+untouched (rules section 10)`.
 
 `--status paused` and `--status cancelled` require `--next` (`next_required`); `--status running` on a cancelled
 task without `--resume-cancelled` is `cancelled_requires_flag`.
@@ -1995,7 +1995,7 @@ W-002  owner orchestrator-2 → orchestrator-3 (blocked/specification)
   The previous owner must stop writing this record.
 ```
 
-`handoff` takes no `--as`: the new owner runs it on the user's instruction (rules §10). Rejections: `handoff_same_owner`,
+`handoff` takes no `--as`: the new owner runs it on the user's instruction (rules section 10). Rejections: `handoff_same_owner`,
 `owner_in_use`, `done_final`.
 
 Checks run in order: the lookup (`task_not_found`), `done_final`, `not_registered` (a `planned` task; found `<ID>
@@ -2056,7 +2056,7 @@ Next: delete the worktree only after confirming it holds no uncommitted or unmer
 `task done` uses only Git (J6). Its checks are in 8.3. The compact record keeps `title`, `status` `done`, `stage`
 `complete`, `summary` (trimmed), `spec_ref`, `merge_commit`, `pr` (when recorded), `related_task` (when recorded), and
 `updated_at`; every other field leaves the record and stays in registry history. A failed `task done` writes
-nothing; the orchestrator fixes the cause and reruns it, never reverting the merge (rules §9).
+nothing; the orchestrator fixes the cause and reruns it, never reverting the merge (rules section 9).
 
 Checks run in order: the lookup (`task_not_found`), `done_final`, ownership (`owner_required` / `owner_mismatch`, as
 `task move`), status `running` and stage `integration` (`transition_not_allowed`, found `<ID> is <status>/<stage>`,
@@ -2124,9 +2124,9 @@ command:
   those under the common Git directory of a linked worktree; use `git rev-parse --git-path` to resolve them;
 - shell commands that check out, switch to, reset, commit to, `update-ref`, or push `workflow-state`, other than
   through `solomonar`;
-- `git worktree add` for a `feature/<ID>` branch whose task is not registered (rules §4: register first);
+- `git worktree add` for a `feature/<ID>` branch whose task is not registered (rules section 4: register first);
 - `solomonar extension add` or `extension remove` of a stack-group extension without `--decision`: from an agent
-  session the change needs an approved decision entry (rules §3); only the user's own command records a `P/D-n`.
+  session the change needs an approved decision entry (rules section 3); only the user's own command records a `P/D-n`.
 
 ```
 solomonar guard --runtime <claude|codex>     reads the hook payload on stdin; never writes
@@ -2140,7 +2140,7 @@ Use: solomonar task move W-001 --as orchestrator-1 --stage <stage>   (see: solom
 ```
 
 An allowed call produces no output and exit 0. The guard is a convenience: the task commands validate every write
-regardless, and the rules stay behavioral contracts (rules §11).
+regardless, and the rules stay behavioral contracts (rules section 11).
 
 The registry is a Git blob with no filesystem checkout. A product file or fixture such as
 `internal/testdata/state.json`, or a product's root `state.json`, is not the registry and is allowed by this
@@ -2207,7 +2207,7 @@ or `reserved` past it is `transition_not_allowed`, with the fix `--status runnin
 ### 8.2 Stage transitions
 
 A stage change needs status `running` after the write (`reserved` only at `setup`); a `blocked` or `paused` task
-keeps its stage (rules §7).
+keeps its stage (rules section 7).
 
 | From | Forward | Back | Requires |
 |---|---|---|---|
@@ -2270,7 +2270,7 @@ rejection) unless the command was cancelled; any other Git failure is `unexpecte
 | `tier_required` | 3 | A stage after `implementation` without a tier | pass `--tier` with `--revision` |
 | `revision_required` | 3 | Review stage without a revision | pass `--revision` |
 | `revision_not_full_sha` | 3 | Short or malformed SHA | `git rev-parse <short>` |
-| `branch_missing` | 3 | `feature/<ID>` does not exist | create the branch and worktree (rules §4) |
+| `branch_missing` | 3 | `feature/<ID>` does not exist | create the branch and worktree (rules section 4) |
 | `worktree_missing` | 3 | `feature/<ID>` exists but no worktree has it checked out | `git worktree add ../<repo>-worktrees/<ID> feature/<ID>`, `<repo>` the main checkout's directory name |
 | `revision_not_on_branch` | 3 | SHA unknown to Git or not reachable from `feature/<ID>` | commit the candidate on `feature/<ID>` and pass its full SHA: `git -C <worktree path> rev-parse HEAD`, or `git rev-parse feature/<ID>` without a worktree |
 | `spec_required` | 3 | `implementation` without `spec` | pass `--spec` |
@@ -2283,7 +2283,7 @@ rejection) unless the command was cancelled; any other Git failure is `unexpecte
 | `handoff_same_owner` | 3 | Handoff to the current owner; found `<ID> is owned by <owner>` | - |
 | `done_final` | 3 | Any write to a `done` task, checked before ownership | register a related task (`--related`) |
 | `merge_not_on_main` | 3 | Merge commit unknown to Git or not reachable from the local main branch; found `<merge short 8> is not reachable from <main>` | `fetch and update <main>, then rerun` |
-| `merge_not_merge_commit` | 3 | The commit has fewer than two parents (squash or rebase); found `<merge short 8> has one parent`, or `<merge short 8> has no parent` for a root commit | `spec_ref` cannot survive; report to the user (rules §11) |
+| `merge_not_merge_commit` | 3 | The commit has fewer than two parents (squash or rebase); found `<merge short 8> has one parent`, or `<merge short 8> has no parent` for a root commit | `spec_ref` cannot survive; report to the user (rules section 11) |
 | `revision_not_merged` | 3 | The reviewed revision is not in the merge; found `<revision short 8> is not contained in <merge short 8>` | check that the right PR merged |
 | `spec_ref_invalid` | 3 | `spec_ref` does not resolve; found `<spec_ref> does not resolve` | copy it from the PR "Final specification" line |
 | `spec_ref_not_final` | 3 | Not the last `spec(<ID>)` commit merged, or the path differs from the recorded `spec`; found `<commit short 8>:<path> is not the last spec(<ID>) commit merged`, or `no spec(<ID>) commit is reachable from <merge short 8>^2` when none exists | `pass --spec-ref <derived full SHA>:<recorded spec>`; none when no `spec(<ID>)` commit exists |
@@ -2301,7 +2301,7 @@ Warnings (exit 0): `push_failed`, `push_interrupted`, `no_remote`, `dependency_n
 
 ### 8.5 Registry commits
 
-One commit per successful command, subject `state(<ID>): <status>/<stage>, <summary>` (rules §7; the `/<stage>`
+One commit per successful command, subject `state(<ID>): <status>/<stage>, <summary>` (rules section 7; the `/<stage>`
 part is omitted while a planned record has no stage), author and committer from the user's Git identity, parent the
 previous tip.
 
@@ -2370,7 +2370,7 @@ the forge is available with no PR. A cancelled run (e.g. Ctrl-C) is no warning: 
 | `worktree_missing` | branch exists, no worktree | `feature/<ID> has no worktree` | `git worktree add ../<repo>-worktrees/<ID> feature/<ID>` |
 | `head_ahead_of_revision` | HEAD has commits after `revision` | `HEAD is <n> commits past the recorded revision` | record the new candidate with `task move --revision` once reported |
 | `revision_not_on_branch` | `contains_revision` false (history rewritten) | `<revision short 8> is not on feature/<ID>` | `task move --stage implementation`; reviews rerun |
-| `dirty_worktree` | uncommitted changes | `<n> uncommitted paths; preserve them (rules §10)` | preserve them (rules §10) |
+| `dirty_worktree` | uncommitted changes | `<n> uncommitted paths; preserve them (rules section 10)` | preserve them (rules section 10) |
 | `spec_missing` | recorded `spec` neither in the worktree nor at `revision` | `<spec> is not in the worktree or at the revision` | commit the work spec, or correct `--spec` |
 | `blocked_without_blockers` | status `blocked`, no open blocker | `blocked without an open blocker` | `task move --status <prior>` (guidance only; not in `allowed_next`) |
 | `tier_missing` | stage `specialized_review`, `adversarial_review`, or `integration`, no tier | `stage <stage> needs a tier` | `task move --tier` with `--revision` |
@@ -2382,7 +2382,7 @@ the forge is available with no PR. A cancelled run (e.g. Ctrl-C) is no warning: 
 Drift rows apply to `reserved`, `running`, `blocked`, and `paused` records, except `owned_by_other`, which applies
 to every status whenever the record has an owner; `planned`, `cancelled`, and `done` get only `owned_by_other`.
 Entries appear in table order. With one, the messages read `HEAD is 1 commit past the recorded revision` and `1
-uncommitted path; preserve it (rules §10)`. A recorded `pr` equal to the PR's number or URL is no `pr_mismatch`.
+uncommitted path; preserve it (rules section 10)`. A recorded `pr` equal to the PR's number or URL is no `pr_mismatch`.
 `<revision short 8>` is the first 8 characters of the recorded `revision`; `<main>` is the main branch name.
 
 Each drift entry carries only `code` and `message`. The suggested command is guidance for the orchestrator, not
@@ -2406,7 +2406,7 @@ output; runnable commands appear in `allowed_next` (9.3).
   },
   "drift": [
     {"code": "head_ahead_of_revision", "message": "HEAD is 1 commit past the recorded revision"},
-    {"code": "dirty_worktree", "message": "1 uncommitted path; preserve it (rules §10)"}
+    {"code": "dirty_worktree", "message": "1 uncommitted path; preserve it (rules section 10)"}
   ],
   "allowed_next": [
     "solomonar task move W-001 --as orchestrator-1 --stage implementation --next <actor>:<action>",
@@ -2488,11 +2488,11 @@ prototype → later stack choice → implementation path as available before tha
 This section tracks alignment between the interface and framework assets; accepted audit corrections are recorded
 in register section L. Remaining rows are packaging work for the CLI implementation, not additional approvals.
 
-Applied 2026-10-21 and removed from the table: the language-neutral core reviewers with review priority (rules §6),
+Applied 2026-10-21 and removed from the table: the language-neutral core reviewers with review priority (rules section 6),
 the `go` extension (`assets/extensions/language/go/`), installed extension agents in triage, extension `must` rules
-as approved global rules (rules §1, `report.md` `Violates`), the "Extensions" section of the `AGENTS.md`
+as approved global rules (rules section 1, `report.md` `Violates`), the "Extensions" section of the `AGENTS.md`
 template, the `solomonar` entry skill with the "Route a request" section of `AGENTS.md` (CLI-D15), and the
-`reserved`-at-`setup` invariant in rules §7 Stages (CLI-D16).
+`reserved`-at-`setup` invariant in rules section 7 Stages (CLI-D16).
 
 | Change | Files |
 |---|---|
@@ -2500,26 +2500,26 @@ template, the `solomonar` entry skill with the "Route a request" section of `AGE
 | Adapter stubs instead of installed copies | register G11, G12 resolution |
 
 Applied with the accepted audit corrections on 2026-10-21: project-scoped extension decisions and complete-group
-provenance (rules §3), extension-command permission (orchestrator §1), acting identity on owner commands
-(rules §7 and orchestrator §3), atomic blocker status/next shorthands (rules §7), and the doctor checklist route
-(rules §11). The audit report records each applied correction and the remaining CLI implementation checks.
+provenance (rules section 3), extension-command permission (orchestrator section 1), acting identity on owner commands
+(rules section 7 and orchestrator section 3), atomic blocker status/next shorthands (rules section 7), and the doctor checklist route
+(rules section 11). The audit report records each applied correction and the remaining CLI implementation checks.
 
 ## 12. Open decisions
 
 | ID | Question | Options | Recommendation | Decision |
 |---|---|---|---|---|
-| CLI-D1 | How language knowledge reaches reviews | a) language-neutral core reviewers; `spec-reviewer` checks the `must` rules of the installed extension skills that apply to the change; b) one `<lang>-reviewer` role per language, rendered into the rules §6 table | a: one rules table, a language is one skill, and mixed-language changes need no extra reviewer | **a**, author, 2026-10-20; revised 2026-10-21: core reviewers are `security-reviewer` (bugs, security), `correctness-reviewer` (business logic), `spec-reviewer` (work spec and language rules), `adversarial-reviewer` |
-| CLI-D2 | How the CLI knows the acting orchestrator | a) `--as <owner>` with `SOLOMONAR_OWNER` default; b) no check, ownership stays behavioral | a: rules §7 promises ownership validation; it remains a behavioral contract, not authentication | **a**, author, 2026-10-20 |
+| CLI-D1 | How language knowledge reaches reviews | a) language-neutral core reviewers; `spec-reviewer` checks the `must` rules of the installed extension skills that apply to the change; b) one `<lang>-reviewer` role per language, rendered into the rules section 6 table | a: one rules table, a language is one skill, and mixed-language changes need no extra reviewer | **a**, author, 2026-10-20; revised 2026-10-21: core reviewers are `security-reviewer` (bugs, security), `correctness-reviewer` (business logic), `spec-reviewer` (work spec and language rules), `adversarial-reviewer` |
+| CLI-D2 | How the CLI knows the acting orchestrator | a) `--as <owner>` with `SOLOMONAR_OWNER` default; b) no check, ownership stays behavioral | a: rules section 7 promises ownership validation; it remains a behavioral contract, not authentication | **a**, author, 2026-10-20 |
 | CLI-D3 | Claude Code root instructions (G10) | a) create a one-line `CLAUDE.md` (`@AGENTS.md`) when absent, never modify an existing one; b) nothing, if Claude Code is verified to load `AGENTS.md` natively | a, unless the verification at implementation time shows b | open |
 | CLI-D4 | Does `init` commit on main | a) never; print the commit command; `doctor` fails until committed; b) `--commit` flag; c) always | a: commits on main stay the user's; b can be added later | open |
 | CLI-D5 | Prompt implementation | a) line-based prompts with the standard library; b) a full-screen prompt library (a new dependency, needs approval) | a: no dependency, scriptable, testable with piped input | **decided**, author, 2026-10-21: text prompts and confirmations line-based with the standard library; the multi-select key-driven (↑/↓, Space, Enter) in raw terminal mode through `golang.org/x/term` (architecture AD-1) |
 | CLI-D6 | Extension sources in v0.1 | a) embedded catalog and local directories; b) a, plus Git URLs | a: remote sources bring pinning and trust questions; add later with a recorded commit and hash | open |
 | CLI-D7 | Adapter file form | a) stubs that point to `docs/solomonar/`; b) full copies; c) symlinks | a: one source of content, small diffs, works where symlinks do not | open |
 | CLI-D8 | Binary name: `go install ./cmd/cli` produces `cli` | a) rename the package directory to `cmd/solomonar`; b) keep `cmd/cli`, document `go build -o solomonar ./cmd/cli` and set the name in release builds; c) `main.go` at the module root, so `go install github.com/madalinpopa/solomonar` yields `solomonar` | c: the repository holds one binary | **c**, author, 2026-10-21 (architecture AD-13) |
-| CLI-D9 | Codex specifics: skill path, native role definitions, hook support | verify each against Codex documentation before increment 1 | adopt what is verified; fall back to packets naming role files and no hook | **decided**, author, 2026-10-21, from the official docs (I §4.2): skills `.agents/skills/<skill>/SKILL.md`, the `solomonar` skill with `agents/openai.yaml` `allow_implicit_invocation: false`; roles `.codex/agents/<role>.toml` (`name`, `description`, `developer_instructions`, `model`), no tool allowlist; guard a `PreToolUse` hook in `.codex/hooks.json`, run once the user trusts it; Claude Code forms confirmed |
-| CLI-D10 | `workflow` and `review` extensions in the catalog | a) add `baseline` (records commands and known failures, rules §11) and `decision` (prepares a decision entry, rules §3) as `workflow` skills; b) none in v0.1, mechanism only | b for v0.1, as CLI-D13 fixes the catalog; a is the first candidate after it | open |
-| CLI-D11 | How a change of stack extensions is approved and recorded | a) `--decision <ID>` names an approved entry; otherwise the user's own command appends an approved project entry `P/D-n` per group, superseding the previous one, plus a line in `docs/stack.md` or `docs/architecture.md`; b) extensions install without any decision record; c) the CLI only accepts `--decision`, and the user writes every entry by hand | a: choosing a stack extension is an architecture or dependency decision (rules §3); the user's command is that explicit decision, and the record keeps rules §1 authority traceable | **a**, author, 2026-10-21: accepted workflow audit F-08; rules §3 and register L |
-| CLI-D12 | Rule IDs and force inside extension skills | a) `<name>/C-n` with `must` (approved global rule, blocking) and `should` (suggestion); b) every extension rule binding; c) extensions are guidance only | a: matches the finding handling in rules §6 and keeps preferences out of the blocking set | open |
+| CLI-D9 | Codex specifics: skill path, native role definitions, hook support | verify each against Codex documentation before increment 1 | adopt what is verified; fall back to packets naming role files and no hook | **decided**, author, 2026-10-21, from the official docs (I section 4.2): skills `.agents/skills/<skill>/SKILL.md`, the `solomonar` skill with `agents/openai.yaml` `allow_implicit_invocation: false`; roles `.codex/agents/<role>.toml` (`name`, `description`, `developer_instructions`, `model`), no tool allowlist; guard a `PreToolUse` hook in `.codex/hooks.json`, run once the user trusts it; Claude Code forms confirmed |
+| CLI-D10 | `workflow` and `review` extensions in the catalog | a) add `baseline` (records commands and known failures, rules section 11) and `decision` (prepares a decision entry, rules section 3) as `workflow` skills; b) none in v0.1, mechanism only | b for v0.1, as CLI-D13 fixes the catalog; a is the first candidate after it | open |
+| CLI-D11 | How a change of stack extensions is approved and recorded | a) `--decision <ID>` names an approved entry; otherwise the user's own command appends an approved project entry `P/D-n` per group, superseding the previous one, plus a line in `docs/stack.md` or `docs/architecture.md`; b) extensions install without any decision record; c) the CLI only accepts `--decision`, and the user writes every entry by hand | a: choosing a stack extension is an architecture or dependency decision (rules section 3); the user's command is that explicit decision, and the record keeps rules section 1 authority traceable | **a**, author, 2026-10-21: accepted workflow audit F-08; rules section 3 and register L |
+| CLI-D12 | Rule IDs and force inside extension skills | a) `<name>/C-n` with `must` (approved global rule, blocking) and `should` (suggestion); b) every extension rule binding; c) extensions are guidance only | a: matches the finding handling in rules section 6 and keeps preferences out of the blocking set | open |
 | CLI-D13 | v0.1 extension catalog | a) a catalog for every group; b) a small catalog matching the stack in use | b: `go`, `htmx`, `templ`, `tdd`; other groups take project extensions until catalog ones are written | **b**, author, 2026-10-20: `go`, `htmx`, `templ`, `tdd` |
 | CLI-D15 | The user's entry point to the process | a) a core skill `solomonar`, invoked only by the user, that routes a request to `prototype`, `spec`, or the orchestrator role taken in the same top-level session, plus a short "Route a request" section in `AGENTS.md` for sessions started without it; b) the orchestrator rules move into `AGENTS.md`, so every session is an orchestrator; c) a skill that delegates the orchestrator to a subagent | a: b loads about 600 lines into every session and every delegated role, and contradicts the implementer and reviewer contracts; c fails because a delegated subagent cannot delegate the implementer and reviewers | **a**, author, 2026-10-21; framework files installed under `docs/solomonar/` instead of `docs/framework/` |
 | CLI-D14 | Core boundary | a) core = what `rules.md` names as a process step or required role: `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`; `prototype`, `spec`, `work-spec`; b) core = `orchestrator`, `implementer`, `work-spec`; reviewers and discovery skills become extensions | a: the review gates and the prototype-to-spec flow are the process; making them optional turns a required review into a choice | **a**, author, 2026-10-20: the current framework in `assets/framework/` is the core, with language-neutral core reviewers and Go rules in the `go` extension (CLI-D1, revised 2026-10-21) |
