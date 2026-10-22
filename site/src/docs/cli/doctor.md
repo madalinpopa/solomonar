@@ -10,7 +10,7 @@ sources:
   - docs/cli/interface.md
 ---
 
-> This command is in development and not in the current build; running it today exits 2 with an unknown-command error. The behavior and example come from the [interface specification]({{ 'docs/cli/interface.md' | source }}), so the final output may differ in detail.
+> This command is in development and not in the current build; running it today exits 2 with an unknown-command error. This page describes the planned behavior; the final output may differ in detail.
 
 Read-only. Checks the repository, the registry, the managed files, the installed extensions, the runtime adapters, the forge settings, and the project commands, then prints `ok`, `warn`, or `fail` for each check. It exits 5 when any check fails, else 0.
 
@@ -29,7 +29,7 @@ solomonar doctor [--json]
 | git | Git older than 2.40, no repository, no commit on main, unusable worktrees | A `.jj/` directory |
 | registry | A missing or invalid registry, or a schema or framework newer than this CLI | No remote, or an unpublished local registry |
 | files | An invalid manifest, missing managed files, or managed files not committed on main | Managed files modified since installation |
-| extensions | A stack extension without an approved decision, unmet `requires` or `conflicts`, stale rendering, an incomplete core | - |
+| extensions | A stack extension without an approved decision for its group's full selection, unmet `requires` or `conflicts`, stale rendering, an incomplete core; drafts are not checked | - |
 | runtimes | Adapter files out of sync, as `sync --check` reports | `CLAUDE.md` not loading `AGENTS.md`, or a missing guard hook |
 | forge | A repository that does not allow merge commits | `gh` missing or not authenticated, squash or rebase merges also allowed |
 | project | - | Commands in `docs/README.md` not established |
