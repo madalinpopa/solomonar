@@ -108,11 +108,20 @@ func TestExtensionWantsInstallsTheEmbeddedGoExtension(t *testing.T) {
 		map[string]string{"language": "P/D-4"})
 
 	require.NoError(t, err)
-	require.Len(t, wants, 1)
-	assert.Equal(t, "docs/solomonar/skills/go/SKILL.md", wants[0].Path)
-	assert.Equal(t, "ext:go", wants[0].Owner)
+	require.Len(t, wants, 5)
+	var paths []string
+	for _, want := range wants {
+		paths = append(paths, want.Path)
+		assert.Equal(t, "ext:go", want.Owner)
+	}
+	assert.Equal(t, []string{
+		"docs/solomonar/skills/go/SKILL.md",
+		"docs/solomonar/skills/go/rules/go/concurrency.md",
+		"docs/solomonar/skills/go/rules/go/design.md",
+		"docs/solomonar/skills/go/rules/go/io.md",
+		"docs/solomonar/skills/go/rules/go/testing.md",
+	}, paths)
 	assert.Contains(t, string(wants[0].Content), "\n# Go language rules\n\nInstalled by P/D-4.\n\n")
-	assert.NotContains(t, string(wants[0].Content), "## With tdd")
 	assert.Equal(t, Extension{
 		State: "installed", Kind: "skill", Group: "language", Source: "catalog",
 		Decision: "P/D-4",

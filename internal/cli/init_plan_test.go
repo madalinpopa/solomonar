@@ -205,6 +205,10 @@ func TestInteractiveInitShowsTheGroupedPlan(t *testing.T) {
 			"    create     docs/README.md\n"+
 			"  extensions\n"+
 			"    create     docs/solomonar/skills/go/SKILL.md\n"+
+			"    create     docs/solomonar/skills/go/rules/go/concurrency.md\n"+
+			"    create     docs/solomonar/skills/go/rules/go/design.md\n"+
+			"    create     docs/solomonar/skills/go/rules/go/io.md\n"+
+			"    create     docs/solomonar/skills/go/rules/go/testing.md\n"+
 			"    create     docs/solomonar/skills/htmx/SKILL.md\n"+
 			"    create     docs/solomonar/skills/templ/SKILL.md  rendered with: htmx\n"+
 			"  decisions (approved, selected by you)\n"+

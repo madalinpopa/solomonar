@@ -42,7 +42,7 @@ func TestInitUC2WithGo(t *testing.T) {
 	got := runInRepo(t, dir, goArgs()...)
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Contains(t, got.stdout, "  22 files created\n")
+	assert.Contains(t, got.stdout, "  26 files created\n")
 	assert.Contains(t, got.stdout, "\nNext:\n"+commitStep("AGENTS.md .solomonar docs"))
 	files := tree(t, dir)
 	assert.Contains(t, files["docs/solomonar/skills/go/SKILL.md"], "\n# Go language rules\n\nInstalled by P/D-1.\n\n")
@@ -57,6 +57,11 @@ func TestInitUC2WithGo(t *testing.T) {
 	manifest := manifestOf(t, dir)
 	assert.Equal(t, goEntry("P/D-1"), manifest.Extensions)
 	assert.Equal(t, "decision", manifest.Files["docs/decisions.md"].Owner)
+	for _, topic := range []string{"concurrency", "design", "io", "testing"} {
+		path := "docs/solomonar/skills/go/rules/go/" + topic + ".md"
+		assert.NotEmpty(t, files[path], path)
+		assert.Equal(t, "ext:go", manifest.Files[path].Owner, path)
+	}
 }
 
 func TestInitWithGoJSON(t *testing.T) {
@@ -79,17 +84,31 @@ func TestInitWithGoJSON(t *testing.T) {
 	assert.JSONEq(t, `[{"id": "P/D-1", "group": "language", "selected": ["go"]}]`, string(envelope.Data.Decisions))
 }
 
-func TestInitWithGoAndClaudeAddsTheSkillStub(t *testing.T) {
+func TestInitWithGoAddsTheRuntimeSkillStub(t *testing.T) {
 	t.Parallel()
 
-	dir := committedRepo(t)
+	tests := []struct {
+		runtime string
+		path    string
+	}{
+		{runtime: "claude", path: ".claude/skills/go/SKILL.md"},
+		{runtime: "codex", path: ".agents/skills/go/SKILL.md"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.runtime, func(t *testing.T) {
+			t.Parallel()
 
-	got := runInRepo(t, dir, "init", "--runtime", "claude", "--ext", "go", "--yes")
+			dir := committedRepo(t)
 
-	require.Equal(t, 0, got.exit, got.stderr)
-	stub := tree(t, dir)[".claude/skills/go/SKILL.md"]
-	assert.True(t, strings.HasPrefix(stub, "---\nname: go\n"), stub)
-	assert.True(t, strings.HasSuffix(stub, "Load `docs/solomonar/skills/go/SKILL.md` and follow it.\n"), stub)
+			got := runInRepo(t, dir, "init", "--runtime", tt.runtime, "--ext", "go", "--yes")
+
+			require.Equal(t, 0, got.exit, got.stderr)
+			stub := tree(t, dir)[tt.path]
+			assert.True(t, strings.HasPrefix(stub, "---\nname: go\n"), stub)
+			assert.True(t, strings.HasSuffix(stub, "Load `docs/solomonar/skills/go/SKILL.md` and follow it.\n"), stub)
+			assert.Equal(t, "runtime:"+tt.runtime, manifestOf(t, dir).Files[tt.path].Owner)
+		})
+	}
 }
 
 func TestInitSelectsExtensions(t *testing.T) {
@@ -219,7 +238,7 @@ func TestInitRerunWithGoIsNoOp(t *testing.T) {
 
 			require.Equal(t, 0, got.exit, got.stderr)
 			assert.Contains(t, got.stdout, "Already initialized with solomonar "+shipped+"; nothing to do.\n"+
-				"  21 files unchanged, 1 skipped · registry")
+				"  25 files unchanged, 1 skipped · registry")
 			assertNothingWritten(t, dir, before, tip)
 		})
 	}
@@ -275,7 +294,7 @@ func TestInitAppendsToExistingDecisions(t *testing.T) {
 	got := runInRepo(t, dir, goArgs()...)
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Contains(t, got.stdout, "  21 files created, 1 updated\n")
+	assert.Contains(t, got.stdout, "  25 files created, 1 updated\n")
 	decisions := tree(t, dir)["docs/decisions.md"]
 	assert.True(t, strings.HasPrefix(decisions,
 		"# Decisions\n\n## P/D-3: Storage\n\n- Status: approved\n\n## P/D-4: Programming languages\n"), decisions)

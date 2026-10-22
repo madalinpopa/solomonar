@@ -2,6 +2,7 @@ package project
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -104,23 +105,16 @@ func TestRenderTheGoSkill(t *testing.T) {
 	content, err := os.ReadFile("../../assets/extensions/language/go/SKILL.md")
 	require.NoError(t, err)
 	tests := []struct {
-		name       string
-		installed  []string
-		provenance string
-		with       []string
-		keepsC20   bool
+		name      string
+		installed []string
 	}{
 		{
-			name:       "with tdd",
-			installed:  []string{"go", "tdd"},
-			provenance: "# Go language rules\n\nInstalled by P/D-1; rendered with: tdd.\n\nFramework version:",
-			with:       []string{"tdd"},
-			keepsC20:   true,
+			name:      "with tdd",
+			installed: []string{"go", "tdd"},
 		},
 		{
-			name:       "without tdd",
-			installed:  []string{"go"},
-			provenance: "# Go language rules\n\nInstalled by P/D-1.\n\nFramework version:",
+			name:      "without tdd",
+			installed: []string{"go"},
 		},
 	}
 	for _, tt := range tests {
@@ -129,15 +123,10 @@ func TestRenderTheGoSkill(t *testing.T) {
 
 			rendered, with := Render(content, "go", tt.installed, "P/D-1")
 
-			assert.Contains(t, string(rendered), tt.provenance)
-			if tt.keepsC20 {
-				assert.Contains(t, string(rendered), "\n\n- go/C-20 (must):")
-			} else {
-				assert.NotContains(t, string(rendered), "go/C-20")
-			}
-			assert.NotContains(t, string(rendered), "solomonar:with")
-			assert.Contains(t, string(rendered), "\n## Suggested checks\n")
-			assert.Equal(t, tt.with, with)
+			want := strings.Replace(string(content), "# Go language rules\n\n",
+				"# Go language rules\n\nInstalled by P/D-1.\n\n", 1)
+			assert.Equal(t, want, string(rendered))
+			assert.Empty(t, with)
 		})
 	}
 }
