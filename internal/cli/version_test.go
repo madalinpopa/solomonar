@@ -57,7 +57,7 @@ func putManifestVersions(t *testing.T, dir, content string) {
 func TestVersionReportsTheProject(t *testing.T) {
 	t.Parallel()
 
-	const current = `{"schema_version": 1, "framework_version": "0.1.0"}`
+	current := `{"schema_version": 1, "framework_version": "` + shipped + `"}`
 	tests := []struct {
 		name     string
 		manifest string
@@ -66,23 +66,23 @@ func TestVersionReportsTheProject(t *testing.T) {
 	}{
 		{
 			name: "manifest and registry", manifest: current, registry: `{"schema_version": 1, "tasks": {}}`,
-			want: "framework 0.1.0 · registry schema 1",
+			want: "framework " + shipped + " · registry schema 1",
 		},
 		{
 			name: "registry missing", manifest: current,
-			want: "framework 0.1.0 · registry missing",
+			want: "framework " + shipped + " · registry missing",
 		},
 		{
 			name: "newer framework", manifest: `{"schema_version": 1, "framework_version": "0.10.0"}`, registry: `{"schema_version": 1}`,
 			want: "framework 0.10.0 · registry schema 1 (newer than this CLI; install solomonar 0.10.0 or later)",
 		},
 		{
-			name: "newer manifest schema", manifest: `{"schema_version": 2, "framework_version": "0.1.0", "added": true}`, registry: `{"schema_version": 1}`,
-			want: "framework 0.1.0 · registry schema 1 (newer than this CLI; install a newer solomonar release)",
+			name: "newer manifest schema", manifest: `{"schema_version": 2, "framework_version": "` + shipped + `", "added": true}`, registry: `{"schema_version": 1}`,
+			want: "framework " + shipped + " · registry schema 1 (newer than this CLI; install a newer solomonar release)",
 		},
 		{
 			name: "newer registry schema", manifest: current, registry: `{"schema_version": 2, "added": true}`,
-			want: "framework 0.1.0 · registry schema 2 (newer than this CLI; install a newer solomonar release)",
+			want: "framework " + shipped + " · registry schema 2 (newer than this CLI; install a newer solomonar release)",
 		},
 		{
 			name: "unreadable manifest versions", manifest: `{"schema_version": "one"}`, registry: `{"schema_version": 1}`,
@@ -90,7 +90,7 @@ func TestVersionReportsTheProject(t *testing.T) {
 		},
 		{
 			name: "unreadable registry", manifest: current, registry: `{"tasks": {}}`,
-			want: "framework 0.1.0 · registry invalid",
+			want: "framework " + shipped + " · registry invalid",
 		},
 		{
 			name: "unreadable registry with newer framework", manifest: `{"schema_version": 1, "framework_version": "0.2.0"}`, registry: `[`,
@@ -110,7 +110,7 @@ func TestVersionReportsTheProject(t *testing.T) {
 			got := runInRepo(t, dir, "version")
 
 			require.Equal(t, 0, got.exit, got.stderr)
-			assert.Equal(t, "solomonar devel (embedded framework 0.1.0)\nproject   "+tt.want+"\n", got.stdout)
+			assert.Equal(t, "solomonar devel (embedded framework "+shipped+")\nproject   "+tt.want+"\n", got.stdout)
 			assert.Empty(t, got.stderr)
 		})
 	}
@@ -138,7 +138,7 @@ func TestVersionWithoutProjectIsNotInitialized(t *testing.T) {
 			got := runInRepo(t, dir, "version")
 
 			require.Equal(t, 0, got.exit, got.stderr)
-			assert.Equal(t, "solomonar devel (embedded framework 0.1.0)\nproject   not initialized\n", got.stdout)
+			assert.Equal(t, "solomonar devel (embedded framework "+shipped+")\nproject   not initialized\n", got.stdout)
 			assert.Empty(t, got.stderr)
 		})
 	}
@@ -154,20 +154,20 @@ func TestVersionJSONReportsTheProject(t *testing.T) {
 		want     string
 	}{
 		{
-			name: "manifest and registry", manifest: `{"schema_version": 1, "framework_version": "0.1.0"}`,
-			registry: `{"schema_version": 1, "tasks": {}}`, want: `"project_framework": "0.1.0", "registry_schema": 1`,
+			name: "manifest and registry", manifest: `{"schema_version": 1, "framework_version": "` + shipped + `"}`,
+			registry: `{"schema_version": 1, "tasks": {}}`, want: `"project_framework": "` + shipped + `", "registry_schema": 1`,
 		},
 		{
-			name: "registry missing", manifest: `{"schema_version": 1, "framework_version": "0.1.0"}`,
-			want: `"project_framework": "0.1.0", "registry_schema": null`,
+			name: "registry missing", manifest: `{"schema_version": 1, "framework_version": "` + shipped + `"}`,
+			want: `"project_framework": "` + shipped + `", "registry_schema": null`,
 		},
 		{
 			name: "unreadable manifest versions", manifest: `{}`, registry: `{"schema_version": 1}`,
 			want: `"project_framework": null, "registry_schema": null`,
 		},
 		{
-			name: "unreadable registry", manifest: `{"schema_version": 1, "framework_version": "0.1.0"}`, registry: `{}`,
-			want: `"project_framework": "0.1.0", "registry_schema": null`,
+			name: "unreadable registry", manifest: `{"schema_version": 1, "framework_version": "` + shipped + `"}`, registry: `{}`,
+			want: `"project_framework": "` + shipped + `", "registry_schema": null`,
 		},
 	}
 	for _, tt := range tests {
@@ -186,7 +186,7 @@ func TestVersionJSONReportsTheProject(t *testing.T) {
 			assert.JSONEq(t, `{
 				"ok": true,
 				"command": "version",
-				"data": {"cli": "devel", "framework": "0.1.0", `+tt.want+`},
+				"data": {"cli": "devel", "framework": "`+shipped+`", `+tt.want+`},
 				"warnings": []
 			}`, got.stdout)
 		})
