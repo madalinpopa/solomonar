@@ -9,7 +9,8 @@ import (
 	"strings"
 )
 
-// ExtensionWants returns the installed extensions' rendered files and manifest entries (I §4.3).
+// ExtensionWants returns the installed extensions' rendered files and manifest entries
+// (I section 4.3).
 func ExtensionWants(assets fs.FS, installed []CatalogExtension, decisions map[string]string,
 ) ([]Want, map[string]Extension, error) {
 	sorted := slices.SortedFunc(slices.Values(installed), func(a, b CatalogExtension) int {
@@ -89,7 +90,7 @@ func extensionFiles(assets fs.FS, e CatalogExtension) ([]string, error) {
 	return files, err
 }
 
-// extensionsBlock renders the AGENTS.md skill and agent lists, by group then name (I §4.6).
+// extensionsBlock renders the AGENTS.md skill and agent lists, by group then name (I section 4.6).
 func extensionsBlock(installed []CatalogExtension) string {
 	sorted := slices.SortedFunc(slices.Values(installed), func(a, b CatalogExtension) int {
 		return cmp.Or(cmp.Compare(slices.Index(groups(), a.Group), slices.Index(groups(), b.Group)),

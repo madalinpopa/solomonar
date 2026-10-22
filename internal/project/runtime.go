@@ -16,7 +16,7 @@ type portable struct {
 	id, name, description string
 }
 
-// RuntimeWants returns the adapter stubs of the given runtimes, claude before codex (I §4.2).
+// RuntimeWants returns the adapter stubs of the given runtimes, claude before codex (I section 4.2).
 func RuntimeWants(assets fs.FS, runtimes []string, models map[string]string, framework string,
 	extensions []CatalogExtension,
 ) ([]Want, error) {

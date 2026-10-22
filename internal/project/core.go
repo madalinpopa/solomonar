@@ -22,7 +22,7 @@ type Choices struct {
 	Documents        []string
 }
 
-// CoreWants returns the framework files, AGENTS.md, and docs/README.md (I §4.1).
+// CoreWants returns the framework files, AGENTS.md, and docs/README.md (I section 4.1).
 func CoreWants(assets fs.FS, c Choices) ([]Want, error) {
 	var wants []Want
 	err := fs.WalkDir(assets, "framework", func(name string, d fs.DirEntry, err error) error {

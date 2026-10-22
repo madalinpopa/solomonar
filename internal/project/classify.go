@@ -24,7 +24,7 @@ type Want struct {
 	CreateOnly bool
 }
 
-// Classify plans the wanted paths (I §4.5) and returns their manifest files entries.
+// Classify plans the wanted paths (I section 4.5) and returns their manifest files entries.
 func Classify(root *os.Root, m *Manifest, wants []Want, keep, overwrite []string) (Plan, map[string]File, error) {
 	for _, path := range keep {
 		if slices.Contains(overwrite, path) {
@@ -136,7 +136,7 @@ func classifyNotes(change Change, content, disk []byte, base string) (Change, []
 	return compare(change, managed, offer, written, base), written
 }
 
-// compare applies the I §4.5 rules to disk, offer, and base; an update writes written.
+// compare applies the I section 4.5 rules to disk, offer, and base; an update writes written.
 func compare(change Change, disk, offer, written []byte, base string) Change {
 	switch {
 	case bytes.Equal(disk, offer):

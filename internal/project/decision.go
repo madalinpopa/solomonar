@@ -17,7 +17,7 @@ const (
 	decisionsPath    = "docs/decisions.md"
 )
 
-// Decision is one approved decision a plan records (I §5 UC-1).
+// Decision is one approved decision a plan records (I section 5 UC-1).
 type Decision struct {
 	ID       string   `json:"id"`
 	Group    string   `json:"group"`
@@ -57,7 +57,7 @@ func decisionTitles() map[string]string {
 	}
 }
 
-// PlanDecisions plans one approved entry per stack group without a recorded decision (I §4.3).
+// PlanDecisions plans one approved entry per stack group without a recorded decision (I section 4.3).
 func PlanDecisions(root *os.Root, existing *Manifest, installed []CatalogExtension, date string) (Decisions, error) {
 	d := Decisions{Files: decisionFiles(existing), Records: []Decision{}, ByGroup: map[string]string{}}
 	selection := stackSelection(installed)
@@ -126,7 +126,7 @@ func stackSelection(installed []CatalogExtension) map[string][]CatalogExtension 
 	return selection
 }
 
-// newDecision returns a decision, its rules §3 entry, and its group document line.
+// newDecision returns a decision, its rules section 3 entry, and its group document line.
 func newDecision(id, group string, selected []CatalogExtension, date string) (record Decision, entry, line string) {
 	names := make([]string, 0, len(selected))
 	var refs []string

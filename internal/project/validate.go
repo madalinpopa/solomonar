@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-// Groups lists the extension groups in the I §4.3 order.
+// Groups lists the extension groups in the I section 4.3 order.
 func Groups() []string { return groups() }
 
 func groups() []string {

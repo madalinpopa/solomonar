@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// Catalog maps each embedded extension name to its metadata (I §4.3).
+// Catalog maps each embedded extension name to its metadata (I section 4.3).
 type Catalog map[string]CatalogExtension
 
 // CatalogExtension is one extension.json and the catalog directory that holds it.

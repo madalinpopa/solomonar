@@ -1,6 +1,6 @@
 package project
 
-// Action is what a plan does to one path (I §3.3).
+// Action is what a plan does to one path (I section 3.3).
 type Action string
 
 // Plan actions; Apply acts only on create, update, append (written like update), and remove.

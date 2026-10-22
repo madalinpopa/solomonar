@@ -58,11 +58,11 @@ linters:
           files: ["$all", "!$test"]
           deny:
             - pkg: reflect
-              desc: no reflection (architecture §3)
+              desc: no reflection (architecture section 3)
             - pkg: unsafe
-              desc: no unsafe (architecture §3)
+              desc: no unsafe (architecture section 3)
             - pkg: log
-              desc: packages return errors; only cli writes output (architecture §8)
+              desc: packages return errors; only cli writes output (architecture section 8)
         exec-only-in-git:
           list-mode: lax
           files: ["$all", "!$test", "!**/internal/git/**"]
@@ -74,13 +74,13 @@ linters:
           files: ["**/internal/task/**", "**/internal/project/**", "**/internal/git/**", "**/internal/dashboard/**"]
           deny:
             - pkg: github.com/madalinpopa/solomonar/internal/cli
-              desc: dependencies point away from cli (architecture §5)
+              desc: dependencies point away from cli (architecture section 5)
         task-without-project:
           list-mode: lax
           files: ["**/internal/task/**"]
           deny:
             - pkg: github.com/madalinpopa/solomonar/internal/project
-              desc: cli passes the installed roles to task (architecture §5)
+              desc: cli passes the installed roles to task (architecture section 5)
         git-is-a-leaf:
           list-mode: lax
           files: ["**/internal/git/**"]
@@ -88,7 +88,7 @@ linters:
             - github.com/madalinpopa/solomonar/internal/git # gittest and the external test package
           deny:
             - pkg: github.com/madalinpopa/solomonar/internal
-              desc: internal/git imports no other internal package (architecture §5)
+              desc: internal/git imports no other internal package (architecture section 5)
     forbidigo:
       forbid:
         - pattern: ^os\.Exit$
@@ -100,9 +100,9 @@ linters:
         - pattern: ^fmt\.Print(f|ln)?$
           msg: write to the cli.Env writers (AD-4)
         - pattern: ^(print|println|panic)$
-          msg: return an error (architecture §8)
+          msg: return an error (architecture section 8)
         - pattern: ^exec\.Command$
-          msg: use exec.CommandContext so cancellation reaches the child (architecture §8)
+          msg: use exec.CommandContext so cancellation reaches the child (architecture section 8)
     gocognit:
       min-complexity: 20
     godoclint:
@@ -124,7 +124,7 @@ linters:
       max: 5
     misspell:
       locale: US
-      ignore-rules: [cancelled] # registry status and error code, rules §7
+      ignore-rules: [cancelled] # registry status and error code, rules section 7
     nakedret:
       max-func-lines: 0
     nolintlint:

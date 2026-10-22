@@ -7,7 +7,8 @@ import (
 	"strings"
 )
 
-// Render keeps the "## With" sections whose extensions are installed and adds provenance (I §4.3).
+// Render keeps the "## With" sections whose extensions are installed and adds provenance
+// (I section 4.3).
 func Render(content []byte, self string, installed []string, decision string) (rendered []byte, with []string) {
 	lines := slices.Collect(bytes.Lines(content))
 	var out [][]byte

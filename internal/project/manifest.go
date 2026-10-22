@@ -21,7 +21,7 @@ const ManifestSchemaVersion = 1
 // ManifestPath is where the manifest lives, relative to the repository root.
 const ManifestPath = ".solomonar/manifest.json"
 
-// Manifest is the decoded .solomonar/manifest.json (I §4.7).
+// Manifest is the decoded .solomonar/manifest.json (I section 4.7).
 type Manifest struct {
 	SchemaVersion    int                  `json:"schema_version"`
 	FrameworkVersion string               `json:"framework_version"`
@@ -53,14 +53,14 @@ type Extension struct {
 	Decision     string   `json:"decision,omitempty"`
 	RenderedWith []string `json:"rendered_with,omitempty"`
 	Title        string   `json:"title,omitempty"`
-	// omitzero keeps a project extension's empty lists, as in the I §4.7 draft.
+	// omitzero keeps a project extension's empty lists, as in the I section 4.7 draft.
 	Requires    []string `json:"requires,omitzero"`
 	Conflicts   []string `json:"conflicts,omitzero"`
 	AppliesWhen string   `json:"applies_when,omitempty"`
 	Paths       []string `json:"paths,omitzero"`
 }
 
-// File is one managed file and its ownership class (I §4.5).
+// File is one managed file and its ownership class (I section 4.5).
 type File struct {
 	Owner   string   `json:"owner"`
 	SHA256  string   `json:"sha256,omitempty"`

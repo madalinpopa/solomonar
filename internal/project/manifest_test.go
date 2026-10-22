@@ -16,7 +16,7 @@ const (
 	emptyHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 )
 
-// example is the I §4.7 manifest with real hashes.
+// example is the I section 4.7 manifest with real hashes.
 const example = `{
   "schema_version": 1,
   "framework_version": "0.1.0",

@@ -20,7 +20,7 @@ type Requested struct {
 	AdversarialModels        map[string]string
 }
 
-// InitPlan plans init's files and builds the manifest, whose change comes last (I §4.7).
+// InitPlan plans init's files and builds the manifest, whose change comes last (I section 4.7).
 func InitPlan(root *os.Root, existing *Manifest, wants []Want, keep, overwrite []string, p Project,
 	runtimes map[string]Runtime, extensions map[string]Extension, decisions Decisions, framework string,
 ) (Plan, *Manifest, error) {
