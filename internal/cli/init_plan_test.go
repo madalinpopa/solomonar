@@ -91,10 +91,14 @@ const uc1Plan = "  framework 0.1.0\n" +
 	"    create     .solomonar/manifest.json\n"
 
 func TestGroupedPlanSummarizesUC1(t *testing.T) {
+	t.Parallel()
+
 	assert.Equal(t, uc1Plan, uc1Run().groupedPlan())
 }
 
 func TestGroupedPlanKeepsSetsWithReasonsOrMixedActions(t *testing.T) {
+	t.Parallel()
+
 	const claudeReason = "exists; add this line so Claude Code loads the framework:  @AGENTS.md"
 	changes := []project.Change{
 		{Path: "docs/solomonar/agents/implementer.md", Action: project.ActionUnchanged, Owner: "core"},
@@ -136,6 +140,8 @@ func TestGroupedPlanKeepsSetsWithReasonsOrMixedActions(t *testing.T) {
 }
 
 func TestGroupedPlanOmitsEmptyGroups(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		run  initRun
@@ -163,6 +169,8 @@ func TestGroupedPlanOmitsEmptyGroups(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assert.Equal(t, tt.want, tt.run.groupedPlan())
 		})
 	}
