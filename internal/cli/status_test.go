@@ -168,6 +168,8 @@ func TestTaskStatusUC17MergedNotDone(t *testing.T) {
 }
 
 func TestTaskStatusDoneRecord(t *testing.T) {
+	t.Parallel()
+
 	f := doneRepo(t)
 	putRecord(t, f.dir, task.Record{
 		Title: "Login", Status: task.StatusDone, Stage: task.StageComplete, PR: "42", Summary: "Password login",
@@ -256,6 +258,8 @@ func TestTaskStatusWithoutGHWarns(t *testing.T) {
 }
 
 func TestTaskStatusBlockedOwnedByOther(t *testing.T) {
+	t.Parallel()
+
 	dir, _ := registryRepo(t)
 	putTask(t, dir, blockedTask())
 	getenv := func(name string) string {
@@ -277,6 +281,8 @@ func TestTaskStatusBlockedOwnedByOther(t *testing.T) {
 }
 
 func TestTaskStatusRejections(t *testing.T) {
+	t.Parallel()
+
 	const fix = "  fix:   run solomonar help\nnothing was written\n"
 	tests := []struct {
 		name   string
@@ -297,6 +303,8 @@ func TestTaskStatusRejections(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir, _ := registryRepo(t)
 
 			got := runInRepo(t, dir, append([]string{"task", "status"}, tt.args...)...)
@@ -309,6 +317,8 @@ func TestTaskStatusRejections(t *testing.T) {
 }
 
 func TestTaskStatusHelp(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, repoAssets(t), "help", "task", "status")
 
 	require.Equal(t, 0, got.exit, got.stderr)
