@@ -14,6 +14,8 @@ import (
 )
 
 func TestRunReturnsTrimmedStdout(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 	repo := &git.Repo{Dir: dir}
 
@@ -24,6 +26,8 @@ func TestRunReturnsTrimmedStdout(t *testing.T) {
 }
 
 func TestRunFailureReturnsErrorWithExitStatusAndStderr(t *testing.T) {
+	t.Parallel()
+
 	repo := &git.Repo{Dir: gittest.NewRepo(t)}
 
 	_, err := repo.Run(t.Context(), "rev-parse", "--verify", "missing")
@@ -37,6 +41,8 @@ func TestRunFailureReturnsErrorWithExitStatusAndStderr(t *testing.T) {
 }
 
 func TestRunInputFeedsStdin(t *testing.T) {
+	t.Parallel()
+
 	repo := &git.Repo{Dir: gittest.NewRepo(t)}
 
 	id, err := repo.RunInput(t.Context(), strings.NewReader("hello\n"), "hash-object", "--stdin")
@@ -46,6 +52,8 @@ func TestRunInputFeedsStdin(t *testing.T) {
 }
 
 func TestRunWithCancelledContextReturnsCanceled(t *testing.T) {
+	t.Parallel()
+
 	repo := &git.Repo{Dir: gittest.NewRepo(t)}
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
@@ -56,6 +64,8 @@ func TestRunWithCancelledContextReturnsCanceled(t *testing.T) {
 }
 
 func TestRunWritesTraceLineBeforeCommand(t *testing.T) {
+	t.Parallel()
+
 	var trace strings.Builder
 	repo := &git.Repo{Dir: gittest.NewRepo(t), Trace: &trace}
 
@@ -68,6 +78,8 @@ func TestRunWritesTraceLineBeforeCommand(t *testing.T) {
 }
 
 func TestRunWithoutTraceSucceeds(t *testing.T) {
+	t.Parallel()
+
 	repo := &git.Repo{Dir: gittest.NewRepo(t)}
 
 	_, err := repo.Run(t.Context(), "status")
