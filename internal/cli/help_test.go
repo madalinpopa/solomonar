@@ -12,7 +12,7 @@ const wantTopLevelHelp = `Usage: solomonar [global flags] <command> [flags] [arg
 Commands:
   help            Print help for a command
   init            Install the framework core and create the registry
-  version         Print CLI, embedded framework, and project framework versions
+  version         Print the CLI and project framework versions
   task block      Add a blocker to a task
   task done       Complete a task after its merge
   task handoff    Hand off a task to a new owner
@@ -113,7 +113,7 @@ func TestHelpJSONWrapsTheText(t *testing.T) {
 	assert.JSONEq(t, `{
 		"ok": true,
 		"command": "help",
-		"data": {"help": "Usage: solomonar version\n\nPrint CLI, embedded framework, and project framework versions.\nOutside a project the project line reads \"not initialized\".\n\nGlobal flags: see 'solomonar help'.\n"},
+		"data": {"help": "Usage: solomonar version\n\nPrint the CLI and project framework versions.\nOutside a project the project line reads \"not initialized\".\n\nGlobal flags: see 'solomonar help'.\n"},
 		"warnings": []
 	}`, got.stdout)
 }
