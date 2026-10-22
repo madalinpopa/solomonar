@@ -987,7 +987,7 @@ Next:
   1. git add AGENTS.md CLAUDE.md .claude .solomonar docs && git commit -m "chore: initialize solomonar 0.1.0"
   2. Start a top-level Claude Code session in /work/ledger:
        /solomonar Explore the next useful flow.
-warning: no remote "origin"; workflow-state stays local (rules §7)
+warning: no remote "origin"; the registry stays local
 ```
 
 The warning goes to stderr. The success form is `Initialized solomonar <fw> in <root>`, `  <counts>` (3.3),
