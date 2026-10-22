@@ -51,6 +51,8 @@ func withBlocker(r *Record) *Record {
 }
 
 func TestRecordMoveUC13(t *testing.T) {
+	t.Parallel()
+
 	r := moving(StatusReserved, StageSetup, nil)
 	steps := []struct {
 		move    Move
@@ -72,6 +74,8 @@ func TestRecordMoveUC13(t *testing.T) {
 }
 
 func TestRecordMove(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		before  *Record
@@ -132,6 +136,8 @@ func TestRecordMove(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			changed, err := tt.before.Move(tt.move, installedRoles(), clock())
 
 			assertCode(t, err, tt.code)
@@ -141,6 +147,8 @@ func TestRecordMove(t *testing.T) {
 }
 
 func TestRecordMoveRejectionTexts(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		before *Record
@@ -159,6 +167,8 @@ func TestRecordMoveRejectionTexts(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, err := tt.before.Move(tt.move, installedRoles(), clock())
 
 			rejection := rejectionOf(t, err)
@@ -169,6 +179,8 @@ func TestRecordMoveRejectionTexts(t *testing.T) {
 }
 
 func TestRecordMoveKeepsRecordOnRejection(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		move Move
@@ -181,6 +193,8 @@ func TestRecordMoveKeepsRecordOnRejection(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			r := moving(StatusRunning, StageImplementation, nil)
 			want := *r
 
@@ -193,6 +207,8 @@ func TestRecordMoveKeepsRecordOnRejection(t *testing.T) {
 }
 
 func TestRecordCheckOwner(t *testing.T) {
+	t.Parallel()
+
 	r := moving(StatusRunning, StageSpecification, nil)
 
 	require.NoError(t, r.CheckOwner("W-001", "orchestrator-1"))
@@ -206,6 +222,8 @@ func TestRecordCheckOwner(t *testing.T) {
 }
 
 func TestRecordMoveUpdatedAt(t *testing.T) {
+	t.Parallel()
+
 	r := moving(StatusRunning, StageImplementation, nil)
 	_, err := r.Move(Move{Revision: sha}, installedRoles(), clock())
 	require.NoError(t, err)
