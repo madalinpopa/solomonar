@@ -1,9 +1,7 @@
 version: "2"
-
 run:
   timeout: 5m
   relative-path-mode: gomod
-
 linters:
   default: standard
   enable:
@@ -36,7 +34,6 @@ linters:
     - usestdlibvars
     - usetesting
     - wastedassign
-
   settings:
     depguard:
       rules:
@@ -55,6 +52,7 @@ linters:
             - github.com/madalinpopa/solomonar
             - github.com/stretchr/testify/assert
             - github.com/stretchr/testify/require
+            - github.com/rogpeppe/go-internal/testscript # transcript tests of the binary
         banned:
           list-mode: lax
           files: ["$all", "!$test"]
@@ -91,7 +89,6 @@ linters:
           deny:
             - pkg: github.com/madalinpopa/solomonar/internal
               desc: internal/git imports no other internal package (architecture §5)
-
     forbidigo:
       forbid:
         - pattern: ^os\.Exit$
@@ -106,43 +103,33 @@ linters:
           msg: return an error (architecture §8)
         - pattern: ^exec\.Command$
           msg: use exec.CommandContext so cancellation reaches the child (architecture §8)
-
     gocognit:
       min-complexity: 20
-
     godoclint:
       default: basic
       enable: [max-len, no-unused-link]
       options:
         max-len:
           length: 100
-
     gosec:
       config:
         G301: "0755"
         G306: "0644"
-
     govet:
       enable-all: true
       disable: [fieldalignment, shadow]
-
     iface:
       enable: [identical, unused, opaque]
-
     interfacebloat:
       max: 5
-
     misspell:
       locale: US
       ignore-rules: [cancelled] # registry status and error code, rules §7
-
     nakedret:
       max-func-lines: 0
-
     nolintlint:
       require-explanation: true
       require-specific: true
-
     revive:
       rules:
         - name: blank-imports
@@ -166,18 +153,14 @@ linters:
         - name: use-any
         - name: var-declaration
         - name: var-naming
-
     staticcheck:
       checks: ["all", "-ST1000"]
-
     tagliatelle:
       case:
         rules:
           json: snake
-
     testifylint:
       enable-all: true
-
   exclusions:
     generated: strict
     warn-unused: true
@@ -186,14 +169,13 @@ linters:
       - std-error-handling
       - common-false-positives
     rules:
-      - path: (^|/)main\.go$
+      - path: (^|/)main(_test)?\.go$
         linters: [forbidigo]
       - path: ^internal/git/
         text: G204
         linters: [gosec]
       - path: _test\.go$
         linters: [gocognit, gosec, unparam]
-
 formatters:
   enable:
     - gofumpt
@@ -203,7 +185,6 @@ formatters:
       module-path: github.com/madalinpopa/solomonar
     goimports:
       local-prefixes: [github.com/madalinpopa/solomonar]
-
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
