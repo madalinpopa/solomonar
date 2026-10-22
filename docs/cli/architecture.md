@@ -30,36 +30,17 @@ Requirements come from the interface spec and `assets/framework/rules.md` sectio
 
 ## 2. Analysis of the interface design
 
-The interface spec is complete and consistent enough to build from: every command has its arguments, output,
-rejections, and exit code. The points below are where it affects the build, ordered by impact.
-
-| # | Finding | Proposal | State |
-|---|---|---|---|
-| F1 | Prior status after `blocked`/`paused` was derived from registry history: a walk of `workflow-state` commits on every `unblock` or resume. | A task is `reserved` exactly while at `setup`, so the prior status follows from the stage. | Decided, CLI-D16; applied to rules section 7 and I section 8.1. |
-| F2 | Positionals come before flags (`task move W-001 --stage …`), and shared flags appear before and after the command. The standard `flag` package stops at the first non-flag argument. | Interspersed parsing helper over `flag.FlagSet` (AD-2); `--json`, `-v`, `--no-color`, `-C` registered on every command's set. | Adopted. |
-| F3 | "A partial file write is rolled back" (I section 3.5) for commands that write tens of files. | Plan first, apply with a journal, roll back the files this run touched (AD-6). | Adopted. |
-| F4 | An unmanaged file identical to what `init` would write is a conflict, so a re-run after a crash fails on the run's own files. | Treat identical content as `unchanged (adopted)` and record it in the manifest. | Decided, CLI-D17. |
-| F5 | `upgrade --diff` needs a text diff; the standard library has none. | `git diff --no-index --no-color <tmp-embedded> <path>`. | Adopted. |
-| F6 | The guard (UC-22) recognizes registry writes inside arbitrary shell commands. | Best effort: resolve protected Git ref paths for file tools and recognize mutating shell operations on `workflow-state`. Ordinary product `state.json` files and read-only inspection are allowed; test real payloads. | Adopted; narrowed by audit F-06. |
-| F7 | `--runtime` defaults to "detected on `PATH`" also with `--yes`. | Keep; the plan and the JSON `choices` show the detected list. | No change. |
-| F8 | Interrupt handling is not specified. | The exit code reports what was written: 128 + signal before the swap, 0 with `push_interrupted` after it. | Decided, CLI-D18. |
-| F9 | CLI-D8 (binary name) was still "deferred". | Root `main.go` (AD-13). | Decided, CLI-D8 c; applied. |
-| F10 | `already_initialized` is reused for a rejected downgrade (UC-9), and with strict decoding (AD-7) any command would report a newer registry as `registry_invalid`. | `cli_outdated` for every command that reads the manifest or the registry, checked before decoding. | Decided, CLI-D19. |
-
-Clarifications the implementation settles this way unless the spec says otherwise:
-
-- "Active" for `owner_in_use` means `reserved`, `running`, `blocked`, `paused`.
-- A plan followed by a prompt goes to stderr, so stdout carries only results; `--dry-run` plans go to stdout.
-- `spec_ref_not_final` takes the first `spec(<ID>):` subject in `git log --topo-order --format="%H %s" <merge>^2`
-  (topological order, not commit date), never `--grep`, which also matches body lines.
+The findings F1 to F10 are applied: F1, F4, F8, and F10 became CLI-D16 to CLI-D19, F2 is AD-2, F3 is AD-6, F6 is the
+guard scope of I UC-22, and F9 is AD-13. F5: `upgrade --diff` runs `git diff --no-index --no-color <tmp-embedded>
+<path>`. F7: `--runtime` keeps the `PATH` default with `--yes`; the plan and the JSON `choices` show it. One
+clarification remains: a plan followed by a prompt goes to stderr, so stdout carries only results; `--dry-run` plans
+go to stdout.
 
 ## 3. Toolchain
 
 - **Go 1.27.3**, the latest stable patch (go.dev/doc/devel/release, 2026-10-19), as `go.mod` declares.
-- **One production dependency** in increments 1 and 2 (AD-1): `golang.org/x/term`, for raw terminal mode in the
-  multi-select (CLI-D5; author, 2026-10-21); everything else is the standard library. The only other module
-  dependencies are test-only: `github.com/stretchr/testify` v1.12.1, packages `assert` and `require` (AD-14), added
-  with the first test, and `github.com/rogpeppe/go-internal` v1.16.0, package `testscript` (AD-15), for transcript
+- **One production dependency**, `golang.org/x/term` (AD-1). The only other module dependencies are test-only:
+  `github.com/stretchr/testify` v1.12.1, packages `assert` and `require` (AD-14), added with the first test, and `github.com/rogpeppe/go-internal` v1.16.0, package `testscript` (AD-15), for transcript
   tests of the binary.
   Development tools are pinned in `Taskfile.yml` (section 10) and never enter `go.mod`.
 
@@ -540,38 +521,19 @@ rejection code); prompts stay in-process because the binary prompts only when bo
 
 ## 12. Implementation plan (increment 1)
 
-Increment 1 of I section 10: `init`, every `task` command, `version`, `help`. Each step ends with `task check` green.
-
-This is an internal milestone. The full new-project journey with a stack chosen after discovery also requires
-`extension add` in increment 2; label that limitation in demos and release notes.
-
-| Step | Objective and scope | Acceptance criteria | Tests |
-|---|---|---|---|
-| 1 | **Skeleton.** `main.go` (AD-13), `cli.Run`, command table, interspersed parsing, shared flags, help, `version`, `cli.Error`, envelope, exit codes; testify enters `go.mod` with the first test. | `solomonar version` prints UC-24 outside a project; `solomonar nope` exits 2; `--json` prints one envelope; `-h` on any command prints its help. | Use-case tests for UC-24, usage errors, envelope shape. |
-| 2 | **Git runner.** `internal/git`: run with context and stdin, `-v` trace, repository discovery from `-C` and worktrees, Git version check. | The main checkout and a feature worktree resolve the same common directory; Git < 2.40 is reported. | Temp repositories with a worktree. |
-| 3 | **Registry model and rules.** `task` types, strict decoding, validation, I section 8.1 and section 8.2 as tables, CLI-D16 invariant, field rules, ID allocation. No Git. | Every row of I section 8.1 and section 8.2 is accepted or rejected with its I section 8.4 code. | Table tests only. |
-| 4 | **Store, `task plan`, `task show`.** Swap loop, commit subjects (I section 8.5), push with warning; registry creation as a function (used by tests now, by `init` in step 8). | UC-11, UC-16 (`show`), UC-21 pass; a lost swap re-validates; a newer `schema_version` is `cli_outdated`; a cancel before the swap writes nothing, a cancel during the push exits 0 with `push_interrupted`. | Concurrency test with `-race`; push to a bare remote and to a missing one; cancellation through the test's context. |
-| 5 | **`task register`, `task move`.** Ownership, I section 8.3 fact checks, every UC-14 rejection. | UC-12, UC-13, UC-14, UC-18 pass in human and JSON form. | Real repositories with `feature/<ID>` branches and worktrees. |
-| 6 | **`task block`, `unblock`, `handoff`, `done`.** Blocker IDs, prior status from the stage, merge and `spec_ref` checks. | UC-15, UC-19, UC-20 pass; a squash merge is rejected with `merge_not_merge_commit`. | Repositories with a merge commit, a squash, and a rebased branch. |
-| 7 | **`task status`.** Facts, drift, `allowed_next`, optional `gh`. | UC-16 (`status`) and UC-17 pass; without `gh` the forge facts are `unknown`, never passing. | Fake `gh` on `PATH`; each drift row produced by a repository state. |
-| 8 | **`init`, non-interactive, core only.** Manifest, plan/apply with rollback, core files, `AGENTS.md` and `docs/README.md` from templates, registry creation, re-run no-op, conflicts, `--keep`/`--overwrite`, `--dry-run`. | UC-2 with `--runtime none --ext none`, UC-3, and the non-interactive UC-4 cases pass; a re-run over files left without a manifest adopts them (CLI-D17); keep preserves the upstream base; manifest apply precedes registry CAS. | File-tree assertions plus F-02/F-09: a failing file write or CAS rolls back this run's entire file plan, including the manifest. |
-| 9 | **`init` with runtimes and catalog extensions.** Adapter stubs, `.claude/settings.json` merge, extension rendering, `requires`/`conflicts`, `P/D-n` entries, `docs/stack.md`. | UC-2 with `--runtime claude,codex --ext go`; a repeated `init` stays a no-op. | `fstest.MapFS` catalog with `With` sections; the settings merge keeps foreign keys. |
-| 10 | **Interactive `init`.** Line prompts, key-driven multi-select (`golang.org/x/term`), `AGENTS.md` adoption, `--git-init` prompt, `interactive_required`. | UC-1 and the interactive UC-4 branches pass with scripted stdin. | Prompt tests with `strings.Reader`. |
-
-Increments 2 and 3 follow I section 10 and are planned in detail after increment 1, because their main inputs (CLI-D9
-for Codex, the guard's real hook payloads) are verified only then.
+Delivered in ten steps, each ending with `task check` green, and released as v0.1.0 (I section 10). Increments 2 and 3
+are planned in detail before they start, once their inputs (CLI-D9 for Codex, the guard's real hook payloads) are
+verified.
 
 ## 13. Open questions
 
-None. Resolved on 2026-10-21: Q1 as CLI-D16; Q2 as CLI-D17; Q3 as CLI-D18; Q4 as CLI-D19; Q5 as AD-11; Q6 as
-AD-12; Q7 by moving the interface spec to `docs/cli/interface.md`; Q8 as AD-13 and CLI-D8 c.
+None.
 
 ## 14. Non-goals and deferred work
 
 - Not built: agent launching, model calls, verdict storage, a daemon, a cache, multiple writable clones of the
   registry, Jujutsu support (I section 1, rules section 11).
-- Deferred to increment 2: `doctor`, `sync`, `runtime`, `extension` commands, `guard`.
-- Deferred to increment 3: `upgrade` (with `--diff` through `git diff --no-index`), `dashboard`.
+- Increments 2 and 3: I section 10.
 - Deferred until a concrete need: shell completion (and with it AD-2), Git URL extension sources
   (CLI-D6), Windows (AD-11), a configuration file, any environment variable beyond `SOLOMONAR_OWNER` and
   `NO_COLOR`.
