@@ -34,6 +34,8 @@ Run 'solomonar help <command>' for details.
 `
 
 func TestHelpPrintsTopLevelHelp(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		args []string
@@ -44,6 +46,8 @@ func TestHelpPrintsTopLevelHelp(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := runCLI(t, repoAssets(t), tt.args...)
 
 			require.Equal(t, 0, got.exit, got.stderr)
@@ -53,6 +57,8 @@ func TestHelpPrintsTopLevelHelp(t *testing.T) {
 }
 
 func TestCommandHelpIsTheSameEitherWay(t *testing.T) {
+	t.Parallel()
+
 	viaHelp := runCLI(t, repoAssets(t), "help", "version")
 	viaFlag := runCLI(t, repoAssets(t), "version", "-h")
 
@@ -63,6 +69,8 @@ func TestCommandHelpIsTheSameEitherWay(t *testing.T) {
 }
 
 func TestHelpFlagWinsOverExtraArguments(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, repoAssets(t), "version", "extra", "-h")
 
 	require.Equal(t, 0, got.exit, got.stderr)
@@ -70,6 +78,8 @@ func TestHelpFlagWinsOverExtraArguments(t *testing.T) {
 }
 
 func TestHelpForHelpCommand(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, repoAssets(t), "help", "-h")
 
 	require.Equal(t, 0, got.exit, got.stderr)
@@ -77,6 +87,8 @@ func TestHelpForHelpCommand(t *testing.T) {
 }
 
 func TestHelpForUnknownCommandExitsTwo(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, repoAssets(t), "help", "nope")
 
 	assert.Equal(t, 2, got.exit)
@@ -84,6 +96,8 @@ func TestHelpForUnknownCommandExitsTwo(t *testing.T) {
 }
 
 func TestHelpWithTwoArgumentsExitsTwo(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, repoAssets(t), "help", "a", "b")
 
 	assert.Equal(t, 2, got.exit)
@@ -91,6 +105,8 @@ func TestHelpWithTwoArgumentsExitsTwo(t *testing.T) {
 }
 
 func TestHelpJSONWrapsTheText(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, repoAssets(t), "--json", "help", "version")
 
 	require.Equal(t, 0, got.exit, got.stderr)
@@ -103,6 +119,8 @@ func TestHelpJSONWrapsTheText(t *testing.T) {
 }
 
 func TestCommandHelpFlagJSONNamesTheCommand(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, repoAssets(t), "version", "--json", "-h")
 
 	require.Equal(t, 0, got.exit, got.stderr)
