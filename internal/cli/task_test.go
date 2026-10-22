@@ -39,6 +39,8 @@ func registryTip(t *testing.T, dir string) string {
 }
 
 func TestTaskPlanPrintsCommitAndPush(t *testing.T) {
+	t.Parallel()
+
 	dir, _ := registryRepo(t)
 	addRemote(t, dir)
 
@@ -54,6 +56,8 @@ func TestTaskPlanPrintsCommitAndPush(t *testing.T) {
 }
 
 func TestTaskPlanJSON(t *testing.T) {
+	t.Parallel()
+
 	dir, _ := registryRepo(t)
 	addRemote(t, dir)
 	runInRepo(t, dir, "task", "plan", "--title", "first")
@@ -76,6 +80,8 @@ func TestTaskPlanJSON(t *testing.T) {
 }
 
 func TestTaskPlanWithoutRemoteWarns(t *testing.T) {
+	t.Parallel()
+
 	dir, _ := registryRepo(t)
 
 	got := runInRepo(t, dir, "task", "plan", "--title", "local")
@@ -86,6 +92,8 @@ func TestTaskPlanWithoutRemoteWarns(t *testing.T) {
 }
 
 func TestTaskPlanDryRunWritesNothing(t *testing.T) {
+	t.Parallel()
+
 	dir, _ := registryRepo(t)
 	before := registryTip(t, dir)
 
@@ -110,6 +118,8 @@ func TestTaskPlanDryRunWritesNothing(t *testing.T) {
 }
 
 func TestTaskPlanRejections(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		args   []string
@@ -142,6 +152,8 @@ func TestTaskPlanRejections(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir, _ := registryRepo(t)
 			before := registryTip(t, dir)
 
@@ -156,7 +168,6 @@ func TestTaskPlanRejections(t *testing.T) {
 }
 
 func TestTaskCommandsOutsideRegistry(t *testing.T) {
-	gittest.Isolate(t)
 	outside := gittest.Resolved(t, t.TempDir())
 	t.Setenv("GIT_CEILING_DIRECTORIES", filepath.Dir(outside))
 	uninitialized := gittest.NewRepo(t)
@@ -218,6 +229,8 @@ func showRepo(t *testing.T) string {
 }
 
 func TestTaskShowOverview(t *testing.T) {
+	t.Parallel()
+
 	dir := showRepo(t)
 
 	got := runInRepo(t, dir, "task", "show")
@@ -232,6 +245,8 @@ func TestTaskShowOverview(t *testing.T) {
 }
 
 func TestTaskShowEmptyRegistry(t *testing.T) {
+	t.Parallel()
+
 	dir, _ := registryRepo(t)
 
 	got := runInRepo(t, dir, "task", "show")
@@ -242,6 +257,8 @@ func TestTaskShowEmptyRegistry(t *testing.T) {
 }
 
 func TestTaskShowRecordPrintsStoredJSON(t *testing.T) {
+	t.Parallel()
+
 	dir := showRepo(t)
 
 	got := runInRepo(t, dir, "task", "show", "W-010")
@@ -253,6 +270,8 @@ func TestTaskShowRecordPrintsStoredJSON(t *testing.T) {
 }
 
 func TestTaskShowJSON(t *testing.T) {
+	t.Parallel()
+
 	dir := showRepo(t)
 	tip := registryTip(t, dir)
 
@@ -280,6 +299,8 @@ func TestTaskShowJSON(t *testing.T) {
 }
 
 func TestTaskShowUnknownID(t *testing.T) {
+	t.Parallel()
+
 	dir := showRepo(t)
 
 	got := runInRepo(t, dir, "task", "show", "W-404")
@@ -289,6 +310,8 @@ func TestTaskShowUnknownID(t *testing.T) {
 }
 
 func TestTaskGroupNeedsSubcommand(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		args []string
@@ -299,6 +322,8 @@ func TestTaskGroupNeedsSubcommand(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := runCLI(t, repoAssets(t), tt.args...)
 
 			assert.Equal(t, 2, got.exit)
@@ -308,6 +333,8 @@ func TestTaskGroupNeedsSubcommand(t *testing.T) {
 }
 
 func TestTaskHelpIsTheSameEitherWay(t *testing.T) {
+	t.Parallel()
+
 	viaHelp := runCLI(t, repoAssets(t), "help", "task", "plan")
 	viaFlag := runCLI(t, repoAssets(t), "task", "plan", "-h")
 
@@ -317,6 +344,8 @@ func TestTaskHelpIsTheSameEitherWay(t *testing.T) {
 }
 
 func TestVerboseTracesGitOnStderr(t *testing.T) {
+	t.Parallel()
+
 	dir, _ := registryRepo(t)
 
 	got := runInRepo(t, dir, "-v", "task", "show")
@@ -349,6 +378,8 @@ func trunkRepo(t *testing.T) doneFixture {
 }
 
 func TestTaskPlanPushesToManifestRemote(t *testing.T) {
+	t.Parallel()
+
 	dir, _ := registryRepo(t)
 	gittest.Git(t, dir, "remote", "add", "upstream", gittest.NewBareRemote(t))
 	putManifest(t, dir, project.ManifestSchemaVersion, "upstream", "trunk")
@@ -361,6 +392,8 @@ func TestTaskPlanPushesToManifestRemote(t *testing.T) {
 }
 
 func TestTaskRegisterBranchesFromManifestMainBranch(t *testing.T) {
+	t.Parallel()
+
 	dir, _ := registryRepo(t)
 	putManifest(t, dir, project.ManifestSchemaVersion, "origin", "trunk")
 
@@ -371,6 +404,8 @@ func TestTaskRegisterBranchesFromManifestMainBranch(t *testing.T) {
 }
 
 func TestTaskDoneChecksManifestMainBranch(t *testing.T) {
+	t.Parallel()
+
 	f := trunkRepo(t)
 
 	got := runInRepo(t, f.dir, f.args()...)
@@ -380,6 +415,8 @@ func TestTaskDoneChecksManifestMainBranch(t *testing.T) {
 }
 
 func TestTaskStatusMergedOnManifestMainBranch(t *testing.T) {
+	t.Parallel()
+
 	f := trunkRepo(t)
 
 	got := runInRepo(t, f.dir, "task", "status", "W-001", "--no-forge")
@@ -390,6 +427,8 @@ func TestTaskStatusMergedOnManifestMainBranch(t *testing.T) {
 }
 
 func TestTaskCommandsRejectUnreadableManifest(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		schema int
@@ -425,6 +464,8 @@ func TestTaskCommandsRejectUnreadableManifest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir, _ := registryRepo(t)
 			putTask(t, dir, reservedTask())
 			putManifest(t, dir, tt.schema, tt.remote, "main")
