@@ -91,7 +91,7 @@ A container built with a subpath needs a matching proxy mount; the supplied Ngin
 
 The homepage focuses on **spec-driven development for AI coding agents**. Documentation pages cover distinct tasks: getting started, installation, project setup, a first task, the framework, the task lifecycle, state tracking, the name's origin, workflow examples, troubleshooting, CLI commands, and project files. Keep each page's front matter title and description specific to its content. Shared metadata lives in `src/_includes/base.njk` and `src/_data/site.js`.
 
-Open Graph and X large-image cards use each page's title, description, and canonical URL, plus the shared `src/assets/social-card.png`. The card is a 1200 × 630 PNG; `social-card.svg` is its editable source, reusing the supplied dragon geometry. Export the SVG at those dimensions when updating the card. The PNG is referenced in HTML metadata and adds no image request to normal page loads.
+Open Graph and X large-image cards use each page's title, description, and canonical URL, plus the shared `src/assets/social-card.png`. The card is a 1200 × 630 PNG under 300 KB: the cross-stitch solomonar centered on the artwork's dark background (`#191614`). Keep those dimensions when replacing it. The PNG is referenced in HTML metadata and adds no image request to normal page loads.
 
 The homepage describes the open-source project with `SoftwareSourceCode` JSON-LD. The sitemap lists only canonical content pages. The custom 404 is `noindex, follow`, has no canonical, and stays out of the sitemap. There are no client-side redirects or catch-all routes.
 
