@@ -19,6 +19,8 @@ func blocked(stage Stage) *Record {
 }
 
 func TestBlockTaskAddsBlocker(t *testing.T) {
+	t.Parallel()
+
 	registry := registryOf(moving(StatusRunning, StageImplementation, nil))
 
 	result, err := registry.BlockTask("W-001", "orchestrator-1", sessionStorage(), clock())
@@ -37,6 +39,8 @@ func TestBlockTaskAddsBlocker(t *testing.T) {
 }
 
 func TestBlockTaskWithStatusAndNextIsOneWrite(t *testing.T) {
+	t.Parallel()
+
 	registry := registryOf(moving(StatusRunning, StageImplementation, nil))
 	b := sessionStorage()
 	b.Status, b.Next = "blocked", "user:Decide W-001/D-1: session storage"
@@ -51,6 +55,8 @@ func TestBlockTaskWithStatusAndNextIsOneWrite(t *testing.T) {
 }
 
 func TestBlockTaskAtSetupBlocksReservedTask(t *testing.T) {
+	t.Parallel()
+
 	registry := registryOf(moving(StatusReserved, StageSetup, nil))
 
 	result, err := registry.BlockTask("W-001", "orchestrator-1",
@@ -62,6 +68,8 @@ func TestBlockTaskAtSetupBlocksReservedTask(t *testing.T) {
 }
 
 func TestBlockerIDsAreNeverReused(t *testing.T) {
+	t.Parallel()
+
 	registry := registryOf(moving(StatusRunning, StageImplementation, nil))
 	b := Block{Kind: "check", Summary: "CI is red"}
 
@@ -77,6 +85,8 @@ func TestBlockerIDsAreNeverReused(t *testing.T) {
 }
 
 func TestBlockTaskRejects(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		before *Record
@@ -93,6 +103,8 @@ func TestBlockTaskRejects(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			registry := registryOf(tt.before)
 			want := *tt.before
 
@@ -105,6 +117,8 @@ func TestBlockTaskRejects(t *testing.T) {
 }
 
 func TestBlockTaskStatusFix(t *testing.T) {
+	t.Parallel()
+
 	registry := registryOf(moving(StatusRunning, StageImplementation, nil))
 
 	_, err := registry.BlockTask("W-001", "orchestrator-1", Block{Kind: "check", Summary: "CI is red", Status: "paused"}, clock())
@@ -114,6 +128,8 @@ func TestBlockTaskStatusFix(t *testing.T) {
 }
 
 func TestUnblockTaskResumesPriorStatus(t *testing.T) {
+	t.Parallel()
+
 	before := moving(StatusRunning, StageImplementation, nil)
 	before.ActiveAgents = []Agent{{ID: "impl-1", Role: "implementer"}}
 	registry := registryOf(before)
@@ -137,6 +153,8 @@ func TestUnblockTaskResumesPriorStatus(t *testing.T) {
 }
 
 func TestUnblockTaskKeepsBlockedWhileBlockersRemain(t *testing.T) {
+	t.Parallel()
+
 	before := blocked(StageImplementation)
 	before.Blockers = append(before.Blockers, Blocker{ID: "B-2", Kind: BlockerDependency, Summary: "W-002 lands first"})
 	before.LastBlocker = 2
@@ -153,6 +171,8 @@ func TestUnblockTaskKeepsBlockedWhileBlockersRemain(t *testing.T) {
 }
 
 func TestUnblockTaskLastBlockerNeedsPriorStatus(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		before *Record
@@ -165,6 +185,8 @@ func TestUnblockTaskLastBlockerNeedsPriorStatus(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			registry := registryOf(tt.before)
 			want := *tt.before
 
@@ -178,6 +200,8 @@ func TestUnblockTaskLastBlockerNeedsPriorStatus(t *testing.T) {
 }
 
 func TestUnblockTaskRejects(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		before    *Record
@@ -194,6 +218,8 @@ func TestUnblockTaskRejects(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			registry := registryOf(tt.before)
 			want := *tt.before
 
@@ -206,6 +232,8 @@ func TestUnblockTaskRejects(t *testing.T) {
 }
 
 func TestUnblockTaskBlockerNotFoundWording(t *testing.T) {
+	t.Parallel()
+
 	registry := registryOf(blocked(StageImplementation))
 
 	_, err := registry.UnblockTask("W-001", "orchestrator-1", "B-9", "running", "", clock())
