@@ -1,0 +1,36 @@
+# Rejected task commands exit with their code and leave the registry tip unchanged.
+exec git init -q -b main ledger
+cd ledger
+exec solomonar init --runtime none --ext none --yes
+exec git add -A
+exec git commit -q -m 'chore: initialize solomonar'
+exec solomonar task register --title Login --owner orchestrator-1
+exec git rev-parse refs/heads/workflow-state
+cp stdout ../tip.txt
+
+# Without --as and without SOLOMONAR_OWNER there is no acting owner: a usage error.
+exitcode 2 solomonar task move W-001 --next user:Review
+! stdout .
+stderr '^error: task move needs an acting owner \(owner_required\)$'
+
+# Another owner is rejected; with --json the rejection is the only output, on stdout.
+exitcode 3 solomonar --json task move W-001 --as orchestrator-2 --next user:Review
+! stderr .
+stdout '"code": "owner_mismatch"'
+stdout '"message": "task move W-001 rejected"'
+
+# A transition the rules forbid.
+env SOLOMONAR_OWNER=orchestrator-1
+exitcode 3 solomonar task move W-001 --stage specification
+stderr '^error: task move W-001 rejected \(transition_not_allowed\)$'
+stderr '^nothing was written$'
+
+# A fact check: the stage needs feature/W-001, then a worktree that has it checked out.
+exitcode 3 solomonar task move W-001 --status running --stage specification
+stderr '^error: task move W-001 rejected \(branch_missing\)$'
+exec git branch feature/W-001
+exitcode 3 solomonar task move W-001 --status running --stage specification
+stderr '^error: task move W-001 rejected \(worktree_missing\)$'
+
+exec git rev-parse refs/heads/workflow-state
+cmp stdout ../tip.txt
