@@ -503,13 +503,15 @@ the version `+dirty` (AD-10). Only the `release` job can write, and it builds wi
 |---|---|---|
 | Rules | I §8.1 and §8.2 tables, field rules, ID allocation, blocker IDs, `allowed_next` | Table-driven tests in `task`, no Git. One row per allowed and per rejected transition. |
 | Registry I/O | Strict decoding, schema validation, stable encoding | Table tests with JSON inputs, including duplicate and unknown keys. |
-| Git facts | Fact checks (I §8.3), `task status` facts and drift (I §9) | Real repositories in `t.TempDir()` built by helpers (`newRepo`, `commit`, `worktree`), isolated with `t.Setenv("GIT_CONFIG_GLOBAL", …)` and author and committer variables. |
+| Git facts | Fact checks (I §8.3), `task status` facts and drift (I §9) | Real repositories in `t.TempDir()` built by `gittest` helpers (`NewRepo`, `Commit`, `Worktree`). `gittest.Main`, called from each package's `TestMain`, sets `GIT_CONFIG_GLOBAL`, `GIT_CONFIG_NOSYSTEM`, and the author and committer variables once for the test binary. |
 | Concurrency | The swap loop (UC-21) | Two goroutines register against one repository; both succeed with distinct IDs; run with `-race`. A second test: re-validation rejects a concurrent claim of the same planned ID. |
 | Project files | Plans, conflicts, the upgrade table (UC-9), `With` sections, adapters | `fstest.MapFS` as the catalog; temp directories as projects; assert on `Plan` values, then on files after `Apply`; rollback tested with a write that fails midway. |
 | Use cases | Every UC of the increment, human and JSON forms, exit codes | In-process `cli.Run` with buffers, a fixed clock, and `os.DirFS` of `assets/`; JSON compared with `assert.JSONEq`; a few human outputs as golden files in `testdata/`, refreshed with `-update`. |
 | Prompts | Text, confirmation, multi-select keys and redraws, EOF, Ctrl-C, `interactive_required` | `Env.Interactive`, a no-op `Env.RawMode`, and byte streams as stdin. |
 | Transcripts | The process boundary: exit codes, stdout and stderr kept apart, the embedded assets, no terminal, the real environment and working directory, `-C` and worktrees; a few end-to-end journeys | `testscript` over the binary (AD-15): `testdata/*.txtar`, file names prefixed by area (`cli_`, `init_`, `task_`). `Setup` isolates Git as the in-process tests do; each script creates its own repository with `exec git`. The custom command `exitcode <code> <command> [args...]` asserts an exact exit code (I §3.5). They run only with `INTEGRATION=true` (any value `strconv.ParseBool` reads as true), as `task test:integration` sets it; CI does not run them yet. Exact output with `cmp` only for stable text; timestamps and versions by regular expression, since the binary's clock is real. |
 
+Tests and subtests call `t.Parallel()`, except those that change the process environment (`t.Setenv`, `PATH`
+through `gittest.FakeGH`, `NoGH`, `PathWith`) and subtests that advance one shared repository in order.
 Assertions use testify (AD-14), except in transcripts, which assert with script commands; test helpers that build repositories take `t`, call `t.Helper()`, and use
 `require`. Tests require `git` ≥ 2.40 on `PATH` and fail with that message otherwise. `gh` is never called in tests:
 `--no-forge`, or a fake `gh` script placed first on `PATH`.
