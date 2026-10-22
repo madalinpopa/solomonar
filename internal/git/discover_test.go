@@ -14,6 +14,8 @@ import (
 )
 
 func TestDiscoverFromMainCheckout(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 
 	repo, err := git.Discover(t.Context(), dir, nil)
@@ -24,6 +26,8 @@ func TestDiscoverFromMainCheckout(t *testing.T) {
 }
 
 func TestDiscoverFromSubdirectoryFindsWorktreeRoot(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 	sub := filepath.Join(dir, "a", "b")
 	require.NoError(t, os.MkdirAll(sub, 0o755))
@@ -35,6 +39,8 @@ func TestDiscoverFromSubdirectoryFindsWorktreeRoot(t *testing.T) {
 }
 
 func TestDiscoverFromWorktreeSharesCommonDir(t *testing.T) {
+	t.Parallel()
+
 	mainDir := gittest.NewRepo(t)
 	gittest.Commit(t, mainDir, "initial")
 	featureDir := gittest.Worktree(t, mainDir, "feature/T-1")
@@ -50,6 +56,8 @@ func TestDiscoverFromWorktreeSharesCommonDir(t *testing.T) {
 }
 
 func TestDiscoverTracesAndKeepsTrace(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 	var trace strings.Builder
 
@@ -61,7 +69,6 @@ func TestDiscoverTracesAndKeepsTrace(t *testing.T) {
 }
 
 func TestDiscoverOutsideRepositoryReturnsErrNotRepository(t *testing.T) {
-	gittest.Isolate(t)
 	dir := gittest.Resolved(t, t.TempDir())
 	t.Setenv("GIT_CEILING_DIRECTORIES", filepath.Dir(dir))
 
@@ -72,7 +79,8 @@ func TestDiscoverOutsideRepositoryReturnsErrNotRepository(t *testing.T) {
 }
 
 func TestDiscoverInMissingDirectoryIsNotErrNotRepository(t *testing.T) {
-	gittest.Isolate(t)
+	t.Parallel()
+
 	missing := filepath.Join(t.TempDir(), "missing")
 
 	_, err := git.Discover(t.Context(), missing, nil)
