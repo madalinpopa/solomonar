@@ -44,6 +44,8 @@ func repoAssets(t *testing.T) fs.FS {
 }
 
 func TestVersionPrintsEmbeddedFramework(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, repoAssets(t), "version")
 
 	require.Equal(t, 0, got.exit, got.stderr)
@@ -52,6 +54,8 @@ func TestVersionPrintsEmbeddedFramework(t *testing.T) {
 }
 
 func TestVersionJSONPrintsOneEnvelope(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, repoAssets(t), "version", "--json")
 
 	require.Equal(t, 0, got.exit, got.stderr)
@@ -65,6 +69,8 @@ func TestVersionJSONPrintsOneEnvelope(t *testing.T) {
 }
 
 func TestSharedFlagsWorkBeforeAndAfterCommand(t *testing.T) {
+	t.Parallel()
+
 	before := runCLI(t, repoAssets(t), "--json", "-v", "--no-color", "-C", "/tmp", "version")
 	after := runCLI(t, repoAssets(t), "version", "--verbose", "-C", "/tmp", "--json", "--no-color")
 
@@ -75,6 +81,8 @@ func TestSharedFlagsWorkBeforeAndAfterCommand(t *testing.T) {
 }
 
 func TestUnknownCommandExitsTwo(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, repoAssets(t), "nope")
 
 	assert.Equal(t, 2, got.exit)
@@ -85,6 +93,8 @@ func TestUnknownCommandExitsTwo(t *testing.T) {
 }
 
 func TestNoCommandExitsTwo(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, repoAssets(t))
 
 	assert.Equal(t, 2, got.exit)
@@ -92,6 +102,8 @@ func TestNoCommandExitsTwo(t *testing.T) {
 }
 
 func TestUnknownCommandJSONNamesTypedWord(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, repoAssets(t), "--json", "nope")
 
 	assert.Equal(t, 2, got.exit)
@@ -105,6 +117,8 @@ func TestUnknownCommandJSONNamesTypedWord(t *testing.T) {
 }
 
 func TestInvalidUsageExitsTwo(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		args []string
@@ -116,6 +130,8 @@ func TestInvalidUsageExitsTwo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := runCLI(t, repoAssets(t), tt.args...)
 
 			assert.Equal(t, 2, got.exit)
@@ -125,6 +141,8 @@ func TestInvalidUsageExitsTwo(t *testing.T) {
 }
 
 func TestMissingFrameworkVersionExitsOne(t *testing.T) {
+	t.Parallel()
+
 	assets := fstest.MapFS{"framework/rules.md": {Data: []byte("# Framework rules\n")}}
 
 	got := runCLI(t, assets, "--json", "version")
@@ -139,6 +157,8 @@ func TestMissingFrameworkVersionExitsOne(t *testing.T) {
 }
 
 func TestMissingRulesFileExitsOne(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, fstest.MapFS{}, "version")
 
 	assert.Equal(t, 1, got.exit)
