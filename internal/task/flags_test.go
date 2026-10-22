@@ -8,6 +8,8 @@ import (
 )
 
 func TestParseAgents(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		values []string
@@ -31,6 +33,8 @@ func TestParseAgents(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			agents, clears, err := parseAgents(tt.values, installedRoles())
 
 			assertCode(t, err, tt.code)
@@ -41,6 +45,8 @@ func TestParseAgents(t *testing.T) {
 }
 
 func TestParseAgentsGuidance(t *testing.T) {
+	t.Parallel()
+
 	_, _, err := parseAgents([]string{"impl-1"}, installedRoles())
 
 	rejection := rejectionOf(t, err)
@@ -50,6 +56,8 @@ func TestParseAgentsGuidance(t *testing.T) {
 }
 
 func TestParseAgentsRoleGuidance(t *testing.T) {
+	t.Parallel()
+
 	_, _, err := parseAgents([]string{"orc-2:orchestrator"}, installedRoles())
 
 	rejection := rejectionOf(t, err)
@@ -59,6 +67,8 @@ func TestParseAgentsRoleGuidance(t *testing.T) {
 }
 
 func TestParseNextAction(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		value string
@@ -77,6 +87,8 @@ func TestParseNextAction(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			next, err := parseNextAction(tt.value)
 
 			assertCode(t, err, tt.code)
@@ -86,6 +98,8 @@ func TestParseNextAction(t *testing.T) {
 }
 
 func TestParseTier(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		value string
@@ -100,6 +114,8 @@ func TestParseTier(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			tier, err := parseTier(tt.value)
 
 			assertCode(t, err, tt.code)
@@ -109,6 +125,8 @@ func TestParseTier(t *testing.T) {
 }
 
 func TestCheckRevision(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		value string
@@ -122,12 +140,16 @@ func TestCheckRevision(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assertCode(t, checkRevision(tt.value), tt.code)
 		})
 	}
 }
 
 func TestCheckRevisionGuidance(t *testing.T) {
+	t.Parallel()
+
 	rejection := rejectionOf(t, checkRevision("0123456"))
 
 	assert.Equal(t, "--revision must be a full 40-character SHA", rejection.Check)
@@ -136,6 +158,8 @@ func TestCheckRevisionGuidance(t *testing.T) {
 }
 
 func TestCheckPR(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		value string
@@ -153,12 +177,16 @@ func TestCheckPR(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assertCode(t, checkPR(tt.value), tt.code)
 		})
 	}
 }
 
 func TestNewBlocker(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name               string
 		kind, summary, ref string
@@ -179,6 +207,8 @@ func TestNewBlocker(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			blocker, err := newBlocker(tt.kind, tt.summary, tt.ref)
 
 			assertCode(t, err, tt.code)
@@ -188,6 +218,8 @@ func TestNewBlocker(t *testing.T) {
 }
 
 func TestNewBlockerGuidance(t *testing.T) {
+	t.Parallel()
+
 	_, err := newBlocker("decision", "Session storage", "")
 
 	rejection := rejectionOf(t, err)
@@ -197,6 +229,8 @@ func TestNewBlockerGuidance(t *testing.T) {
 }
 
 func TestCheckTaskID(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		value string
@@ -209,12 +243,16 @@ func TestCheckTaskID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assertCode(t, checkTaskID(tt.value), tt.code)
 		})
 	}
 }
 
 func TestCheckTaskIDGuidance(t *testing.T) {
+	t.Parallel()
+
 	rejection := rejectionOf(t, checkTaskID("W-01"))
 
 	assert.Equal(t, "task IDs look like W-001", rejection.Check)
