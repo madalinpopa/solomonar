@@ -72,17 +72,7 @@ A rejected state update leaves the registry unchanged. A failed remote push afte
 
 ## Exit codes
 
-| Code | Meaning |
-| --- | --- |
-| `0` | Success, including no-op and success with a publication warning. |
-| `1` | Unexpected I/O or Git failure, or a corrupt object/registry. |
-| `2` | Usage error or malformed input. |
-| `3` | Rejected validation, ownership, transition, or fact check. |
-| `4` | File conflict or exhausted compare-and-swap retries. |
-| `5` | Planned `doctor` or `sync --check` found a failing check. |
-| `130`, `143` | Interrupted before the local commit point. |
-
-After a successful registry update, interruption during publication reports success with `push_interrupted`. This avoids making a script repeat a write that already happened.
+The [exit code table]({{ '/docs/cli/#exit-codes' | url }}) lists every code. Any non-zero code means nothing was written, so fix the cause and rerun. A `0` with a warning such as `push_failed` or `push_interrupted` means the local write succeeded and only publication failed: do not repeat the write.
 
 ## Report a problem with evidence
 
