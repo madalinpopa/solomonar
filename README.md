@@ -43,18 +43,6 @@ The name comes from Romanian folklore: a solomonar is a wizard who learns every 
 - **Small current docs, full history.** Each finished task keeps a compact record; its final work spec stays in Git history.
 - **Runtime-agnostic.** Adapters for Claude Code and Codex point to one portable source of instructions.
 
-## How it works
-
-![The Solomonar cycle: prototype and spec discover the product, solomonar task register and work-spec prepare the task, then implementation, tiered reviews, PR with merge, and solomonar task done; CHANGES_REQUIRED sends the task back to implementation.](docs/images/workflow-cycle.svg)
-
-1. **Discover.** The `prototype` skill builds a small clickable flow with simulated data, so you can try behavior before you specify it.
-2. **Specify.** The `spec` skill records the behavior you confirm in `docs/specs/`.
-3. **Prepare one task.** The orchestrator registers the task with the CLI, creates its branch and worktree, and the `work-spec` skill writes its outcome, scope, and acceptance criteria.
-4. **Implement and review.** The implementer hands over a committed revision. Reviewers matched to the task's risk tier check it; confirmed defects go back to implementation.
-5. **Integrate and close.** The pull request merges with a merge commit, and `solomonar task done` verifies the merge before writing the final record.
-
-**The orchestrator decides; the CLI checks.** The [framework guide](https://solomonar.dev/docs/framework/) explains each part with the full set of diagrams, and [the task lifecycle](https://solomonar.dev/docs/workflow/) follows one task stage by stage.
-
 ## Requirements
 
 - macOS or Linux. Windows is not supported in v0.1.
@@ -140,12 +128,6 @@ solomonar task status W-001
 
 Agents run the writing commands. Every command accepts `--json` for one machine-readable object on stdout, and `solomonar help <command>` prints its flags. See the [CLI reference](https://solomonar.dev/docs/cli/) and [troubleshooting](https://solomonar.dev/docs/troubleshooting/).
 
-## Project status
-
-Version 0.1.3 is the current release. The framework contracts are defined, and the CLI ships increment 1: `init` (interactive or with flags, with Claude Code and Codex adapters and the `go` extension) and the full set of task commands.
-
-Planned for later increments: `doctor`, `sync`, `runtime`, `extension` with project extensions from a local directory, and `guard` with its runtime hooks, then `upgrade` and a read-only `dashboard`. The `htmx`, `templ`, and `tdd` extensions join the catalog once their framework content is written. Their [command pages](https://solomonar.dev/docs/cli/#commands-in-development) describe them today; a command is available only when `solomonar help` shows it.
-
 ## Documentation
 
 The website at [solomonar.dev](https://solomonar.dev) is the user documentation:
@@ -156,16 +138,6 @@ The website at [solomonar.dev](https://solomonar.dev) is the user documentation:
 | [Install the CLI](https://solomonar.dev/docs/install/) | [The task lifecycle](https://solomonar.dev/docs/workflow/) | [Troubleshooting](https://solomonar.dev/docs/troubleshooting/) | [Project files](https://solomonar.dev/docs/configuration/) |
 | [Set up a project](https://solomonar.dev/docs/set-up-a-project/) | [Task state](https://solomonar.dev/docs/task-state/) | | |
 | [Run your first task](https://solomonar.dev/docs/first-task/) | [The story](https://solomonar.dev/docs/story/) | | |
-
-The design contracts live in this repository:
-
-| Document | Owns |
-| --- | --- |
-| [`assets/framework/`](assets/framework/) | Framework behavior: rules, skills, and agent roles, installed as `docs/solomonar/`. |
-| [`site/src/docs/cli/`](site/src/docs/cli/) | The CLI reference: each command's synopsis, flags, output, and exit codes. |
-| [`docs/cli/interface.md`](docs/cli/interface.md) | The contract beneath the CLI reference: check order, file planning, the manifest, JSON data, and task validation. |
-| [`docs/cli/architecture.md`](docs/cli/architecture.md) | How the binary is built: packages, decisions, and conventions. |
-| [`docs/design/`](docs/design/) | Framework design notes and validation. |
 
 ## Development
 
@@ -205,10 +177,6 @@ Without Task, `go build -trimpath -o bin/solomonar .` and `go test -race ./...` 
 | `assets/templates` | Templates for `AGENTS.md`, `docs/README.md`, and the empty registry. |
 | `docs/` | Design contracts, diagrams, and the logo. |
 | `site/` | The documentation website; see [`site/README.md`](site/README.md). |
-
-### Specs lead the code
-
-Behavior is specified before it is built. The interface specification fixes what the CLI does, the architecture document fixes how it is built, and the implementation plan breaks the work into reviewed stages. When an implementation decision departs from a specification, the same change updates the specification, so the documents always describe the code.
 
 ## Contributing
 
