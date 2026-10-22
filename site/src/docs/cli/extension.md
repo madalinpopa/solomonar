@@ -144,8 +144,7 @@ solomonar extension add tdd --decision W-002/D-1 --yes
 Verified W-002/D-1: approved in docs/decisions.md (selected option: test-driven development for all behavior changes)
 Plan
   extensions
-    create  docs/solomonar/skills/tdd/SKILL.md   rendered with: go (adds tdd/C-5)
-    update  docs/solomonar/skills/go/SKILL.md    re-rendered with: tdd (adds go/C-9)
+    create  docs/solomonar/skills/tdd/SKILL.md
     create  .claude/skills/tdd/SKILL.md
     create  .agents/skills/tdd/SKILL.md
   decisions
