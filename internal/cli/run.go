@@ -46,9 +46,9 @@ func commands() []command {
 		initCommand(),
 		{
 			name:    "version",
-			summary: "Print CLI, embedded framework, and project framework versions",
+			summary: "Print the CLI and project framework versions",
 			usage:   "solomonar version",
-			description: "Print CLI, embedded framework, and project framework versions.\n" +
+			description: "Print the CLI and project framework versions.\n" +
 				`Outside a project the project line reads "not initialized".`,
 			bind: withoutFlags(runVersion),
 		},
