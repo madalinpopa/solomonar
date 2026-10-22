@@ -26,6 +26,8 @@ func managed(path, base string) *Manifest {
 }
 
 func TestClassify(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		disk      map[string]entry
@@ -100,6 +102,8 @@ func TestClassify(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			root, _ := openTree(t, tt.disk)
 
 			plan, files, err := Classify(root, tt.manifest, []Want{tt.want}, tt.keep, tt.overwrite)
@@ -118,6 +122,8 @@ func TestClassify(t *testing.T) {
 }
 
 func TestClassifySymlinkIsNotRegular(t *testing.T) {
+	t.Parallel()
+
 	root, dir := openTree(t, map[string]entry{"target.md": {content: contentA, mode: 0o644}})
 	require.NoError(t, os.Symlink("target.md", filepath.Join(dir, "link.md")))
 
@@ -129,6 +135,8 @@ func TestClassifySymlinkIsNotRegular(t *testing.T) {
 }
 
 func TestClassifyKeepsWantedOrder(t *testing.T) {
+	t.Parallel()
+
 	root, _ := openTree(t, map[string]entry{"b.md": {content: contentB, mode: 0o644}})
 	wants := []Want{
 		{Path: "c.md", Owner: "core", Content: []byte(contentC)},
@@ -147,6 +155,8 @@ func TestClassifyKeepsWantedOrder(t *testing.T) {
 }
 
 func TestClassifyRejectsInvalidResolution(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		keep      []string
@@ -162,6 +172,8 @@ func TestClassifyRejectsInvalidResolution(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			root, _ := openTree(t, map[string]entry{
 				"same.md":    {content: contentA, mode: 0o644},
 				"differs.md": {content: contentB, mode: 0o644},
@@ -185,6 +197,8 @@ func TestClassifyRejectsInvalidResolution(t *testing.T) {
 
 // TestClassifyKeepFollowsUpstreamBase is F-02: the base follows the offers; kept bytes stay.
 func TestClassifyKeepFollowsUpstreamBase(t *testing.T) {
+	t.Parallel()
+
 	root, _ := openTree(t, map[string]entry{rulesPath: {content: contentB, mode: 0o644}})
 	var manifest *Manifest
 	step := func(offer string, keep []string) Change {
@@ -216,6 +230,8 @@ func TestClassifyKeepFollowsUpstreamBase(t *testing.T) {
 
 // TestClassifyAdoptsIdenticalFile is CLI-D17: an identical unmanaged file is adopted.
 func TestClassifyAdoptsIdenticalFile(t *testing.T) {
+	t.Parallel()
+
 	root, _ := openTree(t, map[string]entry{rulesPath: {content: contentA, mode: 0o644}})
 
 	plan, files, err := Classify(root, nil, []Want{{Path: rulesPath, Owner: "core", Content: []byte(contentA)}}, nil, nil)
