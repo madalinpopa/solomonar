@@ -134,6 +134,8 @@ func sessionStep(dir string) string {
 }
 
 func TestInitUC2CoreOnly(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 	addRemote(t, dir)
 
@@ -163,6 +165,8 @@ func TestInitUC2CoreOnly(t *testing.T) {
 }
 
 func TestInitWithoutRemoteWarns(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 
 	got := runInRepo(t, dir, initArgs()...)
@@ -175,6 +179,8 @@ func TestInitWithoutRemoteWarns(t *testing.T) {
 }
 
 func TestInitJSON(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 
 	got := runInRepo(t, dir, initArgs("--json")...)
@@ -199,6 +205,8 @@ func TestInitJSON(t *testing.T) {
 }
 
 func TestInitRerunIsNoOp(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		args []string
@@ -209,6 +217,8 @@ func TestInitRerunIsNoOp(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir := initializedRepo(t)
 			before, tip := tree(t, dir), refTip(t, dir)
 
@@ -226,6 +236,8 @@ func TestInitRerunIsNoOp(t *testing.T) {
 }
 
 func TestInitRejectsDifferentChoice(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		args  []string
@@ -244,6 +256,8 @@ func TestInitRejectsDifferentChoice(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir := initializedRepo(t)
 			before, tip := tree(t, dir), refTip(t, dir)
 
@@ -258,6 +272,8 @@ func TestInitRejectsDifferentChoice(t *testing.T) {
 }
 
 func TestInitCompletesInterruptedInit(t *testing.T) {
+	t.Parallel()
+
 	dir := initializedRepo(t)
 	require.NoError(t, os.Remove(filepath.Join(dir, project.ManifestPath)))
 	gittest.Git(t, dir, "update-ref", "-d", task.Ref)
@@ -276,6 +292,8 @@ func TestInitCompletesInterruptedInit(t *testing.T) {
 }
 
 func TestInitKeepsExistingRegistry(t *testing.T) {
+	t.Parallel()
+
 	dir, _ := registryRepo(t)
 	tip := refTip(t, dir)
 
@@ -290,6 +308,8 @@ func TestInitKeepsExistingRegistry(t *testing.T) {
 }
 
 func TestInitKeepsLocallyEditedFile(t *testing.T) {
+	t.Parallel()
+
 	dir := initializedRepo(t)
 	writeFile(t, dir, "docs/solomonar/rules.md", "edited\n")
 	before, tip := tree(t, dir), refTip(t, dir)
@@ -305,6 +325,8 @@ func TestInitKeepsLocallyEditedFile(t *testing.T) {
 }
 
 func TestInitConflictWritesNothing(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 	writeFile(t, dir, "docs/solomonar/rules.md", "project rules\n")
 	writeFile(t, dir, "docs/solomonar/report.md", "project report\n")
@@ -325,6 +347,8 @@ func TestInitConflictWritesNothing(t *testing.T) {
 }
 
 func TestInitConflictJSONHasNoData(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 	writeFile(t, dir, "docs/solomonar/rules.md", "project rules\n")
 
@@ -346,6 +370,8 @@ func TestInitConflictJSONHasNoData(t *testing.T) {
 }
 
 func TestInitResolvesConflict(t *testing.T) {
+	t.Parallel()
+
 	assets := repoAssets(t)
 	rules, err := fs.ReadFile(assets, "framework/rules.md")
 	require.NoError(t, err)
@@ -359,6 +385,8 @@ func TestInitResolvesConflict(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir := gittest.NewRepo(t)
 			writeFile(t, dir, "docs/solomonar/rules.md", "project rules\n")
 
@@ -372,6 +400,8 @@ func TestInitResolvesConflict(t *testing.T) {
 }
 
 func TestInitDryRunWritesNothing(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 	before := tree(t, dir)
 
@@ -536,6 +566,8 @@ func TestInitRejections(t *testing.T) {
 }
 
 func TestInitInvalidRegistryNamesTheFix(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 	putState(t, dir, "not json")
 
@@ -548,7 +580,6 @@ func TestInitInvalidRegistryNamesTheFix(t *testing.T) {
 // plainDir returns an empty directory "ledger" that no Git repository contains.
 func plainDir(t *testing.T) string {
 	t.Helper()
-	gittest.Isolate(t)
 	gittest.NoGH(t)
 	outside := gittest.Resolved(t, t.TempDir())
 	t.Setenv("GIT_CEILING_DIRECTORIES", outside)
@@ -644,6 +675,8 @@ func TestInitGitInitNeedsConfirmation(t *testing.T) {
 }
 
 func TestInitGitInitInsideRepositoryIsIgnored(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 
 	with := runInRepo(t, dir, initArgs("--git-init", "--dry-run", "--json")...)
@@ -677,13 +710,14 @@ func committedRepo(t *testing.T) string {
 
 func unbornFeatureRepo(t *testing.T) string {
 	t.Helper()
-	gittest.Isolate(t)
 	dir := gittest.Resolved(t, t.TempDir())
 	gittest.Git(t, dir, "init", "-b", "feature")
 	return dir
 }
 
 func TestInitNextNamesTheFirstCommit(t *testing.T) {
+	t.Parallel()
+
 	commit := "git commit -m \"chore: initialize solomonar 0.1.0\""
 	tests := []struct {
 		name     string
@@ -717,6 +751,8 @@ func TestInitNextNamesTheFirstCommit(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			human, asJSON := tt.repo(t), tt.repo(t)
 
 			text := runInRepo(t, human, initArgs()...)
@@ -739,6 +775,8 @@ func TestInitNextNamesTheFirstCommit(t *testing.T) {
 }
 
 func TestInitWarnsAboutJujutsu(t *testing.T) {
+	t.Parallel()
+
 	const message = "Jujutsu detected; v0.1 supports Git only. Never run jj commands on workflow-state."
 	tests := []struct {
 		name string
@@ -749,6 +787,8 @@ func TestInitWarnsAboutJujutsu(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir := gittest.NewRepo(t)
 			writeFile(t, dir, tt.jj, "")
 
@@ -773,6 +813,8 @@ func TestInitWarnsAboutJujutsu(t *testing.T) {
 }
 
 func TestInitFailingManifestWriteRollsBack(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 	solomonar := filepath.Join(dir, ".solomonar")
 	require.NoError(t, os.Mkdir(solomonar, 0o555))
@@ -787,6 +829,8 @@ func TestInitFailingManifestWriteRollsBack(t *testing.T) {
 }
 
 func TestInitFailingRegistryCreateRollsBack(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 	writeFile(t, dir, "AGENTS.md", "# Our agents\n")
 	before := tree(t, dir)
@@ -801,6 +845,8 @@ func TestInitFailingRegistryCreateRollsBack(t *testing.T) {
 }
 
 func TestInitFailingPushWarns(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 	gittest.Git(t, dir, "remote", "add", "origin", filepath.Join(t.TempDir(), "missing.git"))
 
@@ -813,6 +859,8 @@ func TestInitFailingPushWarns(t *testing.T) {
 }
 
 func TestInitHelp(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, repoAssets(t), "help", "init")
 
 	require.Equal(t, 0, got.exit, got.stderr)
@@ -826,6 +874,8 @@ func commitStep(paths string) string {
 }
 
 func TestInitUC2WithClaude(t *testing.T) {
+	t.Parallel()
+
 	dir := committedRepo(t)
 
 	got := runInRepo(t, dir, runtimeArgs("claude")...)
@@ -860,6 +910,8 @@ func manifestOf(t *testing.T, dir string) *project.Manifest {
 }
 
 func TestInitWithBothRuntimes(t *testing.T) {
+	t.Parallel()
+
 	human, asJSON := committedRepo(t), committedRepo(t)
 	args := runtimeArgs("codex,claude", "--adversarial-model", "codex=o3")
 	paths := "AGENTS.md CLAUDE.md .claude .agents .codex .solomonar docs"
@@ -892,6 +944,8 @@ func TestInitWithBothRuntimes(t *testing.T) {
 }
 
 func TestInitWithCodexNamesTheCodexSession(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 
 	got := runInRepo(t, dir, runtimeArgs("codex")...)
@@ -928,6 +982,8 @@ func TestInitDetectsRuntimesOnPath(t *testing.T) {
 }
 
 func TestInitRecordsTheLastAdversarialModel(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 
 	got := runInRepo(t, dir, runtimeArgs("claude",
@@ -972,6 +1028,8 @@ func TestInitRerunWithRuntimesIsNoOp(t *testing.T) {
 }
 
 func TestInitRejectsDifferentRuntimeChoice(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		args  []string
@@ -985,6 +1043,8 @@ func TestInitRejectsDifferentRuntimeChoice(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir := claudeRepo(t)
 			before, tip := tree(t, dir), refTip(t, dir)
 
@@ -999,6 +1059,8 @@ func TestInitRejectsDifferentRuntimeChoice(t *testing.T) {
 }
 
 func TestInitSkipsUnmanagedClaudeMD(t *testing.T) {
+	t.Parallel()
+
 	dir := committedRepo(t)
 	writeFile(t, dir, "CLAUDE.md", "# Our notes\n")
 
