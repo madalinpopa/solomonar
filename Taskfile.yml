@@ -32,6 +32,12 @@ tasks:
     desc: Run all tests with the race detector
     cmd: go test -race ./...
 
+  test:integration:
+    desc: Run all tests with the race detector, transcript tests included
+    cmd: go test -race ./...
+    env:
+      INTEGRATION: 'true'
+
   cover:
     desc: Run the tests and print total coverage
     cmds:
