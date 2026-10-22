@@ -2,46 +2,37 @@
 
 Framework version: {{ .FrameworkVersion }}. Framework files: `docs/solomonar/`.
 
-## Language
+Solomonar coordinates specification, implementation, review, and verified merge. Roles define responsibilities;
+rules define task policy; skills define procedures. The CLI records state; the runtime executes work.
 
 Write framework artifacts, specs, reports, commit messages, and PR text in English.
 
-## Load your context
+## Scope and loading
 
-- Load your role from `docs/solomonar/agents/<role>.md` and every file its first lines require. A new or
-  resumed managed task takes the `orchestrator` role, which the user starts as a top-level session, never as a
-  delegated subagent; other roles start only from an orchestrator packet.
-- Load only: the invoked skill, the assigned work spec, the relevant global rules (Context routes), the
-  referenced documents, and the affected code and tests. Expand only for a discovered dependency, shared
-  contract, or security rule.
-- Load the installed extension skills your packet names; without a packet, those whose "applies when" in
-  Extensions matches your change.
-- With no work spec, start from `docs/README.md` and the user's selected outcome.
-- Orchestrators also load `docs/solomonar/rules.md`; other roles do not. Every role loads
-  `docs/solomonar/report.md`.
-- A document index never loads its targets automatically.
+Applies project-wide. Explicit user instructions override repository guidance; nearer `AGENTS.md` files take
+precedence in their subtrees. Roles/skills cannot override approved requirements.
 
-## Skills
+Load only your role/skill, its required files, assigned spec, relevant references, and affected code/tests.
+Expand for dependencies, shared contracts, or security rules. Indexes do not load targets. Optional project
+documents are created by their owning procedure, not merely to satisfy a route.
 
-Load `docs/solomonar/skills/<skill>/SKILL.md` before using a skill.
+## Request routes
 
-- `solomonar`: the user's entry point; routes a request to the skill or role that owns it. Only the user invokes it.
-- `prototype`: start a product, or explore or change a flow in `prototype/`.
-- `spec`: record a prototype handoff or a user decision in `docs/specs/<capability>.md` and `docs/ui.md`.
-- `work-spec`: specify one registered task in `docs/work/<ID>-<slug>.md` (orchestrator, `specification` stage).
+Bare framework paths below are relative to `docs/solomonar/`. Load the routed file before acting.
 
-Invoke `solomonar` with `/solomonar` in Claude Code, `$solomonar` in Codex CLI/IDE, or the portable prompt
-"Use the solomonar skill". A known outcome or a CLI/API task can start directly without a UI prototype.
+| When | Load |
+|---|---|
+| User entry point | `skills/solomonar/SKILL.md` (user-only invocation) |
+| Prototype a flow | `skills/prototype/SKILL.md` |
+| Record product behavior / prototype handoff | `skills/spec/SKILL.md` |
+| Start/resume a task | `agents/orchestrator.md`; top-level only, one task per session |
+| Specify a registered task | `skills/work-spec/SKILL.md`; orchestrator only |
+| Implement an assigned packet | `agents/implementer.md` |
+| Review an assigned packet | `agents/<role>.md`: `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, or `adversarial-reviewer` |
 
-## Route a request
-
-When the user does not invoke `solomonar`, route the same way (`docs/solomonar/skills/solomonar/SKILL.md` §2):
-
-- Prototype a flow → `prototype`. Flows ready for spec, or product behavior decided outside a task → `spec`.
-- A new, planned, or resumed managed task → the `orchestrator` role, in the top-level session only, one task per
-  session. A delegated subagent never takes it.
-- Adopt or drop a technology → the user runs `solomonar extension add|remove`.
-- A product code change outside any task → propose a managed task first.
+Routing exceptions: `skills/solomonar/SKILL.md` §2. Without a work spec, start with `docs/README.md` and the
+user's outcome. Every role loads `report.md`; reviewers add `reviewer.md`; only orchestrators load `rules.md`.
+Load packet-named extension skills; without a packet, use Extensions below.
 
 ## Extensions
 
@@ -53,43 +44,44 @@ The orchestrator names the matching extensions in each packet.
 
 ## Context routes
 
-- Product behavior: `docs/specs/<capability>.md`; cite rules by ID `<capability>/R-n`.
-- Task requirements: `docs/work/<ID>-<slug>.md` in the task worktree.
-- Structure and contracts: `docs/architecture.md`.
-- Dependencies: `docs/stack.md` and the manifests.
-- UI: `docs/ui.md`, the relevant capability, and the prototype flow (`prototype/README.md`).
-- Approvals: the relevant `approved` entries in `docs/decisions.md`.
-- Run and check commands: `docs/README.md` "Commands".
-- Execution state: `solomonar task status <ID>` (record, Git facts, drift), `solomonar task show [<ID>]`, or
-  `git show refs/heads/workflow-state:state.json`.
-- History: the task's compact record; load its `spec_ref` with `git show` only for a concrete question.
+| Need | Source |
+|---|---|
+| Product behavior | `docs/specs/<capability>.md` |
+| Task requirements | Assigned `docs/work/<ID>-<slug>.md` |
+| Structure, contracts, dependencies | `docs/architecture.md`; `docs/stack.md` and manifests |
+| UI | `docs/ui.md`, capability spec, referenced `prototype/README.md` flow |
+| Approvals | Scoped `approved` entries in `docs/decisions.md` |
+| Run, build, test, lint | Exact verified commands in `docs/README.md` → Commands |
+| Registry / actual task state | `solomonar task show [<ID>]` / `solomonar task status <ID>` |
+| Historical spec | Compact task record, then `git show "<spec_ref>"` for a concrete question |
+
+Discover missing commands from manifests/scripts; verify before recording, otherwise keep "not established".
+Use configured formatters/linters. Check CLI availability with `solomonar help`; do not run planned commands.
 
 ## Mandatory rules
 
 Cite a rule as `AGENTS.md rule n`.
 
-1. Follow applicable user decisions, then approved global rules, then the work spec. Escalate contradictions;
-   preferences never override requirements. Code and prototype are evidence, not requirements.
-2. New architecture decisions and dependency changes require user approval. Investigate first, report through
-   the orchestrator, and wait before applying. No response is not approval.
-3. Workflow state is written only through `solomonar task` commands: by orchestrators, each for its own task's
-   record, and by the user for `task plan`. Never edit, commit, or check out `state.json`.
-4. Register the task (`solomonar task register`) before creating its feature worktree.
-5. Modify only the files your role or skill allows. In a task, work only in your assigned worktree. Reviewers
-   are read-only and review one stable revision.
-6. The orchestrator delegates implementation and every review, and consolidates findings. Other roles report
-   only to it.
-7. Unresolved blockers, missing required reviews, or failed or unperformed required checks prevent advancement.
-8. Mark a task `done` only after a confirmed merge into main.
-9. Update the canonical project specs before merge. Commit the final task spec separately.
-10. Close the task per `docs/solomonar/rules.md` §9 and keep verifiable Git references.
+1. Scoped user decisions > approved global rules > work spec > preferences. Escalate contradictions.
+   Only **Agreed** spec rules are requirements; observations, code, and prototypes are evidence.
+2. New architecture/dependency changes require user approval; investigate first, then follow your role's
+   decision procedure. Scoped approvals persist; silence approves nothing.
+3. Only `solomonar task` writes the registry: orchestrators own their task records; the user owns `task plan`.
+   Never directly edit, commit, or check out registry `state.json` on `workflow-state`.
+4. Run `solomonar task register` before creating the feature worktree; setup: `rules.md` §4.
+5. Edit only your role/skill's allowed files and assigned worktree. Reviewers are read-only on one stable revision.
+6. Orchestrators delegate implementation/reviews and consolidate findings; delegated roles report only to them.
+7. Blockers, missing required reviews, or failed/unperformed required checks prevent advancement.
+8. Mark `done` only after confirmed merge into main.
+9. Update canonical specs before merge; commit the final task spec separately.
+10. Closure and verifiable Git references: `rules.md` §9.
 11. Never commit or report secrets, credentials, or real personal data.
-12. Commit messages: English, `<type>(<scope>): <summary>`. Your role or skill file defines the type and scope.
-13. Tests and code comments cite spec rule IDs (`<capability>/R-n`), never task or AC IDs, which leave the tree
-    at closure.
+12. Commit messages: `<type>(<scope>): <summary>`; role/skill defines type and scope.
+13. Tests/comments cite `<capability>/R-n`, never task/AC IDs removed at closure.
+
+Never hand-edit `.solomonar/manifest.json`, generated runtime stubs, or generated product files; change their
+source through the owning procedure. Preserve unrelated edits. Project-specific guidance belongs under Project notes.
 
 ## Project notes
 
-<!-- Project-specific instructions go here, e.g. adopted style guides (such as Go Code Review Comments),
-branch rules for direct commits, and the test policy. This section is owned by the project and preserved by
-framework upgrades. -->
+<!-- Project-owned instructions; preserved by framework upgrades. Keep this heading unchanged. -->
