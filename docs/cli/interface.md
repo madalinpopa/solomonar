@@ -3,15 +3,20 @@
 Status: design candidate, 2026-10-20. Phase 2 reference for the `solomonar` command-line interface: every command,
 its arguments, its interaction, and its output, written as use cases. Behavior that the framework already fixes
 (`assets/framework/rules.md` section 7, register sections G and J) is restated here only as interface; when the two differ,
-`rules.md` wins until section 11 below is applied. Example SHAs, hashes, and paths are illustrative but have their real
+`rules.md` wins. Example SHAs, hashes, and paths are illustrative but have their real
 length and shape.
 
 Increment 1 (section 10) is implemented and released as v0.1.0; this spec keeps the final v0.1 behavior. The
 accepted workflow-audit corrections are applied to these contracts and the framework assets on 2026-10-21. Runtime and fault-injection acceptance tests remain implementation work.
 
+The command pages in `site/src/docs/cli/` are the reference for each command's synopsis, flags, when to use it, who
+runs it, and its typical output; this spec does not repeat them. It holds the contract beneath those pages: check
+order, exact texts, file planning, the manifest, JSON data, and the task rules. A use case cites its command page and
+keeps only the examples the page does not show. When a command changes, update its page and this spec together.
+
 Contents: 1 Principles · 2 Command map · 3 Conventions · 4 Project choices and files · 5 Use cases: project setup ·
 6 Use cases: task state · 7 Use cases: runtime integration · 8 Reference: task validation · 9 Reference: `task
-status` · 10 Delivery order · 11 Framework alignment · 12 Open decisions
+status` · 10 Delivery order · 11 Open decisions
 
 ## 1. Principles
 
@@ -40,26 +45,22 @@ status` · 10 Delivery order · 11 Framework alignment · 12 Open decisions
 
 ## 2. Command map
 
-| Command | Purpose | Writes | Use case |
-|---|---|---|---|
-| `solomonar init [<dir>]` | Install the framework core, the selected runtimes and extensions; create the registry | project files, manifest, `workflow-state` | UC-1 to UC-4 |
-| `solomonar runtime list\|add\|remove` | Manage runtime adapters (`claude`, `codex`) | adapter files, manifest, `AGENTS.md` | UC-5 |
-| `solomonar extension list\|show\|add\|remove\|new` (alias `ext`) | Manage extensions: skills and agents grouped by decision type; record the decision that adopts a stack extension | `docs/solomonar/skills/`, `docs/solomonar/agents/`, `docs/decisions.md`, `docs/stack.md`, `docs/architecture.md`, adapter files, manifest, `AGENTS.md` | UC-6, UC-7 |
-| `solomonar sync [--check]` | Regenerate adapter files and rendered sections from the portable source | adapter files, manifest | UC-8 |
-| `solomonar upgrade` | Move the project to the framework version embedded in this CLI | managed files, manifest | UC-9 |
-| `solomonar doctor` | Check repository, registry, files, adapters, and forge settings | nothing | UC-10 |
-| `solomonar task plan` | User: create a `planned` record | `workflow-state` | UC-11 |
-| `solomonar task register` | Orchestrator: claim or allocate a task; the registration barrier | `workflow-state` | UC-12 |
-| `solomonar task move` | Owner: validated transition and field update | `workflow-state` | UC-13, UC-14 |
-| `solomonar task block` / `unblock` | Owner: add or clear a blocker | `workflow-state` | UC-15 |
-| `solomonar task show` | Read the stored record or registry | nothing | UC-16 |
-| `solomonar task status` | Read the record, Git and forge facts, drift, allowed next commands | nothing | UC-16, UC-17 |
-| `solomonar task handoff` | New owner, on user instruction: ownership change | `workflow-state` | UC-19 |
-| `solomonar task done` | Owner: verify the merge and write the compact record | `workflow-state` | UC-20 |
-| `solomonar guard` | Runtime hook: deny direct registry writes | nothing | UC-22 |
-| `solomonar dashboard` | Serve the read-only registry view | nothing | UC-23 |
-| `solomonar version` | Print the CLI and project framework versions | nothing | UC-24 |
-| `solomonar help [<command>]` | Print help; `-h` on any command is equivalent | nothing | - |
+Purpose, who runs each command, and availability: [the CLI overview](../../site/src/docs/cli.md). This map adds what
+each command writes and its use cases.
+
+| Command | Writes | Use case |
+|---|---|---|
+| `init` | project files, manifest, `workflow-state` | UC-1 to UC-4 |
+| `runtime list\|add\|remove` | adapter files, manifest, `AGENTS.md` | UC-5 |
+| `extension list\|show\|add\|remove\|new` (alias `ext`) | `docs/solomonar/skills/`, `docs/solomonar/agents/`, `docs/decisions.md`, `docs/stack.md`, `docs/architecture.md`, adapter files, manifest, `AGENTS.md` | UC-6, UC-7 |
+| `sync` | adapter files, manifest | UC-8 |
+| `upgrade` | managed files, manifest | UC-9 |
+| `doctor` | nothing | UC-10 |
+| `task plan`, `register`, `move`, `block`, `unblock`, `handoff`, `done` | `workflow-state` | UC-11 to UC-15, UC-18 to UC-21 |
+| `task show`, `task status` | nothing | UC-16, UC-17 |
+| `guard` | nothing | UC-22 |
+| `dashboard` | nothing | UC-23 |
+| `version`, `help` | nothing | UC-24 |
 
 "Runtime" is the agent product that runs sessions (Claude Code, Codex). "Agent" and "role" keep their framework
 meaning (orchestrator, implementer, reviewers), so the CLI never uses `agent` for a runtime.
@@ -77,15 +78,8 @@ unknown flag, a missing required flag, or an unexpected argument is `invalid_usa
 solomonar help". `solomonar help <command>` prints the same text as `<command> -h`: the usage line, the
 description, and a pointer to `solomonar help` for the global flags.
 
-| Flag | Default | Meaning |
-|---|---|---|
-| `-C <path>` | current directory | Run as if started in `<path>`, as `git -C` does. Any worktree of the repository works. |
-| `--json` | off | Machine output on stdout (3.4). Never prompts: a command that would prompt needs `--yes` or fails with `interactive_required`. |
-| `--no-color` | color when stdout is a TTY | Disable color. `NO_COLOR` set to any value has the same effect. |
-| `-v`, `--verbose` | off | Also print each Git and `gh` command run, on stderr, as `+ git …` or `+ gh …` before it runs. |
-| `-h`, `--help` | - | Help for the command. |
-
-Command flags shared by several commands:
+Global flags: [CLI overview, Global flags](../../site/src/docs/cli.md#global-flags). Command flags shared by several
+commands:
 
 | Flag | Commands | Meaning |
 |---|---|---|
@@ -135,49 +129,17 @@ behavior.
 
 ### 3.4 JSON output
 
-Every command with `--json` prints exactly one JSON object on stdout:
-
-```json
-{
-  "ok": true,
-  "command": "task move",
-  "data": { },
-  "warnings": [{"code": "push_failed", "message": "git push origin workflow-state failed: could not resolve host"}]
-}
-```
-
-On failure `ok` is `false`, `data` is absent, and `error` is present:
-
-```json
-{
-  "ok": false,
-  "command": "task move",
-  "error": {
-    "code": "revision_not_on_branch",
-    "message": "task move W-001 rejected",
-    "check": "--revision must be a full SHA reachable from feature/W-001",
-    "found": "1902e3d6fc4e78a0bcc50ba12b882769afbf4a8c is not on feature/W-001",
-    "fix": "commit the candidate on feature/W-001 and pass its full SHA: git -C <worktree path> rev-parse HEAD"
-  },
-  "warnings": []
-}
-```
-
-`command` names the command run; `help` and a top-level `-h` report `help`, `<command> -h` reports the command,
+The envelope, on success and on failure: [CLI overview, Output formats](../../site/src/docs/cli.md#output-formats).
+A warning is `{"code", "message"}`, such as `{"code": "push_failed", "message": "git push origin workflow-state
+failed: could not resolve host"}`; on failure `data` is absent. `command` names the command run; `help` and a top-level `-h` report `help`, `<command> -h` reports the command,
 and the help data is `{"help": "<text>"}`. `data` per command is given in its use case. Field names are
 `snake_case`; timestamps are RFC 3339 UTC; SHAs are full.
 
 ### 3.5 Exit codes
 
-| Code | Meaning | Written |
-|---|---|---|
-| 0 | Success, including a no-op, a declined confirmation, and success with warnings (for example a failed push) | as reported |
-| 1 | Unexpected failure: I/O, Git error, corrupt object | nothing; a partial file write is rolled back |
-| 2 | Usage error: unknown command or flag, missing or malformed argument | nothing |
-| 3 | Rejected: a validation, ownership, transition, or fact check failed | nothing |
-| 4 | Conflict: a managed file differs from what the CLI would write, or the registry compare-and-swap kept losing | nothing |
-| 5 | Checks failed: `doctor` found a `fail`, or `sync --check` found stale files | nothing |
-| 130, 143 | Interrupted by SIGINT or SIGTERM (128 + signal) before anything was written (`interrupted`) | nothing; a partial file write is rolled back |
+The codes 0 to 5, 130, and 143: [CLI overview, Exit codes](../../site/src/docs/cli.md#exit-codes). Every non-zero
+code means nothing was written; for 1, 130, and 143 a partial file write is rolled back. 130 and 143 are SIGINT and
+SIGTERM (128 + signal) before the commit point, with the code `interrupted`.
 
 The exit code reports what was written, not only that a signal arrived (CLI-D18). A signal after the registry
 compare-and-swap succeeded leaves the write in place: the command exits 0 with the warning `push_interrupted`, so a
@@ -932,22 +894,9 @@ data adds `"dry_run": true`, `registry` is `{"ref", "action"}`, and `next` is ab
 
 ### UC-2 Initialize non-interactively
 
-Actor: user or script.
-
-```
-solomonar init [<dir>]
-  [--name <name>]                      default: directory name
-  [--objective <text>]                 default: empty ("Not set" in docs/README.md)
-  [--runtime <claude|codex|none>]...   repeatable or comma-separated; default: detected on PATH
-  [--ext <name|path|none>]...          extensions of any group, catalog name or local directory, repeatable or
-                                       comma-separated; one P/D-n per stack group; default: go when go.mod exists
-  [--adversarial-model <runtime>=<model>]   repeatable
-  [--main-branch <name>]               default: main
-  [--remote <name>]                    default: origin
-  [--git-init]                         run git init -b <main-branch> when <dir> is not a repository
-  [--overwrite <path>]... [--keep <path>]...   resolve conflicts (UC-3); one path per flag
-  [-y|--yes] [--dry-run] [--json]
-```
+Actor: user or script. Synopsis, flags, defaults, and examples: [`solomonar init`](../../site/src/docs/cli/init.md).
+An omitted `--objective` writes "Not set" in `docs/README.md`. From increment 2, `--ext` also takes a local directory
+(UC-7), and each stack group gets one `P/D-n`.
 
 `--runtime` and `--ext` split their values on commas; `--keep` and `--overwrite` take one path per flag, so a path
 may contain commas. A relative `<dir>` is joined to `-C`, an absolute one is used as is; the files are written at the
@@ -975,20 +924,7 @@ selected, an unknown name included, is `invalid_value`, check `--adversarial-mod
 `<r> is not selected`, fix `add --runtime <r> or drop the model` naming that runtime. Models start from the
 manifest's models for the selected runtimes, with the requested ones applied on top.
 
-```
-$ solomonar init --runtime claude --ext go,tdd --objective "Track shared household expenses" --yes
-Initialized solomonar 0.1.3 in /work/ledger
-  36 files created
-  registry  refs/heads/workflow-state @ 3a5c0d7e9f1b2a4c6d8e0f1a3b5c7d9e1f2a4b6c
-
-Next:
-  1. git add AGENTS.md CLAUDE.md .claude .solomonar docs && git commit -m "chore: initialize solomonar 0.1.3"
-  2. Start a top-level Claude Code session in /work/ledger:
-       /solomonar Explore the next useful flow.
-warning: no remote "origin"; the registry stays local
-```
-
-The warning goes to stderr. The success form is `Initialized solomonar <fw> in <root>`, `  <counts>` (3.3),
+Warnings go to stderr. The success form is `Initialized solomonar <fw> in <root>`, `  <counts>` (3.3),
 `  registry  refs/heads/workflow-state @ <sha>` (`  registry  refs/heads/workflow-state @ <tip> unchanged`, with no
 `pushed` line, when an existing registry is reused), `  pushed    <remote>/workflow-state` when pushed, a blank
 line, and `Next:`: step 1 is `git add <generated paths> && git commit -m "chore: initialize solomonar <fw>"`, step 2
@@ -1176,50 +1112,15 @@ before the registry's warnings (such as the no-remote warning).
 
 ### UC-5 Add, list, or remove a runtime
 
-```
-solomonar runtime list [--json]
-solomonar runtime add <claude|codex> [--adversarial-model <model>] [-y] [--dry-run] [--json]
-solomonar runtime remove <claude|codex> [-y] [--dry-run] [--json]
-```
-
-```
-$ solomonar runtime list
-RUNTIME  STATUS     ON PATH  ADAPTER
-claude   installed  yes      CLAUDE.md, .claude/skills (8), .claude/agents (5), guard hook
-codex    available  yes      AGENTS.md (native), .agents/skills, .codex/agents, guard hook
-
-$ solomonar runtime add codex --yes
-Plan
-  create  .agents/skills/ (8 skill stubs: solomonar, prototype, spec, work-spec, go, htmx, templ, tdd)
-  create  .agents/skills/solomonar/agents/openai.yaml
-  create  .codex/agents/ (5 role stubs)
-  create  .codex/hooks.json (state guard hook)
-  update  .solomonar/manifest.json
-Added runtime codex: 16 files.
-  warning: Codex state guard hook not trusted yet; review it with /hooks in Codex.
-Next: commit the files on main.
-```
-
-`remove` deletes the runtime's unmodified adapter files and its hook entry, keeps a `CLAUDE.md` it did not create,
-and reports a modified adapter file as a conflict (exit 4) resolved with `--keep <path>` (untrack, leave the file)
-or `--overwrite <path>` (delete it).
+Synopsis, flags, and examples: [`solomonar runtime`](../../site/src/docs/cli/runtime.md). The adapter files are those
+of 4.2, planned as `init` plans them; a modified adapter file on `remove` is a conflict under 4.5.
 
 ### UC-6 Choose extensions for an architecture or stack decision
 
 Typical triggers: the user decides part of the stack after the prototype, or an orchestrator applies an approved
-task decision that adopts a technology or practice. The examples start from a project initialized with `go` only
-(`P/D-1`).
-
-```
-solomonar extension list [--group <group>] [--kind <skill|agent>] [--installed] [--json]
-solomonar extension show <name> [--json]
-solomonar extension add <name | path>... [--decision <ID>] [--rationale <text>] [-y] [--dry-run] [--json]
-                        [--kind <skill|agent>] [--group <group>] [--title <text>]
-                        [--requires <name>]... [--conflicts <name>]... [--applies-when <text>] [--path <glob>]...
-solomonar extension remove <name>... [--decision <ID>] [--rationale <text>] [-y] [--dry-run] [--json]
-solomonar extension new <name> --kind <skill|agent> --group <group> [--title <text>] [--requires <name>]...
-                        [--conflicts <name>]... [--applies-when <text>] [--path <glob>]... [--dry-run] [--json]
-```
+task decision that adopts a technology or practice. Synopsis, flags, and the `list`, `show`, `add`, and `remove`
+examples: [`solomonar extension`](../../site/src/docs/cli/extension.md). The examples below continue from that
+page, after `htmx` was adopted as `P/D-2`.
 
 `ext` is an alias for `extension`. `--decision` and `--rationale` apply to stack groups only.
 
@@ -1235,38 +1136,6 @@ For `init --ext <local-directory>`, collect the same metadata interactively. Non
 cannot supply local-extension metadata through `--ext` alone: reject a missing required value with
 `interactive_required`, and suggest `init --ext none` followed by `extension add <path>` with these flags.
 Catalog choices continue to work without extra metadata.
-
-List, grouped by decision type:
-
-```
-$ solomonar extension list
-GROUP     NAME   KIND   SOURCE   STATUS     DECISION  REQUIRES  APPLIES WHEN
-language  go     skill  catalog  installed  P/D-1     -         A change touches Go code
-frontend  htmx   skill  catalog  available  -         -         hx-* attributes or endpoints that return fragments
-frontend  templ  skill  catalog  available  -         go        *.templ files or the handlers that render them
-testing   tdd    skill  catalog  available  -         -         A change adds or changes behavior
-```
-
-The user adopts htmx for the frontend:
-
-```
-$ solomonar extension add htmx
-Plan
-  extensions
-    create  docs/solomonar/skills/htmx/SKILL.md
-    create  .claude/skills/htmx/SKILL.md
-    create  .agents/skills/htmx/SKILL.md
-  decisions
-    append  docs/decisions.md   P/D-2 Frontend technologies: htmx (approved, selected by you)
-    append  docs/stack.md       frontend: htmx (P/D-2)
-  update  AGENTS.md (Extensions: htmx)
-  update  .solomonar/manifest.json
-Record P/D-2 as your approved decision for the frontend group? [Y/n] y
-Added extension htmx (frontend skill) under P/D-2.
-  note: P/D-2 approves the technology and its rules; versions stay in the manifests, and every further
-        dependency still needs approval (rules section 3).
-Next: commit on main: git add AGENTS.md .solomonar .claude .agents docs && git commit -m "docs: adopt the htmx extension (P/D-2)"
-```
 
 Adding templ to the same group supersedes P/D-2 with the full new selection and generates the rules that apply to
 the combination:
@@ -1289,34 +1158,9 @@ Plan
 Added extension templ (frontend skill) under P/D-3.
 ```
 
-An orchestrator applying an approved task decision, in the task worktree, so the extension merges with the task:
+A `--decision` that is not approved is rejected (exit 3):
 
 ```
-$ cd /work/ledger-worktrees/W-002
-$ solomonar extension add tdd --decision W-002/D-1 --yes
-Verified W-002/D-1: approved in docs/decisions.md (selected option: test-driven development for all behavior changes)
-Plan
-  extensions
-    create  docs/solomonar/skills/tdd/SKILL.md   rendered with: go (adds tdd/C-5)
-    update  docs/solomonar/skills/go/SKILL.md    re-rendered with: tdd (adds go/C-9)
-    create  .claude/skills/tdd/SKILL.md
-    create  .agents/skills/tdd/SKILL.md
-  decisions
-    append  docs/stack.md   testing: tdd (W-002/D-1)
-  update  AGENTS.md, .solomonar/manifest.json
-Added extension tdd (testing skill) under W-002/D-1.
-Next: commit in the worktree as "docs(W-002): adopt extensions for W-002/D-1"; they reach main with the task's merge.
-```
-
-Rejections (exit 3):
-
-```
-$ solomonar extension add templ          # in a project without the go extension
-error: extension add rejected (extension_requires)
-  check: templ requires go (language), which is not installed
-  fix:   solomonar extension add go templ
-nothing was written
-
 $ solomonar extension add tdd --decision W-002/D-2
 error: extension add rejected (decision_not_approved)
   check: --decision must name an approved entry in docs/decisions.md
@@ -1325,44 +1169,22 @@ error: extension add rejected (decision_not_approved)
 nothing was written
 ```
 
-Show one extension as rendered for this project:
-
-```
-$ solomonar extension show templ
-templ components · frontend skill · catalog · installed under P/D-3 · requires go
-Applies when: a change touches *.templ files or the handlers that render them (paths: **/*.templ)
-Rendered with: htmx
-  templ/C-1  must    *_templ.go files are generated by templ generate and never edited by hand; CI fails when stale
-  templ/C-2  must    User data is never rendered through templ.Raw or any other unescaped output
-  templ/C-3  should  Components take view models built for the page, not domain entities or database rows
-  templ/C-4  must    With htmx: render the fragment component when HX-Request is set, else the page component
-File: docs/solomonar/skills/templ/SKILL.md
-```
-
 `extension remove` follows the same decision rules: without `--decision` it records a superseding `P/D-n` with the
-reduced selection (or, when the group becomes empty, an entry whose selected option is `none`), deletes the
-unmodified extension files and their stubs, re-renders the extensions that referred to the removed one, and rejects
-a removal that leaves a `requires` unmet (`extension_requires`: removing `go` while `templ` is installed). A
-modified file is a conflict (exit 4), resolved with `--keep <path>` or `--overwrite <path>`. The CLI never checks
-whether code still uses a technology; it prints `warning: code governed by htmx loses its rules`. Core items cannot
-be removed (`core_item`).
+reduced selection, or, when the group becomes empty, an entry whose selected option is `none`. It re-renders the
+extensions that referred to the removed one and rejects a removal that leaves a `requires` unmet
+(`extension_requires`). A modified file is a conflict (4.5). The CLI never checks whether code still uses a
+technology; it prints `warning: code governed by <name> loses its rules`.
 
 ### UC-7 Add workflow skills, review agents, or the project's own extensions
 
 Project extensions cover what the catalog does not: a domain rule set, an in-house library, a supporting procedure,
 or an extra reviewer. They use the catalog format and are project-owned; upgrades never change them.
 
-Create a stack-group skill, write its rules, then adopt it; a stack group records a decision as in UC-6:
+Create a stack-group skill with `extension new` (the `money` example of
+[`solomonar extension new`](../../site/src/docs/cli/extension.md#solomonar-extension-new)), write its rules, then
+adopt it; a stack group records a decision as in UC-6:
 
 ```
-$ solomonar extension new money --kind skill --group backend --title "Money handling" \
-    --applies-when "A change handles monetary amounts"
-Created draft project extension money (backend skill, project-owned)
-  create  docs/solomonar/skills/money/SKILL.md
-  update  .solomonar/manifest.json   (state draft; metadata: group, requires, applies_when, paths)
-  no decision, adapter, rendered combination, or AGENTS.md entry until adopted
-Write its rules as money/C-n (must|should), then adopt it: solomonar extension add money
-
 $ solomonar extension add money --yes
 Added extension money (backend skill) under P/D-4.
   state installed
@@ -1412,33 +1234,9 @@ field. A skill's `name` must match its directory (G11).
 
 ### UC-8 Sync adapters after editing the portable source
 
-Trigger: a role's or skill's frontmatter changed in `docs/solomonar/`, a stub was deleted, or a branch merged
-`docs/solomonar/` changes.
-
-```
-solomonar sync [--check] [--overwrite <path>]... [--dry-run] [--json]
-```
-
-```
-$ solomonar sync
-  update  .claude/skills/spec/SKILL.md      description changed in docs/solomonar/skills/spec/SKILL.md
-  update  .agents/skills/spec/SKILL.md      description changed in docs/solomonar/skills/spec/SKILL.md
-  create  .claude/agents/spec-reviewer.md   missing
-  unchanged  9 files
-Synced 3 files.
-
-$ solomonar sync --check
-stale  .claude/skills/spec/SKILL.md   description differs from docs/solomonar/skills/spec/SKILL.md
-error: 1 adapter file is stale (checks_failed)
-  fix: solomonar sync
-```
-
-`sync` also re-renders catalog extensions whose `With` sections depend on the installed set and the
-"Extensions" section of `AGENTS.md`. `--check` writes nothing and exits 5 when anything would change, for CI. A hand-edited stub is a conflict (exit 4),
-resolved with `--overwrite <path>`.
-
-Help names the editable source: edit `docs/solomonar/`, never copy its body into a runtime stub. A body-only
-source edit needs no duplicated body update; stubs load the source. Draft extensions are excluded from sync.
+Synopsis, flags, triggers, and examples: [`solomonar sync`](../../site/src/docs/cli/sync.md). Stubs are those of
+4.2 and re-rendering follows 4.3 Generation; a hand-edited stub is a conflict under 4.5. The help names the
+editable source: edit `docs/solomonar/`, never copy its body into a runtime stub.
 
 ### UC-9 Upgrade the framework
 
@@ -1486,78 +1284,19 @@ matching CLI). The upgrade never commits on main.
 
 ### UC-10 Check the project
 
-```
-solomonar doctor [--json]
-```
-
-```
-$ solomonar doctor
-git
-  ok    git 2.47.1 (2.40 or later)
-  ok    main branch "main" has commits
-  warn  .jj/ present: v0.1 supports Git only
-registry
-  ok    refs/heads/workflow-state @ 3a5c0d7, schema_version 1, 4 tasks valid
-  ok    origin/workflow-state matches local
-files
-  ok    framework 0.1.3, manifest valid
-  fail  4 framework paths not committed on main: AGENTS.md, CLAUDE.md, .claude/, .solomonar/
-  warn  docs/solomonar/skills/spec/template.md modified since installation (kept by upgrades)
-extensions
-  ok    4 installed: go (P/D-1), htmx, templ (P/D-2), tdd (P/D-3); requirements met; rendering current
-runtimes
-  ok    claude: CLAUDE.md imports AGENTS.md; 8 skill stubs, 5 role stubs in sync; guard hook present
-  warn  codex: state guard hook not trusted yet; review it with /hooks
-forge
-  ok    gh 2.62.0 authenticated for github.com/acme/ledger
-  ok    merge commits allowed (rules section 11)
-  warn  squash merges also allowed; the orchestrator must use merge commits only
-project
-  warn  docs/README.md commands: run, build, test, lint not established
-1 failure, 4 warnings
-```
-
-Exit 5 when any `fail`, else 0. Check catalog:
-
-| Area | Check | Level when it fails |
-|---|---|---|
-| git | Git version ≥ 2.40; repository; `main` has a commit; worktrees usable | fail |
-| git | `.jj/` present | warn |
-| registry | ref exists; `state.json` parses; schema valid; every record valid for its status | fail |
-| registry, files | registry or manifest schema, and project framework version, not newer than this CLI (`cli_outdated`) | fail |
-| registry | remote configured and local ref published | warn |
-| files | manifest valid; managed files present | fail |
-| files | managed files committed on main | fail |
-| files | managed files modified since installation | warn |
-| extensions | every installed stack extension's decision exists in `docs/decisions.md` with status `approved` | fail |
-| extensions | every installed member of a changed stack group points to the decision for its complete current selection; draft entries are excluded from approval/requirements/rendering checks | fail |
-| extensions | `requires` and `conflicts` hold for the installed set; rendered extensions current | fail |
-| extensions | the core is complete: every item `rules.md` names is present | fail |
-| runtimes | adapter files in sync (as `sync --check`) | fail |
-| runtimes | `CLAUDE.md` loads `AGENTS.md`; guard hook present | warn |
-| forge | `gh` installed and authenticated | warn (facts become `unknown`) |
-| forge | repository allows merge commits | fail |
-| forge | squash or rebase merges also allowed | warn |
-| project | `docs/README.md` commands established | warn |
+Synopsis, the check areas with their `fail` and `warn` levels, and the example:
+[`solomonar doctor`](../../site/src/docs/cli/doctor.md). A newer project is a `fail` (`cli_outdated`, 3.6), and
+every installed stack extension must point to an approved decision for its group's complete current selection
+(4.3); drafts are excluded from the decision, requirement, and rendering checks. A missing `gh` makes the forge
+facts `unknown`, never passing.
 
 ## 6. Use cases: task state
 
-All examples continue in `/work/ledger`. Worktrees live at `/work/ledger-worktrees/<ID>` (rules section 4 step 4). Each
-successful write prints the commit and, when a remote is configured, the push result. Every writing command accepts
-`--dry-run` and `--json`.
+Synopsis, flags, the conventions shared by the task commands, and one example of each command:
+[`solomonar task`](../../site/src/docs/cli/task.md). The examples below cover what that page does not show; they continue in `/work/ledger`.
+Worktrees live at `/work/ledger-worktrees/<ID>` (rules section 4 step 4).
 
 ### UC-11 Plan a task (user)
-
-```
-solomonar task plan --title <title> [--depends-on <ID>]... [--related <ID>] [--json] [--dry-run]
-```
-
-```
-$ solomonar task plan --title "Export expenses as CSV"
-Planned W-003: Export expenses as CSV
-  state(W-003): planned, plan "Export expenses as CSV"
-  registry @ bed97175b06e68eb7ff5722897aa86b8ea75c8ef · pushed origin/workflow-state
-```
 
 The ID is the next free `W-NNN` (highest existing number plus one). `--depends-on` and `--related` must name existing
 tasks (`task_not_found`). A missing `--title` is `invalid_usage`; a blank or whitespace-only title is
@@ -1579,26 +1318,6 @@ Would plan W-003: Export expenses as CSV
 `--dry-run --json` data: `{"id": "W-003", "record": { }, "dry_run": true}`.
 
 ### UC-12 Register a task (orchestrator): the registration barrier
-
-```
-solomonar task register [<ID>] --title <title> --owner <owner> [--depends-on <ID>]... [--related <ID>]
-                        [--next <actor>:<action>] [--json] [--dry-run]
-```
-
-```
-$ solomonar task register --title "Login" --owner orchestrator-1
-Registered W-001: Login
-  status    reserved / setup
-  owner     orchestrator-1
-  branch    feature/W-001 (create it now)
-  next      orchestrator-1: Create feature/W-001 and its worktree
-  state(W-001): reserved/setup, registered by orchestrator-1
-  registry @ e06b95860a6082ae37ef08874f8eb5fade2549da · pushed origin/workflow-state
-
-Registration confirmed. The next task may start.
-Create the worktree:
-  git worktree add -b feature/W-001 ../ledger-worktrees/W-001 main
-```
 
 Without an ID the task gets the next free `W-NNN`. Claiming a planned task: `solomonar task register W-003 --title
 "Export expenses as CSV" --owner orchestrator-2`; an unknown ID is `task_not_found`. A title that differs from the
@@ -1645,43 +1364,9 @@ Would register W-001: Login
 
 ### UC-13 Advance a task through its stages (owner)
 
-```
-solomonar task move <ID> [--as <owner>]
-  [--status <reserved|running|blocked|paused|cancelled>] [--resume-cancelled]
-  [--stage <setup|specification|implementation|specialized_review|adversarial_review|integration>]
-  [--revision <full-sha>] [--spec <worktree-relative path>] [--tier <0|1|2>]
-  [--agent <id>:<role>]... | [--agent none]
-  [--pr <url|number>] [--next <actor>:<action>]
-  [--json] [--dry-run]
-```
-
 At least one field flag is required (UC-14); `--as`, `--dry-run`, and `--resume-cancelled` are not field flags.
 All flags apply as one validated update and one commit. `done` and `complete` are not accepted here: only `task
 done` writes them.
-
-Worktree ready, specification starts:
-
-```
-$ export SOLOMONAR_OWNER=orchestrator-1
-$ solomonar task move W-001 --as orchestrator-1 --status running --stage specification --next "orchestrator-1:Run work-spec"
-W-001  reserved/setup → running/specification
-  next  orchestrator-1: Run work-spec
-  state(W-001): running/specification, status running, stage specification, next orchestrator-1
-  registry @ 5b2e9d0c7a4f1e3b6d8c0a2f4e6b8d0c2a4e6f8b
-```
-
-Work spec committed, readiness passed, implementation delegated:
-
-```
-$ solomonar task move W-001 --as orchestrator-1 --spec docs/work/W-001-login.md --stage implementation \
-    --agent impl-1:implementer --next "impl-1:Implement AC-1 to AC-4"
-W-001  running/specification → running/implementation
-  spec    docs/work/W-001-login.md (found in /work/ledger-worktrees/W-001)
-  agents  impl-1 implementer
-  next    impl-1: Implement AC-1 to AC-4
-  state(W-001): running/implementation, stage implementation, spec docs/work/W-001-login.md, agents impl-1, next impl-1
-  registry @ 8e1f3a5c7b9d0e2f4a6c8b0d1e3f5a7c9b1d2e4f
-```
 
 The header is `<ID>  <from status/stage> → <to>`, or `<ID>  <status>/<stage>` when the position does not change.
 A detail line follows for every changed field other than status and stage, in record order, labels aligned two
@@ -1726,13 +1411,6 @@ is verified again) and is rejected like any other move when one fails.
 Each rejection exits 3, writes nothing, and names the check and the fix (8.4). Typical cases:
 
 ```
-$ solomonar task move W-001 --as orchestrator-1 --stage specialized_review
-error: task move W-001 rejected (tier_required)
-  check: a stage after implementation needs a recorded tier
-  found: implementation -> specialized_review
-  fix:   triage the candidate and pass --revision <full-sha> --tier <0|1|2> with the stage move
-nothing was written
-
 $ solomonar task move W-001 --as orchestrator-1 --revision 7cd18e4 --tier 1 --stage specialized_review
 error: task move W-001 rejected (revision_not_full_sha)
   check: --revision must be a full 40-character SHA
@@ -1761,39 +1439,9 @@ without a field flag (`at least one field flag is required`); no `--as` and no `
 
 ### UC-15 Wait for a user decision
 
-The implementer returned `NEEDS_DECISION` on session storage. The orchestrator records the blocker and the user as
-next actor in one write, then sets `blocked` because no independent work remains (rules section 3):
-
-```
-solomonar task block <ID> --kind <decision|dependency|check|environment> --summary <text> [--ref <ref>]
-                     [--next <actor>:<action>] [--status blocked] [--as <owner>] [--json] [--dry-run]
-solomonar task unblock <ID> <blocker-id> [--status <prior status>] [--next <actor>:<action>]
-                       [--as <owner>] [--json] [--dry-run]
-```
-
-`--next` and `--status` on `block` and `unblock` are shorthands for the same fields of `task move`, so one decision
+When an implementer returns `NEEDS_DECISION`, the orchestrator records the blocker, the user as next actor, and
+`blocked` once no independent work remains (rules section 3). `--next` and `--status` on `block` and `unblock` are shorthands for the same fields of `task move`, so one decision
 event is one commit.
-
-```
-$ solomonar task block W-001 --as orchestrator-1 --kind decision --summary "Session storage" --ref W-001/D-1 \
-    --next "user:Decide W-001/D-1: session storage" --status blocked
-W-001  running/implementation → blocked/implementation
-  blocker  B-1 decision: Session storage (W-001/D-1)
-  next     user: Decide W-001/D-1: session storage
-  state(W-001): blocked/implementation, block B-1 decision
-  registry @ 9c0e2a4b6d8f1a3c5e7b9d0f2a4c6e8b0d1f3a5c
-```
-
-After approval:
-
-```
-$ solomonar task unblock W-001 --as orchestrator-1 B-1 --status running --next "impl-1:Apply W-001/D-1, continue AC-2"
-W-001  blocked/implementation → running/implementation
-  cleared  B-1 decision: Session storage
-  next     impl-1: Apply W-001/D-1, continue AC-2
-  state(W-001): running/implementation, unblock B-1
-  registry @ 4f6a8c0e2b4d6f8a1c3e5b7d9f0a2c4e6b8d1f3a
-```
 
 The human output is the `task move` form (UC-13) with a first detail line `blocker B-<n> <kind>: <summary> (<ref>)`
 (no parenthetical without a ref) on `block`, or `cleared B-<n> <kind>: <summary>` on `unblock`, then the other
@@ -1801,7 +1449,7 @@ changed fields, labels aligned.
 
 `--json` data has the `task move` shape: `{"id": "W-001", "from": {"status": "running", "stage": "implementation"},
 "to": {"status": "blocked", "stage": "implementation"}, "changed": ["status", "blockers", "next_action"], "record":
-{ }, "commit": "<sha>", "pushed": true}` for the block above; `changed` lists `blockers` (never `last_blocker`) in
+{ }, "commit": "<sha>", "pushed": true}` for the `task block` example of the command page; `changed` lists `blockers` (never `last_blocker`) in
 record order, with `status` and `next_action` when they change. `--dry-run` prints `Would block ` or `Would unblock `
 before the header, then the detail lines and the subject, with no registry line; `--dry-run --json` data is the same
 without `commit` and `pushed`, with `"dry_run": true`.
@@ -1826,23 +1474,7 @@ required`), and so are `unblock` without the blocker ID (`blocker ID is required
 
 ### UC-16 Inspect state
 
-```
-solomonar task show [<ID>] [--json]
-solomonar task status <ID> [--json] [--no-forge]
-```
-
-Registry overview:
-
-```
-$ solomonar task show
-ID     STATUS     STAGE               OWNER           NEXT
-W-001  running    specialized_review  orchestrator-1  orchestrator-1: Collect specialist reports
-W-002  blocked    specification       orchestrator-2  user: Decide W-002/D-1: currency rounding
-W-003  planned    -                   -               -
-registry refs/heads/workflow-state @ 2d4f6a8 · 2026-10-20T15:12:40Z
-```
-
-Rows are sorted by ID number. STATUS is as wide as `cancelled`; NEXT shows the `summary` for a `done` row,
+`task show` without an ID prints one row per task, sorted by ID number. STATUS is as wide as `cancelled`; NEXT shows the `summary` for a `done` row,
 `<actor>: <action>` otherwise, and `-` when empty, as do STAGE and OWNER. The last line is `registry <ref> @ <sha7>
 · <commit time>`, the time in RFC 3339 UTC. `task show <ID>` prints the stored record exactly as JSON, the raw read
 (J3).
@@ -1911,36 +1543,9 @@ as on `task show <ID>`. `SOLOMONAR_OWNER` feeds `owned_by_other`. `forge_unavail
 
 ### UC-17 Resume after an unexpected session end
 
-A new orchestrator session for W-001 starts. The previous session merged the PR, then ended before `task done`:
-
-```
-$ solomonar task status W-001
-W-001  Login
-record
-  status    running / integration   owner orchestrator-1   tier 2
-  spec      docs/work/W-001-login.md
-  revision  fea453f853c8645b085126e6517eab38dfaa022f
-  agents    none
-  blockers  none
-  next      orchestrator-1: Merge PR 42 with a merge commit
-  pr        https://github.com/acme/ledger/pull/42
-  updated   2026-10-20T16:58:10Z (registry @ 7b1c2d3)
-git
-  branch    feature/W-001 @ fea453f853c8645b085126e6517eab38dfaa022f
-  worktree  /work/ledger-worktrees/W-001
-  HEAD      fea453f8 · 0 commits ahead of revision
-  dirty     clean
-  spec      present in worktree and at revision
-  merged    yes, by 14091a9f2461267ee7e02525b4f1f2923f1c9849 (merge commit on main)
-  spec_ref  derived 10ec7f36405c2d9eae3871433246dfd650c19e81:docs/work/W-001-login.md (last spec(W-001) commit merged)
-forge (gh)
-  pr      #42 merged
-  checks  passing
-drift
-  merged_not_done  feature/W-001 is merged into main but the record is not done
-allowed next
-  solomonar task done W-001 --as orchestrator-1 --merge 14091a9f2461267ee7e02525b4f1f2923f1c9849 --spec-ref <PR "Final specification" line> --summary <one sentence>
-```
+A new orchestrator session starts after the previous one merged the PR and ended before `task done`. `task status`
+reports `merged_not_done` and lists only `task done` as allowed next, with the merge commit filled in: the example
+of [`solomonar task status`](../../site/src/docs/cli/task.md#solomonar-task-status).
 
 The derived `spec_ref` is a cross-check (C14 b); the orchestrator takes `spec_ref` from the PR's Verification
 section (C14 a), and `task done` rejects a mismatch.
@@ -1981,21 +1586,7 @@ task without `--resume-cancelled` is `cancelled_requires_flag`.
 
 ### UC-19 Hand off ownership
 
-The user tells a new session to take over W-002 after confirming the previous session stopped:
-
-```
-solomonar task handoff <ID> --owner <new-owner> [--next <actor>:<action>] [--json] [--dry-run]
-```
-
-```
-$ solomonar task handoff W-002 --owner orchestrator-3
-W-002  owner orchestrator-2 → orchestrator-3 (blocked/specification)
-  state(W-002): blocked/specification, handoff orchestrator-2 -> orchestrator-3
-  registry @ 0a2c4e6b8d1f3a5c7e9b0d2f4a6c8e1b3d5f7a9c
-  The previous owner must stop writing this record.
-```
-
-`handoff` takes no `--as`: the new owner runs it on the user's instruction (rules section 10). Rejections: `handoff_same_owner`,
+The user tells a new session to take over a task after confirming the previous session stopped. `handoff` takes no `--as`: the new owner runs it on the user's instruction (rules section 10). Rejections: `handoff_same_owner`,
 `owner_in_use`, `done_final`.
 
 Checks run in order: the lookup (`task_not_found`), `done_final`, `not_registered` (a `planned` task; found `<ID>
@@ -2021,37 +1612,6 @@ subject, with no registry line and no closing line.
 `--dry-run --json` data is the same without `commit` and `pushed`, with `"dry_run": true`.
 
 ### UC-20 Complete a task after the merge
-
-```
-solomonar task done <ID> --merge <full-sha> --spec-ref <full-sha>:<path> --summary <text>
-                    [--as <owner>] [--json] [--dry-run]
-```
-
-```
-$ solomonar task done W-001 --as orchestrator-1 --merge 14091a9f2461267ee7e02525b4f1f2923f1c9849 \
-    --spec-ref 10ec7f36405c2d9eae3871433246dfd650c19e81:docs/work/W-001-login.md \
-    --summary "Password login and logout with server-side sessions"
-Verified
-  merge     14091a9f is a merge commit reachable from main
-  revision  fea453f8 is contained in the merge
-  spec_ref  resolves; 10ec7f36 is the last spec(W-001) commit merged
-W-001  running/integration → done/complete
-  state(W-001): done/complete, merged 14091a9
-  registry @ 6c8e0a2d4f6b8c1e3a5d7f9b0c2e4a6d8f1b3c5e
-Compact record
-  {
-    "title": "Login",
-    "status": "done",
-    "stage": "complete",
-    "pr": "https://github.com/acme/ledger/pull/42",
-    "summary": "Password login and logout with server-side sessions",
-    "spec_ref": "10ec7f36405c2d9eae3871433246dfd650c19e81:docs/work/W-001-login.md",
-    "merge_commit": "14091a9f2461267ee7e02525b4f1f2923f1c9849",
-    "updated_at": "2026-10-20T17:03:22Z"
-  }
-Next: delete the worktree only after confirming it holds no uncommitted or unmerged work:
-  git worktree remove ../ledger-worktrees/W-001
-```
 
 `task done` uses only Git (J6). Its checks are in 8.3. The compact record keeps `title`, `status` `done`, `stage`
 `complete`, `summary` (trimmed), `spec_ref`, `merge_commit`, `pr` (when recorded), `related_task` (when recorded), and
@@ -2091,7 +1651,7 @@ record` with the record, with no registry line and no `Next:` lines.
 "running", "stage": "integration"}, "to": {"status": "done", "stage": "complete"}, "changed": [...], "record": { },
 "commit": "<sha>", "pushed": true}`. `changed` lists, in record order, every field that differs between the record
 before and the compact record, whether added, changed, or removed, except the bookkeeping fields `updated_at` and
-`last_blocker`; for the task above: `["status", "stage", "owner", "branch", "spec", "revision", "tier",
+`last_blocker`; for a record that still lists active agents: `["status", "stage", "owner", "branch", "spec", "revision", "tier",
 "active_agents", "next_action", "summary", "spec_ref", "merge_commit"]`. `--dry-run --json` data is the same without
 `commit` and `pushed`, with `"dry_run": true`.
 
@@ -2128,18 +1688,8 @@ command:
 - `solomonar extension add` or `extension remove` of a stack-group extension without `--decision`: from an agent
   session the change needs an approved decision entry (rules section 3); only the user's own command records a `P/D-n`.
 
-```
-solomonar guard --runtime <claude|codex>     reads the hook payload on stdin; never writes
-```
-
-Denial reason shown to the agent:
-
-```
-solomonar guard: denied. The registry is written only through `solomonar task` commands (AGENTS.md rule 3).
-Use: solomonar task move W-001 --as orchestrator-1 --stage <stage>   (see: solomonar task status W-001)
-```
-
-An allowed call produces no output and exit 0. The guard is a convenience: the task commands validate every write
+Synopsis and an example denial reason: [`solomonar guard`](../../site/src/docs/cli/guard.md). It never writes; an
+allowed call produces no output and exit 0. The guard is a convenience: the task commands validate every write
 regardless, and the rules stay behavioral contracts (rules section 11).
 
 The registry is a Git blob with no filesystem checkout. A product file or fixture such as
@@ -2165,11 +1715,8 @@ alive.
 
 ### UC-24 Versions
 
-```
-$ solomonar version
-solomonar 0.1.3
-project   framework 0.1.3 · registry schema 1
-```
+Output inside and outside a project: [`solomonar version`](../../site/src/docs/cli/version.md); help:
+[`solomonar help`](../../site/src/docs/cli/help.md).
 
 The CLI version is the embedded framework version (AD-10), so `cli` and `framework` in `--json` are always equal. `version` reads only the version fields of the
 manifest and the registry, never decoding either strictly, so a newer project prints its versions and exits 0
@@ -2471,11 +2018,10 @@ the orchestrator should run (J1).
 
 ## 10. Delivery order
 
-J7 puts `init` and the `task` commands first. The init choices in this spec move part of the adapter work forward:
-
-Increment 1 is an internal validation milestone, not the complete new-product path: a project initialized with
-`--ext none` chooses its stack later through `extension add`, delivered in increment 2. Do not present the full
-prototype → later stack choice → implementation path as available before that command exists.
+J7 puts `init` and the `task` commands first; the init choices in this spec move part of the adapter work forward.
+What each increment makes available to users, including the new-product path that needs `extension add`:
+[CLI overview, Planned commands](../../site/src/docs/cli.md#planned-commands). This table keeps the completion
+conditions.
 
 | Increment | Commands | Completion condition |
 |---|---|---|
@@ -2483,43 +2029,22 @@ prototype → later stack choice → implementation path as available before tha
 | 2 | `doctor`, `sync`, `runtime` list/add/remove, `extension` list/show/add/remove/new, `guard` | UC-5 to UC-8, UC-10, UC-22 |
 | 3 | `upgrade`, `dashboard` | UC-9, UC-23; an upgrade test between two embedded framework versions |
 
-## 11. Framework alignment
-
-This section tracks alignment between the interface and framework assets; accepted audit corrections are recorded
-in register section L. Remaining rows are packaging work for the CLI implementation, not additional approvals.
-
-Applied 2026-10-21 and removed from the table: the language-neutral core reviewers with review priority (rules section 6),
-the `go` extension (`assets/extensions/language/go/`), installed extension agents in triage, extension `must` rules
-as approved global rules (rules section 1, `report.md` `Violates`), the "Extensions" section of the `AGENTS.md`
-template, the `solomonar` entry skill with the "Route a request" section of `AGENTS.md` (CLI-D15), and the
-`reserved`-at-`setup` invariant in rules section 7 Stages (CLI-D16).
-
-| Change | Files |
-|---|---|
-| Init choices and the manifest | design note "Phase 2: Go initialization contract" (point to this spec) |
-| Adapter stubs instead of installed copies | register G11, G12 resolution |
-
-Applied with the accepted audit corrections on 2026-10-21: project-scoped extension decisions and complete-group
-provenance (rules section 3), extension-command permission (orchestrator section 1), acting identity on owner commands
-(rules section 7 and orchestrator section 3), atomic blocker status/next shorthands (rules section 7), and the doctor checklist route
-(rules section 11). The audit report records each applied correction and the remaining CLI implementation checks.
-
-## 12. Open decisions
+## 11. Open decisions
 
 | ID | Question | Options | Recommendation | Decision |
 |---|---|---|---|---|
 | CLI-D1 | How language knowledge reaches reviews | a) language-neutral core reviewers; `spec-reviewer` checks the `must` rules of the installed extension skills that apply to the change; b) one `<lang>-reviewer` role per language, rendered into the rules section 6 table | a: one rules table, a language is one skill, and mixed-language changes need no extra reviewer | **a**, author, 2026-10-20; revised 2026-10-21: core reviewers are `security-reviewer` (bugs, security), `correctness-reviewer` (business logic), `spec-reviewer` (work spec and language rules), `adversarial-reviewer` |
 | CLI-D2 | How the CLI knows the acting orchestrator | a) `--as <owner>` with `SOLOMONAR_OWNER` default; b) no check, ownership stays behavioral | a: rules section 7 promises ownership validation; it remains a behavioral contract, not authentication | **a**, author, 2026-10-20 |
-| CLI-D3 | Claude Code root instructions (G10) | a) create a one-line `CLAUDE.md` (`@AGENTS.md`) when absent, never modify an existing one; b) nothing, if Claude Code is verified to load `AGENTS.md` natively | a, unless the verification at implementation time shows b | open |
-| CLI-D4 | Does `init` commit on main | a) never; print the commit command; `doctor` fails until committed; b) `--commit` flag; c) always | a: commits on main stay the user's; b can be added later | open |
+| CLI-D3 | Claude Code root instructions (G10) | a) create a one-line `CLAUDE.md` (`@AGENTS.md`) when absent, never modify an existing one; b) nothing, if Claude Code is verified to load `AGENTS.md` natively | a, unless the verification at implementation time shows b | **a**, author, 2026-10-22: implemented in v0.1.0 (4.2) |
+| CLI-D4 | Does `init` commit on main | a) never; print the commit command; `doctor` fails until committed; b) `--commit` flag; c) always | a: commits on main stay the user's; b can be added later | **a**, author, 2026-10-22: implemented in v0.1.0 (UC-1) |
 | CLI-D5 | Prompt implementation | a) line-based prompts with the standard library; b) a full-screen prompt library (a new dependency, needs approval) | a: no dependency, scriptable, testable with piped input | **decided**, author, 2026-10-21: text prompts and confirmations line-based with the standard library; the multi-select key-driven (↑/↓, Space, Enter) in raw terminal mode through `golang.org/x/term` (architecture AD-1) |
 | CLI-D6 | Extension sources in v0.1 | a) embedded catalog and local directories; b) a, plus Git URLs | a: remote sources bring pinning and trust questions; add later with a recorded commit and hash | open |
-| CLI-D7 | Adapter file form | a) stubs that point to `docs/solomonar/`; b) full copies; c) symlinks | a: one source of content, small diffs, works where symlinks do not | open |
+| CLI-D7 | Adapter file form | a) stubs that point to `docs/solomonar/`; b) full copies; c) symlinks | a: one source of content, small diffs, works where symlinks do not | **a**, author, 2026-10-22: implemented in v0.1.0 (4.2) |
 | CLI-D8 | Binary name: `go install ./cmd/cli` produces `cli` | a) rename the package directory to `cmd/solomonar`; b) keep `cmd/cli`, document `go build -o solomonar ./cmd/cli` and set the name in release builds; c) `main.go` at the module root, so `go install github.com/madalinpopa/solomonar` yields `solomonar` | c: the repository holds one binary | **c**, author, 2026-10-21 (architecture AD-13) |
 | CLI-D9 | Codex specifics: skill path, native role definitions, hook support | verify each against Codex documentation before increment 1 | adopt what is verified; fall back to packets naming role files and no hook | **decided**, author, 2026-10-21, from the official docs (I section 4.2): skills `.agents/skills/<skill>/SKILL.md`, the `solomonar` skill with `agents/openai.yaml` `allow_implicit_invocation: false`; roles `.codex/agents/<role>.toml` (`name`, `description`, `developer_instructions`, `model`), no tool allowlist; guard a `PreToolUse` hook in `.codex/hooks.json`, run once the user trusts it; Claude Code forms confirmed |
 | CLI-D10 | `workflow` and `review` extensions in the catalog | a) add `baseline` (records commands and known failures, rules section 11) and `decision` (prepares a decision entry, rules section 3) as `workflow` skills; b) none in v0.1, mechanism only | b for v0.1, as CLI-D13 fixes the catalog; a is the first candidate after it | open |
 | CLI-D11 | How a change of stack extensions is approved and recorded | a) `--decision <ID>` names an approved entry; otherwise the user's own command appends an approved project entry `P/D-n` per group, superseding the previous one, plus a line in `docs/stack.md` or `docs/architecture.md`; b) extensions install without any decision record; c) the CLI only accepts `--decision`, and the user writes every entry by hand | a: choosing a stack extension is an architecture or dependency decision (rules section 3); the user's command is that explicit decision, and the record keeps rules section 1 authority traceable | **a**, author, 2026-10-21: accepted workflow audit F-08; rules section 3 and register L |
-| CLI-D12 | Rule IDs and force inside extension skills | a) `<name>/C-n` with `must` (approved global rule, blocking) and `should` (suggestion); b) every extension rule binding; c) extensions are guidance only | a: matches the finding handling in rules section 6 and keeps preferences out of the blocking set | open |
+| CLI-D12 | Rule IDs and force inside extension skills | a) `<name>/C-n` with `must` (approved global rule, blocking) and `should` (suggestion); b) every extension rule binding; c) extensions are guidance only | a: matches the finding handling in rules section 6 and keeps preferences out of the blocking set | **a**, author, 2026-10-22: implemented in v0.1.0 (4.3) |
 | CLI-D13 | v0.1 extension catalog | a) a catalog for every group; b) a small catalog matching the stack in use | b: `go`, `htmx`, `templ`, `tdd`; other groups take project extensions until catalog ones are written | **b**, author, 2026-10-20: `go`, `htmx`, `templ`, `tdd` |
 | CLI-D15 | The user's entry point to the process | a) a core skill `solomonar`, invoked only by the user, that routes a request to `prototype`, `spec`, or the orchestrator role taken in the same top-level session, plus a short "Route a request" section in `AGENTS.md` for sessions started without it; b) the orchestrator rules move into `AGENTS.md`, so every session is an orchestrator; c) a skill that delegates the orchestrator to a subagent | a: b loads about 600 lines into every session and every delegated role, and contradicts the implementer and reviewer contracts; c fails because a delegated subagent cannot delegate the implementer and reviewers | **a**, author, 2026-10-21; framework files installed under `docs/solomonar/` instead of `docs/framework/` |
 | CLI-D14 | Core boundary | a) core = what `rules.md` names as a process step or required role: `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`; `prototype`, `spec`, `work-spec`; b) core = `orchestrator`, `implementer`, `work-spec`; reviewers and discovery skills become extensions | a: the review gates and the prototype-to-spec flow are the process; making them optional turns a required review into a choice | **a**, author, 2026-10-20: the current framework in `assets/framework/` is the core, with language-neutral core reviewers and Go rules in the `go` extension (CLI-D1, revised 2026-10-21) |
