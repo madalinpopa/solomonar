@@ -234,7 +234,8 @@ UC-18, I §8.4, I §8.5, and architecture §7 updated to match.
 Decisions (author, 2026-10-21): `--as` falls back to `SOLOMONAR_OWNER`, otherwise
 `owner_required` (exit 2, message `task move needs an acting owner`, fix `pass --as <owner>`); a missing ID is
 `invalid_usage`, and so is a move without a field flag (UC-13); the installed roles are the embedded core agents
-(`framework/agents/*.md`) without `orchestrator` until the manifest exists (step 8); the header is `<ID>
+(`framework/agents/*.md`) without `orchestrator`, plus the manifest's extensions of kind `agent` and state
+`installed` (wired after step 8, 2026-10-22; no manifest means core agents only); the header is `<ID>
 <from> → <to>`, or `<ID>  <status>/<stage>` when the position does not change; detail lines follow for every
 changed field other than status and stage, in record order, labels aligned: `spec <path> (found in <worktree>)`
 or `(found at <short>)`, `revision <sha> (on feature/<ID>)`, `tier <n>: <meaning>` (0 `no review stages`, 1
@@ -247,7 +248,7 @@ or `(found at <short>)`, `revision <sha> (on feature/<ID>)`, `tier <n>: <meaning
 before the subject. UC-13, UC-14, UC-18, I §3.1, I §8.3 updated to match.
 
 - [x] `task move <ID>` in the command table and help; flags of UC-13; `--as` and `SOLOMONAR_OWNER`
-      (`owner_required`); roles from the embedded core agents
+      (`owner_required`); roles from the embedded core agents and the manifest's installed agent extensions
 - [x] Human output of UC-13 and UC-18, the unchanged form, `--dry-run`, JSON, warnings
 - [x] Every UC-14 rejection end to end, named `task move <ID> rejected` (I §3.6)
 
