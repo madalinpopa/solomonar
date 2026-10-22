@@ -6,7 +6,8 @@ its arguments, its interaction, and its output, written as use cases. Behavior t
 `rules.md` wins until §11 below is applied. Example SHAs, hashes, and paths are illustrative but have their real
 length and shape.
 
-CLI implementation has not started; `main.go` is a placeholder. The accepted
+Increment 1 (section 10) is implemented and released as v0.1.0. [The implementation tasks](implementation-tasks.md)
+track it and record its step limitations; this spec keeps the final v0.1 behavior. The accepted
 [workflow-audit corrections](../design/phase1-review-register.md#l-workflow-audit-corrections-2026-10-21) are applied to these contracts and
 the framework assets on 2026-10-21. Runtime and fault-injection acceptance tests remain implementation work.
 
