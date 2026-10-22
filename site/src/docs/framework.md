@@ -13,9 +13,15 @@ sources:
 
 Solomonar is a way of working, rather than a technology stack. It connects product discovery, agreed behavior, focused implementation, independent review, and integration. The core remains language-agnostic; extensions supply knowledge of the project's chosen technologies.
 
-The names come from a Romanian folktale. The mapping below is the project's interpretation of that story. These are the same five diagrams used in the repository README, rendered with this site's theme.
+The names come from a Romanian folktale. The mapping below is the project's interpretation of that story. The diagrams come from the repository's `docs/images/`, rendered with this site's theme.
 
 If you followed [Run your first task]({{ '/docs/first-task/' | url }}), you have already used every part described here. This page explains why each part exists.
+
+## The building blocks
+
+{% diagram "blocks" %}
+
+Runtime adapters are generated stubs that load the portable framework in `docs/solomonar/`: the agent roles, the skills, and the contracts every role follows. Extensions add the rules of your stack and extra reviewers. Skills write the project documents that every role reads, and the orchestrator records task state only through the `solomonar` CLI, which keeps the registry in Git.
 
 ## The full cycle at a glance
 
