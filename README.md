@@ -142,7 +142,7 @@ Agents run the writing commands. Every command accepts `--json` for one machine-
 
 Version 0.1.3 is the current release. The framework contracts are defined, and the CLI ships increment 1: `init` (interactive or with flags, with Claude Code and Codex adapters and the `go` extension) and the full set of task commands.
 
-Planned for later increments: `doctor`, `sync`, `runtime`, `extension` with project extensions from a local directory, and `guard` with its runtime hooks, then `upgrade` and a read-only `dashboard`. The `htmx`, `templ`, and `tdd` extensions join the catalog once their framework content is written. The [interface specification](docs/cli/interface.md) defines them today; a command listed there is available only when `solomonar help` shows it.
+Planned for later increments: `doctor`, `sync`, `runtime`, `extension` with project extensions from a local directory, and `guard` with its runtime hooks, then `upgrade` and a read-only `dashboard`. The `htmx`, `templ`, and `tdd` extensions join the catalog once their framework content is written. Their [command pages](https://solomonar.dev/docs/cli/#commands-in-development) describe them today; a command is available only when `solomonar help` shows it.
 
 ## Documentation
 
@@ -160,7 +160,8 @@ The design contracts live in this repository:
 | Document | Owns |
 | --- | --- |
 | [`assets/framework/`](assets/framework/) | Framework behavior: rules, skills, and agent roles, installed as `docs/solomonar/`. |
-| [`docs/cli/interface.md`](docs/cli/interface.md) | The CLI contract: commands, flags, output, exit codes, and validation. |
+| [`site/src/docs/cli/`](site/src/docs/cli/) | The CLI reference: each command's synopsis, flags, output, and exit codes. |
+| [`docs/cli/interface.md`](docs/cli/interface.md) | The contract beneath the CLI reference: check order, file planning, the manifest, JSON data, and task validation. |
 | [`docs/cli/architecture.md`](docs/cli/architecture.md) | How the binary is built: packages, decisions, and conventions. |
 | [`docs/design/`](docs/design/) | Framework design notes and validation. |
 
@@ -212,7 +213,7 @@ Behavior is specified before it is built. The interface specification fixes what
 Contributions are welcome. Before you open a pull request:
 
 1. For anything beyond a small fix, open an issue first to agree on the behavior.
-2. Check the [interface specification](docs/cli/interface.md) for the behavior you change, and update it, the [architecture](docs/cli/architecture.md), or the [site documentation](site/src/docs/) in the same pull request when they no longer match.
+2. Check the [command page](site/src/docs/cli/) and the [interface specification](docs/cli/interface.md) for the behavior you change, and update them, the [architecture](docs/cli/architecture.md), or the rest of the [site documentation](site/src/docs/) in the same pull request when they no longer match.
 3. Add or update tests, and run `task check` until it passes.
 4. Write commit messages in [Conventional Commits](https://www.conventionalcommits.org/) form, such as `feat(cli): ...`, `fix(task): ...`, or `docs(site): ...`, with one logical change per commit.
 
