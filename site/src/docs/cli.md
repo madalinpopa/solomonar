@@ -29,7 +29,7 @@ These commands are present in the current implementation. Use `solomonar help` f
 | Command | Purpose | Requires a project |
 | --- | --- | --- |
 | `help` | Print help; `-h` and `--help` are equivalent. | No |
-| `version` | Print CLI, embedded framework, and project versions. | No |
+| `version` | Print the CLI and project framework versions. | No |
 | `init` | Install the framework core, runtime adapters, and extensions, and create the registry. | No |
 | `task plan` | Create a planned task with the next free ID. | Yes |
 | `task register` | Reserve a task for one orchestrator. | Yes |
@@ -77,7 +77,7 @@ A re-run with the same choices and unchanged files is a no-op. A re-run never ch
 solomonar version
 ```
 
-Prints the CLI version, the embedded framework version, and the framework version recorded in the project. Outside a project the project line reads `not initialized`.
+Prints the CLI version, which is also the version of the framework it installs, and the framework version recorded in the project. Outside a project the project line reads `not initialized`.
 
 ## Task command conventions
 
