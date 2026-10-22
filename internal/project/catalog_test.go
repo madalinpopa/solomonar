@@ -39,6 +39,8 @@ func testCatalog(t *testing.T) Catalog {
 }
 
 func TestLoadCatalogReadsTheEmbeddedGoExtension(t *testing.T) {
+	t.Parallel()
+
 	catalog, err := LoadCatalog(os.DirFS("../../assets"))
 
 	require.NoError(t, err)
@@ -56,6 +58,8 @@ func TestLoadCatalogReadsTheEmbeddedGoExtension(t *testing.T) {
 }
 
 func TestLoadCatalogReadsSkillsAndAgents(t *testing.T) {
+	t.Parallel()
+
 	catalog := testCatalog(t)
 
 	assert.Len(t, catalog, 5)
@@ -65,6 +69,8 @@ func TestLoadCatalogReadsSkillsAndAgents(t *testing.T) {
 }
 
 func TestLoadCatalogWithoutExtensionsIsEmpty(t *testing.T) {
+	t.Parallel()
+
 	catalog, err := LoadCatalog(fstest.MapFS{"framework/rules.md": {Data: []byte("r\n")}})
 
 	require.NoError(t, err)
@@ -72,6 +78,8 @@ func TestLoadCatalogWithoutExtensionsIsEmpty(t *testing.T) {
 }
 
 func TestLoadCatalogRejectsADefectiveExtension(t *testing.T) {
+	t.Parallel()
+
 	skill := &fstest.MapFile{Data: []byte("# S\n")}
 	// decodeFailure is a stable prefix: the json/v2 wording after it differs between toolchains.
 	decodeFailure := "read catalog extensions/language/go: decode extension.json: "
@@ -163,6 +171,8 @@ func TestLoadCatalogRejectsADefectiveExtension(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, err := LoadCatalog(tt.files)
 
 			if tt.part == "" {
@@ -177,6 +187,8 @@ func TestLoadCatalogRejectsADefectiveExtension(t *testing.T) {
 }
 
 func TestLoadCatalogRejectsEmptyRequiredText(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		json string
@@ -195,6 +207,8 @@ func TestLoadCatalogRejectsEmptyRequiredText(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, err := LoadCatalog(fstest.MapFS{
 				"extensions/language/go/extension.json": {Data: []byte(tt.json)},
 				"extensions/language/go/SKILL.md":       {Data: []byte("# Go\n")},
@@ -206,6 +220,8 @@ func TestLoadCatalogRejectsEmptyRequiredText(t *testing.T) {
 }
 
 func TestResolveSelectsCatalogExtensions(t *testing.T) {
+	t.Parallel()
+
 	catalog := testCatalog(t)
 	known := "a11y, go, react, tdd, templ"
 	tests := []struct {
@@ -259,6 +275,8 @@ func TestResolveSelectsCatalogExtensions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, err := catalog.Resolve(tt.names)
 
 			if tt.err != nil {
@@ -272,6 +290,8 @@ func TestResolveSelectsCatalogExtensions(t *testing.T) {
 }
 
 func TestResolveNamesEveryMissingRequirement(t *testing.T) {
+	t.Parallel()
+
 	catalog := Catalog{
 		"app": {Name: "app", Requires: []string{"go", "sql"}},
 		"go":  {Name: "go"},
