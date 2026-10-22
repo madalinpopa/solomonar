@@ -16,6 +16,8 @@ const (
 )
 
 func TestAllowedNext(t *testing.T) {
+	t.Parallel()
+
 	mergeCommit := "14091a9f2461267ee7e02525b4f1f2923f1c9849"
 	merged := cleanFacts()
 	merged.Merge = MergeFacts{Merged: true, MergeCommit: &mergeCommit}
@@ -203,6 +205,8 @@ func TestAllowedNext(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assert.Equal(t, tt.want, AllowedNext("W-001", tt.record, tt.facts))
 		})
 	}
