@@ -111,23 +111,6 @@ solomonar task status W-001
 
 [Set up a project](https://solomonar.dev/docs/set-up-a-project/) covers existing repositories and file conflicts. [Run your first task](https://solomonar.dev/docs/first-task/) follows one feature from prototype to merge.
 
-## CLI commands
-
-| Command | Purpose |
-| --- | --- |
-| `init` | Install the framework, runtime adapters, and extensions, and create the task registry. |
-| `version` | Print the CLI and project framework versions. |
-| `task plan` | Create a planned task under the next free ID. |
-| `task register` | Reserve a task for one orchestrator. |
-| `task show` | Print the registry overview or one stored record. |
-| `task status` | Compare a task's record with Git and forge facts, and list the valid next commands. |
-| `task move` | Apply a validated status, stage, or field change. |
-| `task block`, `task unblock` | Add or clear a blocker. |
-| `task handoff` | Transfer a task to a new owner on explicit instruction. |
-| `task done` | Verify the merge and final spec, then write the compact record. |
-
-Agents run the writing commands. Every command accepts `--json` for one machine-readable object on stdout, and `solomonar help <command>` prints its flags. See the [CLI reference](https://solomonar.dev/docs/cli/) and [troubleshooting](https://solomonar.dev/docs/troubleshooting/).
-
 ## Documentation
 
 The website at [solomonar.dev](https://solomonar.dev) is the user documentation:
