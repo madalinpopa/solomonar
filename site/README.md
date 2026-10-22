@@ -65,7 +65,7 @@ The workflow has `packages: write`; no registry password secret is needed for pu
 - `src/assets/site.css` and `site.js`: themes, animation, responsive layout, and progressive enhancement.
 - `eleventy.config.js`: rendering, heading anchors, collections, logo reuse, and diagram embedding.
 
-`assets/framework/` owns framework behavior. `docs/cli/interface.md` owns the CLI contract. `internal/cli/run.go` establishes command availability. Update the site availability tables with implementation changes. The root README and historical notes can lag behind the code.
+`assets/framework/` owns framework behavior. `docs/cli/interface.md` owns the CLI contract. `internal/cli/run.go` establishes command availability. Update the site availability tables with implementation changes, and the root README after the site. The notes in `docs/design/` are historical records and are not updated.
 
 All five README diagrams are embedded directly from `docs/images/`, preserving their geometry and labels. The site replaces their embedded palette/font styles with scoped theme tokens; manual light/dark selection updates the diagrams immediately. Original source files are not rewritten. Diagrams scroll horizontally at small widths so their labels remain readable.
 
