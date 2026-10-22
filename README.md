@@ -210,12 +210,7 @@ Behavior is specified before it is built. The interface specification fixes what
 
 ## Contributing
 
-Contributions are welcome. Before you open a pull request:
-
-1. For anything beyond a small fix, open an issue first to agree on the behavior.
-2. Check the [command page](site/src/docs/cli/) and the [interface specification](docs/cli/interface.md) for the behavior you change, and update them, the [architecture](docs/cli/architecture.md), or the rest of the [site documentation](site/src/docs/) in the same pull request when they no longer match.
-3. Add or update tests, and run `task check` until it passes.
-4. Write commit messages in [Conventional Commits](https://www.conventionalcommits.org/) form, such as `feat(cli): ...`, `fix(task): ...`, or `docs(site): ...`, with one logical change per commit.
+Contributions are welcome. [`CONTRIBUTING.md`](CONTRIBUTING.md) covers the development setup, the documents to update with each change, commit conventions, and step-by-step guides with templates for adding framework rules, extension skills, and agents. For anything beyond a small fix, open an issue first to agree on the behavior.
 
 To report a problem, include the output of `solomonar version`, the command, the error code, and the relevant Git state, with secrets redacted. The [troubleshooting guide](https://solomonar.dev/docs/troubleshooting/#report-a-problem-with-evidence) lists what helps. Report security problems privately as [`SECURITY.md`](SECURITY.md) describes.
 
