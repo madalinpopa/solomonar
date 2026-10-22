@@ -117,7 +117,7 @@ func actingOwner(env Env, as, command string) (string, error) {
 }
 
 func (m *moveFlags) moveTask(ctx context.Context, env Env, store *task.Store, id, as string) (output, error) {
-	roles, err := installedRoles(env.Assets)
+	roles, err := installedRoles(env, store.Git.Dir)
 	if err != nil {
 		return output{}, err
 	}
@@ -174,9 +174,9 @@ func newMoveData(id string, result task.MoveResult, record *task.Record) moveDat
 	return moveData{ID: id, From: result.From, To: result.To, Changed: result.Changed, Record: record}
 }
 
-// installedRoles lists the embedded core agents until the manifest names the installed ones (step 8).
-func installedRoles(assets fs.FS) ([]string, error) {
-	entries, err := fs.ReadDir(assets, "framework/agents")
+// installedRoles lists the core agents without orchestrator, plus installed agent extensions.
+func installedRoles(env Env, dir string) ([]string, error) {
+	entries, err := fs.ReadDir(env.Assets, "framework/agents")
 	if err != nil {
 		return nil, fmt.Errorf("read installed roles: %w", err)
 	}
@@ -185,6 +185,17 @@ func installedRoles(assets fs.FS) ([]string, error) {
 		role, ok := strings.CutSuffix(entry.Name(), ".md")
 		if ok && role != "orchestrator" {
 			roles = append(roles, role)
+		}
+	}
+	manifest, err := readManifest(env, dir)
+	if err != nil {
+		return nil, err
+	}
+	if manifest != nil {
+		for name, ext := range manifest.Extensions {
+			if ext.State == "installed" && ext.Kind == "agent" {
+				roles = append(roles, name)
+			}
 		}
 	}
 	slices.Sort(roles)
