@@ -1,0 +1,25 @@
+# task status asks the gh found on PATH for the PR of feature/<ID> and reports its facts.
+exec git init -q -b main ledger
+cd ledger
+exec solomonar init --runtime none --ext none --yes
+exec solomonar task register --title Login --owner orchestrator-1
+
+chmod 755 ../bin/gh
+env PATH=$WORK/bin${:}$PATH
+exec solomonar task status W-001
+stdout '^  pr      #42 open$'
+stdout '^  pr_not_recorded  gh shows PR #42 for feature/W-001; the record has none$'
+cmp $WORK/gh-args.txt ../want-args.txt
+
+# --no-forge never runs gh.
+rm $WORK/gh-args.txt
+exec solomonar task status W-001 --no-forge
+stdout '^  pr      unknown \(--no-forge\)$'
+! exists $WORK/gh-args.txt
+
+-- bin/gh --
+#!/bin/sh
+echo "$@" > "$WORK/gh-args.txt"
+echo '{"number": 42, "url": "https://github.com/acme/ledger/pull/42", "state": "OPEN", "mergeCommit": null, "statusCheckRollup": []}'
+-- want-args.txt --
+pr view feature/W-001 --json number,url,state,mergeCommit,statusCheckRollup
