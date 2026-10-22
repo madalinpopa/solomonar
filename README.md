@@ -26,7 +26,7 @@ Solomonar is an open-source workflow for building software with AI coding agents
 
 It has two parts:
 
-- **The framework:** Markdown rules, skills, and agent roles that `solomonar init` installs into your repository under `docs/solomonar/`. Your agent runtime reads them. The core names no language; extensions add the rules of your stack.
+- **The framework:** Markdown rules, skills, and agent roles that `solomonar init` installs into your repository under `docs/solomonar/`. Your agent runtime reads them. The core works with any programming language; extensions add the rules for your stack.
 - **The CLI:** the `solomonar` binary. It installs the framework, writes the runtime adapters, and validates every task update against Git. It never calls a model, starts an agent, or stores review verdicts.
 
 The name comes from Romanian folklore: a solomonar is a wizard who learns every secret from a single book and rides a dragon to command the storms. Solomonar gives your project its book (specs), its spells (skills), and its dragons (agents). Read [the story](https://solomonar.dev/docs/story/) behind the name.
