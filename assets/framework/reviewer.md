@@ -2,45 +2,55 @@
 
 Framework version: 0.1.0
 
-Load together with `AGENTS.md`, `docs/solomonar/report.md`, your role file, the packet, the work spec, the
-documents it references, the diff, and the affected code and tests. You do not load `docs/solomonar/rules.md`;
-every rule you follow is here, in your role file, in `AGENTS.md`, or in `report.md`.
+Load `AGENTS.md`, `docs/solomonar/report.md`, your role file, and the context in section 2. Do not load
+orchestrator-only `docs/solomonar/rules.md`. Unqualified section references mean this file.
 
 ## 1. Applies to
 
 `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`, and installed extension
-agents. Role files add only role specifics. Every core reviewer is language-agnostic.
+reviewers. This is a shared contract, not a role. Role files add specialty-specific scope and checks.
+Every core reviewer is language-agnostic.
 
 ## 2. Context
 
-- Start from the packet, the work spec (a packet `spec_ref` is read with `git show "<spec_ref>"`), every spec
-  section, decision (`W-001/D-n`), and contract it references, the diff (`<base>..<revision>` from the packet),
-  and the affected code and tests.
+- Use the packet's exact work-spec path or `spec_ref` (`git show "<spec_ref>"`); never search for a replacement.
+  Read referenced spec sections, scoped decisions (`P/D-n`, `W-001/D-n`), contracts, the packet's diff
+  (`<base>..<revision>`), and affected code/tests. Read referenced prototype flows/assets at their cited SHA.
 - Load every extension skill the packet names (`docs/solomonar/skills/<name>/SKILL.md`). Cite its rules as
   `<name>/C-n`.
 - Expand only for a discovered dependency, shared contract, or security rule that may affect correctness. Name
-  each addition in `Summary`.
+  each addition and why in `Summary`.
 - A packet field your review needs is missing → `INCOMPLETE`, naming the field.
 
 ## 3. Revision discipline
 
-- Before reviewing, verify that the worktree `HEAD` equals the packet `Revision`. If not, stop: report
-  `INCOMPLETE` with the packet revision as `Revision` and the `HEAD` you found in `Summary`.
-- Review only that revision. Results from any other revision are not evidence for it; packet `Checks available`
-  count only when they name that SHA.
+- Before reviewing, run in the assigned worktree:
+  `git rev-parse --show-toplevel`, `git branch --show-current`, `git rev-parse HEAD`, and
+  `git status --porcelain`. Confirm the assigned path, `feature/<ID>`, a clean worktree, and `HEAD` equal to
+  the packet's full `Revision` SHA. Verify the packet's baseline and diff-base commits exist and are ancestors
+  with `git merge-base --is-ancestor <baseline-SHA> <revision>` and
+  `git merge-base --is-ancestor <diff-base-SHA> <revision>`.
+- Failed preflight → stop with `INCOMPLETE`. Report the delegated SHA, observed facts, and that review did
+  not run per `report.md` section 2; never substitute another revision or repair the worktree.
+- Review the delegated candidate. Baseline/history comparisons are evidence only for their named SHA;
+  packet `Checks available` count as candidate checks only when they name its SHA. Preserve supplied evidence
+  sources per `report.md` section 4; only the orchestrator decides whether an older verdict can be reused.
 - Recheck (the packet lists `W-001/F-n` IDs): review the change since the last reviewed revision (the packet
-  `Diff` base) and its effects on the rest of the candidate. An earlier `PASS` never covers new code.
-- List every rechecked ID under `Findings` with its classification, the evidence on this revision, and `Status`
-  (`report.md` section 5). A status you cannot establish is a `not run` or `limited` check → `INCOMPLETE`.
+  `Diff` base) and its effects on the rest of the candidate. List every assigned ID under `Findings` with
+  evidence on this revision and status per `report.md` section 5. If status is unknown, omit `Status` and
+  record the required verification gap; resolved findings are not open blockers.
+- Recheck path, branch, `HEAD`, and status before reporting. If drift is detected at any point, stop and report
+  `INCOMPLETE` with the observed change and verification limits; do not claim a completed stable review.
 
 ## 4. Read-only
 
-- You must not modify tracked files, create files in the worktree, commit, stash, change branch or `HEAD`, push,
-  open or update PRs, or write state (`solomonar task` writes or `state.json`). Other reviewers may use the same worktree at the same time.
-- Never run a command that rewrites files in the worktree (formatters in write mode, code generators,
-  dependency tidying).
-- Reproductions, temporary tests, and experiments go in the packet's temp dir or in a copy outside the worktree
-  (e.g. `git archive <revision> | tar -x -C <temp dir>`), with isolated test data and only assigned ports.
+- Do not create, change, or delete files in the assigned worktree, commit, stage, stash, reset, restore, change
+  branch or `HEAD`, push, or open/update PRs. Never run writing `solomonar task` commands or write the registry
+  on `refs/heads/workflow-state`. Other reviewers may share the worktree.
+- Checks that write files (including test/build output, local caches, generated files, or dependency changes),
+  temporary tests, and experiments run in the packet's external temp dir using a snapshot of the exact
+  candidate (e.g. `git archive <revision> | tar -x -C <temp dir>`). Keep baseline snapshots separate; identify
+  temporary test additions in evidence. Use isolated test data and only assigned ports.
 - A check that would interfere with a shared service, another reviewer, or unassigned ports: do not run it;
   record it `not run` with the reason.
 
@@ -52,33 +62,26 @@ agents. Role files add only role specifics. Every core reviewer is language-agno
 
 ## 6. Judging authority
 
-- Precedence, highest first: the user's recorded decisions (within their scope) > approved global specs and
-  mandatory rules > the work spec > agent recommendations, including yours. Only **Agreed** spec rules are
-  requirements; **Observed** rules, code, and prototypes (including their libraries and simulations) are evidence
-  of current behavior and approve nothing.
+- Apply `AGENTS.md` rules 1–2 for authority and scoped approvals; prototype libraries and simulations approve
+  no production dependency or architecture.
 - Specialty labels and reviewer vote counts never override evidence.
-- Never recommend a change that conflicts with an approved rule or decision (e.g. no in-memory store when a spec
-  requires sessions to survive restarts).
 
 ## 7. Findings
 
-- `blocking` requires evidence plus a violated rule or AC, or a demonstrated defect with concrete impact.
-  `Violates`: the most specific written rule (AC ID, spec rule `<capability>/R-n`, spec section, `W-001/D-n`,
-  `AGENTS.md rule n`); when none exists, `demonstrated defect: <invariant broken>`.
-- Preference or style without a violated rule → `suggestion`.
-- Plausible but unconfirmed → `unverified`, stating what would confirm or refute it.
-- Missing or contradictory policy → `Decision needed` with the affected scenario, not a defect.
-- A correction that needs a new dependency, a dependency version change, or an architecture change → also a
-  `Decision needed` entry. Never prescribe the dependency.
-- Never turn a new feature or a preference into a defect. `Correction` states the outcome that must hold.
-- No minimum finding count; zero confirmed defects is valid. IDs: your role's prefix (`report.md` section 5); `D-n`.
+- Use classifications, fields, provisional IDs, and recheck IDs from `report.md` section 5. Cite the most
+  specific governing rule, AC, or scoped decision; an unwritten defect still needs a demonstrated invariant
+  and concrete impact. No finding quota.
+- Report policy conflicts or choices requiring approval under `report.md` section 6. Investigate the question;
+  do not apply the choice. Corrections describe the required outcome, not a preferred implementation.
 
 ## 8. Evidence
 
 - Prefer a reproduction (test, command, request sequence) when it checks a real risk. When execution is
   impossible, give the reasoning and the verification limit in `Checks and evidence`.
-- Separate pre-existing failures from regressions: reproduce the failure on the packet's baseline (else the
-  `Diff` base) in a temporary copy and mark it `fail (pre-existing, baseline <SHA>)`.
+- Record commands/scenarios, requiredness, actual checked SHA, source, and limits per `report.md` section 4.
+- Establish a pre-existing failure only with a reproduction at the packet's baseline. The recheck `Diff` base
+  is not a substitute: it may already contain the regression. Without baseline evidence, attribution remains
+  unverified; a pre-existing label waives no required check.
 
 ## 9. Scope
 
@@ -87,18 +90,12 @@ outside it may be reported briefly with evidence; do not perform an unassigned f
 
 ## 10. Result
 
-- Per `report.md` section 3: `NEEDS_DECISION` > `INCOMPLETE` > `CHANGES_REQUIRED` > `PASS`.
-- A required check (your role file names them) `not run`, or `limited` in a required part → `INCOMPLETE`.
-- The specialty has nothing to examine in the candidate → `INCOMPLETE` with the reason; only the orchestrator
-  marks a specialty "not required". Examining the candidate and finding no risk is a result: `PASS` with the
-  checks run.
+Use the report template and result gates in `report.md` sections 2–4. Required checks come from the packet,
+spec, and role; failed required checks prevent `PASS`, including pre-existing failures. Only the orchestrator
+marks a specialty "not required"; reviewing applicable scope and finding no defect is a valid outcome.
 
 ## 11. Never
 
-- Never edit, create, or commit files in the worktree, or move `HEAD`.
-- Never return a `PASS` not backed by the checks run on the packet revision.
-- Never review, or cite as evidence, a revision other than the packet's.
-- Never read a reviewer report your packet does not include.
-- Never include secrets, credentials, or real user data in a report.
-- Never contact the user.
-- Never block on a preference.
+Never repair the candidate, change task state, apply a policy choice, or waive required verification to obtain
+a passing review. Worktree and communication boundaries are in sections 4–5; confidentiality follows
+`AGENTS.md` rule 11 and `report.md` section 1.
