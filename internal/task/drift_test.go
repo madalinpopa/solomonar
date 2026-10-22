@@ -35,6 +35,8 @@ func openPR() *PullRequest {
 }
 
 func TestDriftOf(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		record   func(r *Record)
@@ -230,6 +232,8 @@ func TestDriftOf(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			r, facts := reviewing(), cleanFacts()
 			if tt.record != nil {
 				tt.record(r)
