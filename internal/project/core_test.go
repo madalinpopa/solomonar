@@ -24,6 +24,8 @@ const (
 )
 
 func TestCoreWantsSmallTree(t *testing.T) {
+	t.Parallel()
+
 	assets := fstest.MapFS{
 		"framework/rules.md":            {Data: []byte("rules\n")},
 		"framework/agents/z.md":         {Data: []byte("z\n")},
@@ -47,12 +49,16 @@ func TestCoreWantsSmallTree(t *testing.T) {
 }
 
 func TestCoreWantsMissingTemplate(t *testing.T) {
+	t.Parallel()
+
 	_, err := CoreWants(fstest.MapFS{"framework/rules.md": {Data: []byte("x")}}, Choices{})
 
 	require.ErrorContains(t, err, "render templates/AGENTS.md")
 }
 
 func TestCoreWantsEmbeddedAssets(t *testing.T) {
+	t.Parallel()
+
 	assets := os.DirFS("../../assets")
 	var framework []string
 	require.NoError(t, fs.WalkDir(assets, "framework", func(path string, d fs.DirEntry, err error) error {
@@ -104,6 +110,8 @@ func agentsManifest(managedPart string) *Manifest {
 }
 
 func TestClassifyAgents(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		disk      string
@@ -154,6 +162,8 @@ func TestClassifyAgents(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			disk := map[string]entry{}
 			if tt.disk != "" {
 				disk[agentsPath] = entry{content: tt.disk, mode: 0o644}
@@ -181,6 +191,8 @@ func bytesOrNil(s string) []byte {
 }
 
 func TestClassifyAgentsCannotBeKept(t *testing.T) {
+	t.Parallel()
+
 	root, _ := openTree(t, map[string]entry{agentsPath: {content: "# Old\n", mode: 0o644}})
 	want := Want{Path: agentsPath, Owner: "core+notes", Content: []byte(managedC + offerNotes)}
 
@@ -195,6 +207,8 @@ func TestClassifyAgentsCannotBeKept(t *testing.T) {
 }
 
 func TestCoreWantsRendersTheExtensionsBlock(t *testing.T) {
+	t.Parallel()
+
 	const agentsNote = "- Agents: an installed agent is a specialist reviewer, required by triage when its " +
 		"\"applies when\" matches.\n"
 	gin := CatalogExtension{Name: "gin", Kind: "skill", Group: "backend", AppliesWhen: "A change adds routes"}
@@ -242,6 +256,8 @@ func TestCoreWantsRendersTheExtensionsBlock(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			wants, err := CoreWants(assets, Choices{Name: "ledger", Extensions: tt.extensions})
 
 			require.NoError(t, err)
@@ -252,6 +268,8 @@ func TestCoreWantsRendersTheExtensionsBlock(t *testing.T) {
 }
 
 func TestCoreWantsListsTheCreatedDocumentsInTheReadme(t *testing.T) {
+	t.Parallel()
+
 	assets := fstest.MapFS{
 		"framework/rules.md":       {Data: []byte("rules\n")},
 		"templates/AGENTS.md":      {Data: []byte("a\n")},
