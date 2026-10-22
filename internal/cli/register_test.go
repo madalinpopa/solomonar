@@ -12,6 +12,8 @@ import (
 )
 
 func TestTaskRegisterPrintsConfirmationAndWorktree(t *testing.T) {
+	t.Parallel()
+
 	dir, _ := registryRepo(t)
 	addRemote(t, dir)
 
@@ -45,6 +47,8 @@ func claimRepo(t *testing.T) string {
 }
 
 func TestTaskRegisterClaimWarnsInOrder(t *testing.T) {
+	t.Parallel()
+
 	dir := claimRepo(t)
 
 	got := runInRepo(t, dir, "task", "register", "W-002", "--title", "Export as CSV", "--owner", "orchestrator-2")
@@ -56,6 +60,8 @@ func TestTaskRegisterClaimWarnsInOrder(t *testing.T) {
 }
 
 func TestTaskRegisterJSON(t *testing.T) {
+	t.Parallel()
+
 	dir := claimRepo(t)
 
 	got := runInRepo(t, dir, "task", "register", "W-002", "--json", "--title", "Export as CSV", "--owner", "orchestrator-2")
@@ -81,6 +87,8 @@ func TestTaskRegisterJSON(t *testing.T) {
 }
 
 func TestTaskRegisterWithoutRemoteStillConfirms(t *testing.T) {
+	t.Parallel()
+
 	dir, _ := registryRepo(t)
 
 	got := runInRepo(t, dir, "task", "register", "--title", "Login", "--owner", "orchestrator-1")
@@ -91,6 +99,8 @@ func TestTaskRegisterWithoutRemoteStillConfirms(t *testing.T) {
 }
 
 func TestTaskRegisterDryRunWritesNothing(t *testing.T) {
+	t.Parallel()
+
 	dir, _ := registryRepo(t)
 	before := registryTip(t, dir)
 
@@ -122,6 +132,8 @@ func TestTaskRegisterDryRunWritesNothing(t *testing.T) {
 }
 
 func TestTaskRegisterRejections(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		args   []string
@@ -158,6 +170,8 @@ func TestTaskRegisterRejections(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir, _ := registryRepo(t)
 			runInRepo(t, dir, "task", "register", "--title", "Login", "--owner", "orchestrator-1")
 			before := registryTip(t, dir)
@@ -173,6 +187,8 @@ func TestTaskRegisterRejections(t *testing.T) {
 }
 
 func TestTaskRegisterFromWorktreeUsesAbsolutePath(t *testing.T) {
+	t.Parallel()
+
 	dir, _ := registryRepo(t)
 	gittest.Commit(t, dir, "initial")
 	worktree := gittest.Worktree(t, dir, "feature/W-000")
