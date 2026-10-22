@@ -55,6 +55,8 @@ func wantedPaths(wants []Want) []string {
 }
 
 func TestRuntimeWantsOrdersClaudeBeforeCodex(t *testing.T) {
+	t.Parallel()
+
 	wants, err := RuntimeWants(runtimeAssets(), []string{"codex", "claude"}, nil, "1.2.3", nil)
 
 	require.NoError(t, err)
@@ -81,6 +83,8 @@ func TestRuntimeWantsOrdersClaudeBeforeCodex(t *testing.T) {
 }
 
 func TestRuntimeWantsStubs(t *testing.T) {
+	t.Parallel()
+
 	models := map[string]string{"claude": "opus", "codex": "gpt-5"}
 	tests := []struct {
 		name    string
@@ -159,6 +163,8 @@ func TestRuntimeWantsStubs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			wants, err := RuntimeWants(runtimeAssets(), []string{tt.runtime}, tt.models, "1.2.3", nil)
 
 			require.NoError(t, err)
@@ -169,6 +175,8 @@ func TestRuntimeWantsStubs(t *testing.T) {
 }
 
 func TestRuntimeWantsEscapesBackslashInToml(t *testing.T) {
+	t.Parallel()
+
 	assets := runtimeAssets()
 	assets["framework/agents/implementer.md"] = frontmatter("implementer", `Uses C:\tmp.`)
 
@@ -179,6 +187,8 @@ func TestRuntimeWantsEscapesBackslashInToml(t *testing.T) {
 }
 
 func TestRuntimeWantsRejects(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		file     string
@@ -212,6 +222,8 @@ func TestRuntimeWantsRejects(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assets := runtimeAssets()
 			if tt.file != "" {
 				assets[tt.file] = &fstest.MapFile{Data: []byte(tt.data)}
@@ -230,6 +242,8 @@ func TestRuntimeWantsRejects(t *testing.T) {
 }
 
 func TestRuntimeWantsMergesExtensionStubsByName(t *testing.T) {
+	t.Parallel()
+
 	assets := runtimeAssets()
 	extensions := catalogExtensions(t, assets, "contrast", "go")
 
@@ -255,6 +269,8 @@ func TestRuntimeWantsMergesExtensionStubsByName(t *testing.T) {
 }
 
 func TestRuntimeWantsExtensionStubs(t *testing.T) {
+	t.Parallel()
+
 	models := map[string]string{"claude": "opus", "codex": "gpt-5"}
 	tests := []struct {
 		name    string
@@ -292,6 +308,8 @@ func TestRuntimeWantsExtensionStubs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assets := runtimeAssets()
 			extensions := catalogExtensions(t, assets, "go", "contrast")
 
@@ -305,6 +323,8 @@ func TestRuntimeWantsExtensionStubs(t *testing.T) {
 }
 
 func TestRuntimeWantsRejectsAnExtensionWithoutFrontmatter(t *testing.T) {
+	t.Parallel()
+
 	assets := runtimeAssets()
 	assets["extensions/review/contrast/contrast.md"] = &fstest.MapFile{Data: []byte("# Contrast\n")}
 
@@ -315,6 +335,8 @@ func TestRuntimeWantsRejectsAnExtensionWithoutFrontmatter(t *testing.T) {
 }
 
 func TestRuntimeWantsEmbeddedAssets(t *testing.T) {
+	t.Parallel()
+
 	assets := os.DirFS("../../assets")
 
 	claude, err := RuntimeWants(assets, []string{"claude"}, nil, framework, nil)
@@ -349,6 +371,8 @@ func TestRuntimeWantsEmbeddedAssets(t *testing.T) {
 }
 
 func TestClassifyCreateOnly(t *testing.T) {
+	t.Parallel()
+
 	offer := Want{Path: claudePath, Owner: "runtime:claude", Content: []byte("@AGENTS.md\n"), CreateOnly: true}
 	managedClaude := &Manifest{Files: map[string]File{claudePath: {Owner: "runtime:claude", SHA256: Hash(offer.Content)}}}
 	tests := []struct {
@@ -390,6 +414,8 @@ func TestClassifyCreateOnly(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			root, dir := openTree(t, tt.disk)
 			before := snapshot(t, dir)
 
@@ -405,6 +431,8 @@ func TestClassifyCreateOnly(t *testing.T) {
 }
 
 func TestClassifyCreateOnlyUnmanagedIsNotAConflict(t *testing.T) {
+	t.Parallel()
+
 	root, dir := openTree(t, map[string]entry{claudePath: {content: "mine\n", mode: 0o644}})
 	offer := Want{Path: claudePath, Owner: "runtime:claude", Content: []byte("@AGENTS.md\n"), CreateOnly: true}
 
