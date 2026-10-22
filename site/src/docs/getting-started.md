@@ -8,7 +8,6 @@ order: 1
 sources:
   - README.md
   - internal/cli/run.go
-  - docs/cli/implementation-tasks.md
 ---
 
 Solomonar is a spec-driven workflow for building software with AI coding agents. You agree on what the software should do, an agent builds one focused task against that agreement, separate agents review it, and a small CLI records every step in Git.
