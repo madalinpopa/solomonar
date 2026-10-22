@@ -13,7 +13,7 @@ Write all framework artifacts in English, including rules, documentation and spe
 | Phase | Deliverable | Completion condition |
 | - | - | - |
 | 1 — Framework definition | English rules, three skill contracts, agent responsibilities, context routing, work specification, state and report contracts, recovery and dashboard behavior. | The contracts form one coherent workflow and can be walked through with a small feature. |
-| 2 — Go CLI | Versioned embedded framework core and extension catalog; an `init` command that installs the core and the chosen extensions in a new project and creates `refs/heads/workflow-state`; the `solomonar task` commands (rules §7), the only state writers, with fact checks and the read-only `task status`; the `solomonar extension` commands that extend the core. | Initialization is repeatable, preserves project edits, and exposes the selected runtime's instructions correctly. Every `task` command validates and rejects as rules §7 requires, with tests for transitions, fact checks, and the compare-and-swap retry. |
+| 2 — Go CLI | Versioned embedded framework core and extension catalog; an `init` command that installs the core and the chosen extensions in a new project and creates `refs/heads/workflow-state`; the `solomonar task` commands (rules section 7), the only state writers, with fact checks and the read-only `task status`; the `solomonar extension` commands that extend the core. | Initialization is repeatable, preserves project edits, and exposes the selected runtime's instructions correctly. Every `task` command validates and rejects as rules section 7 requires, with tests for transitions, fact checks, and the compare-and-swap retry. |
 
 The CLI's first responsibility is project initialization and packaging, then the state commands the rules depend on; `solomonar doctor`, runtime adapters (hooks, skill installation, native agent files), and extension management follow them. For state, the CLI is a guard and an oracle, never a driver: it never runs sessions or calls model providers. Dashboard hosting is an implementation choice for Phase 2. No CLI, installed skills, dashboard application, or application architecture is implemented by this design note.
 
@@ -34,7 +34,7 @@ The framework is a lightweight core of a process: a way of working, not a techno
 
 Verification: a project initialized with no extension can run the Phase 1 validation scenarios; `grep` of the core assets finds no language-, framework-, or library-specific rule.
 
-Interface, catalog, rendering, and file ownership: [CLI v0.1 §4.1 and §4.3–4.6](../cli/interface.md#41-core-and-extensions).
+Interface, catalog, rendering, and file ownership: [CLI v0.1 section 4.1 and section 4.3–4.6](../cli/interface.md#41-core-and-extensions).
 
 # Agreed decisions
 
@@ -187,7 +187,7 @@ The four core reviewers are language-agnostic (FW-2). Language, library, and pra
 | 1 | Security (`security-reviewer`) | Bugs and security defects: crashes, error handling, resource leaks, concurrency and races, partial writes; authorization, data isolation, external input, files, secrets, other trust boundaries, and relevant dependency or configuration changes. | Every code change. |
 | 2 | Correctness (`correctness-reviewer`) | Business logic: Agreed business rules (`<capability>/R-n`), domain invariants, calculations, state transitions, and the failure, boundary, empty, and permission cases those rules imply. | Every code change. |
 | 3 | Spec (`spec-reviewer`) | Conformance: each acceptance criterion and the authorized scope of the work spec, omitted or extra behavior, `docs/architecture.md` and `docs/ui.md`, and the `must` rules (`<name>/C-n`) of every installed extension that applies, such as the rules of the language. | Every code change. |
-| - | Adversarial (`adversarial-reviewer`) | The integrated feature as a whole (next section). | The risk tier requires it (rules §6), after the specialists pass. |
+| - | Adversarial (`adversarial-reviewer`) | The integrated feature as a whole (next section). | The risk tier requires it (rules section 6), after the specialists pass. |
 
 - Priority applies after every code change. The three specialists still run in parallel on the same revision; they run in priority order only when the runtime cannot run them in parallel or their checks interfere. The orchestrator orders the consolidated correction list by priority, and when two corrections conflict, the higher-priority one is applied and the other re-examined. The authority order still decides between requirements; priority never overrides evidence.
 - Language rules live in the language's extension skill, never in a reviewer. Choosing Go at `init` (or `solomonar extension add go`) installs `docs/solomonar/skills/go/SKILL.md` (source: [`assets/extensions/language/go/`](../../assets/extensions/language/go/SKILL.md)) with rules `go/C-n`; the implementer follows them and the Spec reviewer checks every `must` rule.
