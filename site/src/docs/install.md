@@ -58,7 +58,7 @@ solomonar version
 ```
 
 ```text
-solomonar devel (embedded framework 0.1.2)
+solomonar devel (embedded framework 0.1.3)
 project   not initialized
 ```
 

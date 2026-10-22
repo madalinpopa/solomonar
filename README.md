@@ -101,7 +101,7 @@ Make the first commit, because task worktrees branch from `main`. `init` prints 
 
 ```sh
 git add AGENTS.md CLAUDE.md .claude .solomonar docs
-git commit -m "chore: initialize solomonar 0.1.2"
+git commit -m "chore: initialize solomonar 0.1.3"
 ```
 
 Open a top-level agent session in the project and start every request with the `solomonar` skill:
@@ -140,7 +140,7 @@ Agents run the writing commands. Every command accepts `--json` for one machine-
 
 ## Project status
 
-Version 0.1.2 is the current release. The framework contracts are defined, and the CLI ships increment 1: `init` (interactive or with flags, with Claude Code and Codex adapters and the `go` extension) and the full set of task commands.
+Version 0.1.3 is the current release. The framework contracts are defined, and the CLI ships increment 1: `init` (interactive or with flags, with Claude Code and Codex adapters and the `go` extension) and the full set of task commands.
 
 Planned for later increments: `doctor`, `sync`, `runtime`, `extension` with project extensions from a local directory, and `guard` with its runtime hooks, then `upgrade` and a read-only `dashboard`. The `htmx`, `templ`, and `tdd` extensions join the catalog once their framework content is written. The [interface specification](docs/cli/interface.md) defines them today; a command listed there is available only when `solomonar help` shows it.
 
