@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/rogpeppe/go-internal/testscript"
@@ -34,7 +35,10 @@ func TestScript(t *testing.T) {
 			env.Setenv("ASSETS", assets)
 			return isolateGit(env)
 		},
-		Cmds:                map[string]func(*testscript.TestScript, bool, []string){"exitcode": exitCode},
+		Cmds: map[string]func(*testscript.TestScript, bool, []string){
+			"exitcode": exitCode,
+			"capture":  capture,
+		},
 		RequireExplicitExec: true,
 		RequireUniqueNames:  true,
 	})
@@ -70,4 +74,12 @@ func exitCode(ts *testscript.TestScript, neg bool, args []string) {
 	if got != want {
 		ts.Fatalf("exit code %d, want %d", got, want)
 	}
+}
+
+// capture runs "capture <name>" and sets $name to the previous command's trimmed stdout.
+func capture(ts *testscript.TestScript, neg bool, args []string) {
+	if neg || len(args) != 1 {
+		ts.Fatalf("usage: capture <name>")
+	}
+	ts.Setenv(args[0], strings.TrimSpace(ts.ReadFile("stdout")))
 }
