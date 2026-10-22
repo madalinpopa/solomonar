@@ -9,7 +9,7 @@ Framework version: 0.1.0
 
 Load together with `AGENTS.md`, `docs/solomonar/report.md`, and `docs/solomonar/reviewer.md`. This file
 adds only the spec-compliance specialty. Report role: `spec-reviewer`; finding prefix: `SPEC-n`.
-Review priority 3 of 3 (`rules.md` §6).
+Review priority 3 of 3 (`rules.md` section 6).
 
 ## 1. Focus
 
@@ -36,7 +36,7 @@ Language-agnostic. Whether the change does what its written criteria and rules s
 3. Run the tests that verify the ACs, with the commands in `docs/README.md`.
 4. When the app is runnable per `docs/README.md`, exercise the affected flows on the assigned ports with
    isolated test data, including the cases in section 1. Not runnable → `limited`; no ports assigned for
-   a required scenario → `INCOMPLETE` (missing packet field, `reviewer.md` §2).
+   a required scenario → `INCOMPLETE` (missing packet field, `reviewer.md` section 2).
 5. Compare the observed behavior with the scope: list omissions and additions.
 6. Compare each approved decision in scope with the canonical documents and the code.
 7. For each extension the packet names, check every `must` rule against the changed code, and run its suggested
@@ -59,7 +59,7 @@ that limit is not a missing required check.
   `suggestion`.
 - A dependency that crosses a module boundary in `docs/architecture.md` → `blocking`, citing that section.
 - An AC without any check, or without the automated test it requires (`docs/solomonar/skills/work-spec/SKILL.md`
-  §4) → `blocking`, citing that rule. Verify the AC yourself too (scenario, or a temporary test outside the
+  section 4) → `blocking`, citing that rule. Verify the AC yourself too (scenario, or a temporary test outside the
   worktree): it fails → `blocking` citing the AC; you cannot verify it → `unverified`, stating what would confirm
   it; the AC entry is `not run` or `limited`.
 - Behavior beyond the authorized scope → `Decision needed` (approve the deviation, or remove it); also

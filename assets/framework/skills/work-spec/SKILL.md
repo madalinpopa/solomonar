@@ -50,7 +50,7 @@ Load only what the change touches:
    `<capability>/Q-n` ID instead of a new one. Blocking = the answer changes the scope, an AC, or the chosen
    implementation. `needs decision: yes` = an architecture or dependency decision, routed by the orchestrator.
    A conflict with an **Agreed** rule or an approved decision is blocking, cites both, and is routed by the
-   orchestrator (`rules.md` §1, §3); never resolve it in the work spec. Unknowns outside the scope are not
+   orchestrator (`rules.md` section 1, section 3); never resolve it in the work spec. Unknowns outside the scope are not
    listed; they stay in the canonical specs.
 7. Ask the user only the blocking questions that need no architecture or dependency decision and are not
    conflicts, one per message; wait for each answer. Fold each answer into the spec and delete the question;
@@ -59,7 +59,7 @@ Load only what the change touches:
 8. Evaluate the readiness gate (section 5).
 9. Commit the file alone (`git add -- <path>`): `spec(<ID>): draft task specification`; later revisions:
    `spec(<ID>): refine task specification`. Skip the commit when nothing changed. Never push. The final commit
-   belongs to the orchestrator per `rules.md` §9. Report the path, the commit SHA, the open questions (blocking
+   belongs to the orchestrator per `rules.md` section 9. Report the path, the commit SHA, the open questions (blocking
    first), and the readiness verdict as the last line.
 
 ## 4. Acceptance criteria rules
@@ -84,7 +84,7 @@ Load only what the change touches:
   yet, goes into the "Spec changes" line: existing rule IDs with their target statement or label, new rules as
   `<capability>/new: <statement>` (the `spec` skill assigns IDs), each with its source (`user YYYY-MM-DD` or
   `W-001/D-n`). Only the orchestrator applies it, via the `spec` skill in-task mode, when the readiness gate
-  passes and before implementation (`rules.md` §4 step 6); the work spec then cites the assigned IDs.
+  passes and before implementation (`rules.md` section 4 step 6); the work spec then cites the assigned IDs.
 - Never weaken or drop an AC to match an implementation. A change of an AC after implementation starts requires
   a user decision or an approved decision; cite it on the AC (`changed: W-001/D-2`).
 

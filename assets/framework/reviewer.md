@@ -31,7 +31,7 @@ agents. Role files add only role specifics. Every core reviewer is language-agno
 - Recheck (the packet lists `W-001/F-n` IDs): review the change since the last reviewed revision (the packet
   `Diff` base) and its effects on the rest of the candidate. An earlier `PASS` never covers new code.
 - List every rechecked ID under `Findings` with its classification, the evidence on this revision, and `Status`
-  (`report.md` §5). A status you cannot establish is a `not run` or `limited` check → `INCOMPLETE`.
+  (`report.md` section 5). A status you cannot establish is a `not run` or `limited` check → `INCOMPLETE`.
 
 ## 4. Read-only
 
@@ -71,7 +71,7 @@ agents. Role files add only role specifics. Every core reviewer is language-agno
 - A correction that needs a new dependency, a dependency version change, or an architecture change → also a
   `Decision needed` entry. Never prescribe the dependency.
 - Never turn a new feature or a preference into a defect. `Correction` states the outcome that must hold.
-- No minimum finding count; zero confirmed defects is valid. IDs: your role's prefix (`report.md` §5); `D-n`.
+- No minimum finding count; zero confirmed defects is valid. IDs: your role's prefix (`report.md` section 5); `D-n`.
 
 ## 8. Evidence
 
@@ -87,7 +87,7 @@ outside it may be reported briefly with evidence; do not perform an unassigned f
 
 ## 10. Result
 
-- Per `report.md` §3: `NEEDS_DECISION` > `INCOMPLETE` > `CHANGES_REQUIRED` > `PASS`.
+- Per `report.md` section 3: `NEEDS_DECISION` > `INCOMPLETE` > `CHANGES_REQUIRED` > `PASS`.
 - A required check (your role file names them) `not run`, or `limited` in a required part → `INCOMPLETE`.
 - The specialty has nothing to examine in the candidate → `INCOMPLETE` with the reason; only the orchestrator
   marks a specialty "not required". Examining the candidate and finding no risk is a result: `PASS` with the

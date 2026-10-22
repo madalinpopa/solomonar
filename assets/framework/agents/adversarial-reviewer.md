@@ -67,7 +67,7 @@ Required checks: every scenario tied to an AC or agreed invariant (steps 5–6).
 ## 4. Recheck after an adversarial fix
 
 - The packet lists the `W-001/F-n` IDs from earlier adversarial rounds. On the new revision, rerun each one's
-  original scenario and state its `Status` (`reviewer.md` §3).
+  original scenario and state its `Status` (`reviewer.md` section 3).
 - Rerun the scenarios whose components or flow steps the fix touched.
 - Check that the fix created no new failure mode (e.g. a retry fix that breaks uniqueness). Report one as a new
   `ADV-n`, not as a `Status` of the fixed ID.

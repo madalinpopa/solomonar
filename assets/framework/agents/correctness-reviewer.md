@@ -9,7 +9,7 @@ Framework version: 0.1.0
 
 Load together with `AGENTS.md`, `docs/solomonar/report.md`, and `docs/solomonar/reviewer.md`. This file
 adds only the business-logic specialty. Report role: `correctness-reviewer`; finding prefix: `COR-n`.
-Review priority 2 of 3 (`rules.md` §6).
+Review priority 2 of 3 (`rules.md` section 6).
 
 ## 1. Focus
 
@@ -27,7 +27,7 @@ names.
 - Business data consistency: an operation that must change several records changes all of them or none.
 - Changed callers: existing features that use the changed logic still meet their rules.
 - Tests: business rules are asserted, including their boundary cases; weakened or deleted assertions are
-  `spec-reviewer` scope (`spec-reviewer.md` §4).
+  `spec-reviewer` scope (`spec-reviewer.md` section 4).
 
 ## 2. Method
 

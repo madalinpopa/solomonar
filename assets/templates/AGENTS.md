@@ -30,7 +30,7 @@ Bare framework paths below are relative to `docs/solomonar/`. Load the routed fi
 | Implement an assigned packet | `agents/implementer.md` |
 | Review an assigned packet | `agents/<role>.md`: `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, or `adversarial-reviewer` |
 
-Routing exceptions: `skills/solomonar/SKILL.md` §2. Without a work spec, start with `docs/README.md` and the
+Routing exceptions: `skills/solomonar/SKILL.md` section 2. Without a work spec, start with `docs/README.md` and the
 user's outcome. Every role loads `report.md`; reviewers add `reviewer.md`; only orchestrators load `rules.md`.
 Load packet-named extension skills; without a packet, use Extensions below.
 
@@ -68,13 +68,13 @@ Cite a rule as `AGENTS.md rule n`.
    decision procedure. Scoped approvals persist; silence approves nothing.
 3. Only `solomonar task` writes the registry: orchestrators own their task records; the user owns `task plan`.
    Never directly edit, commit, or check out registry `state.json` on `workflow-state`.
-4. Run `solomonar task register` before creating the feature worktree; setup: `rules.md` §4.
+4. Run `solomonar task register` before creating the feature worktree; setup: `rules.md` section 4.
 5. Edit only your role/skill's allowed files and assigned worktree. Reviewers are read-only on one stable revision.
 6. Orchestrators delegate implementation/reviews and consolidate findings; delegated roles report only to them.
 7. Blockers, missing required reviews, or failed/unperformed required checks prevent advancement.
 8. Mark `done` only after confirmed merge into main.
 9. Update canonical specs before merge; commit the final task spec separately.
-10. Closure and verifiable Git references: `rules.md` §9.
+10. Closure and verifiable Git references: `rules.md` section 9.
 11. Never commit or report secrets, credentials, or real personal data.
 12. Commit messages: `<type>(<scope>): <summary>`; role/skill defines type and scope.
 13. Tests/comments cite `<capability>/R-n`, never task/AC IDs removed at closure.

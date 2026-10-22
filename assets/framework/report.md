@@ -40,7 +40,7 @@ Result: <result value>
 ```
 
 - Header: exactly these three lines, in this order; the orchestrator routes on them alone. `<Task ID>`: the
-  task ID from the delegation packet (e.g. `W-001`). `Result`: exactly one value from §3.
+  task ID from the delegation packet (e.g. `W-001`). `Result`: exactly one value from section 3.
 - `<Role>`: one of `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`,
   `adversarial-reviewer`, or an installed extension agent. `<Role>` is a role file in `docs/solomonar/agents/`; `docs/solomonar/reviewer.md` is
   a shared contract, not a role.
@@ -57,11 +57,11 @@ Result: <result value>
 
 | Value | Emitted by | Meaning | Orchestrator handling |
 |---|---|---|---|
-| `READY_FOR_REVIEW` | implementer only | Candidate committed and handed off; not an approval | `rules.md` §2 |
-| `PASS` | reviewers only | Assigned scope completed; no unresolved blocking finding; no required verification gap | Gate in `rules.md` §6 (Triage and gate) |
-| `CHANGES_REQUIRED` | reviewers | At least one confirmed `blocking` finding | `rules.md` §2 |
-| `NEEDS_DECISION` | any | A user decision is required before dependent work proceeds | `rules.md` §2 |
-| `INCOMPLETE` | any | Required evidence or review execution is missing (check not run, environment failure, scope not covered) | `rules.md` §2 |
+| `READY_FOR_REVIEW` | implementer only | Candidate committed and handed off; not an approval | `rules.md` section 2 |
+| `PASS` | reviewers only | Assigned scope completed; no unresolved blocking finding; no required verification gap | Gate in `rules.md` section 6 (Triage and gate) |
+| `CHANGES_REQUIRED` | reviewers | At least one confirmed `blocking` finding | `rules.md` section 2 |
+| `NEEDS_DECISION` | any | A user decision is required before dependent work proceeds | `rules.md` section 2 |
+| `INCOMPLETE` | any | Required evidence or review execution is missing (check not run, environment failure, scope not covered) | `rules.md` section 2 |
 
 - Report every applicable section, but set exactly one `Result`: the most restrictive applicable value.
   Reviewers: `NEEDS_DECISION` > `INCOMPLETE` > `CHANGES_REQUIRED` > `PASS`. Implementer:
@@ -69,7 +69,7 @@ Result: <result value>
 - `PASS` may coexist with `suggestion` findings and with `unverified` findings outside required verification.
 - `PASS` is valid only when `Revision` equals the delegated revision and no required check is `not run`.
 - A reviewer asked to review a specialty that does not apply to the candidate returns `INCOMPLETE` with the
-  reason. Only the orchestrator marks a specialty "not required" (`rules.md` §6).
+  reason. Only the orchestrator marks a specialty "not required" (`rules.md` section 6).
 
 ## 4. Checks and evidence
 
@@ -78,7 +78,7 @@ Result: <result value>
 - `not run` and `limited` must state the reason and what remains unverified. A required check that is
   `not run` forces `INCOMPLETE`; so does a `limited` check whose unverified part is required.
 - Mark a failure present before the candidate as `fail (pre-existing, baseline <ref>)`, using the baseline
-  recorded per `rules.md` §11. Never mix pre-existing failures with failures the candidate introduces.
+  recorded per `rules.md` section 11. Never mix pre-existing failures with failures the candidate introduces.
 - Record verification limits (environment, unexecutable scenario, missing access) here; reports have no
   separate Limits section.
 
@@ -127,7 +127,7 @@ Entry format (omit `Violates` for `suggestion`; `Status` only on rechecks):
 
 ## 7. Consolidated correction list (orchestrator → implementer)
 
-The single list the implementer receives after consolidation (`rules.md` §6):
+The single list the implementer receives after consolidation (`rules.md` section 6):
 
 ```markdown
 # <Task ID>: Corrections
@@ -144,7 +144,7 @@ Revision reviewed: <full SHA>
 ```
 
 - The implementer addresses only this list, never raw reviewer reports. It must resolve every `blocking`
-  entry and applies `suggestion` entries only within `rules.md` §1.
+  entry and applies `suggestion` entries only within `rules.md` section 1.
 - The next `READY_FOR_REVIEW` report lists each addressed `W-001/F-n` in `Checks and evidence` with the
   check that shows the correction.
 

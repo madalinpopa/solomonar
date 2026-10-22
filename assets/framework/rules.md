@@ -15,7 +15,7 @@ procedures: `docs/solomonar/agents/<role>.md`. Skill procedures: `docs/solomonar
   3. The approved work spec. A deviation requires an explicit decision and updates to every affected document.
   4. Agent recommendations. Apply only when compatible with 1–3 and backed by a concrete benefit.
      Preferences stay suggestions.
-- Two approved requirements that contradict each other require a user decision (§3).
+- Two approved requirements that contradict each other require a user decision (section 3).
 - Flag every conflict between a global spec and the work spec. Never silently drop an acceptance criterion.
 - Code and prototypes are evidence of existing behavior. They must not change approved requirements.
 - Only **Agreed** spec rules are approved requirements. **Observed** rules, prototype libraries, and
@@ -24,17 +24,17 @@ procedures: `docs/solomonar/agents/<role>.md`. Skill procedures: `docs/solomonar
 ## 2. Orchestrator responsibilities and delegation
 
 - The orchestrator must:
-  - exclusively claim its task and maintain the task's state record through `solomonar task` commands (§7);
+  - exclusively claim its task and maintain the task's state record through `solomonar task` commands (section 7);
   - prepare context and delegate implementation and every review; it must not perform them itself;
-  - consolidate findings (§6) and manage user approvals (§3);
-  - create the PR, and merge when §8 holds and it has the right to integrate.
+  - consolidate findings (section 6) and manage user approvals (section 3);
+  - create the PR, and merge when section 8 holds and it has the right to integrate.
 - Multiple orchestrators may run in parallel. Each owns different tasks.
 - Delegation packet: objective, work spec path, relevant references, area of responsibility. Reviewers
   additionally receive the exact revision (full SHA) or diff and the check results. Pass full conversation
   history only when necessary.
 - The implementer and reviewers report only to the orchestrator. Only the orchestrator starts the next stage.
-- Route results: `READY_FOR_REVIEW` → record its committed SHA as `revision` (`task move`), start triage (§6);
-  `CHANGES_REQUIRED` → consolidation (§6); `NEEDS_DECISION` → §3; `INCOMPLETE` → resolve the gap, rerun.
+- Route results: `READY_FOR_REVIEW` → record its committed SHA as `revision` (`task move`), start triage (section 6);
+  `CHANGES_REQUIRED` → consolidation (section 6); `NEEDS_DECISION` → section 3; `INCOMPLETE` → resolve the gap, rerun.
 - The implementer must receive one consolidated list of corrections, never concurrent or conflicting instructions.
 
 ## 3. Approvals and decisions
@@ -45,12 +45,12 @@ procedures: `docs/solomonar/agents/<role>.md`. Skill procedures: `docs/solomonar
   alternatives, impact, blocked work. It must not apply the choice before approval.
 - Orchestrator procedure:
   1. Assign a task-scoped decision ID (`W-001/D-1`).
-  2. Record a `decision` blocker (`task block`) and set `next_action` to the user (`task move --next`, §7). Write the
+  2. Record a `decision` blocker (`task block`) and set `next_action` to the user (`task move --next`, section 7). Write the
      decision entry in `docs/decisions.md` in the task worktree with status `pending`; while a review set runs
-     on the current revision, write it only after every running review has reported (§6 Candidate stability).
+     on the current revision, write it only after every running review has reported (section 6 Candidate stability).
   3. Present question, recommendation, alternatives, impact.
   4. If no independent authorized work can continue, set status `blocked` (`task move --status`).
-  5. Save a checkpoint (§10) and wait. No response is not approval. Never repeat the question; never retry automatically.
+  5. Save a checkpoint (section 10) and wait. No response is not approval. Never repeat the question; never retry automatically.
 - While waiting, affected and dependent work must wait. Independent authorized work may continue.
 - On approval: set the entry `approved` with the selected option, update affected specs, clear the blocker
   (`task unblock`), resume dependent work on the approval event.
@@ -78,10 +78,10 @@ procedures: `docs/solomonar/agents/<role>.md`. Skill procedures: `docs/solomonar
 
 The user starts tasks one at a time. Started tasks run in parallel. Work selected from a prototype enters at step 1.
 
-1. Read the registry (`solomonar task show`, §7) and the task brief or existing spec. Check ownership and
+1. Read the registry (`solomonar task show`, section 7) and the task brief or existing spec. Check ownership and
    dependencies. A complete work spec is not required to reserve.
 2. Run `solomonar task register [<ID>] --title <t> --owner <o>`. It claims the `planned` ID or allocates the
-   next `W-NNN` and records `reserved` / `setup`, branch `feature/<ID>`, and `next_action` (§7).
+   next `W-NNN` and records `reserved` / `setup`, branch `feature/<ID>`, and `next_action` (section 7).
 3. The successful `task register` is the registration barrier. Confirm it to the user. Only then may the next
    task start. A push is not required.
 4. Create branch `feature/<ID>` and its worktree at `../<repo>-worktrees/<ID>` (relative to the main checkout)
@@ -105,21 +105,21 @@ The user starts tasks one at a time. Started tasks run in parallel. Work selecte
 
 ## 5. Task flow
 
-Main flow: implement → triage (§6) → specialist reviews in parallel on the same revision → consolidate → fix
+Main flow: implement → triage (section 6) → specialist reviews in parallel on the same revision → consolidate → fix
 loop → tier 2: adversarial review once specialist blockers are closed → fix loop → PR, required checks,
-integration with main → closure commits (§9) → merge → `task done` (`done` / `complete`).
+integration with main → closure commits (section 9) → merge → `task done` (`done` / `complete`).
 
 | Trigger | Return to | Resume when |
 |---|---|---|
 | Decision or requirement conflict | User, via orchestrator | Decision recorded and documents updated |
 | Specialist defect | Implementer | Fix committed; relevant reviews pass on the new revision |
-| Adversarial defect | Implementer | Fix committed; recheck sequence (§6 Adversarial ordering) passes on the new revision |
+| Adversarial defect | Implementer | Fix committed; recheck sequence (section 6 Adversarial ordering) passes on the new revision |
 | Integration or CI failure after PR | Orchestrator diagnoses; implementer if code changes | Relevant checks pass on the current candidate |
 | No progress | Orchestrator reassesses, then user | User selects an option |
 
 - Loop stop: after two consecutive rounds that leave the same blocker unchanged or reintroduce the same
   issue, stop looping, analyze the cause, present the blocker and options to the user. Record it as a
-  `decision` blocker with a `W-001/D-n` entry; the user's choice follows §3. Reaching the threshold is never
+  `decision` blocker with a `W-001/D-n` entry; the user's choice follows section 3. Reaching the threshold is never
   acceptance.
 - A transient infrastructure error may be diagnosed and retried without arbitrary code changes.
 - A fix after the PR is opened must update the same PR.
@@ -129,8 +129,8 @@ integration with main → closure commits (§9) → merge → `task done` (`done
 ### Triage and gate
 
 Before launching reviews, record each candidate's risk tier and which specialties apply, with reasons. The tier
-goes into state with `task move --tier` (§7); specialties and reasons stay in the session, then the PR
-Verification section (`report.md` §8).
+goes into state with `task move --tier` (section 7); specialties and reasons stay in the session, then the PR
+Verification section (`report.md` section 8).
 
 | Tier | Candidate | Agent reviews |
 |---|---|---|
@@ -147,12 +147,12 @@ Verification section (`report.md` §8).
 | - | Adversarial | `adversarial-reviewer` | The integrated feature | Tier 2 (see Adversarial ordering) |
 
 - The core reviewers are language-agnostic. Name in each packet the installed extensions whose `applies_when`
-  or `paths` match the change; their `must` rules (`<name>/C-n`) are approved global rules (§1).
+  or `paths` match the change; their `must` rules (`<name>/C-n`) are approved global rules (section 1).
 - Priority applies after every code change. All required specialists still run in parallel on the same
   revision. When the runtime cannot run them in parallel, or their checks interfere, run them in priority order.
 - Mark an inapplicable specialty "not required" with a reason. Never fabricate a `PASS`.
 - Use a different model for the adversarial reviewer when the runtime allows; record the model in the
-  Verification section (`report.md` §8).
+  Verification section (`report.md` section 8).
 - Every required reviewer must return a valid `PASS` on the current revision before the stage advances,
   unless its earlier verdict is reused under Candidate stability.
 - A missing result or an important unrun check makes the stage `INCOMPLETE`, not `PASS`.
@@ -164,7 +164,7 @@ Verification section (`report.md` §8).
 - Run interfering checks sequentially.
 - A changed candidate gets a new revision and an explicit assessment of affected checks. Reuse unaffected
   evidence only with its original revision and a recorded reason. An earlier `PASS` never covers new code.
-- Updating the candidate from main follows §8: CI always reruns; agent reviews rerun only on its conditions.
+- Updating the candidate from main follows section 8: CI always reruns; agent reviews rerun only on its conditions.
 
 ### Consolidation
 
@@ -174,15 +174,15 @@ Verification section (`report.md` §8).
 - Order the correction list by review priority (Security, Correctness, Spec, then extension agents); within one
   reviewer, by severity. A merged duplicate takes the highest-priority reviewer's position.
 - Two corrections that conflict: the higher-priority one is applied; the other is re-examined against it. The
-  authority order (§1) still decides between requirements.
+  authority order (section 1) still decides between requirements.
 
 | Finding | Handling |
 |---|---|
 | Demonstrated defect or mandatory-criterion violation | Fix before completion |
 | Style or organization without a violated rule | Non-blocking suggestion |
 | Disagreement on whether a defect exists | Request reproduction, test, or precise analysis; record the conclusion |
-| Contradictory requirements or unclear product choice | User decision (§3) |
-| Fix needs new architecture or dependency | Approval first (§3) |
+| Contradictory requirements or unclear product choice | User decision (section 3) |
+| Fix needs new architecture or dependency | Approval first (section 3) |
 | Unrun check or missing reviewer result | Stage `INCOMPLETE` |
 
 - Severity sets urgency by impact (unauthorized access, data loss, blocked essential flow). Blocking depends
@@ -215,7 +215,7 @@ Verification section (`report.md` §8).
 | `task move <ID> --as <owner> [--status] [--stage] [--revision] [--spec] [--tier <0\|1\|2>] [--agent <id>:<role>]... [--pr] [--next <actor>:<action>]` | owner | Validated transition and field update; repeated `--agent` replaces `active_agents`, `--agent none` clears it |
 | `task block <ID> --as <owner> --kind <k> --summary <s> [--ref <r>] [--next <actor>:<action>] [--status blocked]` / `task unblock <ID> <blocker-id> --as <owner> [--status <prior>] [--next <actor>:<action>]` | owner | Adds or clears a blocker; optional status and next action are one atomic update |
 | `task done <ID> --as <owner> --merge <sha> --spec-ref <sha:path> --summary <s>` | owner | Verifies the merge commit is reachable from main and `spec_ref` resolves and names the last `spec(<ID>)` commit merged, then writes the compact record (`done` / `complete`) |
-| `task handoff <ID> --owner <o>` | new owner, on user instruction | Ownership change (§10) |
+| `task handoff <ID> --owner <o>` | new owner, on user instruction | Ownership change (section 10) |
 | `task show [<ID>]` | anyone | Reads the stored record |
 | `task status <ID> [--json]` | anyone | Read-only: the record; facts derived from Git (branch, worktree, HEAD vs `revision`, dirty paths, merge into main); PR and check facts when available; drift between record and facts; the commands allowed next. Writes nothing |
 
@@ -256,7 +256,7 @@ Verification section (`report.md` §8).
 (PR, required CI, compatibility with main, closure commits, merge) → `complete`.
 
 - Stage reflects the current activity. Preserve the stage while `blocked` or `paused`.
-- Tier 0 goes from `implementation` to `integration`; tier 1 skips `adversarial_review` (§6). The CLI enforces
+- Tier 0 goes from `implementation` to `integration`; tier 1 skips `adversarial_review` (section 6). The CLI enforces
   this from the recorded `tier`; no stage after `implementation` without one.
 - `planned` or `reserved` → `running` → `done`. `done` comes only with stage `complete`, set by `task done`.
 - `reserved` or `running` → `blocked` or `paused` → back to the prior status at the preserved stage.
@@ -274,7 +274,7 @@ Verification section (`report.md` §8).
 | Planned | `title`, `status`, `updated_at` |
 | Reserved | adds `owner`, `branch`, `stage`, `next_action` |
 | Before implementation | adds `spec` (worktree-relative path) |
-| Review | adds `revision`: latest reported committed candidate, full SHA; `tier` (0, 1, 2) from that candidate's triage (§6) |
+| Review | adds `revision`: latest reported committed candidate, full SHA; `tier` (0, 1, 2) from that candidate's triage (section 6) |
 
 - Always present once reserved: `active_agents` `[{id, role}]` (last set by `task move --agent`, not proof of
   liveness), `blockers`, `pr` once opened.
@@ -285,7 +285,7 @@ Verification section (`report.md` §8).
 - Use full SHAs and RFC 3339 UTC timestamps. Never store logs, secrets, or machine-specific paths in state.
 - Never store a fact Git can derive (worktree path, HEAD, dirty files, PR or check state); `task status` reads
   it. `revision` is stored because reviews pin it, and the CLI verifies it.
-- Resolve active `spec` paths against the feature worktree (§4 step 4) or its recorded `revision`.
+- Resolve active `spec` paths against the feature worktree (section 4 step 4) or its recorded `revision`.
 
 Active record (illustrative):
 ```json
@@ -313,12 +313,12 @@ Compact record (illustrative):
 
 - Merge only when all hold: mandatory criteria met; affected specs reflect approved decisions; required
   reviews complete and valid for the current candidate; no blocking defects or open decisions; mandatory
-  checks and integration with main succeeded; closure commits made (§9); repository rules satisfied.
+  checks and integration with main succeeded; closure commits made (section 9); repository rules satisfied.
 - No extra human merge confirmation by default. Approvals required by the repository stay mandatory. An
   informal approval message never replaces CI or repository rules.
 - Record every verdict with the revision checked in the PR Verification section.
 - Staleness: before merge the feature branch contains current main (merged by the implementer,
-  `implementer.md` §7). CI always reruns. Compare main's changes with the candidate, its referenced contracts,
+  `implementer.md` section 7). CI always reruns. Compare main's changes with the candidate, its referenced contracts,
   dependencies, and requirements. With `<base>` = `git merge-base <reviewed revision> main`, overlapping paths
   from `git diff --name-only <base>..<reviewed revision>` and `git diff --name-only <base>..main`, merge
   conflicts, or a changed relevant contract/dependency require the affected reviews to rerun. Disjoint paths
@@ -326,9 +326,9 @@ Compact record (illustrative):
   changes do not affect its scope; if impact is unclear, rerun that review. A rerun moves tier 1 or 2 back to
   `specialized_review` and through the required stages to `integration`; tier 0 keeps its CI-only gate.
 - A spec rule ID that collides with one already on main after merging main: renumber the task's rule with the
-  `spec` skill, update the work spec, and treat it as a changed candidate (§6).
-- Merge only with a merge commit (§11), never squash or rebase, so the final spec commit survives in main's
-  history. Merge one task at a time. Run `task done` only after the merge is confirmed (§9).
+  `spec` skill, update the work spec, and treat it as a changed candidate (section 6).
+- Merge only with a merge commit (section 11), never squash or rebase, so the final spec commit survives in main's
+  history. Merge one task at a time. Run `task done` only after the merge is confirmed (section 9).
 
 ## 9. Closure (orchestrator rule, not a skill)
 
@@ -337,8 +337,8 @@ Before merge, after every required gate passes on the candidate:
 2. The final spec commit must match the spec used for final validation. If the work spec is unchanged since its
    last `spec(<ID>)` commit inside the reviewed revision, that commit is the final spec commit; no new revision.
    Only when content changed, commit that file alone as `spec(<ID>): finalize task specification` and treat it
-   as a changed candidate (§6 Candidate stability). The final spec commit and the work spec path form `spec_ref`;
-   write it on the PR Verification line `Final specification` (`report.md` §8).
+   as a changed candidate (section 6 Candidate stability). The final spec commit and the work spec path form `spec_ref`;
+   write it on the PR Verification line `Final specification` (`report.md` section 8).
 3. One last commit deletes `docs/work/<ID>-<slug>.md`: `docs(<ID>): remove completed work spec`. It needs no
    agent review (docs-only deletion of the task spec); CI reruns. A later fix goes on top of it; packets then
    name `Work spec: <spec_ref>`, read with `git show "<spec_ref>"`. A fix that changes the work spec first
@@ -347,7 +347,7 @@ Before merge, after every required gate passes on the candidate:
 At confirmed merge:
 - Run `solomonar task done <ID> --merge <sha> --spec-ref <sha:path> --summary <s>`, with `spec_ref` from the
   PR's `Final specification` line. It verifies the merge commit is reachable from main and `git show
-  "<spec_ref>"` resolves to the last `spec(<ID>)` commit merged, then writes the compact record (§7) with
+  "<spec_ref>"` resolves to the last `spec(<ID>)` commit merged, then writes the compact record (section 7) with
   `done` / `complete`. `done` is final at merge.
 - If `task done` fails, report the cause and rerun it once fixed. Never revert the merge.
 - Delete a worktree only as a separate deliberate step, after confirming it holds no uncommitted or unmerged work.
@@ -355,7 +355,7 @@ At confirmed merge:
 
 ## 10. Recovery
 
-Before acting on any event, inspect actual state: `task status <ID>` (§7) reports Git state, worktree, dirty
+Before acting on any event, inspect actual state: `task status <ID>` (section 7) reports Git state, worktree, dirty
 files, merge state, and drift; check decisions yourself, and PR and checks when it reports them `unknown`.
 Then reconcile the record with what exists (`task move`). Never duplicate worktrees or PRs. Preserve
 uncommitted changes.
@@ -364,7 +364,7 @@ uncommitted changes.
 |---|---|
 | Pause | Stop delegating; settle or stop active work; set status `paused` with the latest committed `revision` and a `next_action` naming outstanding work |
 | Unexpected session end | Nothing automatic; the next session follows Resume |
-| Resume | Inspect (`task status`) and reconcile; continue the recorded stage; reuse the existing worktree and PR; if the PR is merged, verify the merge commit is in main's history and run `task done` (§9) with `spec_ref` from the PR, without reimplementing |
+| Resume | Inspect (`task status`) and reconcile; continue the recorded stage; reuse the existing worktree and PR; if the PR is merged, verify the merge commit is in main's history and run `task done` (section 9) with `spec_ref` from the PR, without reimplementing |
 | Ownership handoff | Only on explicit user instruction; stop or confirm the previous execution stopped; `task handoff` before any further write; the previous owner stops writing |
 | Cancel | Stop execution; set status `cancelled` with a `next_action` naming the reason and remaining work; keep branch, worktree, and PR untouched |
 | Regression or revert after merge | Keep the merged task `done`; register a new task linked via `related_task` |
@@ -381,7 +381,7 @@ uncommitted changes.
 - v0.1 requires a Git repository and Git worktrees; Jujutsu and other VCS front ends are out of scope.
 - The repository must allow merge commits, and the orchestrator merges only with a merge commit: squash and
   rebase merges break `spec_ref`. `solomonar doctor` checks the repository settings and project health; its
-  checklist is exposed in `solomonar doctor --help` (CLI interface §5 UC-10, Phase 2).
+  checklist is exposed in `solomonar doctor --help` (CLI interface section 5 UC-10, Phase 2).
 - Integration requires a remote and PR path. Missing access is a concrete blocker (kind `environment`).
 - Record real run, build, test, and lint commands in `docs/README.md` once known. Record unknown commands as
   "not established"; never guess them.
