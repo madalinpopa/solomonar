@@ -77,6 +77,8 @@ func requireRejection(t *testing.T, err error, code string) Rejection {
 }
 
 func TestCheckFactsRevision(t *testing.T) {
+	t.Parallel()
+
 	f := newFactsRepo(t)
 	tests := []struct {
 		name     string
@@ -89,6 +91,8 @@ func TestCheckFactsRevision(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, err := checkFacts(t, f.repo, moving(StatusRunning, StageImplementation, nil), Move{Revision: tt.revision})
 
 			if tt.code == "" {
@@ -101,6 +105,8 @@ func TestCheckFactsRevision(t *testing.T) {
 }
 
 func TestCheckFactsRevisionNotOnBranchTexts(t *testing.T) {
+	t.Parallel()
+
 	f := newFactsRepo(t)
 
 	_, err := checkFacts(t, f.repo, moving(StatusRunning, StageImplementation, nil), Move{Revision: f.onMain})
@@ -114,6 +120,8 @@ func TestCheckFactsRevisionNotOnBranchTexts(t *testing.T) {
 }
 
 func TestCheckFactsRevisionWithoutBranchIsBranchMissing(t *testing.T) {
+	t.Parallel()
+
 	repo := repoWithoutWorktree(t, false)
 
 	_, err := checkFacts(t, repo, moving(StatusRunning, StageImplementation, nil), Move{Revision: sha})
@@ -127,6 +135,8 @@ func TestCheckFactsRevisionWithoutBranchIsBranchMissing(t *testing.T) {
 }
 
 func TestCheckFactsSetupToSpecification(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		repo func(t *testing.T) *git.Repo
@@ -138,6 +148,8 @@ func TestCheckFactsSetupToSpecification(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, err := checkFacts(t, tt.repo(t), moving(StatusRunning, StageSetup, nil), Move{Stage: "specification"})
 
 			if tt.code == "" {
@@ -150,6 +162,8 @@ func TestCheckFactsSetupToSpecification(t *testing.T) {
 }
 
 func TestCheckFactsWorktreeMissingTexts(t *testing.T) {
+	t.Parallel()
+
 	repo := repoWithoutWorktree(t, true)
 
 	_, err := checkFacts(t, repo, moving(StatusRunning, StageSetup, nil), Move{Stage: "specification"})
@@ -163,6 +177,8 @@ func TestCheckFactsWorktreeMissingTexts(t *testing.T) {
 }
 
 func TestCheckFactsSpec(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		before    *Record
@@ -215,6 +231,8 @@ func TestCheckFactsSpec(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			f := newFactsRepo(t)
 			if tt.deleted {
 				require.NoError(t, os.Remove(filepath.Join(f.worktree, filepath.FromSlash(specPath))))
@@ -235,6 +253,8 @@ func TestCheckFactsSpec(t *testing.T) {
 }
 
 func TestCheckFactsWithoutFactFieldsRunsNoGit(t *testing.T) {
+	t.Parallel()
+
 	repo := &git.Repo{Dir: filepath.Join(t.TempDir(), "missing")}
 	moves := []struct {
 		name   string
@@ -246,6 +266,8 @@ func TestCheckFactsWithoutFactFieldsRunsNoGit(t *testing.T) {
 	}
 	for _, tt := range moves {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			found, err := checkFacts(t, repo, tt.before, tt.move)
 
 			require.NoError(t, err)
