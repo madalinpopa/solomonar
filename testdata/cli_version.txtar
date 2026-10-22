@@ -1,6 +1,6 @@
-# The binary reads the framework version from its embedded assets.
+# The binary reports the release version from its embedded assets.
 exec solomonar version
-stdout '^solomonar \S+ \(embedded framework \d+\.\d+\.\d+\)$'
+stdout '^solomonar \d+\.\d+\.\d+$'
 stdout '^project   not initialized$'
 ! stderr .
 
