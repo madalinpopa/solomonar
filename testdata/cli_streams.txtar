@@ -1,0 +1,34 @@
+# Help is a result: stdout, exit 0.
+exec solomonar help
+stdout '^Usage: solomonar \[global flags\] <command> \[flags\] \[args\]$'
+! stderr .
+
+# A usage error goes to stderr only and exits 2.
+exitcode 2 solomonar nosuch
+! stdout .
+cmp stderr unknown_command.txt
+
+exitcode 2 solomonar version extra
+! stdout .
+stderr '^error: unexpected argument "extra" \(invalid_usage\)$'
+
+# With --json the error envelope is the only output, on stdout.
+exitcode 2 solomonar --json nosuch
+! stderr .
+cmp stdout unknown_command.json
+
+-- unknown_command.txt --
+error: unknown command "nosuch" (unknown_command)
+  fix:   run solomonar help
+nothing was written
+-- unknown_command.json --
+{
+  "ok": false,
+  "command": "nosuch",
+  "error": {
+    "code": "unknown_command",
+    "message": "unknown command \"nosuch\"",
+    "fix": "run solomonar help"
+  },
+  "warnings": []
+}
