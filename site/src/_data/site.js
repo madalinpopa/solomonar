@@ -3,7 +3,7 @@ export default {
   description: "An open-source framework for spec-driven development with AI coding agents. Shared specifications, focused tasks, independent reviews, and verified code.",
   repository: "https://github.com/madalinpopa/solomonar",
   socialImage: "/assets/social-card.png",
-  socialImageAlt: "Solomonar and its stitched dragon. Spec-driven development for AI coding agents. Specs, skills, agents, and independent review.",
+  socialImageAlt: "A solomonar in red and white cross-stitch, reading an open book, captioned Cusătura: a story told in thread.",
   groups: ["Start here", "Learn the framework", "Guides", "Reference", "Commands", "In development"],
   navigation: [
     { label: "Get started", href: "/docs/getting-started/" },
