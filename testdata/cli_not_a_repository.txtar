@@ -1,0 +1,12 @@
+# A task command outside a repository is rejected with exit 3 and writes nothing.
+exitcode 3 solomonar task show
+! stdout .
+stderr '^error: .+ is not a Git repository \(not_a_repository\)$'
+stderr '^  fix:   run inside a Git repository or pass -C <path>$'
+stderr '^nothing was written$'
+
+# -C points the same command at a repository.
+exec git init -q -b main repo
+exec solomonar -C repo init --runtime none --ext none --yes
+exec solomonar -C repo task show
+! stderr .
