@@ -10,7 +10,7 @@ sources:
   - docs/cli/interface.md
 ---
 
-> These commands are in development and not in the current build; running one today exits 2 with an unknown-command error. The behavior and examples come from the [interface specification]({{ 'docs/cli/interface.md' | source }}), so the final output may differ in detail.
+> These commands are in development and not in the current build; running one today exits 2 with an unknown-command error. This page describes the planned behavior; the final output may differ in detail.
 
 An extension is one skill or one agent: the rules of a language, library, or practice, a supporting procedure, or an extra reviewer. Extensions are grouped by the type of decision that selects them, so the project's capabilities follow its approved stack. `ext` is an alias for `extension`. Until these commands exist, choose catalog extensions with `init --ext`.
 
@@ -171,7 +171,8 @@ Removes installed extensions, their unmodified files and runtime stubs, and re-r
 {% cliUsage "When the project drops a technology, practice, procedure, or reviewer. The CLI does not check whether code still uses the technology; it warns that the code loses its rules.", "You, or an orchestrator with an approved task decision, as for `extension add`." %}
 
 ```text
-solomonar extension remove <name>... [--decision <ID>] [--rationale <text>] [-y] [--dry-run] [--json]
+solomonar extension remove <name>... [--decision <ID>] [--rationale <text>] [--keep <path>]... [--overwrite <path>]...
+                           [-y] [--dry-run] [--json]
 ```
 
 ### Flags
