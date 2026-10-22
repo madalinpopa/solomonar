@@ -1204,10 +1204,20 @@ Specs updated: architecture §11 (`$ASSETS`); UC-2 example warning aligned with 
 - [x] `init_conflict`: `file_conflict` exit 4 with the plan on stdout and nothing written; `--keep`; `--overwrite`
 - [x] `init_git_init`: `not_a_repository` exit 3; `--dry-run` runs no `git init`; `--git-init --main-branch`
 
-### Stage 11.3 — `task` transcripts `[ ]`
+### Stage 11.3 — `task` transcripts (`main`; UC-11 to UC-16, UC-20) `[x]`
 
-Outline: plan → register → move through the stages → done, owner from `--as` and `SOLOMONAR_OWNER`; rejections
-exit 3 with the registry ref unchanged; commands from a linked worktree; forge facts with a fake `gh` on `PATH`.
+Decisions (implementer): a `capture <name>` script command carries SHAs between commands; the journey uses tier 0
+to reach `integration` without review stages; registry commit subjects are matched line by line, since the short
+merge SHA in a subject cannot come from a variable; the fake `gh` lives in the script's archive and records its
+arguments. Per I §8.4, `owner_required` is a usage error (exit 2), not a rejection.
+Specs updated: architecture §11 (`capture`).
+
+- [x] `task_lifecycle`: init with a bare remote, plan, register, move to `specification` with the owner from
+      `SOLOMONAR_OWNER`, `implementation` and `integration` from the linked worktree, `status` drift after the merge,
+      `done`, the registry history and the pushed tip
+- [x] `task_rejections`: `owner_required` (exit 2), `owner_mismatch` in JSON, `transition_not_allowed`,
+      `branch_missing`, `worktree_missing` (exit 3); the registry tip unchanged
+- [x] `task_status_forge`: `gh pr view` with its arguments and the PR facts and drift; `--no-forge` runs no `gh`
 
 ## Step 12: Test speed
 
