@@ -2,160 +2,227 @@
   <img src="docs/logo/lockup.svg" alt="solomonar" width="560">
 </h1>
 
-solomonar: in Romanian folklore, a wizard who learns every secret from a single book and rides a dragon to command the storms. solomonar gives your project its book (specs), its spells (skills) and its dragons (agents).
+<p align="center">
+  Spec-driven development for AI coding agents.<br>
+  Shared specifications, focused tasks, independent reviews, and verified code.
+</p>
 
-**Framework v0.1.0 · Phase 1 complete**
+<p align="center">
+  <a href="https://github.com/madalinpopa/solomonar/actions/workflows/ci-solomonar.yml"><img src="https://github.com/madalinpopa/solomonar/actions/workflows/ci-solomonar.yml/badge.svg?branch=main" alt="CI"></a>
+  <a href="https://github.com/madalinpopa/solomonar/releases/latest"><img src="https://img.shields.io/github/v/release/madalinpopa/solomonar" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/madalinpopa/solomonar" alt="MIT license"></a>
+</p>
 
-The framework contracts are defined; the CLI is not implemented yet. `main.go` currently prints `Hello World`.
-The commands below describe the [Phase 2 interface](docs/cli/interface.md), not a working release.
-The [workflow audit corrections](docs/design/phase1-review-register.md#l-workflow-audit-corrections-2026-10-21) track the design fixes.
+<p align="center">
+  <a href="https://solomonar.dev">Website</a> ·
+  <a href="https://solomonar.dev/docs/getting-started/">Documentation</a> ·
+  <a href="https://solomonar.dev/docs/cli/">CLI reference</a> ·
+  <a href="https://github.com/madalinpopa/solomonar/releases">Releases</a>
+</p>
 
-## How Solomonar works
+## What is Solomonar?
 
-From intent to verified code. The prototype discovers the product, the specifications pin down its behavior, and every task runs through an orchestrator that delegates implementation and reviews, writes and checks state only through the `solomonar` CLI, and merges into `main` only what has passed every check.
+Solomonar is an open-source workflow for building software with AI coding agents such as Claude Code and Codex. You agree on what the software should do, an agent builds one focused task against that agreement, separate agents review it, and a small CLI records every step in Git.
 
-### A light core, extended by the CLI
+It has two parts:
 
-Solomonar is a way of working, not a technology stack. The core holds only the minimal skills and agents that enforce the process, and none of them names a language. `solomonar init` and `solomonar extension add` install everything else, following the project's approved stack decisions.
+- **The framework:** Markdown rules, skills, and agent roles that `solomonar init` installs into your repository under `docs/solomonar/`. Your agent runtime reads them. The core names no language; extensions add the rules of your stack.
+- **The CLI:** the `solomonar` binary. It installs the framework, writes the runtime adapters, and validates every task update against Git. It never calls a model, starts an agent, or stores review verdicts.
 
-| Part | Contains |
-| - | - |
-| Core | Skills `solomonar` (your entry point), `prototype`, `spec`, `work-spec`. Agents `orchestrator`, `implementer`, and four language-agnostic reviewers: `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`. Always installed. |
-| Extensions | Skills with the rules of a language, library, or practice (for example `go`, `htmx`, `templ`, `tdd`), and agents that add a specialist reviewer. Added by the CLI; the process never depends on one. Inside a task, the orchestrator applies an approved choice with `solomonar extension add\|remove --decision <ID>`. Draft extensions stay inactive until adopted. |
+The name comes from Romanian folklore: a solomonar is a wizard who learns every secret from a single book and rides a dragon to command the storms. Solomonar gives your project its book (specs), its spells (skills), and its dragons (agents). Read [the story](https://solomonar.dev/docs/story/) behind the name.
 
-### Start every request with the `solomonar` skill
+## Features
 
-One small skill, invoked only by the user, routes a request to the skill or role that owns it, in the same session. It writes nothing itself. Sessions started without it follow the same routes from `AGENTS.md`.
+- **Specs before code.** Rules are marked *Agreed*, *Observed*, or *Open*. Agents implement and review against agreed rules only.
+- **One orchestrator per task.** The top-level session delegates the implementer and every reviewer, and owns the decisions it brings back to you.
+- **Independent, risk-based review.** Security, correctness, and spec reviewers check the same committed revision in parallel. Risky changes also face an adversarial reviewer.
+- **Parallel tasks in isolated worktrees.** Tasks start one at a time, run in parallel, and merge into `main` one at a time.
+- **A task record that cannot drift silently.** State lives on a dedicated Git branch, is written only through checked CLI commands, and is compared with the real branch, worktree, and pull request on demand.
+- **Small current docs, full history.** Each finished task keeps a compact record; its final work spec stays in Git history.
+- **Runtime-agnostic.** Adapters for Claude Code and Codex point to one portable source of instructions.
 
-| Runtime | In the agent session |
-| - | - |
-| Claude Code | `/solomonar work on W-002` |
-| Codex CLI/IDE | `$solomonar work on W-002` (or select it with `/skills`) |
-| Portable prompt | `Use the solomonar skill to work on W-002.` |
-
-| Request | Route |
-| - | - |
-| None | Overview: what waits on you, what is blocked, what can start next. |
-| Start a product; explore or change a flow | `prototype` |
-| Flows ready for spec, or product behavior you decided outside a task | `spec` |
-| A new, planned, or resumed task, e.g. "work on W-002" | This session takes the `orchestrator` role. |
-| Adopt or drop a technology | You run `solomonar extension add\|remove`; your command records the decision. |
-
-**The session takes the role; it is never delegated.** The orchestrator delegates the implementer and every reviewer, and a delegated subagent cannot delegate further, so the orchestrator must be the top-level session, one task per session. An answer to a pending decision goes back to the session that asked for it.
-
-### Start a project (Phase 2 CLI contract)
-
-Once the CLI is released, install a published version with `go install github.com/madalinpopa/solomonar@vX.Y.Z`
-or use its release binary. Prerequisites: Git 2.40 or later, a selected runtime, and a first commit before task
-worktrees. The complete integration path also needs a remote, PR access, and merge commits. Discovery can stay
-local while those are being prepared; a managed task cannot finish without them. Increment 1 is an internal
-milestone: choosing the stack after discovery needs `extension add` from increment 2.
-
-For a new directory, start without a stack and commit the generated framework files explicitly:
-
-```sh
-solomonar init ./ledger --git-init --runtime codex --ext none --yes
-cd ledger
-git add AGENTS.md .agents .solomonar docs
-git commit -m "chore: initialize solomonar 0.1.0"
-```
-
-Then open a top-level Codex session in `ledger` and use `$solomonar` with the next useful outcome. In Claude
-Code use `/solomonar`; `Use the solomonar skill` works as a portable prompt. For an existing repository, inspect
-the init plan and its file conflicts before committing; the implementer discovers the real run/check commands.
-Unknown commands do not mean the application must be scaffolded again.
-
-The prototype is useful when behavior needs discovery. A known brief can go directly to a task, for example
-`Use the solomonar skill. Add CSV export to the existing CLI; no UI prototype is needed.` Behavior already
-decided outside a task goes to `spec`. A prompt should name one outcome and the failure or boundary states
-needed to judge it; existing approvals do not need another confirmation.
-
-## 1 / 5 · The full cycle, from prototype to closure
+## How it works
 
 ![The Solomonar cycle: prototype and spec discover the product, solomonar task register and work-spec prepare the task, then implementation, tiered reviews, PR with merge, and solomonar task done; CHANGES_REQUIRED sends the task back to implementation.](docs/images/workflow-cycle.svg)
 
-**The colored boxes are the three skills** (`prototype`, `spec`, `work-spec`); the rest are orchestrator steps. Discovery works on a static prototype: `spec` marks every rule *Observed* or *Agreed* and keeps *Open* questions, which go back into the prototype. A task gets a worktree only after `solomonar task register` succeeds. When the work spec is ready, its user-confirmed spec changes go into the canonical specs before any code is written. Any defect found in review sends the task back to implementation.
+1. **Discover.** The `prototype` skill builds a small clickable flow with simulated data, so you can try behavior before you specify it.
+2. **Specify.** The `spec` skill records the behavior you confirm in `docs/specs/`.
+3. **Prepare one task.** The orchestrator registers the task with the CLI, creates its branch and worktree, and the `work-spec` skill writes its outcome, scope, and acceptance criteria.
+4. **Implement and review.** The implementer hands over a committed revision. Reviewers matched to the task's risk tier check it; confirmed defects go back to implementation.
+5. **Integrate and close.** The pull request merges with a merge commit, and `solomonar task done` verifies the merge before writing the final record.
 
-## 2 / 5 · The task loop: everything goes through the orchestrator
+**The orchestrator decides; the CLI checks.** The [framework guide](https://solomonar.dev/docs/framework/) explains each part with the full set of diagrams, and [the task lifecycle](https://solomonar.dev/docs/workflow/) follows one task stage by stage.
 
-![The orchestrator is the hub: it delegates the work spec to the implementer, sends the same revision to the required language-agnostic specialists (security, correctness, spec, plus installed extension reviewers) in parallel, then to the adversarial reviewer for tier 2 tasks, asks the user to approve decisions, writes state through solomonar task, reads it back with task status against Git, and opens the PR.](docs/images/workflow-task-loop.svg)
+## Requirements
 
-**Agents talk only to the orchestrator.** The user starts each orchestrator as a top-level session with the `solomonar` skill, which takes the role in that same session. The implementer writes its approach first and raises every architecture or dependency decision in one `NEEDS_DECISION`, before touching tracked files. Specialists review the same revision in parallel; the triage records a risk tier in state and marks a specialty that does not apply as "not required", never as a fabricated PASS. The adversarial review runs only on tier 2 tasks, after the specialist blockers are closed, on a different model when the runtime allows. No response is not approval. After two rounds with no progress on the same blocker, the orchestrator stops the loop and takes the problem to the user. **The orchestrator decides; the CLI checks.** Each `solomonar task` write is checked against Git: the revision exists on the feature branch, the spec exists, and the stage respects the recorded tier. `task status` reports what Git shows and where the record has drifted. The CLI never launches agents or stores verdicts.
+- macOS or Linux. Windows is not supported in v0.1.
+- Git 2.40 or later.
+- Claude Code or Codex, to run the agent sessions.
+- Optional: the GitHub CLI (`gh`), so `task status` can report pull requests and checks.
+- To build from source: Go 1.27.3 or later.
 
-### Core reviewers
+The CLI needs no model-provider API key.
 
-| Priority | Reviewer | Checks |
-| - | - | - |
-| 1 | Security | Bugs and security defects: crashes, error handling, leaks, races, trust boundaries, input, secrets. |
-| 2 | Correctness | Business logic: agreed business rules, domain invariants, calculations, state transitions. |
-| 3 | Spec | The task matches its work spec (acceptance criteria, scope) and the rules of the installed extensions that apply, such as the language's rules. |
-| - | Adversarial | Tier 2 only: tries to break the integrated feature with an input, a sequence, or a failure. |
+## Installation
 
-After every code change, Security, Correctness, and Spec all review the same revision in parallel. Their priority is the order of the table: the orchestrator orders the corrections by it, and when two corrections conflict, the higher-priority one wins. Language rules are not in any reviewer: choosing Go installs the `go` extension, a separate rules file (`go/C-n`) that the Spec reviewer checks. Installed extension agents join the specialists when their "applies when" matches the change.
+With Homebrew, on macOS and Linux:
 
-### Report results
+```sh
+brew install --cask madalinpopa/tap/solomonar
+```
 
-| Result | Meaning |
-| - | - |
-| `READY_FOR_REVIEW` | The implementer hands off a revision. It approves nothing. |
-| `PASS` | The reviewer covered its scope with no open blockers and no missing checks. |
-| `CHANGES_REQUIRED` | Confirmed defects; back to the implementer through the orchestrator. |
-| `NEEDS_DECISION` | Dependent work waits for a user decision. |
-| `INCOMPLETE` | Evidence or the review run is missing. It does not count as a PASS. |
+With Go:
 
-### Review tiers
+```sh
+go install github.com/madalinpopa/solomonar@latest
+```
 
-| Tier | Meaning |
-| - | - |
-| Tier 0 | Documentation only, no behavior or requirement change. CI only. |
-| Tier 1 | Normal code. The required specialists. |
-| Tier 2 | Persistence, authentication, concurrency, external integrations, data migration, or an approved architecture or dependency decision. Specialists, then adversarial. |
+Prebuilt archives for macOS and Linux (amd64, arm64) are attached to each [GitHub release](https://github.com/madalinpopa/solomonar/releases). To build from source, see [Development](#development).
 
-### Who wins a conflict
+Check the installation:
 
-1. The user's explicit decision, recorded with its scope.
-2. Approved global specs and mandatory rules. Only *Agreed* spec rules count.
-3. The task's approved work spec.
-4. Agent recommendations, only when compatible and backed by a concrete benefit.
+```sh
+solomonar version
+```
 
-Code, prototype, and *Observed* rules are evidence of existing behavior. They do not change approved requirements.
+See [Install the CLI](https://solomonar.dev/docs/install/) for upgrades and the JSON output.
 
-## 3 / 5 · Sequential starts, parallel execution
+## Quick start
 
-![Timeline: orch-01 registers W-001 with solomonar task register, and only then can orch-02 start. The two tasks run in parallel in separate worktrees; merges into main happen one at a time, and W-002 updates from main before its own merge.](docs/images/workflow-parallel.svg)
+Initialize a project. In a terminal, `solomonar init` asks for the project's choices and shows the plan before it writes anything. In a script, pass the choices as flags with `--yes`:
 
-**The user starts tasks one at a time; the tasks then run in parallel.** The blue arrows are the only registry writes. Each is one `solomonar task` command, which validates ownership, the transition, and the facts in Git, and commits with a compare-and-swap on `refs/heads/workflow-state`, so there is no state checkout and no lock. That branch is never merged into `main`. Merges happen one at a time: before its merge, W-002 takes in the current `main`, CI always reruns, and affected agent reviews rerun for conflicts, overlapping files, changed relevant contracts or dependencies, or uncertain impact. Reused verdicts name their original revision and why the update does not affect their scope. A worktree isolates files, not databases or ports, which are separated explicitly.
+```sh
+mkdir ledger && cd ledger
+solomonar init --git-init --runtime claude --ext go \
+  --objective "Shared expenses for small groups" --yes
+```
 
-## 4 / 5 · Status and stage, two separate axes
+Make the first commit, because task worktrees branch from `main`. `init` prints the exact command for the runtimes you chose:
 
-![Stage shows where the task is in the workflow, from setup to complete; status shows whether it can advance: planned, reserved, running, done, with the blocked, paused, and cancelled branches. Only a confirmed merge leads to done and complete.](docs/images/workflow-status-stage.svg)
+```sh
+git add AGENTS.md CLAUDE.md .claude .solomonar docs
+git commit -m "chore: initialize solomonar 0.1.0"
+```
 
-**Status says whether the task can move on; stage says where it has reached.** A blocked or paused task keeps its stage and resumes from there. A tier 0 task goes from implementation straight to integration, and a tier 1 task skips the adversarial review; the CLI enforces both from the tier recorded at triage. A failed review or an unrun check never leads to `done`. `done` is final at merge: `solomonar task done` checks that the merge commit is in `main` and writes the compact record with stage `complete`.
+Open a top-level agent session in the project and start every request with the `solomonar` skill:
 
-### What the record stores, what Git shows
+| Runtime | Example request |
+| --- | --- |
+| Claude Code | `/solomonar Prototype adding a shared expense.` |
+| Codex | `$solomonar Prototype adding a shared expense.` |
+| Any runtime | `Use the solomonar skill to prototype adding a shared expense.` |
 
-State holds decisions; Git holds what happened. A fact Git can derive is never stored, so the record cannot drift from it unnoticed: `task status` shows the drift and the commands allowed next.
+With no request, the skill reports what is waiting on you and what can start next. Follow the tasks from your shell:
 
-| Stored in the record | Meaning |
-| - | - |
-| `status` · `stage` | Whether the task can advance, and where it is. |
-| `tier` | Risk tier from triage; the CLI enforces the stage skips. |
-| `revision` | The candidate the reviews pin; verified to exist on `feature/<ID>`. |
-| `blockers` · `next_action` | What stops the task, and who acts next. |
+```sh
+solomonar task show
+solomonar task status W-001
+```
 
-| Read from Git by `task status` | Meaning |
-| - | - |
-| worktree · `HEAD` | Where the work is, and whether `HEAD` moved past `revision`. |
-| dirty files | Uncommitted work to preserve on resume. |
-| merge | Whether `feature/<ID>` is merged into `main`. |
-| PR · checks | Through `gh` when available; otherwise `unknown`, never passing. |
+[Set up a project](https://solomonar.dev/docs/set-up-a-project/) covers existing repositories and file conflicts. [Run your first task](https://solomonar.dev/docs/first-task/) follows one feature from prototype to merge.
 
-## 5 / 5 · Closure inside the feature PR
+## CLI commands
 
-![On the feature branch, the final spec commit becomes spec_ref and one last commit deletes the work spec; the merge commit keeps both in main's history, and solomonar task done writes the compact record with spec_ref and merge_commit.](docs/images/workflow-closure.svg)
+| Command | Purpose |
+| --- | --- |
+| `init` | Install the framework, runtime adapters, and extensions, and create the task registry. |
+| `version` | Print the CLI, embedded framework, and project versions. |
+| `task plan` | Create a planned task under the next free ID. |
+| `task register` | Reserve a task for one orchestrator. |
+| `task show` | Print the registry overview or one stored record. |
+| `task status` | Compare a task's record with Git and forge facts, and list the valid next commands. |
+| `task move` | Apply a validated status, stage, or field change. |
+| `task block`, `task unblock` | Add or clear a blocker. |
+| `task handoff` | Transfer a task to a new owner on explicit instruction. |
+| `task done` | Verify the merge and final spec, then write the compact record. |
 
-**Current docs stay small; history stays in Git.** After every gate passes, the last `spec(W-001)` commit is the final spec and becomes `spec_ref`; a new one is made only if the work spec changed. One last commit deletes the work spec from `docs/work/`, with no agent review and a fresh CI run. The PR merges with a merge commit, never squash or rebase, so both commits stay in the history of `main`. There is no second PR: `solomonar task done` records the merge and keeps only a summary and the references. Details load on demand with `git show "<spec_ref>"`.
+Agents run the writing commands. Every command accepts `--json` for one machine-readable object on stdout, and `solomonar help <command>` prints its flags. See the [CLI reference](https://solomonar.dev/docs/cli/) and [troubleshooting](https://solomonar.dev/docs/troubleshooting/).
 
----
+## Project status
 
-Source: [`assets/framework/`](assets/framework/) (installed as `docs/solomonar/`) · [CLI interface](docs/cli/interface.md) · Logo: [`docs/logo/`](docs/logo/README.md) · Solomonar v0.1.0
+Version 0.1.0 is the first release. The framework contracts are defined, and the CLI ships increment 1: `init` (interactive or with flags, with Claude Code and Codex adapters and the `go` extension) and the full set of task commands.
+
+Planned for later increments: `doctor`, `sync`, `runtime`, `extension` with project extensions from a local directory, and `guard` with its runtime hooks, then `upgrade` and a read-only `dashboard`. The `htmx`, `templ`, and `tdd` extensions join the catalog once their framework content is written. The [interface specification](docs/cli/interface.md) defines them today; a command listed there is available only when `solomonar help` shows it.
+
+## Documentation
+
+The website at [solomonar.dev](https://solomonar.dev) is the user documentation:
+
+| Start here | Learn the framework | Guides | Reference |
+| --- | --- | --- | --- |
+| [Get started](https://solomonar.dev/docs/getting-started/) | [How it works](https://solomonar.dev/docs/framework/) | [Workflow examples](https://solomonar.dev/docs/use-cases/) | [CLI commands](https://solomonar.dev/docs/cli/) |
+| [Install the CLI](https://solomonar.dev/docs/install/) | [The task lifecycle](https://solomonar.dev/docs/workflow/) | [Troubleshooting](https://solomonar.dev/docs/troubleshooting/) | [Project files](https://solomonar.dev/docs/configuration/) |
+| [Set up a project](https://solomonar.dev/docs/set-up-a-project/) | [Task state](https://solomonar.dev/docs/task-state/) | | |
+| [Run your first task](https://solomonar.dev/docs/first-task/) | [The story](https://solomonar.dev/docs/story/) | | |
+
+The design contracts live in this repository:
+
+| Document | Owns |
+| --- | --- |
+| [`assets/framework/`](assets/framework/) | Framework behavior: rules, skills, and agent roles, installed as `docs/solomonar/`. |
+| [`docs/cli/interface.md`](docs/cli/interface.md) | The CLI contract: commands, flags, output, exit codes, and validation. |
+| [`docs/cli/architecture.md`](docs/cli/architecture.md) | How the binary is built: packages, decisions, and conventions. |
+| [`docs/cli/implementation-tasks.md`](docs/cli/implementation-tasks.md) | The staged implementation plan and its accepted decisions. |
+| [`docs/design/`](docs/design/) | Framework design notes, validation, and the review register. |
+
+## Development
+
+You need Go 1.27.3 or later and [Task](https://taskfile.dev). Linters are pinned and installed into `.bin/` on first use.
+
+```sh
+git clone https://github.com/madalinpopa/solomonar.git
+cd solomonar
+task build        # builds bin/solomonar
+task check        # lint, tests with the race detector, and govulncheck, as CI runs them
+```
+
+| Task | Purpose |
+| --- | --- |
+| `task build` | Build `bin/solomonar`. |
+| `task run -- <args>` | Run the CLI from source, for example `task run -- task show`. |
+| `task test` | Run all tests with the race detector. |
+| `task cover` | Run the tests and print total coverage. |
+| `task fmt` | Format the code. |
+| `task lint` | Check that `go.mod` is tidy and run golangci-lint. |
+| `task security` | Report known vulnerabilities reachable from the code. |
+| `task check` | Run lint, tests, and security checks. |
+
+Without Task, `go build -trimpath -o bin/solomonar .` and `go test -race ./...` work directly.
+
+### Repository layout
+
+| Path | Contents |
+| --- | --- |
+| `main.go` | Entry point; embeds `assets/` into the binary. |
+| `internal/cli` | Commands, flags, prompts, help, and output rendering. |
+| `internal/task` | The task registry model, transitions, and fact checks. |
+| `internal/project` | The init plan, manifest, managed files, adapters, and extension catalog. |
+| `internal/git` | The Git runner and repository discovery. |
+| `assets/framework` | The framework core that `init` installs. |
+| `assets/extensions` | The extension catalog. |
+| `assets/templates` | Templates for `AGENTS.md`, `docs/README.md`, and the empty registry. |
+| `docs/` | Design contracts, diagrams, and the logo. |
+| `site/` | The documentation website; see [`site/README.md`](site/README.md). |
+
+### Specs lead the code
+
+Behavior is specified before it is built. The interface specification fixes what the CLI does, the architecture document fixes how it is built, and the implementation plan breaks the work into reviewed stages. When an implementation decision departs from a specification, the same change updates the specification, so the documents always describe the code.
+
+## Contributing
+
+Contributions are welcome. Before you open a pull request:
+
+1. For anything beyond a small fix, open an issue first to agree on the behavior.
+2. Check the [interface specification](docs/cli/interface.md) for the behavior you change, and update it, the [architecture](docs/cli/architecture.md), or the [site documentation](site/src/docs/) in the same pull request when they no longer match.
+3. Add or update tests, and run `task check` until it passes.
+4. Write commit messages in [Conventional Commits](https://www.conventionalcommits.org/) form, such as `feat(cli): ...`, `fix(task): ...`, or `docs(site): ...`, with one logical change per commit.
+
+To report a problem, include the output of `solomonar version`, the command, the error code, and the relevant Git state, with secrets redacted. The [troubleshooting guide](https://solomonar.dev/docs/troubleshooting/#report-a-problem-with-evidence) lists what helps.
+
+### Releases
+
+Maintainers release from `main` with `task release:patch`, `task release:minor`, or `task release:major`. The task tags the next version and pushes it; the release workflow reruns CI, publishes the archives with GoReleaser, updates the Homebrew cask, and republishes the website.
+
+## License
+
+Solomonar is released under the [MIT License](LICENSE). Font and icon licenses for the website are listed in [`site/README.md`](site/README.md#design-and-asset-provenance).
