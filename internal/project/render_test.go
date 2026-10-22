@@ -9,6 +9,8 @@ import (
 )
 
 func TestRenderKeepsSectionsWhoseExtensionsAreInstalled(t *testing.T) {
+	t.Parallel()
+
 	content := "---\nname: templ\n---\n\n# templ\n\nIntro.\n\n## Rules\n\n- templ/C-1\n\n" +
 		"## With htmx\n<!-- solomonar:with htmx -->\n\n- templ/C-4\n\n" +
 		"## With go and htmx\n<!-- solomonar:with go,htmx -->\n\n- templ/C-5\n\n" +
@@ -53,6 +55,8 @@ func TestRenderKeepsSectionsWhoseExtensionsAreInstalled(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			rendered, with := Render([]byte(content), "templ", tt.installed, tt.decision)
 
 			assert.Equal(t, tt.want, string(rendered))
@@ -62,6 +66,8 @@ func TestRenderKeepsSectionsWhoseExtensionsAreInstalled(t *testing.T) {
 }
 
 func TestRenderExcludesItselfFromRenderedWith(t *testing.T) {
+	t.Parallel()
+
 	content := "# a\n\n## With a\n<!-- solomonar:with a, b -->\n\n- a/C-1\n"
 
 	rendered, with := Render([]byte(content), "a", []string{"a", "b"}, "P/D-1")
@@ -71,6 +77,8 @@ func TestRenderExcludesItselfFromRenderedWith(t *testing.T) {
 }
 
 func TestRenderKeepsAWithHeadingWithoutMarker(t *testing.T) {
+	t.Parallel()
+
 	content := "# a\n\n## With care\n\nText.\n"
 
 	rendered, with := Render([]byte(content), "a", []string{"a"}, "P/D-1")
@@ -80,6 +88,8 @@ func TestRenderKeepsAWithHeadingWithoutMarker(t *testing.T) {
 }
 
 func TestRenderWithoutTitleAddsNoProvenance(t *testing.T) {
+	t.Parallel()
+
 	content := "Intro.\n\n## With b\n<!-- solomonar:with b -->\n\n- a/C-1\n"
 
 	rendered, with := Render([]byte(content), "a", []string{"a"}, "P/D-1")
@@ -89,6 +99,8 @@ func TestRenderWithoutTitleAddsNoProvenance(t *testing.T) {
 }
 
 func TestRenderTheGoSkill(t *testing.T) {
+	t.Parallel()
+
 	content, err := os.ReadFile("../../assets/extensions/language/go/SKILL.md")
 	require.NoError(t, err)
 	tests := []struct {
@@ -113,6 +125,8 @@ func TestRenderTheGoSkill(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			rendered, with := Render(content, "go", tt.installed, "P/D-1")
 
 			assert.Contains(t, string(rendered), tt.provenance)
