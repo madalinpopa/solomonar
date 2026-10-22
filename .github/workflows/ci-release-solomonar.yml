@@ -74,3 +74,6 @@ jobs:
       contents: read
       packages: write
     uses: ./.github/workflows/ci-site.yml
+    secrets:
+      DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+      DOKPLOY_COMPOSE_ID: ${{ secrets.DOKPLOY_COMPOSE_ID }}
