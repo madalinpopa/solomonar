@@ -80,6 +80,7 @@ solomonar task show
 ```text
 ID     STATUS     STAGE          OWNER           NEXT
 W-001  running    specification  orchestrator-1  orchestrator-1: Write the work spec
+registry refs/heads/workflow-state @ 2d4f6a8 · 2026-10-20T15:12:40Z
 ```
 
 For one task, `task status` compares the record with the real branch, worktree, and pull request, and lists the commands that are valid next:
