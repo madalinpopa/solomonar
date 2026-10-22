@@ -35,6 +35,8 @@ func goEntry(decision string) map[string]project.Extension {
 }
 
 func TestInitUC2WithGo(t *testing.T) {
+	t.Parallel()
+
 	dir := committedRepo(t)
 
 	got := runInRepo(t, dir, goArgs()...)
@@ -58,6 +60,8 @@ func TestInitUC2WithGo(t *testing.T) {
 }
 
 func TestInitWithGoJSON(t *testing.T) {
+	t.Parallel()
+
 	dir := committedRepo(t)
 
 	got := runInRepo(t, dir, goArgs("--json")...)
@@ -76,6 +80,8 @@ func TestInitWithGoJSON(t *testing.T) {
 }
 
 func TestInitWithGoAndClaudeAddsTheSkillStub(t *testing.T) {
+	t.Parallel()
+
 	dir := committedRepo(t)
 
 	got := runInRepo(t, dir, "init", "--runtime", "claude", "--ext", "go", "--yes")
@@ -87,6 +93,8 @@ func TestInitWithGoAndClaudeAddsTheSkillStub(t *testing.T) {
 }
 
 func TestInitSelectsExtensions(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		goMod bool
@@ -99,6 +107,8 @@ func TestInitSelectsExtensions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir := committedRepo(t)
 			if tt.goMod {
 				writeFile(t, dir, "go.mod", "module example.com/ledger\n")
@@ -113,6 +123,8 @@ func TestInitSelectsExtensions(t *testing.T) {
 }
 
 func TestInitIgnoresGoModDirectory(t *testing.T) {
+	t.Parallel()
+
 	dir := committedRepo(t)
 	writeFile(t, dir, "go.mod/keep", "")
 
@@ -150,6 +162,8 @@ func catalogAssets(t *testing.T) fstest.MapFS {
 }
 
 func TestInitRejectsIncompleteExtensionSelection(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		ext    string
@@ -172,6 +186,8 @@ func TestInitRejectsIncompleteExtensionSelection(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir := gittest.NewRepo(t)
 			before, tip := tree(t, dir), refTip(t, dir)
 
@@ -210,6 +226,8 @@ func TestInitRerunWithGoIsNoOp(t *testing.T) {
 }
 
 func TestInitRerunPlansDecisionDocumentsUnchanged(t *testing.T) {
+	t.Parallel()
+
 	dir := goRepo(t)
 
 	got := runInRepo(t, dir, goArgs("--dry-run")...)
@@ -219,6 +237,8 @@ func TestInitRerunPlansDecisionDocumentsUnchanged(t *testing.T) {
 }
 
 func TestInitRejectsDifferentExtensionChoice(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		repo  func(*testing.T) string
@@ -230,6 +250,8 @@ func TestInitRejectsDifferentExtensionChoice(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir := tt.repo(t)
 			before, tip := tree(t, dir), refTip(t, dir)
 
@@ -245,6 +267,8 @@ func TestInitRejectsDifferentExtensionChoice(t *testing.T) {
 }
 
 func TestInitAppendsToExistingDecisions(t *testing.T) {
+	t.Parallel()
+
 	dir := committedRepo(t)
 	writeFile(t, dir, "docs/decisions.md", "# Decisions\n\n## P/D-3: Storage\n\n- Status: approved\n")
 
@@ -259,6 +283,8 @@ func TestInitAppendsToExistingDecisions(t *testing.T) {
 }
 
 func TestInitFailsOnManifestExtensionMissingFromCatalog(t *testing.T) {
+	t.Parallel()
+
 	dir := goRepo(t)
 	assets := catalogAssets(t)
 	delete(assets, "extensions/language/go/extension.json")
