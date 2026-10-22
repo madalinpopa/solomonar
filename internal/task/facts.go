@@ -11,7 +11,7 @@ import (
 	"github.com/madalinpopa/solomonar/internal/git"
 )
 
-// CheckFacts verifies a move against Git (I §8.3) and returns where it found the checked spec.
+// CheckFacts verifies a move against Git (I section 8.3) and returns where it found the checked spec.
 func CheckFacts(ctx context.Context, repo *git.Repo, id string, before, after *Record, m Move) (specFound string, err error) {
 	branch := "feature/" + id
 	if m.Revision != "" {
@@ -38,7 +38,7 @@ func checkRevisionOnBranch(ctx context.Context, repo *git.Repo, branch, revision
 	if err == nil {
 		return nil
 	}
-	// Exit 1 means not an ancestor; 128 means Git does not know the SHA, which fails too (I §8.3).
+	// Exit 1 means not an ancestor; 128 means Git does not know the SHA, which fails too (I section 8.3).
 	gitErr, ok := errors.AsType[*git.Error](err)
 	if !ok || ctx.Err() != nil || (gitErr.ExitCode != 1 && gitErr.ExitCode != 128) {
 		return fmt.Errorf("check revision on %s: %w", branch, err)
@@ -71,7 +71,7 @@ func checkBranch(ctx context.Context, repo *git.Repo, branch string) error {
 		Code:  "branch_missing",
 		Check: branch + " exists locally",
 		Found: branch + " does not exist",
-		Fix:   "create the branch and worktree (rules §4)",
+		Fix:   "create the branch and worktree (rules section 4)",
 	}
 }
 

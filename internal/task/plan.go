@@ -36,7 +36,7 @@ func (r *Registry) Lookup(id string) (*Record, error) {
 	return record, nil
 }
 
-// Subject is the registry commit subject for a change to the task id (I §8.5).
+// Subject is the registry commit subject for a change to the task id (I section 8.5).
 func (r *Record) Subject(id, summary string) string {
 	state := string(r.Status)
 	if r.Stage != "" {

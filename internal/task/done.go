@@ -120,7 +120,7 @@ func checkMerge(ctx context.Context, repo *git.Repo, main, merge, revision strin
 			Code:  "merge_not_merge_commit",
 			Check: "the merge is a merge commit",
 			Found: found,
-			Fix:   "spec_ref cannot survive; report to the user (rules §11)",
+			Fix:   "spec_ref cannot survive; report to the user (rules section 11)",
 		}
 	}
 	merged, err := isAncestor(ctx, repo, revision, merge)
@@ -184,7 +184,7 @@ func lastSpecCommit(ctx context.Context, repo *git.Repo, id, from string) (strin
 	return "", nil
 }
 
-// isAncestor treats exit 128, an unknown SHA, as not an ancestor (I §8.3).
+// isAncestor treats exit 128, an unknown SHA, as not an ancestor (I section 8.3).
 func isAncestor(ctx context.Context, repo *git.Repo, commit, of string) (bool, error) {
 	_, err := repo.Run(ctx, "merge-base", "--is-ancestor", commit, of)
 	if err == nil {

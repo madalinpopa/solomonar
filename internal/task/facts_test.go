@@ -130,7 +130,7 @@ func TestCheckFactsRevisionWithoutBranchIsBranchMissing(t *testing.T) {
 		Code:  "branch_missing",
 		Check: "feature/W-001 exists locally",
 		Found: "feature/W-001 does not exist",
-		Fix:   "create the branch and worktree (rules §4)",
+		Fix:   "create the branch and worktree (rules section 4)",
 	}, err)
 }
 

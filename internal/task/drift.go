@@ -6,13 +6,13 @@ import (
 	"strconv"
 )
 
-// Drift is a difference between the record and the facts (I §9.2).
+// Drift is a difference between the record and the facts (I section 9.2).
 type Drift struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
-// DriftOf lists the drift of task id in the I §9.2 table order; main names the main branch.
+// DriftOf lists the drift of task id in the I section 9.2 table order; main names the main branch.
 func DriftOf(id, main string, record *Record, facts StatusFacts, envOwner string) []Drift {
 	drift := []Drift{}
 	add := func(applies bool, code, message string) {
@@ -31,7 +31,7 @@ func DriftOf(id, main string, record *Record, facts StatusFacts, envOwner string
 			fmt.Sprintf("HEAD is %d %s past the recorded revision", ahead, plural(ahead, "commit", "commits")))
 		add(facts.Branch.ContainsRevision != nil && !*facts.Branch.ContainsRevision, "revision_not_on_branch",
 			fmt.Sprintf("%.8s is not on %s", record.Revision, branch))
-		add(dirty > 0, "dirty_worktree", fmt.Sprintf("%d uncommitted %s; preserve %s (rules §10)",
+		add(dirty > 0, "dirty_worktree", fmt.Sprintf("%d uncommitted %s; preserve %s (rules section 10)",
 			dirty, plural(dirty, "path", "paths"), plural(dirty, "it", "them")))
 		add(record.Spec != "" && !facts.Spec.InWorktree && !facts.Spec.AtRevision, "spec_missing",
 			record.Spec+" is not in the worktree or at the revision")

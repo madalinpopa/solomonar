@@ -335,7 +335,7 @@ func TestDoneTaskRejectsSingleParentIntegration(t *testing.T) {
 
 			requireDoneRejected(t, d.record(), d.repo, d.flags(), Rejection{
 				Code: "merge_not_merge_commit", Check: "the merge is a merge commit",
-				Found: d.merge[:8] + " has one parent", Fix: "spec_ref cannot survive; report to the user (rules §11)",
+				Found: d.merge[:8] + " has one parent", Fix: "spec_ref cannot survive; report to the user (rules section 11)",
 			})
 		})
 	}

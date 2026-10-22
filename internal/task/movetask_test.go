@@ -120,7 +120,7 @@ func TestMoveTaskResumingCancelledWarns(t *testing.T) {
 
 	assert.Equal(t, []Warning{{
 		Code:    "cancelled_resumed",
-		Message: "resuming a cancelled task requires the user's explicit instruction (rules §7)",
+		Message: "resuming a cancelled task requires the user's explicit instruction (rules section 7)",
 	}}, result.Warnings)
 	assert.Equal(t, "state(W-001): running/implementation, status running", result.Subject)
 }

@@ -7,14 +7,14 @@ import (
 	"strings"
 )
 
-// statusMove is one row of I §8.1; command is the only command allowed to make it, if any.
+// statusMove is one row of I section 8.1; command is the only command allowed to make it, if any.
 type statusMove struct {
 	from, to    Status
 	command     string
 	needsResume bool
 }
 
-// stageMove is one row of I §8.2; tiers lists the tiers that allow it, nil for any tier.
+// stageMove is one row of I section 8.2; tiers lists the tiers that allow it, nil for any tier.
 type stageMove struct {
 	from, to Stage
 	tiers    []int
@@ -68,7 +68,8 @@ func priorStatus(stage Stage) Status {
 	return StatusRunning
 }
 
-// checkTransition checks a task move from before to after against I §8.1, CLI-D16, and I §8.2.
+// checkTransition checks a task move from before to after against I sections 8.1 and 8.2
+// and CLI-D16.
 func checkTransition(before, after *Record, resumeCancelled bool) error {
 	if before.Status == StatusDone {
 		return doneFinal(after.Status)
@@ -90,7 +91,7 @@ func checkTransition(before, after *Record, resumeCancelled bool) error {
 func doneFinal(to Status) *Rejection {
 	return &Rejection{
 		Code:  "done_final",
-		Check: "status done is final (I §8.1)",
+		Check: "status done is final (I section 8.1)",
 		Found: fmt.Sprintf("%s -> %s", StatusDone, to),
 		Fix:   "register a related task (--related)",
 	}
@@ -99,7 +100,7 @@ func doneFinal(to Status) *Rejection {
 func checkStatusMove(before *Record, to Status, resumeCancelled bool) error {
 	rejection := &Rejection{
 		Code:  "transition_not_allowed",
-		Check: "status change must follow I §8.1",
+		Check: "status change must follow I section 8.1",
 		Found: fmt.Sprintf("%s -> %s", before.Status, to),
 	}
 	moves := statusMoves(priorStatus(before.Stage))
@@ -135,7 +136,7 @@ func checkReservedAtSetup(r *Record) error {
 func checkStageMove(from Stage, after *Record) error {
 	rejection := &Rejection{
 		Code:  "stage_not_allowed",
-		Check: "stage change must follow I §8.2",
+		Check: "stage change must follow I section 8.2",
 		Found: fmt.Sprintf("%s -> %s", from, after.Stage),
 	}
 	if after.Status != StatusRunning {
@@ -162,9 +163,9 @@ func checkStageMove(from Stage, after *Record) error {
 
 // tierMismatch words a stage move the tier does not allow, naming the lowest tier that does (I UC-14).
 func tierMismatch(move stageMove, tier int) (check, fix string) {
-	check = fmt.Sprintf("tier %d does not go from %s to %s (rules §7)", tier, move.from, move.to)
+	check = fmt.Sprintf("tier %d does not go from %s to %s (rules section 7)", tier, move.from, move.to)
 	if !tierReaches(&tier, move.to) {
-		check = fmt.Sprintf("tier %d skips %s (rules §7)", tier, move.to)
+		check = fmt.Sprintf("tier %d skips %s (rules section 7)", tier, move.to)
 	}
 	targets := stageTargets(move.from, &tier)
 	if forward := slices.DeleteFunc(slices.Clone(targets), func(s Stage) bool { return !s.atOrAfter(move.from) }); len(forward) > 0 {

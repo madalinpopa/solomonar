@@ -157,13 +157,13 @@ func TestRecordMoveRejectionTexts(t *testing.T) {
 		fix    string
 	}{
 		{name: "tier required", before: moving(StatusRunning, StageImplementation, nil), move: Move{Stage: "specialized_review"}, check: "a stage after implementation needs a recorded tier", fix: "triage the candidate and pass --revision <full-sha> --tier <0|1|2> with the stage move"},
-		{name: "tier skips stage", before: moving(StatusRunning, StageSpecializedReview, new(1)), move: Move{Stage: "adversarial_review"}, check: "tier 1 skips adversarial_review (rules §7)", fix: "--stage integration, or record tier 2 if the triage changed: --tier 2"},
-		{name: "status done", before: moving(StatusReserved, StageSetup, nil), move: Move{Status: "done"}, check: "status change must follow I §8.1", fix: "use task done"},
+		{name: "tier skips stage", before: moving(StatusRunning, StageSpecializedReview, new(1)), move: Move{Stage: "adversarial_review"}, check: "tier 1 skips adversarial_review (rules section 7)", fix: "--stage integration, or record tier 2 if the triage changed: --tier 2"},
+		{name: "status done", before: moving(StatusReserved, StageSetup, nil), move: Move{Status: "done"}, check: "status change must follow I section 8.1", fix: "use task done"},
 		{name: "next for stranger", before: moving(StatusRunning, StageImplementation, nil), move: Move{Next: "impl-9:Implement"}, check: "--next actor is user, the owner, or an active agent", fix: "allowed actors: user, orchestrator-1"},
 		{name: "next for stranger with agents", before: withAgent(moving(StatusRunning, StageImplementation, nil)), move: Move{Next: "impl-9:Implement"}, check: "--next actor is user, the owner, or an active agent", fix: "allowed actors: user, orchestrator-1, impl-1"},
 		{name: "next action too long", before: moving(StatusRunning, StageImplementation, nil), move: Move{Next: "user:" + strings.Repeat("é", 121)}, check: "--next action takes 1 to 120 characters", fix: "shorten the action; put details in the spec or a decision"},
 		{name: "spec outside the worktree", before: moving(StatusRunning, StageSpecification, nil), move: Move{Spec: "../W-001-login.md"}, check: "--spec takes a clean path relative to the worktree, without ..", fix: "pass --spec docs/work/<task ID>-<slug>.md"},
-		{name: "field not allowed", before: moving(StatusRunning, StageImplementation, nil), move: Move{PR: "42"}, check: "--pr is accepted in integration (I §8.2)", fix: "pass --pr at integration or with --stage integration"},
+		{name: "field not allowed", before: moving(StatusRunning, StageImplementation, nil), move: Move{PR: "42"}, check: "--pr is accepted in integration (I section 8.2)", fix: "pass --pr at integration or with --stage integration"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 // SchemaVersion is the registry schema this CLI reads and writes.
 const SchemaVersion = 1
 
-// Registry is the decoded state.json (rules §7).
+// Registry is the decoded state.json (rules section 7).
 type Registry struct {
 	SchemaVersion int                `json:"schema_version"`
 	Tasks         map[string]*Record `json:"tasks"`

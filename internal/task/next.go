@@ -11,7 +11,8 @@ const (
 	cancelFlags     = "--status cancelled " + nextPlaceholder
 )
 
-// AllowedNext lists the commands valid from the record under I §8.1 and I §8.2 (I §9.3).
+// AllowedNext lists the commands valid from the record under I sections 8.1 and 8.2
+// (I section 9.3).
 func AllowedNext(id string, record *Record, facts StatusFacts) []string {
 	c := commands{id: id, owner: record.Owner}
 	if record.Status != StatusDone && facts.Merge.Merged {
@@ -82,7 +83,7 @@ func (c commands) stageMoves(r *Record) []string {
 	return next
 }
 
-// stageFlags adds the flags a stage move needs and the record lacks, as placeholders (I §8.2).
+// stageFlags adds the flags a stage move needs and the record lacks, as placeholders (I section 8.2).
 func stageFlags(r *Record, m stageMove) []string {
 	flags := []string{"--stage " + string(m.to)}
 	switch {

@@ -64,7 +64,8 @@ func forgeUnavailable(reason string) (ForgeFacts, []Warning, error) {
 	return NoForge(), []Warning{{Code: "forge_unavailable", Message: "gh unavailable: " + reason}}, nil
 }
 
-// summarizeChecks applies the first matching rule of I §9.1; unrecognized is never passing (J6).
+// summarizeChecks applies the first matching rule of I section 9.1; unrecognized is never
+// passing (J6).
 func summarizeChecks(rollup []check) string {
 	if len(rollup) == 0 {
 		return "none"

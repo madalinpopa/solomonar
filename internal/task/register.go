@@ -118,7 +118,7 @@ func (r *Registry) checkReferences(dependsOn []string, related string) error {
 	return nil
 }
 
-// registrationNext limits the actor to user or the owner, since no agents exist yet (I §8.3).
+// registrationNext limits the actor to user or the owner, since no agents exist yet (I section 8.3).
 func registrationNext(value, owner, id string) (*NextAction, error) {
 	if value == "" {
 		return &NextAction{Actor: owner, Action: fmt.Sprintf("Create feature/%s and its worktree", id)}, nil

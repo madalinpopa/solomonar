@@ -104,12 +104,12 @@ func TestDriftOf(t *testing.T) {
 		{
 			name:  "one dirty path",
 			facts: func(f *StatusFacts) { f.Worktree = dirty(1) },
-			want:  []Drift{{Code: "dirty_worktree", Message: "1 uncommitted path; preserve it (rules §10)"}},
+			want:  []Drift{{Code: "dirty_worktree", Message: "1 uncommitted path; preserve it (rules section 10)"}},
 		},
 		{
 			name:  "two dirty paths",
 			facts: func(f *StatusFacts) { f.Worktree = dirty(2) },
-			want:  []Drift{{Code: "dirty_worktree", Message: "2 uncommitted paths; preserve them (rules §10)"}},
+			want:  []Drift{{Code: "dirty_worktree", Message: "2 uncommitted paths; preserve them (rules section 10)"}},
 		},
 		{
 			name:  "spec missing",
@@ -225,7 +225,7 @@ func TestDriftOf(t *testing.T) {
 			envOwner: "orchestrator-2",
 			want: []Drift{
 				{Code: "head_ahead_of_revision", Message: "HEAD is 1 commit past the recorded revision"},
-				{Code: "dirty_worktree", Message: "1 uncommitted path; preserve it (rules §10)"},
+				{Code: "dirty_worktree", Message: "1 uncommitted path; preserve it (rules section 10)"},
 				{Code: "owned_by_other", Message: "SOLOMONAR_OWNER is orchestrator-2; W-001 is owned by orchestrator-1"},
 			},
 		},

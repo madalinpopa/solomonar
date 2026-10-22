@@ -54,7 +54,7 @@ func (r *Registry) MoveTask(ctx context.Context, repo *git.Repo, id, as string, 
 	if before.Status == StatusCancelled && after.Status != StatusCancelled {
 		result.Warnings = []Warning{{
 			Code:    "cancelled_resumed",
-			Message: "resuming a cancelled task requires the user's explicit instruction (rules §7)",
+			Message: "resuming a cancelled task requires the user's explicit instruction (rules section 7)",
 		}}
 	}
 	result.Subject = after.moveSubject(id, changed)
@@ -66,7 +66,7 @@ func (r *Record) position() Position {
 	return Position{Status: r.Status, Stage: r.Stage}
 }
 
-// moveSubject names each changed field with its new value (I §8.5).
+// moveSubject names each changed field with its new value (I section 8.5).
 func (r *Record) moveSubject(id string, changed []string) string {
 	parts := make([]string, len(changed))
 	for i, field := range changed {

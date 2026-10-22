@@ -12,7 +12,7 @@ import (
 	"github.com/madalinpopa/solomonar/internal/git"
 )
 
-// StatusFacts are the Git and forge facts of task status (I §9.1).
+// StatusFacts are the Git and forge facts of task status (I section 9.1).
 type StatusFacts struct {
 	Branch   BranchFacts    `json:"branch"`
 	Worktree *WorktreeFacts `json:"worktree"`

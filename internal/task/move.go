@@ -67,12 +67,12 @@ func (m Move) applyStatus(r *Record) error {
 	case status == StatusDone:
 		return &Rejection{
 			Code:  "transition_not_allowed",
-			Check: "status change must follow I §8.1",
+			Check: "status change must follow I section 8.1",
 			Found: fmt.Sprintf("%s -> %s", r.Status, status),
 			Fix:   "use task done",
 		}
 	case !slices.Contains(statuses(), status):
-		return invalidValue("--status takes a status of I §8.1", m.Status, "allowed: "+join(allowedStatuses(r)))
+		return invalidValue("--status takes a status of I section 8.1", m.Status, "allowed: "+join(allowedStatuses(r)))
 	}
 	r.Status = status
 	return nil
@@ -92,7 +92,7 @@ func (m Move) applyStage(r *Record) error {
 			Fix:   "use task done",
 		}
 	case !slices.Contains(stages(), stage):
-		return invalidValue("--stage takes a stage of I §8.2", m.Stage, "allowed: "+join(stageTargets(r.Stage, r.Tier)))
+		return invalidValue("--stage takes a stage of I section 8.2", m.Stage, "allowed: "+join(stageTargets(r.Stage, r.Tier)))
 	}
 	r.Stage = stage
 	return nil
@@ -148,7 +148,7 @@ func (m Move) applyWork(r *Record, roles []string) error {
 	return nil
 }
 
-// checkActor accepts user, the owner, or an agent active after the move (I §8.3).
+// checkActor accepts user, the owner, or an agent active after the move (I section 8.3).
 func checkActor(r *Record, actor, value string) error {
 	actors := []string{"user", r.Owner}
 	for _, agent := range r.ActiveAgents {
@@ -160,7 +160,8 @@ func checkActor(r *Record, actor, value string) error {
 	return invalidValue("--next actor is user, the owner, or an active agent", value, "allowed actors: "+join(actors))
 }
 
-// checkFieldRules applies the field rules of I §8.2; --agent and --next need no rule, done is final.
+// checkFieldRules applies the field rules of I section 8.2; --agent and --next need no rule,
+// done is final.
 func checkFieldRules(before, after *Record, m Move) error {
 	found := func(flag string) string { return flag + " at " + stageChange(before.Stage, after.Stage) }
 	switch {
@@ -181,7 +182,7 @@ func checkFieldRules(before, after *Record, m Move) error {
 }
 
 func fieldNotAllowed(rule, found, fix string) *Rejection {
-	return &Rejection{Code: "field_not_allowed", Check: rule + " (I §8.2)", Found: found, Fix: fix}
+	return &Rejection{Code: "field_not_allowed", Check: rule + " (I section 8.2)", Found: found, Fix: fix}
 }
 
 func acceptsRevision(stage Stage) bool {
