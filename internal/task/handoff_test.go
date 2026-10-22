@@ -9,6 +9,8 @@ import (
 )
 
 func TestHandoffTaskRetargetsOwnersNextAction(t *testing.T) {
+	t.Parallel()
+
 	before := withAgent(withBlocker(moving(StatusBlocked, StageSpecification, nil)))
 	registry := registryOf(before)
 
@@ -32,6 +34,8 @@ func TestHandoffTaskRetargetsOwnersNextAction(t *testing.T) {
 }
 
 func TestHandoffTaskKeepsNextActionOfAnotherActor(t *testing.T) {
+	t.Parallel()
+
 	registry := registryOf(blocked(StageImplementation))
 
 	result, err := registry.HandoffTask("W-001", "orchestrator-3", "", clock())
@@ -42,6 +46,8 @@ func TestHandoffTaskKeepsNextActionOfAnotherActor(t *testing.T) {
 }
 
 func TestHandoffTaskSetsNextForNewOwner(t *testing.T) {
+	t.Parallel()
+
 	registry := registryOf(moving(StatusRunning, StageSpecification, nil))
 
 	result, err := registry.HandoffTask("W-001", "orchestrator-3", "orchestrator-3:Resume at specification", clock())
@@ -53,6 +59,8 @@ func TestHandoffTaskSetsNextForNewOwner(t *testing.T) {
 }
 
 func TestHandoffTaskAcceptsCancelledTask(t *testing.T) {
+	t.Parallel()
+
 	registry := registryOf(moving(StatusCancelled, StageImplementation, nil))
 
 	result, err := registry.HandoffTask("W-001", "orchestrator-3", "", clock())
@@ -62,6 +70,8 @@ func TestHandoffTaskAcceptsCancelledTask(t *testing.T) {
 }
 
 func TestHandoffTaskRejects(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		before *Record
@@ -117,6 +127,8 @@ func TestHandoffTaskRejects(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			registry := registryOf(tt.before)
 			other := moving(StatusRunning, StageImplementation, nil)
 			other.Owner = "orchestrator-2"
