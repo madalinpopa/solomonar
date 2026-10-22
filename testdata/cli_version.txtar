@@ -1,0 +1,23 @@
+# The binary reads the framework version from its embedded assets.
+exec solomonar version
+stdout '^solomonar \S+ \(embedded framework \d+\.\d+\.\d+\)$'
+stdout '^project   not initialized$'
+! stderr .
+
+# Inside an initialized project it reports the project's versions, also through -C.
+exec git init -q -b main project
+exec solomonar -C project init --runtime none --ext none --yes
+exec solomonar -C project version
+stdout '^project   framework \d+\.\d+\.\d+ · registry schema 1$'
+
+cd project
+exec solomonar --json version
+stdout '"project_framework": "\d+\.\d+\.\d+"'
+stdout '"registry_schema": 1'
+! stderr .
+
+# -v traces each Git command on stderr, keeping stdout for the result.
+exec solomonar -v version
+stdout '^project   framework '
+stderr '^\+ git rev-parse '
+! stdout '^\+ git'
