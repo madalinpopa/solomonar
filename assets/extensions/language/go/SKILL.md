@@ -5,7 +5,7 @@ description: Rules for Go code in this project. Use when a change touches Go cod
 
 # Go language rules
 
-Framework version: 0.1.0
+Framework version: 0.1.2
 
 Installed by `solomonar` when the project adopts Go (`language` group). The implementer follows these rules; the
 `spec-reviewer` checks every `must` rule on each candidate that touches Go code. Cite a rule as `go/C-n`.
