@@ -8,6 +8,8 @@ import (
 )
 
 func TestParseVersion(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		out     string
@@ -22,6 +24,8 @@ func TestParseVersion(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, err := parseVersion(tt.out)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -34,6 +38,8 @@ func TestParseVersion(t *testing.T) {
 }
 
 func TestCheckMinimumVersion(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		version string
@@ -48,6 +54,8 @@ func TestCheckMinimumVersion(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := checkMinimumVersion(tt.version)
 			if tt.tooOld {
 				require.ErrorIs(t, err, ErrTooOld)
@@ -60,6 +68,8 @@ func TestCheckMinimumVersion(t *testing.T) {
 }
 
 func TestCheckMinimumVersionRejectsMalformedVersion(t *testing.T) {
+	t.Parallel()
+
 	err := checkMinimumVersion("two.forty")
 
 	require.Error(t, err)
@@ -67,6 +77,8 @@ func TestCheckMinimumVersionRejectsMalformedVersion(t *testing.T) {
 }
 
 func TestVersionOfInstalledGitIsSupported(t *testing.T) {
+	t.Parallel()
+
 	version, err := Version(t.Context(), nil)
 
 	require.NoError(t, err)
