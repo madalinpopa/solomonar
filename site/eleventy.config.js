@@ -40,6 +40,11 @@ export default function (config) {
       .replace('<svg ', `<svg class="dragon-mark ${className}" focusable="false" `);
     return svg;
   });
+  const inlineCode = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/`([^`]+)`/g, "<code>$1</code>");
+  config.addShortcode("cliUsage", (when, who) => {
+    const item = (icon, label, text) => `<div class="cli-usage-item"><svg class="cli-usage-icon" aria-hidden="true"><use href="${pathPrefix}assets/icons.svg#${icon}"></use></svg><div><p class="cli-usage-label">${label}</p><p>${inlineCode(text)}</p></div></div>`;
+    return `<div class="cli-usage">${item("clock", "When to use it", when)}${item("user", "Who runs it", who)}</div>`;
+  });
   const diagrams = ["cycle", "task-loop", "parallel", "status-stage", "closure"];
   config.addShortcode("diagram", (name) => {
     if (!diagrams.includes(name)) throw new Error(`Unknown framework diagram: ${name}`);
