@@ -24,6 +24,8 @@ func renderResult(ctx context.Context, asJSON bool, out output, err error) resul
 }
 
 func TestRejectionExitFollowsCode(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		code    string
 		exit    int
@@ -39,6 +41,8 @@ func TestRejectionExitFollowsCode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.code, func(t *testing.T) {
+			t.Parallel()
+
 			rejection := &task.Rejection{Code: tt.code, Check: "the check", Found: "what was found", Fix: "the fix"}
 
 			got := renderResult(t.Context(), true, output{}, fmt.Errorf("wrapped: %w", rejection))
@@ -55,6 +59,8 @@ func TestRejectionExitFollowsCode(t *testing.T) {
 }
 
 func TestProjectRejectionExitFollowsCode(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		code    string
 		exit    int
@@ -66,6 +72,8 @@ func TestProjectRejectionExitFollowsCode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.code, func(t *testing.T) {
+			t.Parallel()
+
 			rejection := &project.Rejection{Code: tt.code, Check: "the check", Found: "what was found", Fix: "the fix"}
 
 			got := renderResult(t.Context(), true, output{}, fmt.Errorf("wrapped: %w", rejection))
@@ -82,6 +90,8 @@ func TestProjectRejectionExitFollowsCode(t *testing.T) {
 }
 
 func TestRejectionPrintsHumanError(t *testing.T) {
+	t.Parallel()
+
 	rejection := &task.Rejection{Code: "cli_outdated", Check: "schema 1", Found: "schema 2", Fix: "upgrade solomonar"}
 
 	got := renderResult(t.Context(), false, output{}, rejection)
@@ -96,6 +106,8 @@ func TestRejectionPrintsHumanError(t *testing.T) {
 }
 
 func TestInterruptExitsWithSignalCode(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		signal syscall.Signal
 		exit   int
@@ -105,6 +117,8 @@ func TestInterruptExitsWithSignalCode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.signal.String(), func(t *testing.T) {
+			t.Parallel()
+
 			ctx, stop := signal.NotifyContext(t.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
 			require.NoError(t, syscall.Kill(os.Getpid(), tt.signal))
@@ -124,6 +138,8 @@ func TestInterruptExitsWithSignalCode(t *testing.T) {
 }
 
 func TestWarningsFollowHumanResultOnStderr(t *testing.T) {
+	t.Parallel()
+
 	out := output{text: "moved W-001\n", warnings: []warning{
 		{Code: "push_interrupted", Message: "push to origin interrupted; the registry commit is kept locally"},
 		{Code: "no_remote", Message: "no remote configured; the registry stays local"},
@@ -138,6 +154,8 @@ func TestWarningsFollowHumanResultOnStderr(t *testing.T) {
 }
 
 func TestWarningsAppearInEnvelope(t *testing.T) {
+	t.Parallel()
+
 	out := output{data: map[string]string{"id": "W-001"}, warnings: []warning{{Code: "no_remote", Message: "stays local"}}}
 
 	got := renderResult(t.Context(), true, out, nil)
@@ -152,6 +170,8 @@ func TestWarningsAppearInEnvelope(t *testing.T) {
 }
 
 func TestWarningsAppearAlongsideError(t *testing.T) {
+	t.Parallel()
+
 	out := output{warnings: []warning{{Code: "no_remote", Message: "stays local"}}}
 
 	got := renderResult(t.Context(), true, out, errors.New("boom"))
