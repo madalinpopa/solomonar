@@ -45,10 +45,13 @@ export default function (config) {
     const item = (icon, label, text) => `<div class="cli-usage-item"><svg class="cli-usage-icon" aria-hidden="true"><use href="${pathPrefix}assets/icons.svg#${icon}"></use></svg><div><p class="cli-usage-label">${label}</p><p>${inlineCode(text)}</p></div></div>`;
     return `<div class="cli-usage">${item("clock", "When to use it", when)}${item("user", "Who runs it", who)}</div>`;
   });
-  const diagrams = ["cycle", "task-loop", "parallel", "status-stage", "closure"];
+  const diagrams = {
+    blocks: "framework-blocks", cycle: "workflow-cycle", "task-loop": "workflow-task-loop",
+    parallel: "workflow-parallel", "status-stage": "workflow-status-stage", closure: "workflow-closure",
+  };
   config.addShortcode("diagram", (name) => {
-    if (!diagrams.includes(name)) throw new Error(`Unknown framework diagram: ${name}`);
-    const source = `docs/images/workflow-${name}.svg`;
+    if (!Object.hasOwn(diagrams, name)) throw new Error(`Unknown framework diagram: ${name}`);
+    const source = `docs/images/${diagrams[name]}.svg`;
     const svg = readFileSync(new URL(`../${source}`, import.meta.url), "utf8")
       .replace(/<style>[\s\S]*?<\/style>/g, "")
       .replace('class="dg"', 'class="workflow-diagram"')
