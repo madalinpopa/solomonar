@@ -1,0 +1,54 @@
+# Without a terminal and without --yes, init asks for nothing and writes nothing.
+exec git init -q -b main repo
+cd repo
+exitcode 2 solomonar init --runtime none --ext none
+! stdout .
+stderr '^error: init needs a confirmation \(interactive_required\)$'
+stderr '^  fix:   pass --yes to accept the plan, or --dry-run to print it$'
+! exists .solomonar
+! exec git rev-parse --verify --quiet refs/heads/workflow-state
+
+# --dry-run prints the plan and writes nothing.
+exec solomonar init --runtime none --ext none --dry-run
+stdout '^  create     docs/solomonar/rules.md$'
+stdout '^  registry   create refs/heads/workflow-state with an empty state.json$'
+stdout '^  19 files created$'
+! exists .solomonar
+! exec git rev-parse --verify --quiet refs/heads/workflow-state
+
+# --yes writes the embedded framework, the manifest, and an empty registry.
+exec solomonar init --runtime none --ext none --yes
+stdout '^Initialized solomonar \d+\.\d+\.\d+ in .+/repo$'
+stdout '^  19 files created$'
+stdout '^  registry  refs/heads/workflow-state @ [0-9a-f]{40}$'
+stdout '^  1\. First commit required before task worktrees:$'
+stderr '^warning: no remote "origin"; '
+cmp docs/solomonar/rules.md $ASSETS/framework/rules.md
+cmp docs/solomonar/skills/spec/SKILL.md $ASSETS/framework/skills/spec/SKILL.md
+exists AGENTS.md docs/README.md
+grep '"name": "repo"' .solomonar/manifest.json
+exec git show refs/heads/workflow-state:state.json
+cmp stdout ../empty_state.json
+
+# The same choices again are a no-op that needs no confirmation.
+exec git rev-parse refs/heads/workflow-state
+cp stdout ../tip.txt
+exec solomonar init
+stdout '^Already initialized with solomonar \d+\.\d+\.\d+; nothing to do\.$'
+stdout '^  18 files unchanged, 1 skipped · registry refs/heads/workflow-state unchanged$'
+exec git rev-parse refs/heads/workflow-state
+cmp stdout ../tip.txt
+
+# A managed file edited by the project is kept, not overwritten.
+cp ../edited_rules.md docs/solomonar/rules.md
+exec solomonar init
+stdout '^  1 file kept, 17 unchanged, 1 skipped · '
+cmp docs/solomonar/rules.md ../edited_rules.md
+
+-- empty_state.json --
+{
+  "schema_version": 1,
+  "tasks": {}
+}
+-- edited_rules.md --
+project rules
