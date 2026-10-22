@@ -43,13 +43,22 @@ func repoAssets(t *testing.T) fs.FS {
 	return os.DirFS("../../assets")
 }
 
+// shipped is the version embedded in the repository assets.
+var shipped = func() string { //nolint:gochecknoglobals // read once, shared by every expected output
+	version, err := frameworkVersion(os.DirFS("../../assets"))
+	if err != nil {
+		panic(err) //nolint:forbidigo // no test can run without the assets
+	}
+	return version
+}()
+
 func TestVersionPrintsEmbeddedFramework(t *testing.T) {
 	t.Parallel()
 
 	got := runCLI(t, repoAssets(t), "version")
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Equal(t, "solomonar devel (embedded framework 0.1.0)\nproject   not initialized\n", got.stdout)
+	assert.Equal(t, "solomonar devel (embedded framework "+shipped+")\nproject   not initialized\n", got.stdout)
 	assert.Empty(t, got.stderr)
 }
 
@@ -62,7 +71,7 @@ func TestVersionJSONPrintsOneEnvelope(t *testing.T) {
 	assert.JSONEq(t, `{
 		"ok": true,
 		"command": "version",
-		"data": {"cli": "devel", "framework": "0.1.0", "project_framework": null, "registry_schema": null},
+		"data": {"cli": "devel", "framework": "`+shipped+`", "project_framework": null, "registry_schema": null},
 		"warnings": []
 	}`, got.stdout)
 	assert.Empty(t, got.stderr)
