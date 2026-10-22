@@ -77,6 +77,8 @@ func (c cancelBefore) Write(p []byte) (int, error) {
 }
 
 func TestReadWithoutRefIsNotInitialized(t *testing.T) {
+	t.Parallel()
+
 	_, _, err := newStore(t).Read(t.Context())
 
 	rejection := rejectionOf(t, err)
@@ -85,6 +87,8 @@ func TestReadWithoutRefIsNotInitialized(t *testing.T) {
 }
 
 func TestCreateWritesEmptyRegistryAsRootCommit(t *testing.T) {
+	t.Parallel()
+
 	store := newStore(t)
 
 	commit, err := store.Create(t.Context())
@@ -101,6 +105,8 @@ func TestCreateWritesEmptyRegistryAsRootCommit(t *testing.T) {
 }
 
 func TestCreateTwiceFailsAndKeepsRef(t *testing.T) {
+	t.Parallel()
+
 	store := createdStore(t)
 	before := tip(t, store)
 
@@ -111,6 +117,8 @@ func TestCreateTwiceFailsAndKeepsRef(t *testing.T) {
 }
 
 func TestUpdateWritesOneCommitOnTopOfTip(t *testing.T) {
+	t.Parallel()
+
 	store := createdStore(t)
 	before := tip(t, store)
 
@@ -129,6 +137,8 @@ func TestUpdateWritesOneCommitOnTopOfTip(t *testing.T) {
 }
 
 func TestUpdateRejectionWritesNothing(t *testing.T) {
+	t.Parallel()
+
 	store := createdStore(t)
 	before := tip(t, store)
 	rejected := &Rejection{Code: "task_not_found"}
@@ -140,6 +150,8 @@ func TestUpdateRejectionWritesNothing(t *testing.T) {
 }
 
 func TestUpdateWithEmptySubjectWritesNothing(t *testing.T) {
+	t.Parallel()
+
 	store, remote := storeWithRemote(t)
 	before := tip(t, store)
 
@@ -153,6 +165,8 @@ func TestUpdateWithEmptySubjectWritesNothing(t *testing.T) {
 }
 
 func TestConcurrentUpdatesGetDistinctIDs(t *testing.T) {
+	t.Parallel()
+
 	store := createdStore(t)
 	var wg sync.WaitGroup
 	for _, title := range []string{"first", "second"} {
@@ -169,6 +183,8 @@ func TestConcurrentUpdatesGetDistinctIDs(t *testing.T) {
 }
 
 func TestLostSwapRerunsValidationOnNewTip(t *testing.T) {
+	t.Parallel()
+
 	store := createdStore(t)
 	calls := 0
 	claimW001 := func(reg *Registry) (string, error) {
@@ -190,6 +206,8 @@ func TestLostSwapRerunsValidationOnNewTip(t *testing.T) {
 }
 
 func TestUpdateGivesUpAfterFiveLostSwaps(t *testing.T) {
+	t.Parallel()
+
 	store := createdStore(t)
 	calls := 0
 
@@ -204,6 +222,8 @@ func TestUpdateGivesUpAfterFiveLostSwaps(t *testing.T) {
 }
 
 func TestUpdatePushesToRemote(t *testing.T) {
+	t.Parallel()
+
 	store := createdStore(t)
 	remote := gittest.NewBareRemote(t)
 	gittest.Git(t, store.Git.Dir, "remote", "add", "origin", remote)
@@ -218,6 +238,8 @@ func TestUpdatePushesToRemote(t *testing.T) {
 }
 
 func TestUpdateWithUnconfiguredRemoteWarnsNoRemote(t *testing.T) {
+	t.Parallel()
+
 	store := createdStore(t)
 	store.Remote = "origin"
 
@@ -230,6 +252,8 @@ func TestUpdateWithUnconfiguredRemoteWarnsNoRemote(t *testing.T) {
 }
 
 func TestUpdateWithUnreachableRemoteWarnsAndKeepsCommit(t *testing.T) {
+	t.Parallel()
+
 	store := createdStore(t)
 	gittest.Git(t, store.Git.Dir, "remote", "add", "origin", store.Git.Dir+"/missing")
 	store.Remote = "origin"
@@ -245,6 +269,8 @@ func TestUpdateWithUnreachableRemoteWarnsAndKeepsCommit(t *testing.T) {
 }
 
 func TestUpdateCancelledBeforeSwapWritesNothing(t *testing.T) {
+	t.Parallel()
+
 	store := createdStore(t)
 	before := tip(t, store)
 	ctx, cancel := context.WithCancel(t.Context())
@@ -259,6 +285,8 @@ func TestUpdateCancelledBeforeSwapWritesNothing(t *testing.T) {
 }
 
 func TestCreateCancelledBeforeSwapWritesNothing(t *testing.T) {
+	t.Parallel()
+
 	store := newStore(t)
 	ctx, cancel := context.WithCancel(t.Context())
 	store.Git.Trace = cancelBefore{subcommand: "commit-tree", cancel: cancel}
@@ -270,8 +298,12 @@ func TestCreateCancelledBeforeSwapWritesNothing(t *testing.T) {
 }
 
 func TestCancelAfterSwapKeepsCommitAndWarnsPushInterrupted(t *testing.T) {
+	t.Parallel()
+
 	for _, subcommand := range []string{"update-ref", "push"} {
 		t.Run(subcommand, func(t *testing.T) {
+			t.Parallel()
+
 			store, remote := storeWithRemote(t)
 			ctx, cancel := context.WithCancel(t.Context())
 			store.Git.Trace = cancelBefore{subcommand: subcommand, cancel: cancel}
@@ -291,6 +323,8 @@ func TestCancelAfterSwapKeepsCommitAndWarnsPushInterrupted(t *testing.T) {
 }
 
 func TestPushTimeoutWarnsPushFailed(t *testing.T) {
+	t.Parallel()
+
 	store, _ := storeWithRemote(t)
 	ctx, cancel := context.WithDeadline(t.Context(), time.Unix(0, 0))
 	defer cancel()
@@ -303,6 +337,8 @@ func TestPushTimeoutWarnsPushFailed(t *testing.T) {
 }
 
 func TestReadSchema(t *testing.T) {
+	t.Parallel()
+
 	_, present, err := newStore(t).ReadSchema(t.Context())
 	require.NoError(t, err)
 	assert.False(t, present)
