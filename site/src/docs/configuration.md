@@ -72,9 +72,9 @@ Agents pass `--as` on each owner command because a runtime may start a new shell
 
 Extensions add skills and specialist reviewers. Stack extensions record an approved technology decision; workflow and review extensions configure the process without a stack decision.
 
-In v0.1.0, `init --ext` installs extensions from the embedded catalog, which holds the `go` language extension. The `extension` commands that add or remove an extension later, and project extensions from a local directory, are planned.
+In v0.1.2, `init --ext` installs extensions from the embedded catalog, which holds the `go` language extension. The `extension` commands that add or remove an extension later, and project extensions from a local directory, are planned.
 
-The v0.1.0 catalog holds no specialist-reviewer extension; those arrive as project extensions. `task move --agent` already accepts the role of any agent extension the manifest lists as installed, alongside the core roles.
+The v0.1.2 catalog holds no specialist-reviewer extension; those arrive as project extensions. `task move --agent` already accepts the role of any agent extension the manifest lists as installed, alongside the core roles.
 
 An installed extension is listed in the `## Extensions` section of `AGENTS.md` with its "applies when" condition and paths. Agents load it when a change matches, and cite its rules as `<name>/C-n`.
 
