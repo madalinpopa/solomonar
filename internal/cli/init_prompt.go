@@ -187,7 +187,7 @@ func (a *initPrompts) cancelled(warnings []warning) output {
 	return output{text: "Cancelled; nothing was written.\n", warnings: warnings}
 }
 
-// header names the CLI, the framework, and where init runs (UC-1); repo is nil outside a repository.
+// header names the CLI version and where init runs (UC-1); repo is nil outside a repository.
 func (a *initPrompts) header(ctx context.Context, framework string, repo *git.Repo, dir string) error {
 	where := "(not a Git repository)"
 	if repo != nil {
@@ -200,7 +200,7 @@ func (a *initPrompts) header(ctx context.Context, framework string, repo *git.Re
 			where = "(git, detached HEAD)"
 		}
 	}
-	fmt.Fprintf(a.out, "solomonar %s · framework %s · %s %s\n\n", cliVersion(buildVersion()), framework, dir, where)
+	fmt.Fprintf(a.out, "solomonar %s · %s %s\n\n", framework, dir, where)
 	return nil
 }
 
