@@ -7,6 +7,8 @@ import (
 )
 
 func TestNextTaskID(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		ids  []string
@@ -21,6 +23,8 @@ func TestNextTaskID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			registry := NewRegistry()
 			for _, id := range tt.ids {
 				registry.Tasks[id] = &Record{}
@@ -32,6 +36,8 @@ func TestNextTaskID(t *testing.T) {
 }
 
 func TestIssueBlockerID(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		record *Record
@@ -43,6 +49,8 @@ func TestIssueBlockerID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			last := tt.record.LastBlocker
 
 			assert.Equal(t, tt.want, tt.record.issueBlockerID())
