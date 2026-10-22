@@ -139,6 +139,8 @@ func TestInteractiveInitAsksOnlyForMissingFlags(t *testing.T) {
 }
 
 func TestInteractiveInitRerunAsksNoChoices(t *testing.T) {
+	t.Parallel()
+
 	dir := initializedRepo(t)
 
 	got := runInteractive(t, repoAssets(t), dir, "", "init")
