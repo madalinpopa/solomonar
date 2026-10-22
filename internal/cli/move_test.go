@@ -54,6 +54,8 @@ func pushedLine(t *testing.T, dir string) string {
 }
 
 func TestTaskMoveAdvancesThroughStages(t *testing.T) {
+	t.Parallel()
+
 	dir, worktree, revision := moveRepo(t)
 	putTask(t, dir, reservedTask())
 
@@ -95,6 +97,8 @@ func TestTaskMoveAdvancesThroughStages(t *testing.T) {
 }
 
 func TestTaskMoveFindsSpecAtRevision(t *testing.T) {
+	t.Parallel()
+
 	dir, worktree, revision := moveRepo(t)
 	gittest.Git(t, dir, "worktree", "remove", worktree)
 	putTask(t, dir, task.Record{Status: task.StatusRunning, Stage: task.StageSpecification, Revision: revision})
@@ -107,6 +111,8 @@ func TestTaskMoveFindsSpecAtRevision(t *testing.T) {
 }
 
 func TestTaskMoveTakesOwnerFromEnvironment(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	putTask(t, dir, reservedTask())
 	getenv := func(name string) string {
@@ -124,6 +130,8 @@ func TestTaskMoveTakesOwnerFromEnvironment(t *testing.T) {
 }
 
 func TestTaskMovePauseCancelAndResume(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	putTask(t, dir, task.Record{Status: task.StatusRunning, Stage: task.StageImplementation, Spec: moveSpec})
 	tests := []struct {
@@ -169,6 +177,8 @@ func TestTaskMovePauseCancelAndResume(t *testing.T) {
 }
 
 func TestTaskMoveCancelKeepsPR(t *testing.T) {
+	t.Parallel()
+
 	dir, _, revision := moveRepo(t)
 	putTask(t, dir, task.Record{
 		Status: task.StatusRunning, Stage: task.StageIntegration, Spec: moveSpec, Revision: revision,
@@ -183,6 +193,8 @@ func TestTaskMoveCancelKeepsPR(t *testing.T) {
 }
 
 func TestTaskMoveUnchangedWritesNothing(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	putTask(t, dir, task.Record{Status: task.StatusRunning, Stage: task.StageSpecification})
 	before := registryTip(t, dir)
@@ -214,6 +226,8 @@ func TestTaskMoveUnchangedWritesNothing(t *testing.T) {
 }
 
 func TestTaskMoveJSON(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	putTask(t, dir, reservedTask())
 
@@ -240,6 +254,8 @@ func TestTaskMoveJSON(t *testing.T) {
 }
 
 func TestTaskMoveDryRunWritesNothing(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	putTask(t, dir, reservedTask())
 	before := registryTip(t, dir)
@@ -279,6 +295,8 @@ func TestTaskMoveDryRunWritesNothing(t *testing.T) {
 }
 
 func TestTaskMoveRejections(t *testing.T) {
+	t.Parallel()
+
 	implementation := task.Record{Status: task.StatusRunning, Stage: task.StageImplementation, Spec: moveSpec}
 	tests := []struct {
 		name   string
@@ -347,6 +365,8 @@ func TestTaskMoveRejections(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir, _, _ := moveRepo(t)
 			putTask(t, dir, tt.record)
 			before := registryTip(t, dir)
