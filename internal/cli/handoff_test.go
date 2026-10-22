@@ -14,6 +14,8 @@ import (
 const handoffClosing = "  The previous owner must stop writing this record.\n"
 
 func TestTaskHandoffRetargetsNextAction(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	putTask(t, dir, blockedTask())
 
@@ -30,6 +32,8 @@ func TestTaskHandoffRetargetsNextAction(t *testing.T) {
 }
 
 func TestTaskHandoffKeepsNextActionOfUser(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	record := blockedTask()
 	record.NextAction = &task.NextAction{Actor: "user", Action: "Decide W-001/D-1"}
@@ -44,6 +48,8 @@ func TestTaskHandoffKeepsNextActionOfUser(t *testing.T) {
 }
 
 func TestTaskHandoffIgnoresOwnerEnvironment(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	putTask(t, dir, implementationTask())
 	getenv := func(name string) string {
@@ -65,6 +71,8 @@ const handoffRecordJSON = `{"title": "Login", "status": "running", "stage": "imp
 	"updated_at": "2026-10-21T12:00:00Z", "next_action": {"actor": "user", "action": "Review"}}`
 
 func TestTaskHandoffJSON(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	putTask(t, dir, implementationTask())
 
@@ -88,6 +96,8 @@ func TestTaskHandoffJSON(t *testing.T) {
 }
 
 func TestTaskHandoffDryRunWritesNothing(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	putTask(t, dir, implementationTask())
 	before := registryTip(t, dir)
@@ -118,6 +128,8 @@ func TestTaskHandoffDryRunWritesNothing(t *testing.T) {
 }
 
 func TestTaskHandoffUsageErrors(t *testing.T) {
+	t.Parallel()
+
 	const fix = "  fix:   run solomonar help\nnothing was written\n"
 	tests := []struct {
 		name   string
@@ -130,6 +142,8 @@ func TestTaskHandoffUsageErrors(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := runCLI(t, repoAssets(t), append([]string{"-C", t.TempDir(), "task", "handoff"}, tt.args...)...)
 
 			assert.Equal(t, 2, got.exit)
@@ -140,6 +154,8 @@ func TestTaskHandoffUsageErrors(t *testing.T) {
 }
 
 func TestTaskHandoffTakesNoAsFlag(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, repoAssets(t), "-C", t.TempDir(), "task", "handoff", "W-001", "--owner", "orchestrator-3",
 		"--as", "orchestrator-1")
 
@@ -148,6 +164,8 @@ func TestTaskHandoffTakesNoAsFlag(t *testing.T) {
 }
 
 func TestTaskHandoffRejections(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		args   []string
@@ -205,6 +223,8 @@ func TestTaskHandoffRejections(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir, _, _ := moveRepo(t)
 			putTask(t, dir, implementationTask())
 			putHandoffFixtures(t, dir)
@@ -242,6 +262,8 @@ func putHandoffFixtures(t *testing.T, dir string) {
 }
 
 func TestTaskHandoffHelp(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, repoAssets(t), "help", "task", "handoff")
 
 	require.Equal(t, 0, got.exit, got.stderr)
