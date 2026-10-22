@@ -1,7 +1,7 @@
 ---
 title: Install the CLI
 navTitle: Install the CLI
-description: Install the Solomonar CLI with Homebrew or build it from source with Go, put it on your PATH, and check the binary, its embedded framework version, and its JSON output.
+description: Install the Solomonar CLI with Homebrew or build it from source with Go, put it on your PATH, and check the binary, its version, and its JSON output.
 kind: Tutorial
 group: Start here
 order: 2
@@ -58,11 +58,11 @@ solomonar version
 ```
 
 ```text
-solomonar devel (embedded framework 0.1.3)
+solomonar 0.1.3
 project   not initialized
 ```
 
-{% if release.version != "dev" %}A Homebrew install shows the release version instead of `devel`. {% endif %}A build from a Git checkout may show a source-derived version instead of `devel`, with `+dirty` when the checkout has local changes. Outside an initialized project, the project line reads `not initialized`.
+A build from a Git checkout between releases shows the last release version. Outside an initialized project, the project line reads `not initialized`.
 
 List the commands this build supports:
 
