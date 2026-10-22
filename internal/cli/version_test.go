@@ -13,29 +13,6 @@ import (
 	"github.com/madalinpopa/solomonar/internal/task"
 )
 
-func TestCLIVersionFromBuildInfo(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		raw  string
-		want string
-	}{
-		{name: "tagged module", raw: "v0.1.0", want: "0.1.0"},
-		{name: "no leading v", raw: "0.2.0", want: "0.2.0"},
-		{name: "pseudo version", raw: "v0.1.1-0.20261021120000-abcdef123456", want: "0.1.1-0.20261021120000-abcdef123456"},
-		{name: "development build", raw: "(devel)", want: "devel"},
-		{name: "empty", raw: "", want: "devel"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			assert.Equal(t, tt.want, cliVersion(tt.raw))
-		})
-	}
-}
-
 // putRegistry points the registry ref at a commit whose state.json is content.
 func putRegistry(t *testing.T, dir, content string) {
 	t.Helper()
@@ -110,7 +87,7 @@ func TestVersionReportsTheProject(t *testing.T) {
 			got := runInRepo(t, dir, "version")
 
 			require.Equal(t, 0, got.exit, got.stderr)
-			assert.Equal(t, "solomonar devel (embedded framework "+shipped+")\nproject   "+tt.want+"\n", got.stdout)
+			assert.Equal(t, "solomonar "+shipped+"\nproject   "+tt.want+"\n", got.stdout)
 			assert.Empty(t, got.stderr)
 		})
 	}
@@ -138,7 +115,7 @@ func TestVersionWithoutProjectIsNotInitialized(t *testing.T) {
 			got := runInRepo(t, dir, "version")
 
 			require.Equal(t, 0, got.exit, got.stderr)
-			assert.Equal(t, "solomonar devel (embedded framework "+shipped+")\nproject   not initialized\n", got.stdout)
+			assert.Equal(t, "solomonar "+shipped+"\nproject   not initialized\n", got.stdout)
 			assert.Empty(t, got.stderr)
 		})
 	}
@@ -186,7 +163,7 @@ func TestVersionJSONReportsTheProject(t *testing.T) {
 			assert.JSONEq(t, `{
 				"ok": true,
 				"command": "version",
-				"data": {"cli": "devel", "framework": "`+shipped+`", `+tt.want+`},
+				"data": {"cli": "`+shipped+`", "framework": "`+shipped+`", `+tt.want+`},
 				"warnings": []
 			}`, got.stdout)
 		})
