@@ -38,6 +38,8 @@ func catalogExtensions(t *testing.T, assets fstest.MapFS, names ...string) []Cat
 }
 
 func TestExtensionWantsInstallsRenderedFilesPerExtension(t *testing.T) {
+	t.Parallel()
+
 	assets := extensionAssets()
 	installed := catalogExtensions(t, assets, "templ", "contrast", "go")
 	decisions := map[string]string{"language": "P/D-1", "frontend": "P/D-2"}
@@ -69,6 +71,8 @@ func TestExtensionWantsInstallsRenderedFilesPerExtension(t *testing.T) {
 }
 
 func TestExtensionWantsDropsSectionsOfMissingExtensions(t *testing.T) {
+	t.Parallel()
+
 	assets := extensionAssets()
 
 	wants, extensions, err := ExtensionWants(assets, catalogExtensions(t, assets, "go"),
@@ -81,6 +85,8 @@ func TestExtensionWantsDropsSectionsOfMissingExtensions(t *testing.T) {
 }
 
 func TestExtensionWantsRejectsAStackGroupWithoutDecision(t *testing.T) {
+	t.Parallel()
+
 	assets := extensionAssets()
 
 	wants, extensions, err := ExtensionWants(assets, catalogExtensions(t, assets, "go", "templ"),
@@ -92,6 +98,8 @@ func TestExtensionWantsRejectsAStackGroupWithoutDecision(t *testing.T) {
 }
 
 func TestExtensionWantsInstallsTheEmbeddedGoExtension(t *testing.T) {
+	t.Parallel()
+
 	assets := os.DirFS("../../assets")
 	catalog, err := LoadCatalog(assets)
 	require.NoError(t, err)
