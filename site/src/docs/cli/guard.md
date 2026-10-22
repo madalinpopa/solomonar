@@ -10,7 +10,7 @@ sources:
   - docs/cli/interface.md
 ---
 
-> This command is in development and not in the current build. The behavior and example come from the [interface specification]({{ 'docs/cli/interface.md' | source }}), so the final output may differ in detail.
+> This command is in development and not in the current build. This page describes the planned behavior; the final output may differ in detail.
 
 Reads a tool call from stdin and answers in the runtime's hook format. It denies:
 
