@@ -1172,3 +1172,32 @@ Specs updated: I §3.3, UC-1 (plan block, Proceed paragraph, grouped-plan rules)
 - [x] grouping and collapsing; interactive `Proceed?` uses it
 - [x] tests (UC-1-like plan text, a conflict-free plan with keep/skip/adopted reasons, extensions and decisions
   notes, both runtimes with models)
+
+## Step 11: Transcript tests
+
+### Stage 11.1 — Harness and process boundary (`main`; AD-15, architecture §11) `[x]`
+
+Decisions (author, 2026-10-22): `testscript` over the binary, as a thin layer over the in-process tests; scripts
+directly in `testdata/`, prefixed by area; a custom `exitcode` command for exact exit codes. Transcripts run only
+with `INTEGRATION=true`, set by `task test:integration`; CI does not run them yet; the forbidigo exclusion of `main.go` extends to `main_test.go`.
+also (implementer): `Setup` sets the Git variables of `gittest.Isolate` on the script environment, with
+`GIT_CONFIG_GLOBAL` as `os.DevNull`; the Git version check runs once in `TestScript`; no `-update` flag, since no
+script needs a golden file outside its archive.
+Specs updated: architecture §3, AD-15, §5, §10, §11, §14.
+
+- [x] `github.com/rogpeppe/go-internal` v1.16.0 as a test dependency; depguard `tests` allows `testscript`
+- [x] `main_test.go`: `testscript.Main`, `TestScript`, `isolateGit`, `exitcode`
+- [x] `cli_streams`: help on stdout; a usage error on stderr only, exit 2; the `--json` envelope on stdout only
+- [x] `cli_version`: embedded framework version; project versions in place and through `-C`; `-v` trace on stderr
+- [x] `cli_not_a_repository`: exit 3 outside a repository; `-C` reaches one
+
+### Stage 11.2 — `init` transcripts `[ ]`
+
+Outline: a new repository (files, manifest, registry ref); a no-op re-run; a modified managed file as
+`file_conflict` (exit 4) resolved with `--keep` and `--overwrite`; `interactive_required` without `--yes` and
+without a terminal; `--git-init` outside a repository.
+
+### Stage 11.3 — `task` transcripts `[ ]`
+
+Outline: plan → register → move through the stages → done, owner from `--as` and `SOLOMONAR_OWNER`; rejections
+exit 3 with the registry ref unchanged; commands from a linked worktree; forge facts with a fake `gh` on `PATH`.
