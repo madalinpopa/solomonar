@@ -60,8 +60,9 @@ Clarifications the implementation settles this way unless the spec says otherwis
 - **Go 1.27.3**, the latest stable patch (go.dev/doc/devel/release, 2026-10-19), as `go.mod` declares.
 - **One production dependency** in increments 1 and 2 (AD-1): `golang.org/x/term`, for raw terminal mode in the
   multi-select (CLI-D5; author, 2026-10-21); everything else is the standard library. The only other module
-  dependency is test-only: `github.com/stretchr/testify` v1.12.1, packages `assert` and `require` (AD-14), added with
-  the first test.
+  dependencies are test-only: `github.com/stretchr/testify` v1.12.1, packages `assert` and `require` (AD-14), added
+  with the first test, and `github.com/rogpeppe/go-internal` v1.16.0, package `testscript` (AD-15), for transcript
+  tests of the binary.
   Development tools are pinned in `Taskfile.yml` (section 10) and never enter `go.mod`.
 
 | Need | Standard library | Note |
@@ -99,6 +100,7 @@ Section 10 enforces these with lint rules.
 | AD-12 | Distribution: `go install github.com/madalinpopa/solomonar@vX.Y.Z` now; release binaries for linux and darwin on amd64 and arm64, built by GoReleaser with `-trimpath` from a `vX.Y.Z` tag on `main`, and a Homebrew cask in `madalinpopa/homebrew-tap` that GoReleaser regenerates on each stable release (section 10). | AD-10 makes both carry the right version without extra flags. A release tool is a build tool and stays out of `go.mod`. The cask comes from the same release, so it never drifts from the published archives. | A hand-written formula or cask in the tap. |
 | AD-13 | The entry point is `main.go` at the module root, not `cmd/solomonar/main.go`; it also holds `//go:embed assets` and passes the tree to `cli.Run` in `Env`. | The repository holds one binary, which is the official layout for "a command with supporting packages" (go.dev/doc/modules/layout); the install path shortens to the module path; the `assets` package and its global disappear. | `cmd/solomonar/`: meant for repositories with several binaries. A `cmd` package holding the command handlers (the Cobra convention): in Go, `cmd/<name>` means a `main` package, so it misleads readers and `go install ./cmd/...`. |
 | AD-14 | Tests use testify: `require` when the test cannot continue after a failure (errors, setup), `assert` for the remaining checks. `mock` and `suite` are not used. | Author decision, 2026-10-21. Shorter, uniform assertions with readable diffs (`assert.JSONEq` for the `--json` envelopes). Without `mock` and `suite`, tests keep real repositories and plain test functions (section 11). | The standard `testing` package alone. |
+| AD-15 | Transcript tests run the built binary through `testscript`: `main_test.go` registers `main` with `testscript.Main`, and one `.txtar` script per scenario lives in `testdata/`. They cover the process boundary and end-to-end journeys, not the rules already covered in-process (section 11). | Author decision, 2026-10-22. Only the real process exercises `main.go`: the embedded assets, `os.Exit` codes, separate standard streams, terminal detection, and real environment and working directory; the use cases read as transcripts. | In-process `cli.Run` tests alone: they bypass `main`. Building the binary with `os/exec` in a test: hand-written process plumbing that `testscript` already provides. |
 
 ## 5. Layout and packages
 
@@ -106,6 +108,8 @@ Layout (AD-13):
 
 ```
 main.go                  signal context, //go:embed assets, Env.RawMode, cli.Run, os.Exit; nothing else
+main_test.go             transcript test harness (AD-15)
+testdata/                transcript scripts, one .txtar per scenario
 assets/                  framework/, extensions/, templates/ (existing content)
 internal/
   cli/                   command table, flag parsing, help, prompts, rendering, error envelope, exit codes
@@ -457,7 +461,7 @@ the name, at most 100 characters per line), and nothing requires one (revive `ex
 | Rule | Encodes |
 |---|---|
 | depguard `stdlib-only`: only the standard library, this module, and `golang.org/x/term` outside tests | AD-1 |
-| depguard `tests`: tests may also import testify `assert` and `require`, never `mock` or `suite` | AD-14 |
+| depguard `tests`: tests may also import testify `assert` and `require`, never `mock` or `suite`, and `testscript` | AD-14, AD-15 |
 | testifylint (all checkers): `require` for errors, argument order, specific assertions | AD-14 |
 | depguard `banned`: no `reflect`, `unsafe`, `log`, `log/slog` outside tests | Section 3 |
 | depguard `exec-only-in-git`: `os/exec` only in `internal/git` | AD-3 |
@@ -504,8 +508,9 @@ the version `+dirty` (AD-10). Only the `release` job can write, and it builds wi
 | Project files | Plans, conflicts, the upgrade table (UC-9), `With` sections, adapters | `fstest.MapFS` as the catalog; temp directories as projects; assert on `Plan` values, then on files after `Apply`; rollback tested with a write that fails midway. |
 | Use cases | Every UC of the increment, human and JSON forms, exit codes | In-process `cli.Run` with buffers, a fixed clock, and `os.DirFS` of `assets/`; JSON compared with `assert.JSONEq`; a few human outputs as golden files in `testdata/`, refreshed with `-update`. |
 | Prompts | Text, confirmation, multi-select keys and redraws, EOF, Ctrl-C, `interactive_required` | `Env.Interactive`, a no-op `Env.RawMode`, and byte streams as stdin. |
+| Transcripts | The process boundary: exit codes, stdout and stderr kept apart, the embedded assets, no terminal, the real environment and working directory, `-C` and worktrees; a few end-to-end journeys | `testscript` over the binary (AD-15): `testdata/*.txtar`, file names prefixed by area (`cli_`, `init_`, `task_`). `Setup` isolates Git as the in-process tests do; each script creates its own repository with `exec git`. The custom command `exitcode <code> <command> [args...]` asserts an exact exit code (I §3.5). They run only with `INTEGRATION=true` (any value `strconv.ParseBool` reads as true), as `task test:integration` sets it; CI does not run them yet. Exact output with `cmp` only for stable text; timestamps and versions by regular expression, since the binary's clock is real. |
 
-Assertions use testify (AD-14); test helpers that build repositories take `t`, call `t.Helper()`, and use
+Assertions use testify (AD-14), except in transcripts, which assert with script commands; test helpers that build repositories take `t`, call `t.Helper()`, and use
 `require`. Tests require `git` ≥ 2.40 on `PATH` and fail with that message otherwise. `gh` is never called in tests:
 `--no-forge`, or a fake `gh` script placed first on `PATH`.
 
@@ -530,8 +535,8 @@ Manual runtime smoke checks belong to the runtime adapter's increment; they need
 into model-provider calls. Use the existing human/JSON, rollback, concurrency, and use-case suites for the other
 acceptance scenarios instead of duplicating them in another layer.
 
-Deferred: transcript tests (`rsc.io/script` or `testscript`). The use cases are transcripts, so they would fit,
-but they are a dependency; reconsider if the in-process tests read worse than the transcripts.
+Transcripts do not repeat what the in-process tests already cover (rules, every usage error, help text, every
+rejection code); prompts stay in-process because the binary prompts only when both stdin and stdout are terminals.
 
 ## 12. Implementation plan (increment 1)
 
@@ -567,6 +572,6 @@ AD-12; Q7 by moving the interface spec to `docs/cli/interface.md`; Q8 as AD-13 a
   registry, Jujutsu support (I §1, rules §11).
 - Deferred to increment 2: `doctor`, `sync`, `runtime`, `extension` commands, `guard`.
 - Deferred to increment 3: `upgrade` (with `--diff` through `git diff --no-index`), `dashboard`.
-- Deferred until a concrete need: shell completion (and with it AD-2), transcript tests, Git URL extension sources
+- Deferred until a concrete need: shell completion (and with it AD-2), Git URL extension sources
   (CLI-D6), Windows (AD-11), a configuration file, any environment variable beyond `SOLOMONAR_OWNER` and
   `NO_COLOR`.
