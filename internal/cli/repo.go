@@ -33,16 +33,7 @@ func openStore(ctx context.Context, env Env, flags sharedFlags) (*task.Store, st
 }
 
 func readProject(env Env, dir string) (project.Project, error) {
-	framework, err := frameworkVersion(env.Assets)
-	if err != nil {
-		return project.Project{}, err
-	}
-	root, err := os.OpenRoot(dir)
-	if err != nil {
-		return project.Project{}, fmt.Errorf("open worktree: %w", err)
-	}
-	defer root.Close()
-	manifest, err := project.ReadManifest(root, framework)
+	manifest, err := readManifest(env, dir)
 	if err != nil {
 		return project.Project{}, err
 	}
@@ -50,6 +41,20 @@ func readProject(env Env, dir string) (project.Project, error) {
 		return project.Project{MainBranch: defaultMainBranch, Remote: defaultRemote}, nil
 	}
 	return manifest.Project, nil
+}
+
+// readManifest decodes the worktree's manifest; it returns nil without error when the file is absent.
+func readManifest(env Env, dir string) (*project.Manifest, error) {
+	framework, err := frameworkVersion(env.Assets)
+	if err != nil {
+		return nil, err
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return nil, fmt.Errorf("open worktree: %w", err)
+	}
+	defer root.Close()
+	return project.ReadManifest(root, framework)
 }
 
 // openRepo discovers the repository containing dir and checks the Git version.
