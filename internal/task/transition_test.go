@@ -12,12 +12,16 @@ func record(status Status, stage Stage, tier *int) *Record {
 }
 
 func TestPriorStatus(t *testing.T) {
+	t.Parallel()
+
 	assert.Equal(t, StatusReserved, priorStatus(StageSetup))
 	assert.Equal(t, StatusRunning, priorStatus(StageSpecification))
 	assert.Equal(t, StatusRunning, priorStatus(StageIntegration))
 }
 
 func TestCheckStatusTransition(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		before *Record
@@ -64,12 +68,16 @@ func TestCheckStatusTransition(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assertCode(t, checkTransition(tt.before, tt.after, tt.resume), tt.code)
 		})
 	}
 }
 
 func TestCheckStageTransition(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		before *Record
@@ -115,12 +123,16 @@ func TestCheckStageTransition(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assertCode(t, checkTransition(tt.before, tt.after, false), tt.code)
 		})
 	}
 }
 
 func TestCheckTransitionFixNamesAllowedTargets(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		before *Record
@@ -137,6 +149,8 @@ func TestCheckTransitionFixNamesAllowedTargets(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			rejection := rejectionOf(t, checkTransition(tt.before, tt.after, false))
 
 			assert.Equal(t, tt.found, rejection.Found)
@@ -146,6 +160,8 @@ func TestCheckTransitionFixNamesAllowedTargets(t *testing.T) {
 }
 
 func TestAllowedStatuses(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		record *Record
@@ -161,12 +177,16 @@ func TestAllowedStatuses(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assert.Equal(t, tt.want, allowedStatuses(tt.record))
 		})
 	}
 }
 
 func TestAllowedStages(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		record *Record
@@ -182,6 +202,8 @@ func TestAllowedStages(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assert.Equal(t, tt.want, allowedStages(tt.record))
 		})
 	}
