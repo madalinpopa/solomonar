@@ -105,6 +105,6 @@ Two approved requirements that contradict each other need a user decision. Imple
 
 The core contains the workflow's rules, skills, and required roles. Extensions add language, library, practice, or specialist-review instructions.
 
-`solomonar init` copies the core into your project under `docs/solomonar/` and creates small runtime adapters that point to that portable source. Adopting a stack extension will record a decision; it does not install application packages or approve further dependencies.
+`solomonar init` copies the core into your project under `docs/solomonar/` and creates small runtime adapters that point to that portable source. Adopting a stack extension records a decision; it does not install application packages or approve further dependencies.
 
-Extensions cannot be installed yet: choosing them at `init` and the `extension` commands are planned. The [project files reference]({{ '/docs/configuration/' | url }}) shows what is installed today.
+In v0.1.0, extensions are chosen at `init`, and the catalog holds the `go` extension. The `extension` commands that change them later are planned. The [project files reference]({{ '/docs/configuration/' | url }}) shows what is installed today.
