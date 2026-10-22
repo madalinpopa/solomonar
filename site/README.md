@@ -18,7 +18,7 @@ npm run build
 npm run check
 ```
 
-Output is `_site/`, ignored alongside `node_modules/` and `.cache/`. Checks cover local links and fragments, assets, unique page metadata, social cards, canonical URLs, sitemap coverage, robots, 404 indexability, JSON-LD, unique IDs, heading structure, JavaScript syntax, and an 8 KB browser-script budget. Visual and interaction checks are recorded in `design-qa.md`.
+Output is `_site/`, ignored alongside `node_modules/` and `.cache/`. Checks cover local links and fragments, assets, unique page metadata, social cards, canonical URLs, sitemap coverage, robots, 404 indexability, JSON-LD, unique IDs, heading structure, JavaScript syntax, and an 8 KB browser-script budget.
 
 ## Docker
 
