@@ -126,7 +126,7 @@ solomonar task status W-001
 | Command | Purpose |
 | --- | --- |
 | `init` | Install the framework, runtime adapters, and extensions, and create the task registry. |
-| `version` | Print the CLI, embedded framework, and project versions. |
+| `version` | Print the CLI and project framework versions. |
 | `task plan` | Create a planned task under the next free ID. |
 | `task register` | Reserve a task for one orchestrator. |
 | `task show` | Print the registry overview or one stored record. |
