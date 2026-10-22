@@ -10,6 +10,8 @@ import (
 )
 
 func TestParseInterspersedAllowsFlagsAnywhere(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		args  []string
@@ -25,6 +27,8 @@ func TestParseInterspersedAllowsFlagsAnywhere(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			var got sharedFlags
 			fs := newFlagSet("test", &got)
 
@@ -38,6 +42,8 @@ func TestParseInterspersedAllowsFlagsAnywhere(t *testing.T) {
 }
 
 func TestParseInterspersedRejectsUnknownFlag(t *testing.T) {
+	t.Parallel()
+
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
