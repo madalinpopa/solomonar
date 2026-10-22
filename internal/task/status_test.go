@@ -24,6 +24,8 @@ func gitFacts(t *testing.T, repo *git.Repo, r *Record) StatusFacts {
 }
 
 func TestGitFactsJSONOfWorktreeAheadAndDirty(t *testing.T) {
+	t.Parallel()
+
 	f := newFactsRepo(t)
 	r := withSpec(moving(StatusRunning, StageSpecializedReview, new(2)))
 	r.Revision = f.onBranch
@@ -45,6 +47,8 @@ func TestGitFactsJSONOfWorktreeAheadAndDirty(t *testing.T) {
 }
 
 func TestGitFactsWithoutBranch(t *testing.T) {
+	t.Parallel()
+
 	repo := repoWithoutWorktree(t, false)
 
 	facts := gitFacts(t, repo, withSpec(withRevision(moving(StatusRunning, StageImplementation, nil))))
@@ -56,6 +60,8 @@ func TestGitFactsWithoutBranch(t *testing.T) {
 }
 
 func TestGitFactsBranchWithoutWorktreeOrRevision(t *testing.T) {
+	t.Parallel()
+
 	repo := repoWithoutWorktree(t, true)
 	tip := gittest.Git(t, repo.Dir, "rev-parse", "feature/W-001")
 
@@ -67,6 +73,8 @@ func TestGitFactsBranchWithoutWorktreeOrRevision(t *testing.T) {
 }
 
 func TestGitFactsContainsRevision(t *testing.T) {
+	t.Parallel()
+
 	f := newFactsRepo(t)
 	tests := []struct {
 		name     string
@@ -79,6 +87,8 @@ func TestGitFactsContainsRevision(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			r := moving(StatusRunning, StageImplementation, nil)
 			r.Revision = tt.revision
 
@@ -91,6 +101,8 @@ func TestGitFactsContainsRevision(t *testing.T) {
 }
 
 func TestGitFactsWorktreeWithoutRevision(t *testing.T) {
+	t.Parallel()
+
 	f := newFactsRepo(t)
 
 	facts := gitFacts(t, f.repo, withSpec(moving(StatusRunning, StageSpecification, nil)))
@@ -101,6 +113,8 @@ func TestGitFactsWorktreeWithoutRevision(t *testing.T) {
 }
 
 func TestGitFactsWorktreeDirtyPaths(t *testing.T) {
+	t.Parallel()
+
 	f := newFactsRepo(t)
 	require.NoError(t, os.WriteFile(filepath.Join(f.worktree, filepath.FromSlash(specPath)), []byte("# Changed\n"), 0o644))
 	require.NoError(t, os.WriteFile(filepath.Join(f.worktree, "added.txt"), nil, 0o644))
@@ -116,6 +130,8 @@ func TestGitFactsWorktreeDirtyPaths(t *testing.T) {
 }
 
 func TestParseDirty(t *testing.T) {
+	t.Parallel()
+
 	const modes = "N... 100644 100644 100644 45b983be36b73c0788dc9cbcb76cbb80fc7bb057 7fda762c559b374949611c37591f502d137b0fc1"
 	tests := []struct {
 		name string
@@ -143,12 +159,16 @@ func TestParseDirty(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assert.Equal(t, tt.want, parseDirty(tt.line))
 		})
 	}
 }
 
 func TestGitFactsSpecOnlyInWorktree(t *testing.T) {
+	t.Parallel()
+
 	f := newFactsRepo(t)
 	r := withSpec(moving(StatusRunning, StageImplementation, nil))
 	r.Revision = f.onMain
@@ -159,6 +179,8 @@ func TestGitFactsSpecOnlyInWorktree(t *testing.T) {
 }
 
 func TestGitFactsWithoutRecordedSpec(t *testing.T) {
+	t.Parallel()
+
 	f := newFactsRepo(t)
 	r := moving(StatusRunning, StageImplementation, nil)
 	r.Spec, r.Revision = "", f.onBranch
@@ -171,6 +193,8 @@ func TestGitFactsWithoutRecordedSpec(t *testing.T) {
 }
 
 func TestGitFactsMerge(t *testing.T) {
+	t.Parallel()
+
 	d := newDoneRepo(t)
 	derived := d.specRef()
 	tests := []struct {
@@ -183,6 +207,8 @@ func TestGitFactsMerge(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			r := d.record()
 			r.Spec = tt.spec
 
@@ -192,12 +218,16 @@ func TestGitFactsMerge(t *testing.T) {
 }
 
 func TestGitFactsNotMerged(t *testing.T) {
+	t.Parallel()
+
 	_, d := newFeatureRepo(t)
 
 	assert.Equal(t, MergeFacts{}, gitFacts(t, d.repo, withSpec(d.record())).Merge)
 }
 
 func TestGitFactsMergeWithoutSpecCommit(t *testing.T) {
+	t.Parallel()
+
 	dir := gittest.NewRepo(t)
 	gittest.Commit(t, dir, "initial")
 	gittest.Git(t, dir, "checkout", "-b", "feature/W-001")
@@ -213,6 +243,8 @@ func TestGitFactsMergeWithoutSpecCommit(t *testing.T) {
 }
 
 func TestGitFactsDoneRecordTakesMergeFromRecord(t *testing.T) {
+	t.Parallel()
+
 	repo := repoWithoutWorktree(t, false)
 	specRef := sha + ":" + specPath
 	r := &Record{Title: "Login", Status: StatusDone, Stage: StageComplete, MergeCommit: sha, SpecRef: specRef}
@@ -223,6 +255,8 @@ func TestGitFactsDoneRecordTakesMergeFromRecord(t *testing.T) {
 }
 
 func TestGitFactsReturnsGitErrors(t *testing.T) {
+	t.Parallel()
+
 	repo := &git.Repo{Dir: t.TempDir()}
 
 	_, err := GitFacts(t.Context(), repo, "W-001", "main", moving(StatusRunning, StageImplementation, nil))
