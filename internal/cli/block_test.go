@@ -33,6 +33,8 @@ func ucBlockArgs() []string {
 }
 
 func TestTaskBlockAndUnblockDecision(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	record := implementationTask()
 	record.ActiveAgents = []task.Agent{{ID: "impl-1", Role: "implementer"}}
@@ -60,6 +62,8 @@ func TestTaskBlockAndUnblockDecision(t *testing.T) {
 }
 
 func TestTaskBlockWithoutRefKeepsStatus(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	putTask(t, dir, implementationTask())
 
@@ -74,6 +78,8 @@ func TestTaskBlockWithoutRefKeepsStatus(t *testing.T) {
 }
 
 func TestTaskUnblockLeavesOtherBlockerOpen(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	putTask(t, dir, blockedTask())
 
@@ -93,6 +99,8 @@ const blockedRecordJSON = `{"title": "Login", "status": "blocked", "stage": "imp
 	"next_action": {"actor": "user", "action": "Decide W-001/D-1: session storage"}}`
 
 func TestTaskBlockJSON(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	putTask(t, dir, implementationTask())
 
@@ -116,6 +124,8 @@ func TestTaskBlockJSON(t *testing.T) {
 }
 
 func TestTaskUnblockJSON(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	putTask(t, dir, blockedTask())
 
@@ -143,6 +153,8 @@ func TestTaskUnblockJSON(t *testing.T) {
 }
 
 func TestTaskBlockAndUnblockDryRunWriteNothing(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	putTask(t, dir, implementationTask())
 	before := registryTip(t, dir)
@@ -184,6 +196,8 @@ func TestTaskBlockAndUnblockDryRunWriteNothing(t *testing.T) {
 }
 
 func TestTaskBlockAndUnblockUsageErrors(t *testing.T) {
+	t.Parallel()
+
 	const fix = "  fix:   run solomonar help\nnothing was written\n"
 	tests := []struct {
 		name   string
@@ -229,6 +243,8 @@ func TestTaskBlockAndUnblockUsageErrors(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := runCLI(t, repoAssets(t), append([]string{"-C", t.TempDir(), "task"}, tt.args...)...)
 
 			assert.Equal(t, 2, got.exit)
@@ -239,6 +255,8 @@ func TestTaskBlockAndUnblockUsageErrors(t *testing.T) {
 }
 
 func TestTaskBlockTakesOwnerFromEnvironment(t *testing.T) {
+	t.Parallel()
+
 	dir, _, _ := moveRepo(t)
 	putTask(t, dir, implementationTask())
 	getenv := func(name string) string {
@@ -256,6 +274,8 @@ func TestTaskBlockTakesOwnerFromEnvironment(t *testing.T) {
 }
 
 func TestTaskBlockAndUnblockRejections(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		record task.Record
@@ -306,6 +326,8 @@ func TestTaskBlockAndUnblockRejections(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir, _, _ := moveRepo(t)
 			putTask(t, dir, tt.record)
 			before := registryTip(t, dir)
