@@ -124,7 +124,7 @@ func initializedRepo(t *testing.T) string {
 func nextBlock(dir string) string {
 	return "\nNext:\n" +
 		"  1. First commit required before task worktrees:\n" +
-		"       git add AGENTS.md .solomonar docs && git commit -m \"chore: initialize solomonar 0.1.0\"\n" +
+		"       git add AGENTS.md .solomonar docs && git commit -m \"chore: initialize solomonar " + shipped + "\"\n" +
 		sessionStep(dir)
 }
 
@@ -144,7 +144,7 @@ func TestInitUC2CoreOnly(t *testing.T) {
 
 	require.Equal(t, 0, got.exit, got.stderr)
 	tip := refTip(t, dir)
-	assert.Equal(t, "Initialized solomonar 0.1.0 in "+dir+"\n"+
+	assert.Equal(t, "Initialized solomonar "+shipped+" in "+dir+"\n"+
 		"  19 files created\n"+
 		"  registry  refs/heads/workflow-state @ "+tip+"\n"+
 		"  pushed    origin/workflow-state\n"+nextBlock(dir), got.stdout)
@@ -155,7 +155,7 @@ func TestInitUC2CoreOnly(t *testing.T) {
 	}
 	assert.Contains(t, files["docs/README.md"], "# "+filepath.Base(dir)+"\n")
 	assert.Contains(t, files["docs/README.md"], "Track shared household expenses")
-	manifest, err := project.DecodeManifest([]byte(files[project.ManifestPath]), "0.1.0")
+	manifest, err := project.DecodeManifest([]byte(files[project.ManifestPath]), shipped)
 	require.NoError(t, err)
 	assert.Equal(t, project.Project{Name: filepath.Base(dir), MainBranch: "main", Remote: "origin"}, manifest.Project)
 	assert.Len(t, manifest.Files, len(initPaths()))
@@ -172,7 +172,7 @@ func TestInitWithoutRemoteWarns(t *testing.T) {
 	got := runInRepo(t, dir, initArgs()...)
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Equal(t, "Initialized solomonar 0.1.0 in "+dir+"\n"+
+	assert.Equal(t, "Initialized solomonar "+shipped+" in "+dir+"\n"+
 		"  19 files created\n"+
 		"  registry  refs/heads/workflow-state @ "+refTip(t, dir)+"\n"+nextBlock(dir), got.stdout)
 	assert.Equal(t, "warning: no remote \"origin\"; the registry stays local\n", got.stderr)
@@ -191,14 +191,14 @@ func TestInitJSON(t *testing.T) {
 		"command": "init",
 		"data": {
 			"project": "`+dir+`",
-			"framework_version": "0.1.0",
+			"framework_version": "`+shipped+`",
 			"choices": {"runtimes": [], "extensions": {}, "adversarial_model": {}},
 			"decisions": [],
 			"files": `+createdFilesJSON()+`,
 			"registry": {"ref": "refs/heads/workflow-state", "commit": "`+refTip(t, dir)+`", "action": "create", "pushed": false},
 			"git_init": false,
 			"first_commit_required": true,
-			"next": ["git add AGENTS.md .solomonar docs", "git commit -m \"chore: initialize solomonar 0.1.0\""]
+			"next": ["git add AGENTS.md .solomonar docs", "git commit -m \"chore: initialize solomonar `+shipped+`\""]
 		},
 		"warnings": [{"code": "no_remote", "message": "no remote \"origin\"; the registry stays local"}]
 	}`, got.stdout)
@@ -225,7 +225,7 @@ func TestInitRerunIsNoOp(t *testing.T) {
 			got := runInRepo(t, dir, tt.args...)
 
 			require.Equal(t, 0, got.exit, got.stderr)
-			assert.Equal(t, "Already initialized with solomonar 0.1.0; nothing to do.\n"+
+			assert.Equal(t, "Already initialized with solomonar "+shipped+"; nothing to do.\n"+
 				"  18 files unchanged, 1 skipped · registry refs/heads/workflow-state unchanged\n"+
 				"  Change choices with `solomonar runtime|extension add|remove`; move versions with `solomonar upgrade`.\n",
 				got.stdout)
@@ -300,7 +300,7 @@ func TestInitKeepsExistingRegistry(t *testing.T) {
 	got := runInRepo(t, dir, initArgs()...)
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Equal(t, "Initialized solomonar 0.1.0 in "+dir+"\n"+
+	assert.Equal(t, "Initialized solomonar "+shipped+" in "+dir+"\n"+
 		"  19 files created\n"+
 		"  registry  refs/heads/workflow-state @ "+tip+" unchanged\n"+nextBlock(dir), got.stdout)
 	assert.Empty(t, got.stderr)
@@ -414,7 +414,7 @@ func TestInitDryRunWritesNothing(t *testing.T) {
 		want.WriteString("  create     " + p + "\n")
 	}
 	want.WriteString("  registry   create refs/heads/workflow-state with an empty state.json\n" +
-		"Would initialize solomonar 0.1.0 in " + dir + "\n  19 files created\n")
+		"Would initialize solomonar " + shipped + " in " + dir + "\n  19 files created\n")
 	require.Equal(t, 0, human.exit, human.stderr)
 	assert.Equal(t, want.String(), human.stdout)
 	assert.Empty(t, human.stderr)
@@ -424,7 +424,7 @@ func TestInitDryRunWritesNothing(t *testing.T) {
 		"command": "init",
 		"data": {
 			"project": "`+dir+`",
-			"framework_version": "0.1.0",
+			"framework_version": "`+shipped+`",
 			"choices": {"runtimes": [], "extensions": {}, "adversarial_model": {}},
 			"decisions": [],
 			"files": `+createdFilesJSON()+`,
@@ -615,7 +615,7 @@ func TestInitGitInitCreatesRepository(t *testing.T) {
 			got := runCLI(t, repoAssets(t), append([]string{"-C", dir}, initArgs(append(tt.args, "--git-init")...)...)...)
 
 			require.Equal(t, 0, got.exit, got.stderr)
-			assert.Equal(t, "Initialized solomonar 0.1.0 in "+dir+"\n"+
+			assert.Equal(t, "Initialized solomonar "+shipped+" in "+dir+"\n"+
 				"  19 files created\n"+
 				"  registry  refs/heads/workflow-state @ "+refTip(t, dir)+"\n"+nextBlock(dir), got.stdout)
 			assert.Equal(t, "warning: no remote \"origin\"; the registry stays local\n", got.stderr)
@@ -625,7 +625,7 @@ func TestInitGitInitCreatesRepository(t *testing.T) {
 			for _, p := range initPaths() {
 				assert.Contains(t, files, p)
 			}
-			manifest, err := project.DecodeManifest([]byte(files[project.ManifestPath]), "0.1.0")
+			manifest, err := project.DecodeManifest([]byte(files[project.ManifestPath]), shipped)
 			require.NoError(t, err)
 			assert.Equal(t, tt.branch, manifest.Project.MainBranch)
 		})
@@ -648,7 +648,7 @@ func TestInitGitInitDryRunRunsNoGit(t *testing.T) {
 		"command": "init",
 		"data": {
 			"project": "`+dir+`",
-			"framework_version": "0.1.0",
+			"framework_version": "`+shipped+`",
 			"choices": {"runtimes": [], "extensions": {}, "adversarial_model": {}},
 			"decisions": [],
 			"files": `+createdFilesJSON()+`,
@@ -718,7 +718,7 @@ func unbornFeatureRepo(t *testing.T) string {
 func TestInitNextNamesTheFirstCommit(t *testing.T) {
 	t.Parallel()
 
-	commit := "git commit -m \"chore: initialize solomonar 0.1.0\""
+	commit := "git commit -m \"chore: initialize solomonar " + shipped + "\""
 	tests := []struct {
 		name     string
 		repo     func(t *testing.T) string
@@ -870,7 +870,7 @@ func TestInitHelp(t *testing.T) {
 }
 
 func commitStep(paths string) string {
-	return "  1. git add " + paths + " && git commit -m \"chore: initialize solomonar 0.1.0\"\n"
+	return "  1. git add " + paths + " && git commit -m \"chore: initialize solomonar " + shipped + "\"\n"
 }
 
 func TestInitUC2WithClaude(t *testing.T) {
@@ -881,7 +881,7 @@ func TestInitUC2WithClaude(t *testing.T) {
 	got := runInRepo(t, dir, runtimeArgs("claude")...)
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Equal(t, "Initialized solomonar 0.1.0 in "+dir+"\n"+
+	assert.Equal(t, "Initialized solomonar "+shipped+" in "+dir+"\n"+
 		"  29 files created\n"+
 		"  registry  refs/heads/workflow-state @ "+refTip(t, dir)+"\n"+
 		"\nNext:\n"+commitStep("AGENTS.md CLAUDE.md .claude .solomonar docs")+
@@ -891,7 +891,7 @@ func TestInitUC2WithClaude(t *testing.T) {
 	assert.Equal(t, "@AGENTS.md\n", files["CLAUDE.md"])
 	skill := files[".claude/skills/spec/SKILL.md"]
 	assert.True(t, strings.HasPrefix(skill, "---\nname: spec\ndescription: Maintains"), skill)
-	assert.True(t, strings.HasSuffix(skill, "---\n\nGenerated by solomonar 0.1.0 from "+
+	assert.True(t, strings.HasSuffix(skill, "---\n\nGenerated by solomonar "+shipped+" from "+
 		"`docs/solomonar/skills/spec/SKILL.md`; edit that file, then run `solomonar sync`.\n"+
 		"Load `docs/solomonar/skills/spec/SKILL.md` and follow it.\n"), skill)
 	role := files[".claude/agents/spec-reviewer.md"]
@@ -904,7 +904,7 @@ func TestInitUC2WithClaude(t *testing.T) {
 
 func manifestOf(t *testing.T, dir string) *project.Manifest {
 	t.Helper()
-	manifest, err := project.DecodeManifest([]byte(tree(t, dir)[project.ManifestPath]), "0.1.0")
+	manifest, err := project.DecodeManifest([]byte(tree(t, dir)[project.ManifestPath]), shipped)
 	require.NoError(t, err)
 	return manifest
 }
@@ -939,7 +939,7 @@ func TestInitWithBothRuntimes(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(data.stdout), &envelope))
 	assert.JSONEq(t, `{"runtimes": ["claude", "codex"], "extensions": {}, "adversarial_model": {"codex": "o3"}}`,
 		string(envelope.Data.Choices))
-	assert.Equal(t, []string{"git add " + paths, "git commit -m \"chore: initialize solomonar 0.1.0\""},
+	assert.Equal(t, []string{"git add " + paths, "git commit -m \"chore: initialize solomonar " + shipped + "\""},
 		envelope.Data.Next)
 }
 
@@ -953,7 +953,7 @@ func TestInitWithCodexNamesTheCodexSession(t *testing.T) {
 	require.Equal(t, 0, got.exit, got.stderr)
 	assert.True(t, strings.HasSuffix(got.stdout, "\nNext:\n"+
 		"  1. First commit required before task worktrees:\n"+
-		"       git add AGENTS.md .agents .codex .solomonar docs && git commit -m \"chore: initialize solomonar 0.1.0\"\n"+
+		"       git add AGENTS.md .agents .codex .solomonar docs && git commit -m \"chore: initialize solomonar "+shipped+"\"\n"+
 		"  2. Start a top-level Codex session in "+dir+":\n"+
 		"       $solomonar Explore the next useful flow.\n"), got.stdout)
 }
@@ -1020,7 +1020,7 @@ func TestInitRerunWithRuntimesIsNoOp(t *testing.T) {
 			got := runInRepo(t, dir, tt.args...)
 
 			require.Equal(t, 0, got.exit, got.stderr)
-			assert.Contains(t, got.stdout, "Already initialized with solomonar 0.1.0; nothing to do.\n"+
+			assert.Contains(t, got.stdout, "Already initialized with solomonar "+shipped+"; nothing to do.\n"+
 				"  28 files unchanged, 1 skipped · registry")
 			assertNothingWritten(t, dir, before, tip)
 		})
