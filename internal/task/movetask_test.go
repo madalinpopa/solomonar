@@ -22,6 +22,8 @@ func moveTask(t *testing.T, registry *Registry, repo *git.Repo, as string, m Mov
 }
 
 func TestMoveTaskStoresMovedRecord(t *testing.T) {
+	t.Parallel()
+
 	f := newFactsRepo(t)
 	registry := registryOf(moving(StatusRunning, StageSpecification, nil))
 	m := Move{Spec: specPath, Stage: "implementation", Agents: []string{"impl-1:implementer"}, Next: "impl-1:Implement AC-1"}
@@ -42,6 +44,8 @@ func TestMoveTaskStoresMovedRecord(t *testing.T) {
 }
 
 func TestMoveTaskRejects(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		before *Record
@@ -55,6 +59,8 @@ func TestMoveTaskRejects(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			registry := registryOf(tt.before)
 			want := *tt.before
 
@@ -67,12 +73,16 @@ func TestMoveTaskRejects(t *testing.T) {
 }
 
 func TestMoveTaskUnknownIDIsTaskNotFound(t *testing.T) {
+	t.Parallel()
+
 	_, err := NewRegistry().MoveTask(t.Context(), nil, "W-404", "orchestrator-1", Move{Next: "user:Review"}, installedRoles(), clock())
 
 	requireRejection(t, err, "task_not_found")
 }
 
 func TestMoveTaskFactRejectionKeepsRecord(t *testing.T) {
+	t.Parallel()
+
 	f := newFactsRepo(t)
 	before := moving(StatusRunning, StageImplementation, nil)
 	registry := registryOf(before)
@@ -85,6 +95,8 @@ func TestMoveTaskFactRejectionKeepsRecord(t *testing.T) {
 }
 
 func TestMoveTaskWithoutChangeHasNoSubject(t *testing.T) {
+	t.Parallel()
+
 	before := moving(StatusRunning, StageImplementation, nil)
 	registry := registryOf(before)
 	want := *before
@@ -99,6 +111,8 @@ func TestMoveTaskWithoutChangeHasNoSubject(t *testing.T) {
 }
 
 func TestMoveTaskResumingCancelledWarns(t *testing.T) {
+	t.Parallel()
+
 	registry := registryOf(moving(StatusCancelled, StageImplementation, nil))
 
 	result, err := moveTask(t, registry, nil, "orchestrator-1", Move{Status: "running", ResumeCancelled: true})
@@ -112,6 +126,8 @@ func TestMoveTaskResumingCancelledWarns(t *testing.T) {
 }
 
 func TestMoveSubject(t *testing.T) {
+	t.Parallel()
+
 	full := moving(StatusRunning, StageIntegration, new(2))
 	full.ActiveAgents = []Agent{{ID: "sec-1", Role: "security-reviewer"}, {ID: "cor-1", Role: "correctness-reviewer"}}
 	full.Revision = "7cd18e45bb55c3be9465c9f893683bc05216f529"
@@ -130,6 +146,8 @@ func TestMoveSubject(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := tt.record.moveSubject("W-001", tt.changed)
 
 			assert.Equal(t, tt.record.Subject("W-001", tt.want), got)
