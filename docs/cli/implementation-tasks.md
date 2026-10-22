@@ -1201,3 +1201,19 @@ without a terminal; `--git-init` outside a repository.
 
 Outline: plan → register → move through the stages → done, owner from `--as` and `SOLOMONAR_OWNER`; rejections
 exit 3 with the registry ref unchanged; commands from a linked worktree; forge facts with a fake `gh` on `PATH`.
+
+## Step 12: Test speed
+
+### Stage 12.1 — Parallel tests (`internal/git/gittest`, every package; architecture §11) `[x]`
+
+Decisions (author, 2026-10-22): Git isolation moves from `t.Setenv` in each test to the process environment, set
+once per test binary, so tests can run in parallel.
+also (implementer): `gittest.Isolate` is replaced by `gittest.Main`, called from a `TestMain` in `internal/cli`,
+`internal/task`, and `internal/git`; `NewRepo` and `NewBareRemote` still check the Git version. Tests that set
+`PATH` or other variables stay serial (39), as do the subtests of `TestTaskMovePauseCancelAndResume`, which advance
+one record in order. Measured with `go test -count=1`: `internal/cli` 49.6 s → 23.2 s, `internal/task` 15.1 s →
+8.0 s; the remaining time is mostly the serial interactive `init` tests.
+Specs updated: architecture §11.
+
+- [x] `gittest.Main`; `TestMain` in `internal/cli`, `internal/task`, `internal/git`
+- [x] `t.Parallel()` in every test and subtest that leaves the environment alone
