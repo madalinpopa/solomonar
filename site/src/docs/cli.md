@@ -55,17 +55,17 @@ Increment 2 also completes the new-product path: a project initialized with `--e
 
 | Flag | Meaning |
 | --- | --- |
-| `-C <path>` | Run in another directory, like `git -C`. |
-| `--json` | Print machine-readable output on stdout. |
-| `--no-color` | Disable color; equivalent to setting `NO_COLOR`. |
-| `-v`, `--verbose` | Trace external Git and `gh` commands to stderr. |
+| `-C <path>` | Run as if started in `<path>`, like `git -C`. Any worktree of the repository works. |
+| `--json` | Print machine-readable output on stdout. Never prompts: a command that needs an answer takes `--yes` or fails with `interactive_required`. |
+| `--no-color` | Disable color; setting `NO_COLOR` to any value does the same. |
+| `-v`, `--verbose` | Print each Git and `gh` command to stderr, as `+ git …` or `+ gh …`, before it runs. |
 | `-h`, `--help` | Show command help. |
 
 `solomonar` here means a binary on your `PATH`; see [Install the CLI]({{ '/docs/install/' | url }}). Writing task commands support `--dry-run`: they run validation and report the proposed record without writing it. Owner commands accept `--as <owner>`, with `SOLOMONAR_OWNER` as the default.
 
 ## Output formats
 
-Human-readable results go to stdout. Warnings and errors go to stderr. With `--json`, stdout contains exactly one JSON object.
+Human-readable results go to stdout. Warnings and errors go to stderr, prefixed `warning:` or `error:`. With `--json`, stdout contains exactly one JSON object; its field names are `snake_case`, timestamps are RFC 3339 UTC, and SHAs are full.
 
 A successful command follows this envelope; the `data` fields depend on the command:
 
@@ -109,6 +109,9 @@ Unknown forge or check facts never count as passing.
 | 3 | Rejected: a validation, ownership, transition, or fact check failed. |
 | 4 | Conflict: a managed file differs from what the CLI would write, or the registry update kept losing to concurrent writes. |
 | 5 | Checks failed: `doctor` found a `fail`, or `sync --check` found stale files. <span class="cli-label">In development</span> |
+| 130, 143 | Interrupted by SIGINT or SIGTERM before anything was written. Nothing is written. |
+
+An interruption after a registry update has succeeded exits 0 with the warning `push_interrupted`, so a script never repeats a write that already happened.
 
 ## Planned commands
 
@@ -125,4 +128,4 @@ The read-only dashboard is a planned local view of the registry, not this docume
 
 ## Full interface contract
 
-The command pages cover every flag of the current commands. For the full validation tables, JSON data shapes, error codes, and use cases, read [the version-controlled interface specification]({{ 'docs/cli/interface.md' | source }}). It contains planned examples as well as implemented behavior; check the availability tables above before running a command.
+The command pages are the reference for every command's synopsis, flags, and output. The [interface specification]({{ 'docs/cli/interface.md' | source }}) holds the contract beneath them: check order and exact texts, file planning and ownership, the manifest, JSON data shapes, the task transition rules, and the error code catalog. It also covers planned commands; check the availability tables above before running one.
