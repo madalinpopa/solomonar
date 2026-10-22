@@ -33,6 +33,8 @@ func newPromptRig(t *testing.T, input string) *promptRig {
 }
 
 func TestTextPromptShowsDefaultAndTrimsAnswer(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		label  string
@@ -57,6 +59,8 @@ func TestTextPromptShowsDefaultAndTrimsAnswer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			rig := newPromptRig(t, tt.input)
 
 			got, err := rig.prompter.text(tt.label, tt.def)
@@ -69,6 +73,8 @@ func TestTextPromptShowsDefaultAndTrimsAnswer(t *testing.T) {
 }
 
 func TestConfirmPromptAcceptsYesNoAndDefault(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		def    bool
@@ -85,6 +91,8 @@ func TestConfirmPromptAcceptsYesNoAndDefault(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			rig := newPromptRig(t, tt.input)
 
 			got, err := rig.prompter.confirm("Commit?", tt.def)
@@ -97,6 +105,8 @@ func TestConfirmPromptAcceptsYesNoAndDefault(t *testing.T) {
 }
 
 func TestConfirmPromptAsksAgainOnOtherAnswers(t *testing.T) {
+	t.Parallel()
+
 	rig := newPromptRig(t, "maybe\nyep\nn\n")
 
 	got, err := rig.prompter.confirm("Adopt AGENTS.md?", true)
@@ -108,6 +118,8 @@ func TestConfirmPromptAsksAgainOnOtherAnswers(t *testing.T) {
 }
 
 func TestLinePromptsFailWhenInputCloses(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		ask  func(p *prompter) error
@@ -117,6 +129,8 @@ func TestLinePromptsFailWhenInputCloses(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			rig := newPromptRig(t, "")
 
 			err := tt.ask(rig.prompter)
@@ -140,6 +154,8 @@ const (
 )
 
 func TestChooseRendersListWithCursorAndHelp(t *testing.T) {
+	t.Parallel()
+
 	rig := newPromptRig(t, "\r")
 
 	got, err := rig.prompter.choose(runtimeChoices(), []string{"claude"})
@@ -161,6 +177,8 @@ func TestChooseRendersListWithCursorAndHelp(t *testing.T) {
 }
 
 func TestChooseMovesAndToggles(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		keys     string
@@ -182,6 +200,8 @@ func TestChooseMovesAndToggles(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			rig := newPromptRig(t, tt.keys)
 
 			got, err := rig.prompter.choose(runtimeChoices(), tt.selected)
@@ -194,6 +214,8 @@ func TestChooseMovesAndToggles(t *testing.T) {
 }
 
 func TestChooseRedrawsAfterEachKey(t *testing.T) {
+	t.Parallel()
+
 	rig := newPromptRig(t, "j \r")
 
 	_, err := rig.prompter.choose(runtimeChoices()[:2], nil)
@@ -209,6 +231,8 @@ func TestChooseRedrawsAfterEachKey(t *testing.T) {
 }
 
 func TestChooseIgnoredKeyRedrawsNothing(t *testing.T) {
+	t.Parallel()
+
 	rig := newPromptRig(t, "x\r")
 
 	_, err := rig.prompter.choose(runtimeChoices(), nil)
@@ -218,6 +242,8 @@ func TestChooseIgnoredKeyRedrawsNothing(t *testing.T) {
 }
 
 func TestChooseFailsAndRestoresTerminal(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		keys    string
@@ -230,6 +256,8 @@ func TestChooseFailsAndRestoresTerminal(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			rig := newPromptRig(t, tt.keys)
 
 			got, err := rig.prompter.choose(runtimeChoices(), nil)
@@ -247,6 +275,8 @@ func TestChooseFailsAndRestoresTerminal(t *testing.T) {
 }
 
 func TestChooseReturnsRawModeFailure(t *testing.T) {
+	t.Parallel()
+
 	rawErr := errors.New("raw terminal: not a terminal")
 	p := newPrompter(Env{
 		Stdin:   strings.NewReader("\r"),
@@ -261,6 +291,8 @@ func TestChooseReturnsRawModeFailure(t *testing.T) {
 }
 
 func TestPromptsShareOneInputStream(t *testing.T) {
+	t.Parallel()
+
 	rig := newPromptRig(t, "ledger\nj \ry\n")
 
 	name, err := rig.prompter.text("Project name", "x")
