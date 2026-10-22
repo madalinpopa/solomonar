@@ -217,7 +217,7 @@ section/step refs, I 4 + 4, Rv 3, ADV 1, SPC 2, skills 16, A 1. Every `docs/fram
 | Phase 1 validation; Proposed name | this report; out of scope | – |
 
 **B8 — Mechanical checks.** Throwaway module outside the repo: `<scratchpad>/check/main.go` (Go 1.27.2), run as
-`cd <scratchpad>/check && go run . /Users/madalinpopa/Projects/solomonar/assets`. It checks the version line, YAML
+`cd <scratchpad>/check && go run . <repo>/assets`. It checks the version line, YAML
 frontmatter keys (exactly `name`, `description`; `name` = file or skill name), `json.Unmarshal` of `state.json`, and
 `text/template` parse + execute (`missingkey=error`, `Objective` set and empty). Result: `failures: 3`.
 
