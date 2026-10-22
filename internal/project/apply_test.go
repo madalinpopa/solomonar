@@ -71,6 +71,8 @@ func original() map[string]entry {
 }
 
 func TestApplyWritesActingChangesInPlanOrder(t *testing.T) {
+	t.Parallel()
+
 	root, dir := openTree(t, original())
 	plan := Plan{Changes: []Change{
 		{Path: "docs/new/deep/a.md", Action: ActionCreate, Content: []byte("first\n")},
@@ -99,6 +101,8 @@ func TestApplyWritesActingChangesInPlanOrder(t *testing.T) {
 }
 
 func TestApplyRejectsChangesThatDisagreeWithTheDisk(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		change Change
@@ -111,6 +115,8 @@ func TestApplyRejectsChangesThatDisagreeWithTheDisk(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			root, dir := openTree(t, original())
 			before := snapshot(t, dir)
 
@@ -124,6 +130,8 @@ func TestApplyRejectsChangesThatDisagreeWithTheDisk(t *testing.T) {
 }
 
 func TestApplyRollsBackEarlierChangesWhenAWriteFails(t *testing.T) {
+	t.Parallel()
+
 	root, dir := openTree(t, original())
 	before := snapshot(t, dir)
 	plan := Plan{Changes: []Change{
@@ -141,6 +149,8 @@ func TestApplyRollsBackEarlierChangesWhenAWriteFails(t *testing.T) {
 }
 
 func TestApplyStopsWhenCancelled(t *testing.T) {
+	t.Parallel()
+
 	root, dir := openTree(t, original())
 	before := snapshot(t, dir)
 	ctx, cancel := context.WithCancel(t.Context())
@@ -156,6 +166,8 @@ func TestApplyStopsWhenCancelled(t *testing.T) {
 }
 
 func TestRollbackRestoresTheTreeAfterASuccessfulApply(t *testing.T) {
+	t.Parallel()
+
 	root, dir := openTree(t, original())
 	before := snapshot(t, dir)
 	plan := Plan{Changes: []Change{
@@ -176,6 +188,8 @@ func TestRollbackRestoresTheTreeAfterASuccessfulApply(t *testing.T) {
 }
 
 func TestRollbackKeepsACreatedDirectoryThatIsNotEmpty(t *testing.T) {
+	t.Parallel()
+
 	root, dir := openTree(t, original())
 	journal, err := Apply(t.Context(), root, Plan{Changes: []Change{
 		{Path: "docs/new/a.md", Action: ActionCreate, Content: []byte("a\n")},
@@ -190,6 +204,8 @@ func TestRollbackKeepsACreatedDirectoryThatIsNotEmpty(t *testing.T) {
 }
 
 func TestRollbackReportsAFailedRestoreAndRestoresTheRest(t *testing.T) {
+	t.Parallel()
+
 	root, dir := openTree(t, original())
 	journal, err := Apply(t.Context(), root, Plan{Changes: []Change{
 		{Path: "docs/old.md", Action: ActionRemove},
@@ -206,6 +222,8 @@ func TestRollbackReportsAFailedRestoreAndRestoresTheRest(t *testing.T) {
 }
 
 func TestPlanConflictsReturnsConflictsInPlanOrder(t *testing.T) {
+	t.Parallel()
+
 	plan := Plan{Changes: []Change{
 		{Path: "b.md", Action: ActionConflict, Reason: "modified"},
 		{Path: "c.md", Action: ActionCreate},
@@ -217,6 +235,8 @@ func TestPlanConflictsReturnsConflictsInPlanOrder(t *testing.T) {
 }
 
 func TestApplyAppendWritesTheNewContentAndRollsBack(t *testing.T) {
+	t.Parallel()
+
 	root, dir := openTree(t, original())
 	before := snapshot(t, dir)
 
