@@ -40,6 +40,8 @@ func encoded(t *testing.T, m *Manifest) string {
 }
 
 func TestInitPlanFirstInitCreatesEverythingAndTheManifestLast(t *testing.T) {
+	t.Parallel()
+
 	root, dir := openTree(t, nil)
 
 	plan, manifest, err := InitPlan(root, nil, initWants(), nil, nil, ledger(), nil, nil, Decisions{}, framework)
@@ -67,6 +69,8 @@ func TestInitPlanFirstInitCreatesEverythingAndTheManifestLast(t *testing.T) {
 }
 
 func TestInitPlanRerunAfterApplyIsUnchanged(t *testing.T) {
+	t.Parallel()
+
 	root, _ := openTree(t, nil)
 	plan, _, err := InitPlan(root, nil, initWants(), nil, nil, ledger(), nil, nil, Decisions{}, framework)
 	require.NoError(t, err)
@@ -85,6 +89,8 @@ func TestInitPlanRerunAfterApplyIsUnchanged(t *testing.T) {
 
 // TestInitPlanAdoptsIdenticalFilesWithoutManifest is CLI-D17.
 func TestInitPlanAdoptsIdenticalFilesWithoutManifest(t *testing.T) {
+	t.Parallel()
+
 	root, _ := openTree(t, map[string]entry{rulesPath: {content: contentA, mode: 0o644}})
 
 	plan, manifest, err := InitPlan(root, nil, initWants()[:1], nil, nil, ledger(), nil, nil, Decisions{}, framework)
@@ -96,6 +102,8 @@ func TestInitPlanAdoptsIdenticalFilesWithoutManifest(t *testing.T) {
 }
 
 func TestInitPlanUpdatesADifferingManifest(t *testing.T) {
+	t.Parallel()
+
 	stale := &Manifest{
 		SchemaVersion: ManifestSchemaVersion, FrameworkVersion: framework, Project: ledger(),
 		Runtimes: map[string]Runtime{}, Extensions: map[string]Extension{},
@@ -120,6 +128,8 @@ func TestInitPlanUpdatesADifferingManifest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			root, _ := openTree(t, map[string]entry{
 				rulesPath:    {content: tt.rules, mode: 0o644},
 				ManifestPath: {content: tt.manifest, mode: 0o644},
@@ -138,6 +148,8 @@ func TestInitPlanUpdatesADifferingManifest(t *testing.T) {
 }
 
 func TestInitPlanReturnsTheManifestWithConflicts(t *testing.T) {
+	t.Parallel()
+
 	root, dir := openTree(t, map[string]entry{rulesPath: {content: contentB, mode: 0o644}})
 	before := snapshot(t, dir)
 
@@ -151,6 +163,8 @@ func TestInitPlanReturnsTheManifestWithConflicts(t *testing.T) {
 }
 
 func TestInitPlanPassesClassifyRejectionsThrough(t *testing.T) {
+	t.Parallel()
+
 	root, dir := openTree(t, nil)
 
 	plan, manifest, err := InitPlan(root, nil, initWants(), []string{rulesPath}, nil, ledger(), nil, nil, Decisions{}, framework)
@@ -162,6 +176,8 @@ func TestInitPlanPassesClassifyRejectionsThrough(t *testing.T) {
 }
 
 func TestInitPlanFailsWhenTheManifestCannotBeRead(t *testing.T) {
+	t.Parallel()
+
 	root, _ := openTree(t, map[string]entry{ManifestPath + "/inner": {content: "x", mode: 0o644}})
 
 	_, _, err := InitPlan(root, nil, nil, nil, nil, ledger(), nil, nil, Decisions{}, framework)
@@ -170,6 +186,8 @@ func TestInitPlanFailsWhenTheManifestCannotBeRead(t *testing.T) {
 }
 
 func TestCheckChoices(t *testing.T) {
+	t.Parallel()
+
 	recorded := &Manifest{
 		Project:    ledger(),
 		Runtimes:   map[string]Runtime{"codex": {}, "claude": {AdversarialModel: "opus"}},
@@ -233,6 +251,8 @@ func TestCheckChoices(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := recorded.CheckChoices(tt.requested)
 
 			if tt.found == "" {
@@ -245,6 +265,8 @@ func TestCheckChoices(t *testing.T) {
 }
 
 func TestCheckChoicesPrintsAnEmptyManifestListAsNone(t *testing.T) {
+	t.Parallel()
+
 	recorded := &Manifest{Project: ledger(), Extensions: map[string]Extension{"go": {}}}
 
 	err := recorded.CheckChoices(Requested{Extensions: []string{}})
@@ -253,6 +275,8 @@ func TestCheckChoicesPrintsAnEmptyManifestListAsNone(t *testing.T) {
 }
 
 func TestInitPlanRecordsTheRuntimes(t *testing.T) {
+	t.Parallel()
+
 	runtimes := map[string]Runtime{"claude": {AdversarialModel: "opus"}, "codex": {}}
 	root, _ := openTree(t, nil)
 
@@ -263,6 +287,8 @@ func TestInitPlanRecordsTheRuntimes(t *testing.T) {
 }
 
 func TestInitPlanRecordsTheExtensions(t *testing.T) {
+	t.Parallel()
+
 	extensions := map[string]Extension{
 		"go": {State: "installed", Kind: "skill", Group: "language", Source: "catalog", Decision: "P/D-1"},
 		"contrast": {
@@ -281,6 +307,8 @@ func TestInitPlanRecordsTheExtensions(t *testing.T) {
 }
 
 func TestInitPlanPutsTheDecisionChangesBeforeTheManifest(t *testing.T) {
+	t.Parallel()
+
 	root, _ := openTree(t, nil)
 	decisions, err := PlanDecisions(root, nil, []CatalogExtension{{Name: "go", Kind: "skill", Group: "language"}},
 		decisionDate)
@@ -304,6 +332,8 @@ func TestInitPlanPutsTheDecisionChangesBeforeTheManifest(t *testing.T) {
 }
 
 func TestInitPlanAddsTheIndexToAPresentReadme(t *testing.T) {
+	t.Parallel()
+
 	index := []string{decisionsIndex, stackIndex}
 	tests := []struct {
 		name, readme string
@@ -333,6 +363,8 @@ func TestInitPlanAddsTheIndexToAPresentReadme(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			root, _ := openTree(t, map[string]entry{"docs/README.md": {content: tt.readme, mode: 0o644}})
 
 			plan, manifest, err := InitPlan(root, nil, initWants(), nil, nil, ledger(), nil, nil,
@@ -346,6 +378,8 @@ func TestInitPlanAddsTheIndexToAPresentReadme(t *testing.T) {
 }
 
 func TestInitPlanSkipsAPresentReadmeWithoutIndexLines(t *testing.T) {
+	t.Parallel()
+
 	root, _ := openTree(t, map[string]entry{"docs/README.md": {content: "## Documents\n", mode: 0o644}})
 
 	plan, _, err := InitPlan(root, nil, initWants(), nil, nil, ledger(), nil, nil, Decisions{}, framework)
