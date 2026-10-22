@@ -82,6 +82,16 @@ tasks:
     desc: Remove build outputs and coverage
     cmd: rm -rf {{.BIN}} coverage.out
 
+  version:set:
+    desc: 'Set the release version in assets and docs, e.g. task version:set VERSION=0.1.3'
+    requires: {vars: [VERSION]}
+    vars:
+      CURRENT:
+        sh: "sed -n 's/^Framework version: //p' assets/framework/rules.md"
+    cmd: >-
+      git grep -lF '{{.CURRENT}}' -- assets README.md site/src docs/cli
+      | xargs perl -pi -e 's/(?<![\d.])\Q{{.CURRENT}}\E(?!\d|\.\d)/{{.VERSION}}/g'
+
   release:next:
     desc: Tag and push the next patch release
     cmds:
@@ -124,8 +134,14 @@ tasks:
         msg: HEAD is not on origin/main; push main first, since the release workflow rejects other commits.
       - sh: '! git rev-parse -q --verify "refs/tags/{{.NEXT}}" >/dev/null'
         msg: Tag {{.NEXT}} already exists.
-    prompt: Tag {{.LATEST | default "no release"}} -> {{.NEXT}} and push it to start the release?
+      - sh: git diff --quiet HEAD
+        msg: The worktree has uncommitted changes; commit or discard them first.
+    prompt: Set the version to {{.NEXT}}, commit and push it to main, then tag {{.LATEST | default "no release"}} -> {{.NEXT}} and push the tag?
     cmds:
+      - task: version:set
+        vars: {VERSION: '{{trimPrefix "v" .NEXT}}'}
+      - 'git commit -aqm "chore(release): {{.NEXT}}"'
+      - git push origin HEAD:main
       - git tag -a {{.NEXT}} -m "Release {{.NEXT}}"
       - git push origin {{.NEXT}}
       - echo "Pushed {{.NEXT}}; the release workflow runs on GitHub Actions."
