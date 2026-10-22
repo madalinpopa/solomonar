@@ -218,7 +218,7 @@ func TestInitRerunWithGoIsNoOp(t *testing.T) {
 			got := runInRepo(t, dir, tt.args...)
 
 			require.Equal(t, 0, got.exit, got.stderr)
-			assert.Contains(t, got.stdout, "Already initialized with solomonar 0.1.0; nothing to do.\n"+
+			assert.Contains(t, got.stdout, "Already initialized with solomonar "+shipped+"; nothing to do.\n"+
 				"  21 files unchanged, 1 skipped · registry")
 			assertNothingWritten(t, dir, before, tip)
 		})
