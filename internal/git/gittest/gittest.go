@@ -12,38 +12,40 @@ import (
 	"github.com/madalinpopa/solomonar/internal/git"
 )
 
-// NewRepo initializes an isolated repository on branch main and returns its directory.
+// Main points Git at an empty global config and a fixed identity and date, then runs the tests.
+// Setting them once for the test binary lets tests run in parallel.
+func Main(m *testing.M) {
+	// os.Setenv fails only on a key or value holding '=' or NUL.
+	_ = os.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	_ = os.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	for _, role := range []string{"AUTHOR", "COMMITTER"} {
+		_ = os.Setenv("GIT_"+role+"_NAME", "Test Author")
+		_ = os.Setenv("GIT_"+role+"_EMAIL", "test@example.com")
+		_ = os.Setenv("GIT_"+role+"_DATE", "2026-01-01T00:00:00Z")
+	}
+	m.Run()
+}
+
+// NewRepo initializes a repository on branch main and returns its directory.
 func NewRepo(t *testing.T) string {
 	t.Helper()
-	Isolate(t)
+	requireGit(t)
 	dir := Resolved(t, t.TempDir())
 	Git(t, dir, "init", "-b", "main")
 	return dir
 }
 
-// NewBareRemote initializes an isolated bare repository and returns its directory.
+// NewBareRemote initializes a bare repository and returns its directory.
 func NewBareRemote(t *testing.T) string {
 	t.Helper()
-	Isolate(t)
+	requireGit(t)
 	dir := Resolved(t, t.TempDir())
 	Git(t, dir, "init", "--bare", "-b", "main")
 	return dir
 }
 
-// Isolate points Git at an empty global config and a fixed identity and date.
-func Isolate(t *testing.T) {
+func requireGit(t *testing.T) {
 	t.Helper()
-	globalConfig := filepath.Join(t.TempDir(), "gitconfig")
-	if err := os.WriteFile(globalConfig, nil, 0o644); err != nil {
-		t.Fatalf("write git config: %v", err)
-	}
-	t.Setenv("GIT_CONFIG_GLOBAL", globalConfig)
-	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	for _, role := range []string{"AUTHOR", "COMMITTER"} {
-		t.Setenv("GIT_"+role+"_NAME", "Test Author")
-		t.Setenv("GIT_"+role+"_EMAIL", "test@example.com")
-		t.Setenv("GIT_"+role+"_DATE", "2026-01-01T00:00:00Z")
-	}
 	if _, err := git.Version(t.Context(), nil); err != nil {
 		t.Fatalf("tests need git 2.40 or newer on PATH: %v", err)
 	}
