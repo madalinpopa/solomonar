@@ -11,6 +11,8 @@ import (
 )
 
 func TestBranchNamesTheCurrentBranch(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		setup  func(t *testing.T, dir string)
@@ -30,6 +32,8 @@ func TestBranchNamesTheCurrentBranch(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir := gittest.NewRepo(t)
 			tt.setup(t, dir)
 
