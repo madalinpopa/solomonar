@@ -1,7 +1,7 @@
 ---
 title: Set up a project
 navTitle: Set up a project
-description: Run solomonar init to install the framework, Claude Code or Codex adapters, and the task registry in a new or existing Git repository, then make the first commit.
+description: Run solomonar init to install the framework, Claude Code or Codex adapters, extensions, and the task registry in a new or existing Git repository, then make the first commit.
 kind: Tutorial
 group: Start here
 order: 3
@@ -11,7 +11,13 @@ sources:
   - docs/cli/interface.md
 ---
 
-`solomonar init` installs the framework into one repository. It copies the rules, skills, and agent roles, writes small adapter files for your agent runtime, and creates the task registry. This page uses a new project called `ledger`; the same steps work in an existing repository.
+`solomonar init` installs the framework into one repository. It copies the rules, skills, and agent roles, writes small adapter files for your agent runtime, installs the extensions you choose, and creates the task registry. This page uses a new project called `ledger`; the same steps work in an existing repository.
+
+## Answer the prompts, or pass flags
+
+In a terminal, `solomonar init` with no flags asks for the project name, a one-line objective, the runtimes, a model for each runtime's adversarial reviewer, and the extensions for each decision group. It then shows a grouped plan and asks `Proceed?` before writing anything. Any choice you pass as a flag is not asked again.
+
+The rest of this page passes every choice as a flag, so the same commands also work in a script or an agent's shell.
 
 ## Preview the plan
 
@@ -39,6 +45,14 @@ Would initialize solomonar 0.1.0 in /work/ledger
 ```
 
 Choose runtimes with `--runtime claude`, `--runtime codex`, both, or `--runtime none`. Without the flag, `init` selects each runtime whose executable it finds on your `PATH`.
+
+## Choose extensions
+
+Extensions add the rules of your stack. The v0.1.0 catalog holds `go`, the Go language rules. Add it with `--ext go`; without `--ext`, `init` selects `go` when the repository root has a `go.mod`, and nothing otherwise. `--ext none` installs no extension.
+
+Choosing a stack extension is an approved decision: `init` records it as `P/D-1` in `docs/decisions.md` and lists it in `docs/stack.md`. The extension installs instructions for the agents, never application packages.
+
+A new project can also start with no extension and choose its stack after discovery. Adding an extension to an initialized project needs the `extension add` command, which is planned.
 
 ## Initialize
 
@@ -81,7 +95,8 @@ git commit -m "chore: initialize solomonar 0.1.0"
 | --- | --- |
 | `AGENTS.md` | Instructions every agent session reads first. |
 | `docs/README.md` | Your project's mission, objective, document index, and run and check commands. You own it. |
-| `docs/solomonar/` | The framework: rules, the four skills, and the six agent roles. |
+| `docs/solomonar/` | The framework: rules, the four skills, and the six agent roles, plus the skills of installed extensions. |
+| `docs/decisions.md`, `docs/stack.md` | Your approved stack decisions, written only when you chose an extension. |
 | `CLAUDE.md`, `.claude/` | Claude Code adapters: an `@AGENTS.md` import, skill stubs, and agent stubs. |
 | `.agents/`, `.codex/` | Codex adapters: skill stubs and agent definitions. |
 | `.solomonar/manifest.json` | Your choices and the hashes of the files `init` manages. |
@@ -110,7 +125,7 @@ If the repository already has an application, agents discover its build and test
 Already initialized with solomonar 0.1.0; nothing to do.
 ```
 
-It never changes a recorded choice, such as the runtimes. Those will change through the planned `runtime` and `extension` commands. Extensions cannot be chosen at `init` yet; `--ext none` is the only accepted value today.
+It never changes a recorded choice, such as the runtimes or the extensions. Those will change through the planned `runtime` and `extension` commands.
 
 ## Next
 
