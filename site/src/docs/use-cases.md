@@ -239,4 +239,4 @@ solomonar task plan --title "Fix CSV quoting regression" --related W-001
 
 ---
 
-These examples adapt the framework/CLI design review of 21 October 2026 and are checked against the source contracts below. They illustrate the workflow; they are not a claim that the fictional Ledger project or the complete setup path was executed. For runtime management, extensions, synchronization, and upgrades, consult the [planned commands]({{ '/docs/cli/#planned-commands' | url }}) and the [project files reference]({{ '/docs/configuration/' | url }}).
+These examples adapt the framework/CLI design review of 21 October 2026 and are checked against the source contracts below. They illustrate the workflow; they are not a claim that the fictional Ledger project or the complete setup path was executed. For runtime management, adding extensions after `init`, synchronization, and upgrades, consult the [planned commands]({{ '/docs/cli/#planned-commands' | url }}) and the [project files reference]({{ '/docs/configuration/' | url }}).
