@@ -20,6 +20,8 @@ sources:
 | `AGENTS.md` | Compact mandatory instructions and context routes; your notes go under `## Project notes`. | Framework section managed; notes yours |
 | `docs/README.md` | Project mission, objective, document index, and verified run and check commands. | You (seeded once) |
 | `docs/solomonar/` | Framework rules, report format, the four skills, and the six agent roles. | Managed core |
+| `docs/solomonar/skills/<extension>/` | The rules of an installed extension, such as `go`. | Managed extension |
+| `docs/decisions.md`, `docs/stack.md` | One approved `P/D-n` entry per extension group you chose, and one stack line per group. Written only when you chose an extension. | Entries appended by `init`; the files are yours |
 | `CLAUDE.md`, `.claude/skills/`, `.claude/agents/` | Claude Code adapter stubs. | Managed runtime files |
 | `.agents/skills/`, `.codex/agents/` | Codex adapter stubs. | Managed runtime files |
 | `.solomonar/manifest.json` | Your choices and the base hash of every managed file. | CLI only |
@@ -67,9 +69,13 @@ Agents pass `--as` on each owner command because a runtime may start a new shell
 
 ## Extensions and ownership
 
-Extensions are planned. They will add skills and specialist reviewers. Stack extensions record an approved technology decision; workflow and review extensions configure the process without a stack decision.
+Extensions add skills and specialist reviewers. Stack extensions record an approved technology decision; workflow and review extensions configure the process without a stack decision.
 
-Project extensions start as inactive drafts until adopted. Drafts do not contribute rules, runtime adapters, or required reviewers.
+In v0.1.0, `init --ext` installs extensions from the embedded catalog, which holds the `go` language extension. The `extension` commands that add or remove an extension later, and project extensions from a local directory, are planned.
+
+An installed extension is listed in the `## Extensions` section of `AGENTS.md` with its "applies when" condition and paths. Agents load it when a change matches, and cite its rules as `<name>/C-n`.
+
+Project extensions will start as inactive drafts until adopted. Drafts do not contribute rules, runtime adapters, or required reviewers.
 
 `init` and upgrades preserve project edits. Identical managed content is a no-op; differing content becomes an explicit conflict. A retained project edit does not become the distributed base hash. This allows a later upgrade to detect the difference again.
 
