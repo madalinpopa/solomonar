@@ -1191,11 +1191,18 @@ Specs updated: architecture §3, AD-15, §5, §10, §11, §14.
 - [x] `cli_version`: embedded framework version; project versions in place and through `-C`; `-v` trace on stderr
 - [x] `cli_not_a_repository`: exit 3 outside a repository; `-C` reaches one
 
-### Stage 11.2 — `init` transcripts `[ ]`
+### Stage 11.2 — `init` transcripts (`main`; UC-2, UC-3, UC-4) `[x]`
 
-Outline: a new repository (files, manifest, registry ref); a no-op re-run; a modified managed file as
-`file_conflict` (exit 4) resolved with `--keep` and `--overwrite`; `interactive_required` without `--yes` and
-without a terminal; `--git-init` outside a repository.
+Decisions (implementer): `Setup` sets `$ASSETS` to the source `assets/` directory, so scripts compare written files
+with the embedded ones; scripts always pass `--runtime none --ext none`, since runtime detection reads the
+developer's `PATH`; the no-remote warning is matched by its prefix. The conflict is an unmanaged file, as a modified
+managed file whose offered content is unchanged is `keep`, not a conflict (UC-3).
+Specs updated: architecture §11 (`$ASSETS`); UC-2 example warning aligned with the CLI (`the registry stays local`).
+
+- [x] `init_new_repo`: `interactive_required` without a terminal, `--dry-run`, `--yes` (embedded files, manifest,
+      empty registry), a no-op re-run keeping the registry tip, an edited managed file kept
+- [x] `init_conflict`: `file_conflict` exit 4 with the plan on stdout and nothing written; `--keep`; `--overwrite`
+- [x] `init_git_init`: `not_a_repository` exit 3; `--dry-run` runs no `git init`; `--git-init --main-branch`
 
 ### Stage 11.3 — `task` transcripts `[ ]`
 
