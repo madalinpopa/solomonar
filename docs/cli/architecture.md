@@ -5,10 +5,8 @@ validation) is fixed by [the interface spec](interface.md) (cited as `I §n`); t
 When the two differ, the interface spec wins for behavior and this document wins for structure. Decisions here are
 `AD-n`; questions still open are in section 13.
 
-This is an implementation contract. Increment 1 follows it and is released as v0.1.0; [the implementation
-tasks](implementation-tasks.md) track its stages. The accepted workflow-audit fixes are
-recorded in the [review register](../design/phase1-review-register.md#l-workflow-audit-corrections-2026-10-21), with runtime verification
-kept separate from completion of the design changes.
+This is an implementation contract. Increment 1 follows it and is released as v0.1.0. The accepted workflow-audit
+fixes are applied, with runtime verification kept separate from completion of the design changes.
 
 Contents: 1 Scope · 2 Analysis of the interface design · 3 Toolchain · 4 Architectural decisions · 5 Layout and
 packages · 6 Key types · 7 Execution flow · 8 Errors, cancellation, and file safety · 9 Code conventions ·
