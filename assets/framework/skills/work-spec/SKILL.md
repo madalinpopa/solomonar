@@ -10,16 +10,16 @@ Framework version: 0.1.0
 ## 1. Purpose and boundaries
 
 - A work spec describes one change: authorized outcome, context, acceptance criteria (ACs), constraints, checks.
-  It never describes the whole application. Requirements and context live here; execution state lives only in
-  `state.json`.
-- Requires a registered task ID and its feature worktree (`feature/<ID>`). Without them, stop and say a task must
-  be registered by an orchestrator first.
+  Registry state (status, stage, owner, blocker records, revisions, verdicts) stays out of this document.
+- Only the owning orchestrator uses this skill, for a registered task in its assigned `feature/<ID>` worktree.
+  Registration, lifecycle transitions, and review stability remain its responsibility outside this skill.
 - You may edit only `docs/work/<ID>-<slug>.md` in that worktree. You must not edit `docs/specs/`, `docs/ui.md`,
   `docs/decisions.md`, `docs/architecture.md`, `docs/stack.md`, `prototype/`, product code, or workflow state.
 
 ## 2. Inputs to read
 
 Load only what the change touches:
+
 - the user's selected outcome or task brief; prototype handoff references, if any (read each flow at its
   referenced revision with `git show <SHA>:<path>`, never the working copy);
 - `docs/README.md`: document index, run and check commands;
@@ -31,16 +31,24 @@ Load only what the change touches:
 
 ## 3. Procedure
 
-1. Confirm the task ID, title, and worktree (current branch `feature/<ID>`). Derive `docs/work/<ID>-<slug>.md`
-   (slug: kebab-case of the title, e.g. `docs/work/W-001-login.md`). If `docs/work/<ID>-*.md` exists, refine it
-   instead of replacing it. Read `docs/solomonar/skills/work-spec/template.md` only when creating the file.
+Before editing, run `solomonar task status <ID>`, `git rev-parse --show-toplevel`, `git branch --show-current`,
+`git worktree list --porcelain`, and `git status --short`. Confirm registration, title, session owner, and actual
+assigned worktree on `feature/<ID>`. Stop on mismatch; preserve unrelated edits.
+
+1. Use the task record's `spec` path when set; require `docs/work/<ID>-<slug>.md`. Preserve it when the title
+   changes. With no recorded path, refine a single existing `docs/work/<ID>-*.md`; only when none exists,
+   derive a kebab-case slug from the title. Multiple matches, an invalid path, or a missing recorded file:
+   report to the orchestrator rather than creating a replacement. Historical-only specs follow `rules.md`
+   section 9's restoration procedure. Load `docs/solomonar/skills/work-spec/template.md` only for a new file.
 2. Determine the change type and the authorized outcome; state it in one or two sentences under "Outcome and
    scope", with its boundaries. No authorized outcome is a blocking question. For the first executable outcome,
    apply section 5's baseline rule; documentation-only work does not need a runnable application.
 3. Identify the context: rule IDs, sections, contracts, code paths, prototype references
    (`<full commit SHA>:prototype/<entry file>, flow <flow-id>`). Cite them; never copy their content.
 4. Draft the acceptance criteria (section 4).
-5. List the constraints: approved decisions (`W-001/D-n`) and global rules that bind the change, by ID or path.
+5. List applicable approved project decisions (`P/D-n`), task decisions (`W-001/D-n`), and global rules by ID
+   or path. Reuse approvals and confirmation sources within their scope; pending/superseded decisions approve
+   nothing. Ask only about unresolved choices.
    List the checks that verify the ACs, by AC ID: commands from `docs/README.md` or named scenarios, with known
    verification limits. Discover missing commands from repository scripts, manifests, or existing instructions;
    cite the source and the check needed to verify them. Until verified, a command remains "not established",
@@ -50,17 +58,20 @@ Load only what the change touches:
    `<capability>/Q-n` ID instead of a new one. Blocking = the answer changes the scope, an AC, or the chosen
    implementation. `needs decision: yes` = an architecture or dependency decision, routed by the orchestrator.
    A conflict with an **Agreed** rule or an approved decision is blocking, cites both, and is routed by the
-   orchestrator (`rules.md` section 1, section 3); never resolve it in the work spec. Unknowns outside the scope are not
-   listed; they stay in the canonical specs.
+   orchestrator (`rules.md` sections 1 and 3); never resolve it in the work spec. Unknowns outside the scope stay
+   in the canonical specs.
 7. Ask the user only the blocking questions that need no architecture or dependency decision and are not
-   conflicts, one per message; wait for each answer. Fold each answer into the spec and delete the question;
-   answers to `needs decision: no` questions live in the work spec only.
-   Once the orchestrator records an approved decision, cite its `W-001/D-n` and delete the question it resolves.
-8. Evaluate the readiness gate (section 5).
-9. Commit the file alone (`git add -- <path>`): `spec(<ID>): draft task specification`; later revisions:
-   `spec(<ID>): refine task specification`. Skip the commit when nothing changed. Never push. The final commit
-   belongs to the orchestrator per `rules.md` section 9. Report the path, the commit SHA, the open questions (blocking
-   first), and the readiness verdict as the last line.
+   conflicts, one per message; wait for each answer. Fold answers into the spec and remove resolved questions
+   there. Technical clarifications can stay task-local; product behavior answers enter "Spec changes" (section 4).
+   Report resolved canonical question IDs and their answer sources for the orchestrator's `spec` update.
+   Once an applicable approved decision exists, cite its ID and remove the question it resolves.
+8. Validate the document (section 6), then evaluate the readiness gate (section 5).
+9. Commit only the work spec: `git add -- <path>`, inspect `git diff --cached -- <path>`, then
+   `git commit --only -m "spec(<ID>): draft task specification" -- <path>`; later revisions use
+   `spec(<ID>): refine task specification`. Preserve unrelated staged changes; skip unchanged commits. Never
+   push. Keep the `spec(<ID>):` prefix: the CLI uses it to locate the final specification. Finalization belongs
+   to the orchestrator per `rules.md` section 9. Report the path, commit SHA, resolved canonical questions,
+   remaining questions (blocking first), and validation limits; end with the readiness verdict.
 
 ## 4. Acceptance criteria rules
 
@@ -79,18 +90,22 @@ Load only what the change touches:
   - refactor: listed existing behaviors stay unchanged (cite rule IDs), plus the structural target; no new behavior;
   - technical task: the observable or verifiable technical outcome.
 - An AC that relies on an **Observed** rule needs user confirmation. Ask it with the outcome question when
-  possible, once, and record it on the AC: `(orders/R-2, confirmed user YYYY-MM-DD)`.
+  possible, once; reuse an existing explicit confirmation and its date. Record it on the AC:
+  `(orders/R-2, confirmed user YYYY-MM-DD)`.
 - Behavior the change adds or alters, including confirmed **Observed** rules and expected behavior no rule states
   yet, goes into the "Spec changes" line: existing rule IDs with their target statement or label, new rules as
   `<capability>/new: <statement>` (the `spec` skill assigns IDs), each with its source (`user YYYY-MM-DD` or
-  `W-001/D-n`). Only the orchestrator applies it, via the `spec` skill in-task mode, when the readiness gate
-  passes and before implementation (`rules.md` section 4 step 6); the work spec then cites the assigned IDs.
+  an approved decision ID). When multiple proposed rules share `<capability>/new`, distinguish each by its
+  target statement and the AC IDs it supports so final-ID mappings are unambiguous. Only the orchestrator
+  applies changes via the `spec` skill in-task mode, after readiness and before implementation (`rules.md`
+  section 4 step 6); the work spec then cites the assigned IDs.
 - Never weaken or drop an AC to match an implementation. A change of an AC after implementation starts requires
   a user decision or an approved decision; cite it on the AC (`changed: W-001/D-2`).
 
 ## 5. Readiness gate
 
-Implementation is ready when all hold:
+The work spec is ready when all hold:
+
 - [ ] Authorized: the selected outcome is authorized (brief, selected prototype flow, or approved decision).
   Starting a `planned` record authorizes its recorded outcome.
 - [ ] Scope: the outcome and its boundaries are understandable.
@@ -98,6 +113,12 @@ Implementation is ready when all hold:
 - [ ] Context: the relevant specs, decisions, code, and prototype references are cited.
 - [ ] Decisions: no unresolved blocking question or decision prevents the chosen implementation.
 
+- `READY` reports planning readiness, not permission to start implementation or a CLI transition. Before
+  delegation, the orchestrator applies approved canonical changes via `spec`, replaces temporary rule
+  references with assigned IDs, and records the work-spec path through `solomonar task` commands.
+- Readiness requires viable verification methods; implementation tests need not already pass. Never imply
+  planned checks were run. A blocking question or unresolved validation gap affecting a gate criterion
+  prevents `READY`.
 - The gate can pass from existing instructions and approvals. Never ask for a confirmation the user has already
   given; never add a ceremonial approval. Non-blocking questions do not fail the gate.
 - When the authorized outcome introduces the first executable functionality and no runnable application baseline
@@ -110,11 +131,19 @@ Implementation is ready when all hold:
   `Readiness: NOT READY (<failing criteria; blocking question IDs>)` (e.g.
   `Readiness: NOT READY (Decisions; W-001/Q-1)`). The verdict is never written into the work spec.
 
-## 6. Never
+## 6. Validation
 
-- Never copy a canonical rule into the work spec; cite its ID.
-- Never write execution state (status, stage, owner, blockers, revisions, verdicts); `state.json` holds it.
-- Never ask about anything outside the change.
-- Never batch questions; ask one per message.
-- Never report `READY` with a blocking question open.
-- Never edit any file other than the work spec.
+Before the verdict and commit, check:
+
+- The document matches the registered task ID and selected path; AC IDs are unique, stable, and not reused.
+- Existing source references resolve; planned paths and proposed rules are explicit. ACs relying on
+  **Observed** rules have explicit confirmation; approval sources cover the proposed behavior.
+- Every AC maps to canonical rules or distinguishable proposed rules (technical outcomes may cite `none`),
+  and to a named check with any verification limit.
+- Question markers match their impact; unresolved blockers remain visible. Behavior answers appear in "Spec
+  changes"; resolved canonical questions are reported for the orchestrator to update.
+- No copied unchanged canonical rules, execution state, template hints, or unused placeholders remain. Pending
+  `<capability>/new` entries remain explicit until the orchestrator replaces them.
+
+Run `git diff --check -- <path>` and inspect `git diff -- <path>` for unintended changes. Report validation gaps;
+apply section 5's gate without editing files outside the work spec.
