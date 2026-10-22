@@ -1,0 +1,34 @@
+# An unmanaged file that differs from the framework's is a conflict: exit 4, nothing written.
+exec git init -q -b main repo
+cd repo
+mkdir docs/solomonar
+cp ../project_rules.md docs/solomonar/rules.md
+exitcode 4 solomonar init --runtime none --ext none --yes
+cmp stdout ../plan.txt
+stderr '^error: init found 1 conflict \(file_conflict\)$'
+stderr '^  fix:   rerun with --keep <path> to keep the project''s file, or --overwrite <path> to replace it$'
+stderr '^nothing was written$'
+! exists .solomonar
+! exists AGENTS.md
+! exec git rev-parse --verify --quiet refs/heads/workflow-state
+
+# --keep resolves it with the project's content.
+exec solomonar init --runtime none --ext none --yes --keep docs/solomonar/rules.md
+stdout '^  18 files created, 1 kept$'
+cmp docs/solomonar/rules.md ../project_rules.md
+exists .solomonar/manifest.json
+
+# --overwrite resolves it with the framework's content.
+cd $WORK
+exec git init -q -b main other
+mkdir other/docs/solomonar
+cp project_rules.md other/docs/solomonar/rules.md
+exec solomonar -C other init --runtime none --ext none --yes --overwrite docs/solomonar/rules.md
+stdout '^  18 files created, 1 updated$'
+cmp other/docs/solomonar/rules.md $ASSETS/framework/rules.md
+
+-- project_rules.md --
+project rules
+-- plan.txt --
+Plan
+  conflict   docs/solomonar/rules.md  exists and is not managed by solomonar
