@@ -81,7 +81,7 @@ func TestCoreWantsEmbeddedAssets(t *testing.T) {
 	assert.Contains(t, agents, "\n## Project notes\n")
 	readme := string(wants[len(wants)-1].Content)
 	assert.True(t, strings.HasPrefix(readme, "# ledger\n"))
-	assert.Contains(t, readme, "## Current objective\n\nNot set. Run the prototype skill to define it.\n")
+	assert.Contains(t, readme, "## Current objective\n\nNot established.\n")
 
 	wants, err = CoreWants(assets, Choices{Name: "ledger", Objective: "Track spending.", FrameworkVersion: "9.8.7"})
 
