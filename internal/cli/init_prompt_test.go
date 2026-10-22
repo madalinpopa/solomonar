@@ -60,7 +60,7 @@ func screen(t *testing.T, out string) string {
 
 // repoHeader is the header of an interactive init in dir on branch main.
 func repoHeader(dir string) string {
-	return "solomonar devel · framework 0.1.0 · " + dir + " (git, branch main)\n\n"
+	return "solomonar devel · framework " + shipped + " · " + dir + " (git, branch main)\n\n"
 }
 
 const extensionsIntro = "\nExtensions, by decision type. A choice in a stack group is recorded as your approved decision in\n" +
@@ -92,7 +92,7 @@ func TestInteractiveInitUC1(t *testing.T) {
 		"\nFrontend:\n    [x] htmx   T\n    [ ] react  T\n    [x] templ  T (requires htmx)\n\n", prompts)
 	assert.Contains(t, rest, "  registry\n    create     refs/heads/workflow-state with an empty state.json\n"+
 		"  manifest\n    create     .solomonar/manifest.json\n"+
-		"Proceed? [Y/n] \nInitialized solomonar 0.1.0 in "+dir+"\n")
+		"Proceed? [Y/n] \nInitialized solomonar "+shipped+" in "+dir+"\n")
 	manifest := manifestOf(t, dir)
 	assert.Equal(t, filepath.Base(dir), manifest.Project.Name)
 	assert.Equal(t, map[string]project.Runtime{"claude": {AdversarialModel: "opus"}, "codex": {}}, manifest.Runtimes)
@@ -133,7 +133,7 @@ func TestInteractiveInitAsksOnlyForMissingFlags(t *testing.T) {
 			require.Equal(t, 0, got.exit, got.stderr)
 			prompts := strings.ReplaceAll(tt.prompts, "<base>", filepath.Base(dir))
 			assert.True(t, strings.HasPrefix(screen(t, got.stdout), repoHeader(dir)+prompts+"Plan\n"), got.stdout)
-			assert.Contains(t, got.stdout, "Proceed? [Y/n] \nInitialized solomonar 0.1.0 in ")
+			assert.Contains(t, got.stdout, "Proceed? [Y/n] \nInitialized solomonar "+shipped+" in ")
 		})
 	}
 }
@@ -146,7 +146,7 @@ func TestInteractiveInitRerunAsksNoChoices(t *testing.T) {
 	got := runInteractive(t, repoAssets(t), dir, "", "init")
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.True(t, strings.HasPrefix(got.stdout, repoHeader(dir)+"Already initialized with solomonar 0.1.0; nothing to do.\n"),
+	assert.True(t, strings.HasPrefix(got.stdout, repoHeader(dir)+"Already initialized with solomonar "+shipped+"; nothing to do.\n"),
 		got.stdout)
 }
 
@@ -157,7 +157,7 @@ func TestInteractiveInitNeverPromptsWithYesOrJSON(t *testing.T) {
 		exit   int
 		stdout string
 	}{
-		{name: "yes", args: []string{"init", "--yes"}, stdout: "Initialized solomonar 0.1.0 in "},
+		{name: "yes", args: []string{"init", "--yes"}, stdout: "Initialized solomonar " + shipped + " in "},
 		{name: "json", args: []string{"init", "--json"}, exit: 2, stdout: `"code": "interactive_required"`},
 	}
 	for _, tt := range tests {
@@ -206,7 +206,7 @@ func TestInteractiveInitDryRunAsksChoicesWithoutConfirmation(t *testing.T) {
 		"    [ ] codex   Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook\n"+
 		extensionsIntro+
 		"\nLanguage:\n    [ ] go  Go language rules\n\nPlan\n"), transcript)
-	assert.Contains(t, transcript, "\nWould initialize solomonar 0.1.0 in "+dir+"\n")
+	assert.Contains(t, transcript, "\nWould initialize solomonar "+shipped+" in "+dir+"\n")
 	assert.NotContains(t, transcript, "Proceed?")
 	assertNothingWritten(t, dir, before, tip)
 }
@@ -272,7 +272,7 @@ func TestInteractiveInitHeaderNamesTheRepositoryState(t *testing.T) {
 
 			require.Equal(t, 0, got.exit, got.stderr)
 			assert.True(t, strings.HasPrefix(got.stdout,
-				"solomonar devel · framework 0.1.0 · "+dir+" "+tt.where+"\n\nPlan\n"), got.stdout)
+				"solomonar devel · framework "+shipped+" · "+dir+" "+tt.where+"\n\nPlan\n"), got.stdout)
 		})
 	}
 }
@@ -303,9 +303,9 @@ func TestInteractiveInitOutsideRepositoryAsksToInitializeGit(t *testing.T) {
 
 			require.Equal(t, 0, got.exit, got.stderr)
 			assert.True(t, strings.HasPrefix(got.stdout,
-				"solomonar devel · framework 0.1.0 · "+dir+" (not a Git repository)\n\n"+tt.prompt+
+				"solomonar devel · framework "+shipped+" · "+dir+" (not a Git repository)\n\n"+tt.prompt+
 					"Plan\n  git\n    init       -b "+tt.branch+"\n"), got.stdout)
-			assert.Contains(t, got.stdout, "Proceed? [Y/n] \nInitialized solomonar 0.1.0 in "+dir+"\n")
+			assert.Contains(t, got.stdout, "Proceed? [Y/n] \nInitialized solomonar "+shipped+" in "+dir+"\n")
 			assert.Contains(t, got.stdout, "  1. First commit required before task worktrees:\n")
 			assert.Equal(t, "refs/heads/"+tt.branch, gittest.Git(t, dir, "symbolic-ref", "HEAD"))
 			assert.Equal(t, tt.branch, manifestOf(t, dir).Project.MainBranch)
@@ -319,7 +319,7 @@ func TestInteractiveInitDeclinedGitInitWritesNothing(t *testing.T) {
 	got := runInteractive(t, repoAssets(t), dir, "n\n", givenChoices()...)
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Equal(t, "solomonar devel · framework 0.1.0 · "+dir+" (not a Git repository)\n\n"+
+	assert.Equal(t, "solomonar devel · framework "+shipped+" · "+dir+" (not a Git repository)\n\n"+
 		"Initialize a Git repository here with main branch \"main\"? [y/N] \n"+
 		"Cancelled; nothing was written.\n", got.stdout)
 	assert.NoDirExists(t, filepath.Join(dir, ".git"))
