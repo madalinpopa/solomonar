@@ -52,13 +52,13 @@ var shipped = func() string { //nolint:gochecknoglobals // read once, shared by 
 	return version
 }()
 
-func TestVersionPrintsEmbeddedFramework(t *testing.T) {
+func TestVersionPrintsTheRelease(t *testing.T) {
 	t.Parallel()
 
 	got := runCLI(t, repoAssets(t), "version")
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Equal(t, "solomonar devel (embedded framework "+shipped+")\nproject   not initialized\n", got.stdout)
+	assert.Equal(t, "solomonar "+shipped+"\nproject   not initialized\n", got.stdout)
 	assert.Empty(t, got.stderr)
 }
 
@@ -71,7 +71,7 @@ func TestVersionJSONPrintsOneEnvelope(t *testing.T) {
 	assert.JSONEq(t, `{
 		"ok": true,
 		"command": "version",
-		"data": {"cli": "devel", "framework": "`+shipped+`", "project_framework": null, "registry_schema": null},
+		"data": {"cli": "`+shipped+`", "framework": "`+shipped+`", "project_framework": null, "registry_schema": null},
 		"warnings": []
 	}`, got.stdout)
 	assert.Empty(t, got.stderr)
