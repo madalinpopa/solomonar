@@ -83,6 +83,8 @@ func (f doneFixture) recordJSON() string {
 }
 
 func TestTaskDoneUC20(t *testing.T) {
+	t.Parallel()
+
 	f := doneRepo(t)
 	sibling := filepath.Join("..", filepath.Base(f.dir)+"-worktrees", "W-001")
 	gittest.Git(t, f.dir, "worktree", "add", sibling, "feature/W-001")
@@ -102,6 +104,8 @@ func TestTaskDoneUC20(t *testing.T) {
 }
 
 func TestTaskDoneNextLineNamesTheWorktree(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		worktree bool
@@ -111,6 +115,8 @@ func TestTaskDoneNextLineNamesTheWorktree(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			f := doneRepo(t)
 			var next string
 			if tt.worktree {
@@ -132,6 +138,8 @@ func TestTaskDoneNextLineNamesTheWorktree(t *testing.T) {
 }
 
 func TestTaskDoneJSON(t *testing.T) {
+	t.Parallel()
+
 	f := doneRepo(t)
 
 	got := runInRepo(t, f.dir, f.args("--json")...)
@@ -155,6 +163,8 @@ func TestTaskDoneJSON(t *testing.T) {
 }
 
 func TestTaskDoneDryRunWritesNothing(t *testing.T) {
+	t.Parallel()
+
 	f := doneRepo(t)
 	gittest.Git(t, f.dir, "worktree", "add", filepath.Join("..", filepath.Base(f.dir)+"-worktrees", "W-001"), "feature/W-001")
 	before := registryTip(t, f.dir)
@@ -186,6 +196,8 @@ func TestTaskDoneDryRunWritesNothing(t *testing.T) {
 }
 
 func TestTaskDoneUsageErrors(t *testing.T) {
+	t.Parallel()
+
 	const fix = "  fix:   run solomonar help\nnothing was written\n"
 	sha := "14091a9f2461267ee7e02525b4f1f2923f1c9849"
 	tests := []struct {
@@ -208,6 +220,8 @@ func TestTaskDoneUsageErrors(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := runCLI(t, repoAssets(t), append([]string{"-C", t.TempDir(), "task", "done"}, tt.args...)...)
 
 			assert.Equal(t, 2, got.exit)
@@ -218,6 +232,8 @@ func TestTaskDoneUsageErrors(t *testing.T) {
 }
 
 func TestTaskDoneRejectsSquashMerge(t *testing.T) {
+	t.Parallel()
+
 	f := featureRepo(t)
 	gittest.Git(t, f.dir, "merge", "--squash", "feature/W-001")
 	gittest.Git(t, f.dir, "commit", "-m", "Login (#42)")
@@ -237,6 +253,8 @@ func TestTaskDoneRejectsSquashMerge(t *testing.T) {
 }
 
 func TestTaskDoneRejections(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		args   func(f doneFixture) []string
@@ -285,6 +303,8 @@ func TestTaskDoneRejections(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			f := doneRepo(t)
 			before := registryTip(t, f.dir)
 			getenv := func(name string) string {
@@ -305,6 +325,8 @@ func TestTaskDoneRejections(t *testing.T) {
 }
 
 func TestTaskDoneHelp(t *testing.T) {
+	t.Parallel()
+
 	got := runCLI(t, repoAssets(t), "help", "task", "done")
 
 	require.Equal(t, 0, got.exit, got.stderr)
