@@ -153,6 +153,8 @@ func rejectionOf(t *testing.T, err error) *Rejection {
 }
 
 func TestDecodeManifestRoundTripsTheInterfaceExample(t *testing.T) {
+	t.Parallel()
+
 	want := canonicalExample
 	manifest, err := DecodeManifest([]byte(example), framework)
 	require.NoError(t, err)
@@ -164,6 +166,8 @@ func TestDecodeManifestRoundTripsTheInterfaceExample(t *testing.T) {
 }
 
 func TestDecodeManifestKeepsDraftEmptyLists(t *testing.T) {
+	t.Parallel()
+
 	manifest, err := DecodeManifest([]byte(withDraft()), framework)
 	require.NoError(t, err)
 
@@ -182,6 +186,8 @@ func TestDecodeManifestKeepsDraftEmptyLists(t *testing.T) {
 }
 
 func TestDecodeManifestRejectsInvalidManifest(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		data  string
@@ -195,6 +201,8 @@ func TestDecodeManifestRejectsInvalidManifest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, err := DecodeManifest([]byte(tt.data), framework)
 
 			rejection := rejectionOf(t, err)
@@ -207,6 +215,8 @@ func TestDecodeManifestRejectsInvalidManifest(t *testing.T) {
 }
 
 func TestDecodeManifestRejectsUnknownMembersAndDuplicateKeys(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		data  string
@@ -217,6 +227,8 @@ func TestDecodeManifestRejectsUnknownMembersAndDuplicateKeys(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, err := DecodeManifest([]byte(tt.data), framework)
 
 			rejection := rejectionOf(t, err)
@@ -228,6 +240,8 @@ func TestDecodeManifestRejectsUnknownMembersAndDuplicateKeys(t *testing.T) {
 }
 
 func TestDecodeManifestRejectsEveryValidationRule(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name, old, new, found string
 	}{
@@ -266,6 +280,8 @@ func TestDecodeManifestRejectsEveryValidationRule(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			data := strings.Replace(withDraft(), tt.old, tt.new, 1)
 			require.NotEqual(t, withDraft(), data, "the case changes nothing")
 
@@ -279,6 +295,8 @@ func TestDecodeManifestRejectsEveryValidationRule(t *testing.T) {
 }
 
 func TestDecodeManifestRejectsNewerVersionsBeforeStrictDecoding(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name, data, check, found string
 	}{
@@ -297,6 +315,8 @@ func TestDecodeManifestRejectsNewerVersionsBeforeStrictDecoding(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, err := DecodeManifest([]byte(tt.data), "0.2.0")
 
 			rejection := rejectionOf(t, err)
@@ -309,6 +329,8 @@ func TestDecodeManifestRejectsNewerVersionsBeforeStrictDecoding(t *testing.T) {
 }
 
 func TestDecodeManifestAcceptsOlderFramework(t *testing.T) {
+	t.Parallel()
+
 	manifest, err := DecodeManifest([]byte(example), "0.10.0")
 
 	require.NoError(t, err)
@@ -316,6 +338,8 @@ func TestDecodeManifestAcceptsOlderFramework(t *testing.T) {
 }
 
 func TestReadManifest(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	root, err := os.OpenRoot(dir)
 	require.NoError(t, err)
@@ -333,6 +357,8 @@ func TestReadManifest(t *testing.T) {
 }
 
 func TestReadManifestRejectsSymlinkOutsideRoot(t *testing.T) {
+	t.Parallel()
+
 	outside := filepath.Join(t.TempDir(), "manifest.json")
 	require.NoError(t, os.WriteFile(outside, []byte(example), 0o644))
 	dir := t.TempDir()
@@ -349,11 +375,15 @@ func TestReadManifestRejectsSymlinkOutsideRoot(t *testing.T) {
 }
 
 func TestHashIsLowercaseHexSHA256(t *testing.T) {
+	t.Parallel()
+
 	assert.Equal(t, emptyHash, Hash(nil))
 	assert.Equal(t, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", Hash([]byte("hello")))
 }
 
 func TestManifestVersionsReadsNewerVersions(t *testing.T) {
+	t.Parallel()
+
 	schema, framework, err := ManifestVersions([]byte(`{"schema_version": 2, "framework_version": "0.10.0", "added_in_v2": true}`))
 
 	require.NoError(t, err)
@@ -362,6 +392,8 @@ func TestManifestVersionsReadsNewerVersions(t *testing.T) {
 }
 
 func TestManifestVersionsRejectsUnreadableVersions(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name, data, found string
 	}{
@@ -373,6 +405,8 @@ func TestManifestVersionsRejectsUnreadableVersions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, _, err := ManifestVersions([]byte(tt.data))
 
 			rejection := rejectionOf(t, err)
@@ -383,6 +417,8 @@ func TestManifestVersionsRejectsUnreadableVersions(t *testing.T) {
 }
 
 func TestNewerFrameworkComparesEachPartNumerically(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name, project, shipped string
 		want                   bool
@@ -393,6 +429,8 @@ func TestNewerFrameworkComparesEachPartNumerically(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			newer, err := NewerFramework(tt.project, tt.shipped)
 
 			require.NoError(t, err)
@@ -402,6 +440,8 @@ func TestNewerFrameworkComparesEachPartNumerically(t *testing.T) {
 }
 
 func TestNewerFrameworkRejectsMalformedEmbeddedVersion(t *testing.T) {
+	t.Parallel()
+
 	_, err := NewerFramework("0.1.0", "dev")
 
 	require.EqualError(t, err, `compare framework versions: embedded version "dev" is not major.minor.patch`)
