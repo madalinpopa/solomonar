@@ -58,7 +58,7 @@ status` · 10 Delivery order · 11 Framework alignment · 12 Open decisions
 | `solomonar task done` | Owner: verify the merge and write the compact record | `workflow-state` | UC-20 |
 | `solomonar guard` | Runtime hook: deny direct registry writes | nothing | UC-22 |
 | `solomonar dashboard` | Serve the read-only registry view | nothing | UC-23 |
-| `solomonar version` | Print CLI, embedded framework, and project framework versions | nothing | UC-24 |
+| `solomonar version` | Print the CLI and project framework versions | nothing | UC-24 |
 | `solomonar help [<command>]` | Print help; `-h` on any command is equivalent | nothing | - |
 
 "Runtime" is the agent product that runs sessions (Claude Code, Codex). "Agent" and "role" keep their framework
@@ -773,7 +773,7 @@ Actor: user. Preconditions: a Git repository with at least one commit on `main`;
 ```
 $ cd /work/ledger
 $ solomonar init
-solomonar 0.1.3 · framework 0.1.3 · /work/ledger (git, branch main)
+solomonar 0.1.3 · /work/ledger (git, branch main)
 
 Project name [ledger]:
 Current objective, one line (optional): Track shared household expenses
@@ -852,7 +852,7 @@ Next:
 ```
 
 Prompts: `init` prompts when stdin and stdout are terminals and neither `--yes` nor `--json` is set (3.7). It first
-prints the header `solomonar <cli version> · framework <fw> · <dir> (git, branch <b>)` and a blank line: `<cli
+prints the header `solomonar <cli version> · <dir> (git, branch <b>)` and a blank line: `<cli
 version>` as `solomonar version` prints it, `<dir>` the worktree root (outside a repository, the absolute target
 directory as given, symlinks not resolved, the path `not_a_repository` names), `<b>` the current branch (also
 unborn); `(git, detached HEAD)` when detached, `(not a Git repository)` outside one. The header is printed on every
@@ -2167,11 +2167,11 @@ alive.
 
 ```
 $ solomonar version
-solomonar 0.1.3 (embedded framework 0.1.3)
+solomonar 0.1.3
 project   framework 0.1.3 · registry schema 1
 ```
 
-A build without a release tag reports the CLI version `devel`. `version` reads only the version fields of the
+The CLI version is the embedded framework version (AD-10), so `cli` and `framework` in `--json` are always equal. `version` reads only the version fields of the
 manifest and the registry, never decoding either strictly, so a newer project prints its versions and exits 0
 (CLI-D19). It discovers the repository from `-C` like other commands: outside a repository, or inside one without
 `.solomonar/manifest.json`, the `project` line reads `not initialized`; `git_too_old` and other discovery errors stay
