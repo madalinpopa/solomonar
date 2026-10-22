@@ -1,0 +1,22 @@
+# Outside a repository init is rejected with exit 3 and writes nothing.
+mkdir ledger
+exitcode 3 solomonar -C ledger init --runtime none --ext none --yes
+! stdout .
+stderr '^error: .+/ledger is not a Git repository \(not_a_repository\)$'
+stderr '^  fix:   run `git init -b main` first, or rerun with --git-init$'
+! exists ledger/.git
+! exists ledger/AGENTS.md
+
+# --dry-run with --git-init plans the git init but runs nothing.
+exec solomonar -C ledger init --git-init --runtime none --ext none --dry-run
+stdout '^  git        init -b main$'
+! exists ledger/.git
+
+# --git-init creates the repository on the main branch, then initializes it.
+exec solomonar -C ledger init --git-init --runtime none --ext none --yes --main-branch trunk
+stdout '^Initialized solomonar '
+stdout '^  1\. First commit required before task worktrees:$'
+exists ledger/.git ledger/AGENTS.md ledger/.solomonar/manifest.json
+exec git -C ledger symbolic-ref --short HEAD
+stdout '^trunk$'
+exec git -C ledger rev-parse --verify --quiet refs/heads/workflow-state
