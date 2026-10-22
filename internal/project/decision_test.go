@@ -45,6 +45,8 @@ func freshEntries(first, second, third, fourth string) string {
 }
 
 func TestPlanDecisionsRecordsOneEntryPerStackGroupInGroupOrder(t *testing.T) {
+	t.Parallel()
+
 	root, _ := openTree(t, nil)
 
 	got, err := PlanDecisions(root, nil, selection(), decisionDate)
@@ -83,6 +85,8 @@ func TestPlanDecisionsRecordsOneEntryPerStackGroupInGroupOrder(t *testing.T) {
 }
 
 func TestPlanDecisionsAppendsToPresentDocuments(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name, decisions, stack, separator, lineSeparator string
 	}{
@@ -97,6 +101,8 @@ func TestPlanDecisionsAppendsToPresentDocuments(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			root, _ := openTree(t, map[string]entry{
 				"docs/decisions.md": {content: tt.decisions, mode: 0o644},
 				"docs/stack.md":     {content: tt.stack, mode: 0o644},
@@ -122,6 +128,8 @@ func TestPlanDecisionsAppendsToPresentDocuments(t *testing.T) {
 }
 
 func TestPlanDecisionsIgnoresWorkflowAndReviewGroups(t *testing.T) {
+	t.Parallel()
+
 	root, _ := openTree(t, nil)
 
 	got, err := PlanDecisions(root, nil, []CatalogExtension{
@@ -138,6 +146,8 @@ func TestPlanDecisionsIgnoresWorkflowAndReviewGroups(t *testing.T) {
 }
 
 func TestPlanDecisionsRejectsANonRegularDocument(t *testing.T) {
+	t.Parallel()
+
 	root, _ := openTree(t, map[string]entry{"docs/stack.md/inner": {content: "x", mode: 0o644}})
 
 	_, err := PlanDecisions(root, nil, selection(), decisionDate)
@@ -146,6 +156,8 @@ func TestPlanDecisionsRejectsANonRegularDocument(t *testing.T) {
 }
 
 func TestPlanDecisionsRerunCarriesTheRecordedDecisionsOver(t *testing.T) {
+	t.Parallel()
+
 	root, _ := openTree(t, nil)
 	existing := &Manifest{
 		Extensions: map[string]Extension{"go": {Group: "language", Decision: "P/D-3"}},
@@ -174,6 +186,8 @@ func TestPlanDecisionsRerunCarriesTheRecordedDecisionsOver(t *testing.T) {
 }
 
 func TestAddDocuments(t *testing.T) {
+	t.Parallel()
+
 	lines := []string{"- `a`", "- `b`"}
 	tests := []struct {
 		name, content, want string
@@ -196,6 +210,8 @@ func TestAddDocuments(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, ok := addDocuments([]byte(tt.content), lines)
 
 			assert.Equal(t, tt.ok, ok)
