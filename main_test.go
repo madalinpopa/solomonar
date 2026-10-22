@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"testing"
 
@@ -23,9 +24,16 @@ func TestScript(t *testing.T) {
 	if _, err := git.Version(t.Context(), nil); err != nil {
 		t.Fatalf("tests need git 2.40 or newer on PATH: %v", err)
 	}
+	assets, err := filepath.Abs("assets")
+	if err != nil {
+		t.Fatalf("locate assets: %v", err)
+	}
 	testscript.Run(t, testscript.Params{
-		Dir:                 "testdata",
-		Setup:               isolateGit,
+		Dir: "testdata",
+		Setup: func(env *testscript.Env) error {
+			env.Setenv("ASSETS", assets)
+			return isolateGit(env)
+		},
 		Cmds:                map[string]func(*testscript.TestScript, bool, []string){"exitcode": exitCode},
 		RequireExplicitExec: true,
 		RequireUniqueNames:  true,
