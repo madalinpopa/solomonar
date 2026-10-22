@@ -37,6 +37,8 @@ func rejectionOf(t *testing.T, err error) *Rejection {
 }
 
 func TestDecodeAcceptsValidRecords(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		id     string
@@ -50,6 +52,8 @@ func TestDecodeAcceptsValidRecords(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			registry, err := Decode(registryWith(tt.id, tt.record))
 
 			require.NoError(t, err)
@@ -60,6 +64,8 @@ func TestDecodeAcceptsValidRecords(t *testing.T) {
 }
 
 func TestDecodeKeepsTierZero(t *testing.T) {
+	t.Parallel()
+
 	registry, err := Decode(registryWith("W-001", replace(activeRecord, `"tier": 2`, `"tier": 0`)))
 
 	require.NoError(t, err)
@@ -68,6 +74,8 @@ func TestDecodeKeepsTierZero(t *testing.T) {
 }
 
 func TestDecodeRejectsInvalidRegistry(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		data  string
@@ -89,6 +97,8 @@ func TestDecodeRejectsInvalidRegistry(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, err := Decode([]byte(tt.data))
 
 			rejection := rejectionOf(t, err)
@@ -100,6 +110,8 @@ func TestDecodeRejectsInvalidRegistry(t *testing.T) {
 }
 
 func TestDecodeRejectsInvalidRecord(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		record string
@@ -141,6 +153,8 @@ func TestDecodeRejectsInvalidRecord(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, err := Decode(registryWith("W-001", tt.record))
 
 			rejection := rejectionOf(t, err)
@@ -152,6 +166,8 @@ func TestDecodeRejectsInvalidRecord(t *testing.T) {
 }
 
 func TestDecodeRejectsNewerSchemaBeforeStrictDecoding(t *testing.T) {
+	t.Parallel()
+
 	_, err := Decode([]byte(`{"schema_version": 2, "tasks": {}, "added_in_v2": true}`))
 
 	rejection := rejectionOf(t, err)
@@ -161,6 +177,8 @@ func TestDecodeRejectsNewerSchemaBeforeStrictDecoding(t *testing.T) {
 }
 
 func TestEncodeEmptyRegistry(t *testing.T) {
+	t.Parallel()
+
 	want := "{\n  \"schema_version\": 1,\n  \"tasks\": {}\n}\n"
 
 	data, err := NewRegistry().Encode()
@@ -170,6 +188,8 @@ func TestEncodeEmptyRegistry(t *testing.T) {
 }
 
 func TestEncodeIsCanonical(t *testing.T) {
+	t.Parallel()
+
 	input := `{"tasks": {"W-002": {"updated_at": "2026-10-20T14:58:03Z", "status": "planned", "title": "B"},
 		"W-001": {"title": "A", "status": "planned", "updated_at": "2026-10-20T14:58:03Z"}}, "schema_version": 1}`
 	want := `{
@@ -198,6 +218,8 @@ func TestEncodeIsCanonical(t *testing.T) {
 }
 
 func TestEncodeRoundTrips(t *testing.T) {
+	t.Parallel()
+
 	data := `{"schema_version": 1, "tasks": {"W-001": ` + activeRecord + `, "W-002": ` + doneRecord +
 		`, "W-003": ` + plannedRecord + `}}`
 	registry, err := Decode([]byte(data))
@@ -219,6 +241,8 @@ func replace(s, old, replacement string) string {
 }
 
 func TestSchemaOfReadsNewerSchema(t *testing.T) {
+	t.Parallel()
+
 	schema, err := SchemaOf([]byte(`{"schema_version": 2, "added_in_v2": true}`))
 
 	require.NoError(t, err)
@@ -226,6 +250,8 @@ func TestSchemaOfReadsNewerSchema(t *testing.T) {
 }
 
 func TestSchemaOfRejectsUnreadableSchema(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name, data, found string
 	}{
@@ -235,6 +261,8 @@ func TestSchemaOfRejectsUnreadableSchema(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, err := SchemaOf([]byte(tt.data))
 
 			rejection := rejectionOf(t, err)
