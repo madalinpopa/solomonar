@@ -95,6 +95,8 @@ func requireDoneRejected(t *testing.T, before *Record, repo *git.Repo, d Done, w
 }
 
 func TestDoneTaskStoresCompactRecord(t *testing.T) {
+	t.Parallel()
+
 	d := newDoneRepo(t)
 	registry := registryOf(d.record())
 	flags := d.flags()
@@ -121,6 +123,8 @@ func TestDoneTaskStoresCompactRecord(t *testing.T) {
 }
 
 func TestDoneTaskOmitsUnrecordedOptionalFields(t *testing.T) {
+	t.Parallel()
+
 	d := newDoneRepo(t)
 	before := moving(StatusRunning, StageIntegration, new(1))
 	before.Revision = d.revision
@@ -134,6 +138,8 @@ func TestDoneTaskOmitsUnrecordedOptionalFields(t *testing.T) {
 }
 
 func TestDoneTaskRejectsState(t *testing.T) {
+	t.Parallel()
+
 	twoBlockers := moving(StatusRunning, StageIntegration, new(1))
 	twoBlockers.Blockers = []Blocker{{ID: "B-1", Kind: BlockerCheck, Summary: "CI"}, {ID: "B-3", Kind: BlockerCheck, Summary: "Lint"}}
 	twoBlockers.LastBlocker = 3
@@ -159,6 +165,8 @@ func TestDoneTaskRejectsState(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			registry := registryOf(tt.before)
 			unchanged := *tt.before
 			_, err := doneTask(t, registry, nil, "W-001", Done{})
@@ -172,11 +180,15 @@ func TestDoneTaskRejectsState(t *testing.T) {
 }
 
 func TestDoneTaskRejectsUnknownTask(t *testing.T) {
+	t.Parallel()
+
 	_, err := doneTask(t, NewRegistry(), nil, "W-001", Done{})
 	requireRejection(t, err, "task_not_found")
 }
 
 func TestDoneTaskRejectsFlagValues(t *testing.T) {
+	t.Parallel()
+
 	valid := Done{Merge: sha, SpecRef: sha + ":" + specPath, Summary: "Password login"}
 	summaryCheck, summaryFix := "--summary takes 1 to 120 characters", `pass --summary "<one sentence>"`
 	specRefCheck, specRefFix := "--spec-ref takes <full SHA>:<path>", `copy it from the PR "Final specification" line`
@@ -195,6 +207,8 @@ func TestDoneTaskRejectsFlagValues(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			d := valid
 			tt.edit(&d)
 			tt.want.Code = "invalid_value"
@@ -204,6 +218,8 @@ func TestDoneTaskRejectsFlagValues(t *testing.T) {
 }
 
 func TestDoneTaskRejectsGitFacts(t *testing.T) {
+	t.Parallel()
+
 	d := newDoneRepo(t)
 	dir := d.repo.Dir
 	gittest.Git(t, dir, "checkout", "-b", "side", d.initial)
@@ -263,6 +279,8 @@ func TestDoneTaskRejectsGitFacts(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			flags := d.flags()
 			if tt.edit != nil {
 				tt.edit(&flags)
@@ -273,6 +291,8 @@ func TestDoneTaskRejectsGitFacts(t *testing.T) {
 }
 
 func TestDoneTaskRejectsMergeWithoutSpecCommit(t *testing.T) {
+	t.Parallel()
+
 	d := newDoneRepo(t)
 	registry := NewRegistry()
 	registry.Tasks["W-002"] = d.record()
@@ -287,6 +307,8 @@ func TestDoneTaskRejectsMergeWithoutSpecCommit(t *testing.T) {
 }
 
 func TestDoneTaskRejectsSingleParentIntegration(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		integrate func(t *testing.T, dir string)
@@ -305,6 +327,8 @@ func TestDoneTaskRejectsSingleParentIntegration(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir, d := newFeatureRepo(t)
 			tt.integrate(t, dir)
 			d.merge = head(t, dir)
