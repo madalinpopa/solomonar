@@ -1,7 +1,7 @@
 # <ID>: <Change title>
 Type: <feature | bug fix | refactor | technical task>
 
-<!-- Framework version: 0.1.3. English. Delete empty optional sections, unused optional bullets, and all hints.
+<!-- Framework version: 0.1.4. English. Delete empty optional sections, unused optional bullets, and all hints.
 No execution state or readiness verdicts. -->
 
 ## Outcome and scope

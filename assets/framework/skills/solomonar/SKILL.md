@@ -5,7 +5,7 @@ description: User-invoked entry point to Solomonar. Routes requests to the ownin
 
 # Solomonar skill
 
-Framework version: 0.1.3
+Framework version: 0.1.4
 
 ## 1. Purpose and boundaries
 

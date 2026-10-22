@@ -41,7 +41,7 @@ After that, use the [workflow examples]({{ '/docs/use-cases/' | url }}) for ever
 
 ## What works today
 
-Version 0.1.3 is the current release. The framework contracts are defined, and the CLI is built in increments:
+Version 0.1.4 is the current release. The framework contracts are defined, and the CLI is built in increments:
 
 | Area | Status |
 | --- | --- |

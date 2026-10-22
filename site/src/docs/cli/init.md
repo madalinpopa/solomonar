@@ -70,7 +70,7 @@ Plan
   ...
   create     .solomonar/manifest.json
   registry   create refs/heads/workflow-state with an empty state.json
-Would initialize solomonar 0.1.3 in /work/ledger
+Would initialize solomonar 0.1.4 in /work/ledger
   29 files created
 ```
 
@@ -82,13 +82,13 @@ solomonar init --name ledger --objective "Track shared household expenses" \
 ```
 
 ```text
-Initialized solomonar 0.1.3 in /work/ledger
+Initialized solomonar 0.1.4 in /work/ledger
   39 files created
   registry  refs/heads/workflow-state @ 2be8870347892548d1c083c28a0e8c834d1327bb
   pushed    origin/workflow-state
 
 Next:
-  1. git add AGENTS.md CLAUDE.md .claude .agents .codex .solomonar docs && git commit -m "chore: initialize solomonar 0.1.3"
+  1. git add AGENTS.md CLAUDE.md .claude .agents .codex .solomonar docs && git commit -m "chore: initialize solomonar 0.1.4"
   2. Start a top-level session in /work/ledger with your selected outcome:
        Claude Code: /solomonar Explore the next useful flow.
        Codex:       $solomonar Explore the next useful flow.

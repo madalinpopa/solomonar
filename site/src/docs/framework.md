@@ -113,4 +113,4 @@ The core contains the workflow's rules, skills, and required roles. Extensions a
 
 `solomonar init` copies the core into your project under `docs/solomonar/` and creates small runtime adapters that point to that portable source. Adopting a stack extension records a decision; it does not install application packages or approve further dependencies.
 
-In v0.1.3, extensions are chosen at `init`, and the catalog holds the `go` extension. The `extension` commands that change them later are planned. The [project files reference]({{ '/docs/configuration/' | url }}) shows what is installed today.
+In v0.1.4, extensions are chosen at `init`, and the catalog holds the `go` extension. The `extension` commands that change them later are planned. The [project files reference]({{ '/docs/configuration/' | url }}) shows what is installed today.
