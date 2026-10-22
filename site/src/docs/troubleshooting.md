@@ -42,6 +42,8 @@ solomonar init --overwrite .claude/agents/implementer.md --yes
 
 `already_initialized` means the project's manifest records a different choice than the one you passed, such as another runtime. `init` never changes recorded choices; the planned `runtime` and `extension` commands will. Rerun without the differing flag.
 
+`unknown_extension` (exit 2) means an `--ext` value is not in the embedded catalog; the error lists the known names. `--ext none` cannot be combined with another name.
+
 `not_a_repository` from `init` means the directory is not inside a Git repository. Run `git init -b main` first, or pass `--git-init`.
 
 ## The command cannot find the repository
