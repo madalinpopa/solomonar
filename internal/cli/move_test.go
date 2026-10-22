@@ -10,6 +10,7 @@ import (
 
 	"github.com/madalinpopa/solomonar/internal/git"
 	"github.com/madalinpopa/solomonar/internal/git/gittest"
+	"github.com/madalinpopa/solomonar/internal/project"
 	"github.com/madalinpopa/solomonar/internal/task"
 )
 
@@ -379,4 +380,29 @@ func TestTaskMoveRejections(t *testing.T) {
 			assert.Equal(t, before, registryTip(t, dir))
 		})
 	}
+}
+
+func TestTaskMoveAcceptsInstalledAgentExtension(t *testing.T) {
+	t.Parallel()
+
+	dir, _, _ := moveRepo(t)
+	putTask(t, dir, task.Record{Status: task.StatusRunning, Stage: task.StageImplementation, Spec: moveSpec})
+	putManifest(t, dir, project.ManifestSchemaVersion, "origin", "main")
+	manifest := manifestOf(t, dir)
+	manifest.Extensions = map[string]project.Extension{
+		"a11y-reviewer": {State: "installed", Kind: "agent", Group: "review", Source: "path", Path: "extensions/a11y-reviewer"},
+		"perf-reviewer": {State: "draft", Kind: "agent", Group: "review", Source: "path", Path: "extensions/perf-reviewer"},
+	}
+	data, err := manifest.Encode()
+	require.NoError(t, err)
+	writeFile(t, dir, project.ManifestPath, string(data))
+
+	installed := runInRepo(t, dir, "task", "move", "W-001", "--as", "orchestrator-1", "--agent", "access-1:a11y-reviewer", "--dry-run")
+	draft := runInRepo(t, dir, "task", "move", "W-001", "--as", "orchestrator-1", "--agent", "perf-1:perf-reviewer", "--dry-run")
+
+	require.Equal(t, 0, installed.exit, installed.stderr)
+	assert.Contains(t, installed.stdout, "  agents  access-1 a11y-reviewer\n")
+	assert.Equal(t, 2, draft.exit)
+	assert.Contains(t, draft.stderr, "(invalid_value)")
+	assert.Contains(t, draft.stderr, "a11y-reviewer")
 }
