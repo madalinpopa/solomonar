@@ -45,10 +45,11 @@ Language-agnostic. Whether the change does what its written criteria and rules s
 5. Compare the observed behavior with the scope: list omissions and additions.
 6. Verify required canonical updates for approved changes and scoped decisions against the affected artifacts.
    Cite the governing rule/decision; never rewrite a requirement to match an implementation defect.
-7. For each packet-named extension, account for its `must` rule IDs with evidence/outcomes or reasons they do
-   not apply. Run its applicable suggested checks. Group rules sharing evidence; do not hide unchecked rules
-   behind a single extension-level result. Keep language-specific commands in extensions; project command
-   substitutions must preserve required coverage.
+7. For each packet-named extension, follow its loading triggers; account for applicable `must` rule IDs in
+   loaded files with evidence/outcomes or reasons they do not apply. Record why other topic triggers do not
+   apply without loading their files. Run applicable suggested checks. Group rules sharing evidence; do not
+   hide unchecked rules behind a single extension-level result. Keep language-specific commands in extensions;
+   project command substitutions must preserve required coverage.
 8. Compare changed dependencies and shared contracts with approved architecture/stack requirements in scope.
 
 Required verification: every AC, applicable extension `must` rules and suggested checks, and other checks
