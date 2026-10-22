@@ -10,7 +10,7 @@ sources:
   - docs/cli/interface.md
 ---
 
-> These commands are in development and not in the current build; running one today exits 2 with an unknown-command error. The behavior and examples come from the [interface specification]({{ 'docs/cli/interface.md' | source }}), so the final output may differ in detail.
+> These commands are in development and not in the current build; running one today exits 2 with an unknown-command error. This page describes the planned behavior; the final output may differ in detail.
 
 A runtime is the agent product that runs sessions: Claude Code (`claude`) or Codex (`codex`). Each runtime gets small generated adapter files that point to the portable source in `docs/solomonar/`, never a second copy of it. Until these commands exist, choose runtimes with `init --runtime`.
 
