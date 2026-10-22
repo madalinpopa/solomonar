@@ -162,8 +162,7 @@ The design contracts live in this repository:
 | [`assets/framework/`](assets/framework/) | Framework behavior: rules, skills, and agent roles, installed as `docs/solomonar/`. |
 | [`docs/cli/interface.md`](docs/cli/interface.md) | The CLI contract: commands, flags, output, exit codes, and validation. |
 | [`docs/cli/architecture.md`](docs/cli/architecture.md) | How the binary is built: packages, decisions, and conventions. |
-| [`docs/cli/implementation-tasks.md`](docs/cli/implementation-tasks.md) | The staged implementation plan and its accepted decisions. |
-| [`docs/design/`](docs/design/) | Framework design notes, validation, and the review register. |
+| [`docs/design/`](docs/design/) | Framework design notes and validation. |
 
 ## Development
 
@@ -217,7 +216,7 @@ Contributions are welcome. Before you open a pull request:
 3. Add or update tests, and run `task check` until it passes.
 4. Write commit messages in [Conventional Commits](https://www.conventionalcommits.org/) form, such as `feat(cli): ...`, `fix(task): ...`, or `docs(site): ...`, with one logical change per commit.
 
-To report a problem, include the output of `solomonar version`, the command, the error code, and the relevant Git state, with secrets redacted. The [troubleshooting guide](https://solomonar.dev/docs/troubleshooting/#report-a-problem-with-evidence) lists what helps.
+To report a problem, include the output of `solomonar version`, the command, the error code, and the relevant Git state, with secrets redacted. The [troubleshooting guide](https://solomonar.dev/docs/troubleshooting/#report-a-problem-with-evidence) lists what helps. Report security problems privately as [`SECURITY.md`](SECURITY.md) describes.
 
 ### Releases
 
