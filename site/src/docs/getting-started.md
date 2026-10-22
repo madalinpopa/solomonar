@@ -24,7 +24,7 @@ You need:
 
 - macOS or Linux. Windows is not supported in v0.1.
 - Git 2.40 or later.
-- Go 1.27.3 or later, to build the CLI from source.
+- Go 1.27.3 or later, only to build the CLI from source.
 - Claude Code or Codex, to run the agent sessions.
 
 No model-provider API key is needed by the CLI itself.
@@ -42,14 +42,14 @@ After that, use the [workflow examples]({{ '/docs/use-cases/' | url }}) for ever
 
 ## What works today
 
-The framework contracts are defined at v0.1.0. The CLI is built in increments:
+Version 0.1.0 is the first release. The framework contracts are defined, and the CLI is built in increments:
 
 | Area | Status |
 | --- | --- |
-| `init` with the core framework and Claude Code or Codex adapters | Available |
+| `init`, interactive or with flags, with the core framework and Claude Code or Codex adapters | Available |
+| Extensions at `init`: the `go` extension | Available |
 | Task commands: `plan`, `register`, `show`, `status`, `move`, `block`, `unblock`, `handoff`, `done` | Available |
-| Interactive `init` prompts | Planned; use `--yes` or `--dry-run` |
-| Extensions at `init` and `extension` commands | Planned |
+| `extension` commands, project extensions, and more catalog extensions | Planned |
 | `doctor`, `sync`, `runtime`, `guard`, `upgrade`, `dashboard` | Planned |
 
 The [CLI reference]({{ '/docs/cli/#planned-commands' | url }}) keeps the full list of planned commands.
