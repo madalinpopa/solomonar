@@ -192,7 +192,7 @@ func TestInteractiveInitShowsTheGroupedPlan(t *testing.T) {
 	plan, _, ok = strings.Cut(plan, "Proceed? [Y/n] ")
 	require.True(t, ok, got.stdout)
 	assert.Equal(t,
-		"  framework 0.1.0\n"+
+		"  framework "+shipped+"\n"+
 			"    create     docs/solomonar/agents/ (6 roles)\n"+
 			"    create     docs/solomonar/report.md\n"+
 			"    create     docs/solomonar/reviewer.md\n"+
@@ -221,5 +221,5 @@ func TestInteractiveInitShowsTheGroupedPlan(t *testing.T) {
 			"    create     refs/heads/workflow-state with an empty state.json\n"+
 			"  manifest\n"+
 			"    create     .solomonar/manifest.json\n", plan)
-	assert.Contains(t, got.stdout, "Proceed? [Y/n] \nInitialized solomonar 0.1.0 in "+dir+"\n")
+	assert.Contains(t, got.stdout, "Proceed? [Y/n] \nInitialized solomonar "+shipped+" in "+dir+"\n")
 }
