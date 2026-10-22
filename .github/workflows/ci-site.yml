@@ -8,6 +8,11 @@ on:
     paths: ["site/**", "docs/logo/**", "docs/images/**", ".github/workflows/ci-site.yml"]
   workflow_dispatch:
   workflow_call:
+    secrets:
+      DOKPLOY_API_KEY:
+        required: true
+      DOKPLOY_COMPOSE_ID:
+        required: true
 
 permissions:
   contents: read
@@ -70,3 +75,17 @@ jobs:
           docker push "$IMAGE:sha-$GITHUB_SHA"
           docker tag "$IMAGE:sha-$GITHUB_SHA" "$IMAGE:latest"
           docker push "$IMAGE:latest"
+      # Dokploy's autodeploy would race this build, so the deploy is triggered only after the image is published.
+      - name: Deploy to Dokploy
+        if: github.event_name != 'pull_request'
+        env:
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+          DOKPLOY_COMPOSE_ID: ${{ secrets.DOKPLOY_COMPOSE_ID }}
+        run: |
+          jq -n --arg id "$DOKPLOY_COMPOSE_ID" --arg sha "$GITHUB_SHA" \
+            '{composeId: $id, title: "CI deploy", description: ("sha-" + $sha)}' |
+          curl --fail-with-body --silent --show-error \
+            -X POST https://coderustle.dev/api/compose.deploy \
+            -H "x-api-key: $DOKPLOY_API_KEY" \
+            -H "Content-Type: application/json" \
+            --data @-
