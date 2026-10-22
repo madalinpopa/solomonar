@@ -14,6 +14,8 @@ import (
 )
 
 func TestCLIVersionFromBuildInfo(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		raw  string
@@ -27,6 +29,8 @@ func TestCLIVersionFromBuildInfo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assert.Equal(t, tt.want, cliVersion(tt.raw))
 		})
 	}
@@ -51,6 +55,8 @@ func putManifestVersions(t *testing.T, dir, content string) {
 }
 
 func TestVersionReportsTheProject(t *testing.T) {
+	t.Parallel()
+
 	const current = `{"schema_version": 1, "framework_version": "0.1.0"}`
 	tests := []struct {
 		name     string
@@ -93,6 +99,8 @@ func TestVersionReportsTheProject(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir := gittest.NewRepo(t)
 			putManifestVersions(t, dir, tt.manifest)
 			if tt.registry != "" {
@@ -109,6 +117,8 @@ func TestVersionReportsTheProject(t *testing.T) {
 }
 
 func TestVersionWithoutProjectIsNotInitialized(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		repository bool
@@ -118,6 +128,8 @@ func TestVersionWithoutProjectIsNotInitialized(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir := t.TempDir()
 			if tt.repository {
 				dir, _ = registryRepo(t)
@@ -133,6 +145,8 @@ func TestVersionWithoutProjectIsNotInitialized(t *testing.T) {
 }
 
 func TestVersionJSONReportsTheProject(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		manifest string
@@ -158,6 +172,8 @@ func TestVersionJSONReportsTheProject(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			dir := gittest.NewRepo(t)
 			putManifestVersions(t, dir, tt.manifest)
 			if tt.registry != "" {
