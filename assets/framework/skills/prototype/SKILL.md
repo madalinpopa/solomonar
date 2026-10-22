@@ -10,33 +10,38 @@ Framework version: 0.1.0
 ## 1. Purpose and boundaries
 
 - The prototype is a discovery tool: evidence of intended behavior, never production code or approved requirements.
-- You may edit only `prototype/**`, the "Current objective" line of `docs/README.md` when no objective exists, and
-  its Mission and Intended users once the user confirms them (section 2).
-- You must not edit `docs/specs/`, `docs/work/`, `docs/decisions.md`, `docs/architecture.md`, `docs/stack.md`,
-  product code, or workflow state.
-- You must not decide production architecture or dependencies. No prototype choice approves either.
+- Edit only `prototype/**` and these parts of `docs/README.md`: an unset Current objective; user-confirmed
+  Mission and Intended users; the Documents entry for `prototype/README.md` after it exists.
+- No production code, real backend or service calls, integration with product code, build tooling, package
+  manifests, or installed packages. Prototype choices never approve production architecture or dependencies.
+- Use fictional data; never use real personal data, credentials, or secrets.
+- Ask only the next necessary question, one at a time. Reuse existing answers and approvals within their scope.
 
 ## 2. Start
 
-1. Read `docs/README.md` and `prototype/README.md` if present.
-2. No project objective: ask for one short objective (one question) and record it in `docs/README.md`
-   "Current objective". If `docs/README.md` is missing, record it in `prototype/README.md` and say so.
-   Mission and Intended users are user-owned: you may propose them here; record them only after the user confirms.
-3. Agree on the next useful flow; ask one question only if it is unclear. Architecture, stack, and layout may be
-   unknown: do not ask about them.
-4. Read `docs/solomonar/skills/prototype/template.md` only when creating `prototype/README.md` for the first time.
+1. Before editing, inspect `git rev-parse --show-toplevel`, `git branch --show-current`,
+   `git worktree list --porcelain`, and `git status --short`. Require the primary checkout on a named branch;
+   stop in linked worktrees or on `feature/*` or `workflow-state`. Preserve unrelated edits. If repository rules
+   forbid commits on the current branch, use `prototype/<topic>` in the primary checkout and tell the user.
+2. Read `docs/README.md` and `prototype/README.md` if present.
+3. Treat absent/empty objectives and unset placeholders (including "Not established.") as missing. Reuse an
+   objective supplied by the user or recorded in `prototype/README.md`; ask only if still unknown. Fill the
+   unset Current objective in `docs/README.md`; if that file is missing, record it in `prototype/README.md` and
+   say so. Mission and Intended users remain user-owned: propose them if useful, record only after confirmation.
+4. Select the next useful flow; ask only if unclear. Unknown architecture, stack, or layout does not block discovery.
+5. Load `docs/solomonar/skills/prototype/template.md` only when creating `prototype/README.md`. When that README
+   exists, add its Documents entry to `docs/README.md` if present; do not duplicate an existing entry.
 
 ## 3. Build rules
 
-- Vanilla HTML, CSS, and JS. It must open directly from the file system (`file://`): no build step, no package
-  install, no server. Use classic `<script src>` tags; no ES modules or `fetch` of local files.
+- Vanilla HTML, CSS, and JS, opened directly through `file://` without a server. Use classic `<script src>` tags;
+  no ES modules or `fetch` of local files.
 - Keep shared files minimal: `index.html` (flow index), `styles.css`, `app.js`, `data.js`, plus one HTML file
   per flow screen only when needed.
 - Start each flow with the smallest useful version: the main path plus the states needed to judge it.
 - Avoid libraries. If one is truly useful and the user agrees, vendor a single pinned file
   (`prototype/vendor/<name>-<version>.js`) and list it as prototype-only in the README. It is never an approved
   dependency.
-- Sample data must be fictional. Never use real personal data, credentials, or secrets.
 - Simulate every backend or external service in memory or `localStorage`. Mark each with a `SIMULATED: <what>`
   code comment and list it under "Simulated behavior". A request for a real integration (e.g. a payment API) gets
   a simulation instead; record the real integration as a non-blocking open question.
@@ -44,10 +49,18 @@ Framework version: 0.1.0
   that matter to it. Give each such state a visible trigger (e.g. a sample record or a toggle).
 - Use semantic HTML (`form`, `label`, `button`, headings). Keep styling plain unless the user asks for visual
   exploration.
-- Framework artifacts (README, commits, open questions) are English. UI copy follows the product's intended
-  language; if unknown, use the user's language and record it as a non-blocking open question.
+- UI copy follows the product's intended language; if unknown, use the user's language and record it as a
+  non-blocking open question. Framework artifacts follow `AGENTS.md`'s language policy.
 
 ## 4. Discovery loop
+
+After each change, verify before presenting a preview or committing:
+
+- Open `prototype/index.html` through `file://`; exercise the flow's documented steps and relevant failure,
+  empty, and permission states. Recheck flows affected by shared-file changes.
+- Check navigation, local asset loading, and browser errors; fix introduced defects.
+- Report checks and verification limits with the preview or handoff. If browser access is unavailable, state
+  what remains unverified; do not claim browser verification.
 
 1. Build or adjust the smallest change that lets the user try the current flow.
 2. Tell the user how to try it: file path, flow ID, numbered steps, and how to reach the non-happy states.
@@ -71,32 +84,26 @@ Framework version: 0.1.0
 - Record each intentional change as: date (YYYY-MM-DD) · flow ID · change · reason (user decision or observed
   problem). Defect fixes and internal refactoring are not recorded.
 - Set `ready for spec` only after the user confirms the flow. `draft` flows may live on the main branch.
+- Before changing a ready flow's behavior, including through shared files, reset it to `draft`. Preserve IDs.
+  Restore readiness only after confirmation of the changed behavior.
 - Files of a `superseded` flow may be deleted; its README row stays.
 
 ## 6. Commits
 
-- English messages: `prototype(<flow-id>): <summary>`. Keep one flow per commit when practical. README-only or
+- Messages: `prototype(<flow-id>): <summary>`. Keep one flow per commit when practical. README-only or
   multi-flow commits: `prototype: <summary>`.
-- Stage only the files section 1 allows, by path. Never sweep in unrelated changes.
-- Commit in the main checkout's current branch. If `AGENTS.md` or the repository rules forbid direct commits
-  there, use a `prototype/<topic>` branch and tell the user.
-- Never commit inside a feature worktree (a `feature/*` branch or a linked worktree): stop and tell the user.
+- Commit only intended changes allowed by section 1, selected by path, on the branch established at startup.
+  Inspect the staged diff; preserve unrelated staged changes. Skip the commit when nothing relevant changed.
 - Never push unless the user asks.
 
 ## 7. Handoff to `spec`
 
 1. When the user is ready, confirm which flows are ready (one question if unclear).
-2. Set them to `ready for spec`, update `prototype/README.md`, and commit.
-3. Give one reference per flow, using the full SHA of that commit (`git rev-parse HEAD`):
+2. Verify the selected flows (section 4), set them to `ready for spec`, and update `prototype/README.md`.
+   Commit relevant changes (section 6); when unchanged, reuse the existing committed snapshot.
+3. Resolve the full SHA with `git rev-parse HEAD`. Check `git show "<SHA>:prototype/README.md"` for each selected
+   flow's `ready for spec` record and `git show "<SHA>:prototype/<entry file>"` for its entry file. Do not hand
+   off uncommitted prototype changes. Give one reference per flow:
    `<full commit SHA>:prototype/<entry file>, flow <flow-id>`.
-4. List the open questions for those flows, blocking ones first.
+4. List the open questions for those flows, blocking ones first, and any verification limits.
 5. State the next action: run the `spec` skill with these references. Do not write specs yourself.
-
-## 8. Never
-
-- Never write production code or a real backend, or wire the prototype into product code.
-- Never make real external calls or use real credentials, keys, or personal data.
-- Never add build tooling, package manifests, or installed packages.
-- Never ask more than one question at a time.
-- Never treat a prototype library, simulation, or structure as approved architecture or a dependency.
-- Never edit files outside section 1's allowed set.
