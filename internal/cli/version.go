@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"runtime/debug"
 	"strings"
 
 	"github.com/madalinpopa/solomonar/internal/git"
@@ -29,12 +28,12 @@ func runVersion(ctx context.Context, env Env, flags sharedFlags, args []string) 
 	if err != nil {
 		return output{}, err
 	}
-	data := versionData{CLI: cliVersion(buildVersion()), Framework: framework}
+	data := versionData{CLI: framework, Framework: framework}
 	line, err := projectVersions(ctx, env, flags, &data)
 	if err != nil {
 		return output{}, err
 	}
-	text := fmt.Sprintf("solomonar %s (embedded framework %s)\nproject   %s\n", data.CLI, data.Framework, line)
+	text := fmt.Sprintf("solomonar %s\nproject   %s\n", data.CLI, line)
 	return output{data: data, text: text}, nil
 }
 
@@ -104,21 +103,6 @@ func readManifestFile(dir string) ([]byte, error) {
 func isRejection(err error, code string) bool {
 	rejection, ok := rejectionError("version", err)
 	return ok && rejection.Code == code
-}
-
-func buildVersion() string {
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
-		return ""
-	}
-	return info.Main.Version
-}
-
-func cliVersion(raw string) string {
-	if raw == "" || raw == "(devel)" {
-		return "devel"
-	}
-	return strings.TrimPrefix(raw, "v")
 }
 
 func frameworkVersion(assets fs.FS) (string, error) {
