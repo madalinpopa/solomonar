@@ -58,7 +58,7 @@ A task's work specification lives only as long as the task. At closure, a separa
 
 ### A small core that grows with the project
 
-The core holds only the process: its rules, four skills, and the roles that implement and review. It names no language, library, or stack, so a new project starts without assumptions it would later have to undo. BMAD ships a full product-planning process and Kiro a complete editor from day one; Solomonar starts with the minimum that keeps a task honest.
+The core holds only the process: its rules, four skills, and the roles that implement and review. It is tied to no language, library, or stack, so a new project starts without assumptions it would later have to undo. BMAD ships a full product-planning process and Kiro a complete editor from day one; Solomonar starts with the minimum that keeps a task honest.
 
 Everything else arrives as the project needs it. Extensions add the rules of a language, library, or practice, a supporting procedure, or an extra reviewer. Adopting a stack extension records an architecture decision, so the agents' knowledge follows the stack you approved rather than a default. Your own rules join the same way: approved specifications and the `must` rules of installed extensions bind every implementer and reviewer.
 
