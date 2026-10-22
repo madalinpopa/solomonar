@@ -10,7 +10,7 @@ sources:
   - docs/cli/interface.md
 ---
 
-> This command is in development and not in the current build; running it today exits 2 with an unknown-command error. The behavior and examples come from the [interface specification]({{ 'docs/cli/interface.md' | source }}), so the final output may differ in detail.
+> This command is in development and not in the current build; running it today exits 2 with an unknown-command error. This page describes the planned behavior; the final output may differ in detail.
 
 Regenerates the runtime adapter files from the portable source in `docs/solomonar/`, re-renders the catalog extensions whose combined rules depend on the installed set, and updates the "Extensions" section of `AGENTS.md`. Draft extensions are excluded.
 
