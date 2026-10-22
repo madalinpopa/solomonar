@@ -1,7 +1,7 @@
 ---
 title: CLI commands and flags
 navTitle: CLI commands
-description: Reference every Solomonar CLI command available today, including init and the task commands, with global flags, dry runs, JSON output, and planned commands.
+description: Reference every Solomonar CLI command available today, including init with extensions and the task commands, with global flags, dry runs, JSON output, and planned commands.
 kind: Reference
 group: Reference
 order: 11
@@ -22,7 +22,7 @@ These commands are present in the current implementation. Use `solomonar help` f
 | --- | --- | --- |
 | `help` | Print help; `-h` and `--help` are equivalent. | No |
 | `version` | Print CLI, embedded framework, and project versions. | No |
-| `init` | Install the framework core and runtime adapters, and create the registry. | No |
+| `init` | Install the framework core, runtime adapters, and extensions, and create the registry. | No |
 | `task plan` | Create a planned task with the next free ID. | Yes |
 | `task register` | Reserve a task for one orchestrator. | Yes |
 | `task show` | Read the stored registry or one task. | Yes |
@@ -39,7 +39,7 @@ Task commands need a project prepared with `init`. Agents run the writing task c
 
 ```text
 solomonar init [<dir>] [--name <name>] [--objective <text>]
-               [--runtime <claude|codex|none>]... [--ext none]
+               [--runtime <claude|codex|none>]... [--ext <name|none>]...
                [--adversarial-model <runtime>=<model>]...
                [--main-branch <name>] [--remote <name>]
                [--keep <path>]... [--overwrite <path>]...
@@ -51,13 +51,15 @@ solomonar init [<dir>] [--name <name>] [--objective <text>]
 | `--name` | Project name; defaults to the directory name. |
 | `--objective` | Current objective written to `docs/README.md`. |
 | `--runtime` | `claude`, `codex`, or `none`; repeatable or comma-separated. Defaults to the runtimes found on `PATH`. |
-| `--ext` | Only `none` is accepted until extensions ship. |
+| `--ext` | Extensions to install, repeatable or comma-separated, or `none`. The catalog holds `go`. Defaults to `go` when the repository root has a `go.mod`, otherwise none. |
 | `--adversarial-model` | Model for the adversarial reviewer of one runtime, such as `claude=<model>`. |
 | `--main-branch`, `--remote` | Defaults: `main` and `origin`. |
 | `--keep`, `--overwrite` | Resolve one conflicting file; one path per flag. |
 | `--git-init` | Run `git init -b <main-branch>` when the directory is not a repository. |
-| `-y`, `--yes` | Accept the plan without a prompt. Required without a terminal. |
+| `-y`, `--yes` | Accept the plan without prompts. Required without a terminal. |
 | `--dry-run` | Print the plan and write nothing. |
+
+In a terminal, without `--yes` or `--json`, `init` asks for each choice whose flag you did not pass, shows the plan, and asks `Proceed?` before it writes. Each choice of a stack extension is recorded as your approved decision in `docs/decisions.md` and `docs/stack.md`.
 
 A re-run with the same choices and unchanged files is a no-op. A re-run never changes a recorded choice. See [Set up a project]({{ '/docs/set-up-a-project/' | url }}) for a walkthrough.
 
@@ -124,9 +126,10 @@ These are interface contracts, not commands available in the current build.
 
 | Delivery increment | Planned |
 | --- | --- |
-| Remainder of increment 1 | Extensions at `init` (`--ext <name>`), interactive `init` prompts |
-| Increment 2 | `doctor`, `sync`, `runtime list/add/remove`, `extension list/show/add/remove/new` (alias `ext`), `guard` |
+| Increment 2 | `doctor`, `sync`, `runtime list/add/remove`, `extension list/show/add/remove/new` (alias `ext`), project extensions from a local path, `guard` and its runtime hooks |
 | Increment 3 | `upgrade`, `dashboard` |
+
+The `htmx`, `templ`, and `tdd` extensions of the interface catalog are added once their framework content is written.
 
 The read-only dashboard is a planned local view of the registry, not this documentation website. Windows, model calls, a daemon, and independently writable registry clones are outside the v0.1 scope.
 
