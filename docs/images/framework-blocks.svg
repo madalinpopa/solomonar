@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="dg" width="960" height="676" viewBox="0 0 960 676" role="img" aria-label="The building blocks of Solomonar: runtime adapters for Claude Code and Codex load the framework core in docs/solomonar/, its contracts, skills, and agent roles; optional extensions add stack rules and extra reviewers; skills write the project documents every role reads; and the orchestrator changes task state only through the solomonar CLI, which keeps the registry in Git.">
+<style>
+svg {
+  --bg: #F2F4F1; --surface: #FFFFFF; --ink: #18211E; --muted: #56625D; --line: #9AA7A1; --grid: #DDE3DF;
+  --acc: #1D6B86; --acc-soft: #DCEBF0; --warn: #A85A12; --warn-soft: #F6E7D6;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { svg {
+  --bg: #121816; --surface: #1B2320; --ink: #E4EBE7; --muted: #9BA9A3; --line: #5C6B64; --grid: #26302C;
+  --acc: #6CB8D3; --acc-soft: #173440; --warn: #E09A55; --warn-soft: #3A2A1A; color-scheme: dark; } }
+
+
+
+svg { font-family: var(--sans); }
+.bg { fill: var(--surface); }
+/* diagram vocabulary */
+.dg text { font-family: var(--sans); }
+.dg .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+.dg .box-acc { fill: var(--acc-soft); stroke: var(--acc); stroke-width: 1.25; }
+.dg .box-warn { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.25; }
+.dg .frame { fill: var(--bg); stroke: var(--line); stroke-width: 1; stroke-dasharray: 4 4; }
+.dg .t { font-size: 14px; font-weight: 600; fill: var(--ink); }
+.dg .t-sm { font-size: 12px; font-weight: 500; fill: var(--ink); }
+.dg .s { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.dg .s-acc { font-family: var(--mono); font-size: 11px; fill: var(--acc); font-weight: 500; }
+.dg .s-warn { font-family: var(--mono); font-size: 11px; fill: var(--warn); font-weight: 500; }
+.dg .lbl { font-size: 11.5px; fill: var(--muted); }
+.dg .lbl-warn { font-size: 11.5px; fill: var(--warn); font-weight: 500; }
+.dg .ph { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; fill: var(--muted); }
+.dg .rule { stroke: var(--line); stroke-width: 1; }
+.dg .lane { stroke: var(--grid); stroke-width: 2; }
+.dg .lane-strong { stroke: var(--line); stroke-width: 2.5; fill: none; }
+.dg .e { stroke: var(--ink); stroke-width: 1.4; fill: none; }
+.dg .e-acc { stroke: var(--acc); stroke-width: 1.4; fill: none; }
+.dg .e-warn { stroke: var(--warn); stroke-width: 1.4; fill: none; }
+.dg .dash { stroke-dasharray: 5 4; }
+.dg .mk { fill: var(--ink); }
+.dg .mk-acc { fill: var(--acc); }
+.dg .mk-warn { fill: var(--warn); }
+.dg .dot { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+.dg .dot-acc { fill: var(--acc); stroke: var(--acc); stroke-width: 1.5; }
+.dg .dot-warn { fill: var(--warn); stroke: var(--warn); stroke-width: 1.5; }
+.dg .bar { fill: var(--acc-soft); stroke: var(--acc); stroke-width: 1; }
+.dg .bar-warn { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1; }
+.dg .bar-t { font-size: 11px; fill: var(--ink); }
+.dg .ink { fill: var(--ink); }
+</style>
+<rect class="bg" width="960" height="676"/>
+<defs><marker id="ba" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="mk"/></marker></defs>
+<rect class="frame" x="20" y="20" width="920" height="84" rx="6"/>
+<text class="ph" x="36" y="42">RUNTIME ADAPTERS <tspan class="s" letter-spacing="0">generated stubs, no content of their own</tspan></text>
+<rect class="box" x="36" y="50" width="436" height="42" rx="4"/>
+<text class="t-sm" x="254.0" y="69" text-anchor="middle">Claude Code</text>
+<text class="s" x="254.0" y="85" text-anchor="middle">CLAUDE.md · .claude/skills/ · .claude/agents/</text>
+<rect class="box" x="488" y="50" width="436" height="42" rx="4"/>
+<text class="t-sm" x="706.0" y="69" text-anchor="middle">Codex</text>
+<text class="s" x="706.0" y="85" text-anchor="middle">.agents/skills/ · .codex/agents/</text>
+<path class="e" d="M400 104 V138" marker-end="url(#ba)"/>
+<text class="lbl" x="410" y="125">each stub loads its portable file</text>
+<rect class="frame" x="20" y="140" width="620" height="250" rx="6"/>
+<text class="ph" x="36" y="162">FRAMEWORK CORE <tspan class="s" letter-spacing="0">docs/solomonar/</tspan></text>
+<text class="t" x="36" y="186">Agent roles</text>
+<rect class="box-acc" x="36" y="196" width="188" height="24" rx="4"/>
+<text class="t-sm" x="46" y="212">orchestrator</text>
+<text class="s" x="214" y="212" text-anchor="end">decides</text>
+<rect class="box" x="36" y="225" width="188" height="24" rx="4"/>
+<text class="t-sm" x="46" y="241">implementer</text>
+<text class="s" x="214" y="241" text-anchor="end">builds</text>
+<rect class="box" x="36" y="254" width="188" height="24" rx="4"/>
+<text class="t-sm" x="46" y="270">security-reviewer</text>
+<rect class="box" x="36" y="283" width="188" height="24" rx="4"/>
+<text class="t-sm" x="46" y="299">correctness-reviewer</text>
+<rect class="box" x="36" y="312" width="188" height="24" rx="4"/>
+<text class="t-sm" x="46" y="328">spec-reviewer</text>
+<rect class="box" x="36" y="341" width="188" height="24" rx="4"/>
+<text class="t-sm" x="46" y="357">adversarial-reviewer</text>
+<text class="s" x="214" y="357" text-anchor="end">tier 2</text>
+<text class="t" x="236" y="186">Skills</text>
+<rect class="box" x="236" y="196" width="188" height="24" rx="4"/>
+<text class="t-sm" x="246" y="212">solomonar</text>
+<text class="s" x="414" y="212" text-anchor="end">entry point</text>
+<rect class="box" x="236" y="225" width="188" height="24" rx="4"/>
+<text class="t-sm" x="246" y="241">prototype</text>
+<text class="s" x="414" y="241" text-anchor="end">discover</text>
+<rect class="box" x="236" y="254" width="188" height="24" rx="4"/>
+<text class="t-sm" x="246" y="270">spec</text>
+<text class="s" x="414" y="270" text-anchor="end">record behavior</text>
+<rect class="box" x="236" y="283" width="188" height="24" rx="4"/>
+<text class="t-sm" x="246" y="299">work-spec</text>
+<text class="s" x="414" y="299" text-anchor="end">one task</text>
+<text class="t" x="436" y="186">Contracts</text>
+<rect class="box" x="436" y="196" width="188" height="24" rx="4"/>
+<text class="t-sm" x="446" y="212">rules.md</text>
+<text class="s" x="614" y="212" text-anchor="end">orchestrator</text>
+<rect class="box" x="436" y="225" width="188" height="24" rx="4"/>
+<text class="t-sm" x="446" y="241">report.md</text>
+<text class="s" x="614" y="241" text-anchor="end">every role</text>
+<rect class="box" x="436" y="254" width="188" height="24" rx="4"/>
+<text class="t-sm" x="446" y="270">reviewer.md</text>
+<text class="s" x="614" y="270" text-anchor="end">reviewers</text>
+<rect class="frame" x="700" y="140" width="240" height="250" rx="6"/>
+<text class="ph" x="716" y="162">EXTENSIONS <tspan class="s" letter-spacing="0">optional</tspan></text>
+<text class="t" x="716" y="186">Skills</text>
+<rect class="box" x="716" y="196" width="208" height="24" rx="4"/>
+<text class="t-sm" x="726" y="212">go</text>
+<text class="s" x="914" y="212" text-anchor="end">language rules</text>
+<rect class="box dash" x="716" y="225" width="208" height="24" rx="4"/>
+<text class="t-sm" x="726" y="241">htmx · templ · tdd</text>
+<text class="s" x="914" y="241" text-anchor="end">planned</text>
+<text class="t" x="716" y="272">Agents</text>
+<rect class="box dash" x="716" y="282" width="208" height="24" rx="4"/>
+<text class="t-sm" x="726" y="298">extra reviewers</text>
+<text class="s" x="914" y="298" text-anchor="end">your own</text>
+<text class="lbl" x="716" y="334">Loaded when applies_when</text>
+<text class="lbl" x="716" y="350">matches the change; rules</text>
+<text class="lbl" x="716" y="366">are cited as name/C-n.</text>
+<path class="e" d="M700 265 H642" marker-end="url(#ba)"/>
+<text class="lbl" x="671" y="257" text-anchor="middle">extends</text>
+<rect class="frame" x="220" y="430" width="720" height="96" rx="6"/>
+<text class="ph" x="236" y="452">PROJECT DOCUMENTS <tspan class="s" letter-spacing="0">the shared book every role reads</tspan></text>
+<rect class="box" x="236" y="464" width="128" height="44" rx="4"/>
+<text class="t-sm" x="300.0" y="483" text-anchor="middle">AGENTS.md</text>
+<text class="s" x="300.0" y="499" text-anchor="middle">routes, extensions</text>
+<rect class="box" x="376" y="464" width="128" height="44" rx="4"/>
+<text class="t-sm" x="440.0" y="483" text-anchor="middle">docs/README.md</text>
+<text class="s" x="440.0" y="499" text-anchor="middle">product, commands</text>
+<rect class="box" x="516" y="464" width="128" height="44" rx="4"/>
+<text class="t-sm" x="580.0" y="483" text-anchor="middle">docs/specs/</text>
+<text class="s" x="580.0" y="499" text-anchor="middle">agreed behavior</text>
+<rect class="box" x="656" y="464" width="128" height="44" rx="4"/>
+<text class="t-sm" x="720.0" y="483" text-anchor="middle">docs/work/</text>
+<text class="s" x="720.0" y="499" text-anchor="middle">one task's spec</text>
+<rect class="box" x="796" y="464" width="128" height="44" rx="4"/>
+<text class="t-sm" x="860.0" y="483" text-anchor="middle">docs/decisions.md</text>
+<text class="s" x="860.0" y="499" text-anchor="middle">approvals</text>
+<path class="e" d="M330 390 V428" marker-end="url(#ba)"/>
+<text class="lbl" x="340" y="414">skills write, reviewers check against</text>
+<rect class="frame" x="20" y="566" width="920" height="90" rx="6"/>
+<text class="ph" x="36" y="588">SOLOMONAR CLI <tspan class="s" letter-spacing="0">never calls a model</tspan></text>
+<rect class="box" x="36" y="598" width="288" height="44" rx="4"/>
+<text class="t-sm" x="180.0" y="617" text-anchor="middle">solomonar init</text>
+<text class="s" x="180.0" y="633" text-anchor="middle">installs the core, adapters, extensions</text>
+<rect class="box-acc" x="336" y="598" width="288" height="44" rx="4"/>
+<text class="t-sm" x="480.0" y="617" text-anchor="middle">solomonar task …</text>
+<text class="s" x="480.0" y="633" text-anchor="middle">checks each state change against Git</text>
+<rect class="box" x="636" y="598" width="288" height="44" rx="4"/>
+<text class="t-sm" x="780.0" y="617" text-anchor="middle">workflow-state branch</text>
+<text class="s" x="780.0" y="633" text-anchor="middle">the task registry, in Git</text>
+<path class="e" d="M100 390 V564" marker-end="url(#ba)"/>
+<text class="lbl" x="110" y="472">orchestrator</text>
+<text class="lbl" x="110" y="488">records state</text>
+</svg>
