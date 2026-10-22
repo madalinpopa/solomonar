@@ -9,6 +9,8 @@ import (
 )
 
 func TestRegisterAllocatesNextIDAsReserved(t *testing.T) {
+	t.Parallel()
+
 	registry := NewRegistry()
 	registry.Tasks["W-001"] = plannedTask("first")
 
@@ -27,6 +29,8 @@ func TestRegisterAllocatesNextIDAsReserved(t *testing.T) {
 }
 
 func TestRegisterClaimsPlannedTask(t *testing.T) {
+	t.Parallel()
+
 	registry := NewRegistry()
 	registry.Tasks["W-003"] = plannedTask("Export")
 
@@ -40,6 +44,8 @@ func TestRegisterClaimsPlannedTask(t *testing.T) {
 }
 
 func TestRegisterReferences(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		reg         Registration
@@ -55,6 +61,8 @@ func TestRegisterReferences(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			registry := doneTasks("W-001", "W-002")
 			planned := plannedTask("Export")
 			planned.DependsOn, planned.RelatedTask = []string{"W-001"}, "W-001"
@@ -71,6 +79,8 @@ func TestRegisterReferences(t *testing.T) {
 }
 
 func TestRegisterNextAction(t *testing.T) {
+	t.Parallel()
+
 	registry := NewRegistry()
 
 	_, _, _, err := registry.Register(
@@ -81,6 +91,8 @@ func TestRegisterNextAction(t *testing.T) {
 }
 
 func TestRegisterWarnsAboutTitleChangeThenOpenDependencies(t *testing.T) {
+	t.Parallel()
+
 	registry := doneTasks("W-001")
 	registry.Tasks["W-002"] = plannedTask("second")
 	registry.Tasks["W-003"] = plannedTask("Export")
@@ -98,6 +110,8 @@ func TestRegisterWarnsAboutTitleChangeThenOpenDependencies(t *testing.T) {
 }
 
 func TestRegisterRejects(t *testing.T) {
+	t.Parallel()
+
 	valid := Registration{Title: "Login", Owner: "orchestrator-1"}
 	with := func(edit func(*Registration)) Registration {
 		reg := valid
@@ -123,6 +137,8 @@ func TestRegisterRejects(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			registry := NewRegistry()
 			registry.Tasks["W-001"] = moving(StatusPaused, StageSetup, nil)
 			registry.Tasks["W-001"].Owner = "orchestrator-7"
@@ -140,6 +156,8 @@ func TestRegisterRejects(t *testing.T) {
 }
 
 func TestRegisterReusesOwnerOfCancelledTask(t *testing.T) {
+	t.Parallel()
+
 	registry := doneTasks("W-001")
 	registry.Tasks["W-002"] = moving(StatusCancelled, StageSetup, nil)
 
