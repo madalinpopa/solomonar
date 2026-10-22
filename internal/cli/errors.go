@@ -59,7 +59,8 @@ func rejectedAs(command string, err error) error {
 	return err
 }
 
-// rejectionError finds a task or project rejection in err; both share one shape (architecture §6).
+// rejectionError finds a task or project rejection in err; both share one shape
+// (architecture section 6).
 func rejectionError(command string, err error) (*Error, bool) {
 	if rejection, ok := errors.AsType[*task.Rejection](err); ok {
 		return newRejectionError(command, *rejection, rejection), true

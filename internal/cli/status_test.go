@@ -75,7 +75,7 @@ func TestTaskStatusUC16(t *testing.T) {
 		"  checks  unknown (no PR)\n"+
 		"drift\n"+
 		"  head_ahead_of_revision  HEAD is 1 commit past the recorded revision\n"+
-		"  dirty_worktree          1 uncommitted path; preserve it (rules §10)\n"+
+		"  dirty_worktree          1 uncommitted path; preserve it (rules section 10)\n"+
 		"allowed next\n"+
 		"  solomonar task move W-001 --as orchestrator-1 --stage implementation --next <actor>:<action>\n"+
 		"  solomonar task move W-001 --as orchestrator-1 --stage adversarial_review\n"+
@@ -114,7 +114,7 @@ func TestTaskStatusJSON(t *testing.T) {
 			},
 			"drift": [
 				{"code": "head_ahead_of_revision", "message": "HEAD is 1 commit past the recorded revision"},
-				{"code": "dirty_worktree", "message": "1 uncommitted path; preserve it (rules §10)"}
+				{"code": "dirty_worktree", "message": "1 uncommitted path; preserve it (rules section 10)"}
 			],
 			"allowed_next": [
 				"solomonar task move W-001 --as orchestrator-1 --stage implementation --next <actor>:<action>",

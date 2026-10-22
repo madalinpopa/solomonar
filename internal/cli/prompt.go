@@ -17,7 +17,7 @@ const (
 
 var errInputClosed = errors.New("read answer: input closed")
 
-// prompter asks the user questions on one shared input stream (I §3.7).
+// prompter asks the user questions on one shared input stream (I section 3.7).
 type prompter struct {
 	in      *bufio.Reader
 	out     io.Writer

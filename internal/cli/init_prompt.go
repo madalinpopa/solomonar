@@ -16,7 +16,8 @@ import (
 // errDeclined is a declined question that cancels init before it writes anything.
 var errDeclined = errors.New("init declined")
 
-// initPrompts asks for the init choices and the confirmation in a terminal session (I §3.7, UC-1).
+// initPrompts asks for the init choices and the confirmation in a terminal session
+// (I section 3.7, UC-1).
 type initPrompts struct {
 	*prompter
 	asked bool
@@ -180,7 +181,7 @@ func (a *initPrompts) cancelOn(err error, warnings []warning) (output, error) {
 	return output{}, err
 }
 
-// cancelled ends the declined question's block and reports that init wrote nothing (I §3.7).
+// cancelled ends the declined question's block and reports that init wrote nothing (I section 3.7).
 func (a *initPrompts) cancelled(warnings []warning) output {
 	fmt.Fprintln(a.out)
 	return output{text: "Cancelled; nothing was written.\n", warnings: warnings}

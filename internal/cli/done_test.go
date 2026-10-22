@@ -247,7 +247,7 @@ func TestTaskDoneRejectsSquashMerge(t *testing.T) {
 	assert.Equal(t, "error: task done W-001 rejected (merge_not_merge_commit)\n"+
 		"  check: the merge is a merge commit\n"+
 		"  found: "+f.merge[:8]+" has one parent\n"+
-		"  fix:   spec_ref cannot survive; report to the user (rules §11)\n"+
+		"  fix:   spec_ref cannot survive; report to the user (rules section 11)\n"+
 		"nothing was written\n", got.stderr)
 	assert.Equal(t, before, registryTip(t, f.dir))
 }

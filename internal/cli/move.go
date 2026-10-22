@@ -225,7 +225,7 @@ func moveSummary(header, id string, result task.MoveResult, record *task.Record,
 		if record.PR != "" {
 			kept = "branch feature/" + id + ", its worktree, and PR are"
 		}
-		fmt.Fprintf(&b, "  note: %s kept untouched (rules §10)\n", kept)
+		fmt.Fprintf(&b, "  note: %s kept untouched (rules section 10)\n", kept)
 	}
 	fmt.Fprintf(&b, "  %s\n", result.Subject)
 	return b.String()
@@ -282,7 +282,7 @@ func specText(spec, found string) string {
 	}
 }
 
-// tierText names the review stages a tier runs (rules §7).
+// tierText names the review stages a tier runs (rules section 7).
 func tierText(tier int) string {
 	switch tier {
 	case 0:

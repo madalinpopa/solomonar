@@ -156,14 +156,14 @@ func TestTaskMovePauseCancelAndResume(t *testing.T) {
 			name: "cancel", args: []string{"--status", "cancelled", "--next", "user:Superseded by W-005"},
 			stdout: "W-001  running/implementation → cancelled/implementation\n" +
 				"  next  user: Superseded by W-005\n" +
-				"  note: branch feature/W-001 and its worktree are kept untouched (rules §10)\n" +
+				"  note: branch feature/W-001 and its worktree are kept untouched (rules section 10)\n" +
 				"  state(W-001): cancelled/implementation, status cancelled, next user\n",
 		},
 		{
 			name: "resume cancelled", args: []string{"--status", "running", "--resume-cancelled"},
 			stdout: "W-001  cancelled/implementation → running/implementation\n" +
 				"  state(W-001): running/implementation, status running\n",
-			stderr: "warning: resuming a cancelled task requires the user's explicit instruction (rules §7)\n",
+			stderr: "warning: resuming a cancelled task requires the user's explicit instruction (rules section 7)\n",
 		},
 	}
 	for _, tt := range tests {
@@ -190,7 +190,7 @@ func TestTaskMoveCancelKeepsPR(t *testing.T) {
 		"--next", "user:Superseded")
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Contains(t, got.stdout, "\n  note: branch feature/W-001, its worktree, and PR are kept untouched (rules §10)\n")
+	assert.Contains(t, got.stdout, "\n  note: branch feature/W-001, its worktree, and PR are kept untouched (rules section 10)\n")
 }
 
 func TestTaskMoveUnchangedWritesNothing(t *testing.T) {
@@ -348,7 +348,7 @@ func TestTaskMoveRejections(t *testing.T) {
 			},
 			args: []string{"W-001", "--as", "orchestrator-1", "--stage", "adversarial_review"}, exit: 3,
 			stderr: "error: task move W-001 rejected (stage_not_allowed)\n" +
-				"  check: tier 1 skips adversarial_review (rules §7)\n" +
+				"  check: tier 1 skips adversarial_review (rules section 7)\n" +
 				"  found: specialized_review -> adversarial_review\n" +
 				"  fix:   --stage integration, or record tier 2 if the triage changed: --tier 2\n" +
 				"nothing was written\n",

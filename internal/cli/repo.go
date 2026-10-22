@@ -13,7 +13,7 @@ import (
 	"github.com/madalinpopa/solomonar/internal/task"
 )
 
-// defaultRemote and defaultMainBranch apply only when the worktree has no manifest (I §3.2).
+// defaultRemote and defaultMainBranch apply only when the worktree has no manifest (I section 3.2).
 const (
 	defaultRemote     = "origin"
 	defaultMainBranch = "main"
