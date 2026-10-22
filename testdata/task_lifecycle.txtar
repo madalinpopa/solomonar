@@ -1,0 +1,80 @@
+# A task goes from plan to done through the binary, pushing every registry commit to the remote.
+exec git init -q --bare remote.git
+exec git init -q -b main ledger
+cd ledger
+exec git remote add origin ../remote.git
+exec solomonar init --runtime none --ext none --yes
+stdout '^  pushed    origin/workflow-state$'
+exec git add -A
+exec git commit -q -m 'chore: initialize solomonar'
+
+exec solomonar task plan --title Login
+stdout '^Planned W-001: Login$'
+stdout '· pushed origin/workflow-state$'
+
+exec solomonar task register W-001 --title Login --owner orchestrator-1
+stdout '^  status    reserved / setup$'
+stdout '^Registration confirmed\. The next task may start\.$'
+
+exec solomonar task show
+stdout '^W-001  reserved   setup  orchestrator-1  '
+
+# The owner comes from SOLOMONAR_OWNER in the process environment.
+exec git worktree add -q -b feature/W-001 ../W-001
+env SOLOMONAR_OWNER=orchestrator-1
+exec solomonar task move W-001 --status running --stage specification
+stdout '^W-001  reserved/setup → running/specification$'
+
+# From the linked worktree, the same registry is read and written.
+cd ../W-001
+mkdir docs/work
+cp ../spec.md docs/work/W-001-login.md
+exec git add docs
+exec git commit -q -m 'spec(W-001): settle login'
+exec git rev-parse HEAD
+capture SPEC
+exec solomonar task move W-001 --spec docs/work/W-001-login.md --stage implementation
+stdout '^W-001  running/specification → running/implementation$'
+
+cp ../login.go login.go
+exec git add login.go
+exec git commit -q -m 'feat: login'
+exec git rev-parse HEAD
+capture REVISION
+exec solomonar task move W-001 --revision $REVISION --tier 0 --stage integration --pr 42
+stdout '^  revision  '$REVISION' \(on feature/W-001\)$'
+
+cd ../ledger
+exec git merge -q --no-ff -m 'Merge W-001' feature/W-001
+exec git rev-parse HEAD
+capture MERGE
+exec solomonar task status W-001 --no-forge
+stdout '^  merged_not_done  feature/W-001 is merged into main but the record is not done$'
+
+exec solomonar task done W-001 --merge $MERGE --spec-ref $SPEC:docs/work/W-001-login.md --summary 'Password login'
+stdout '^W-001  running/integration → done/complete$'
+! stderr .
+
+exec solomonar task show W-001
+stdout '"status": "done"'
+stdout '"merge_commit": "'$MERGE'"'
+
+# The registry history has one commit per write, and the remote has its tip.
+exec git log --format=%s refs/heads/workflow-state
+stdout -count=7 '^state'
+stdout '^state: initialize registry$'
+stdout '^state\(W-001\): planned, plan "Login"$'
+stdout '^state\(W-001\): reserved/setup, registered by orchestrator-1$'
+stdout '^state\(W-001\): running/specification, status running, stage specification$'
+stdout '^state\(W-001\): running/implementation, stage implementation, spec docs/work/W-001-login.md$'
+stdout '^state\(W-001\): running/integration, stage integration, revision [0-9a-f]{7}, tier 0, pr 42$'
+stdout '^state\(W-001\): done/complete, merged [0-9a-f]{7}$'
+exec git rev-parse refs/heads/workflow-state
+capture TIP
+exec git ls-remote ../remote.git refs/heads/workflow-state
+stdout '^'$TIP'\s+refs/heads/workflow-state$'
+
+-- spec.md --
+# W-001 Login
+-- login.go --
+package login
