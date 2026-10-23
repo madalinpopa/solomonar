@@ -462,8 +462,8 @@ func TestInitRejections(t *testing.T) {
 			name: "unknown runtime", args: []string{"init", "--runtime", "claude,gemini", "--yes"}, exit: 2,
 			stderr: "error: init rejected (unknown_runtime)\n" +
 				"  check: --runtime names a known runtime\n" +
-				"  found: \"gemini\" is not a runtime; known: claude, codex\n" +
-				"  fix:   pass --runtime claude, codex, or none\n",
+				"  found: \"gemini\" is not a runtime; known: claude, codex, copilot\n" +
+				"  fix:   pass --runtime claude, codex, copilot, or none\n",
 		},
 		{
 			name: "none beside a runtime", args: []string{"init", "--runtime", "none", "--runtime", "codex", "--yes"},
@@ -865,7 +865,7 @@ func TestInitHelp(t *testing.T) {
 
 	require.Equal(t, 0, got.exit, got.stderr)
 	assert.Contains(t, got.stdout, "Usage: solomonar init [<dir>] [--name <name>]")
-	assert.Contains(t, got.stdout, "[--runtime <claude|codex|none>]...")
+	assert.Contains(t, got.stdout, "[--runtime <claude|codex|copilot|none>]...")
 	assert.Contains(t, got.stdout, "[--adversarial-model <runtime>=<model>]...")
 }
 
@@ -966,6 +966,11 @@ func TestInitDetectsRuntimesOnPath(t *testing.T) {
 	}{
 		{name: "claude", found: []string{"claude"}, want: map[string]project.Runtime{"claude": {}}},
 		{name: "both", found: []string{"codex", "claude"}, want: map[string]project.Runtime{"claude": {}, "codex": {}}},
+		{name: "copilot", found: []string{"copilot"}, want: map[string]project.Runtime{"copilot": {}}},
+		{
+			name: "all", found: []string{"copilot", "codex", "claude"},
+			want: map[string]project.Runtime{"claude": {}, "codex": {}, "copilot": {}},
+		},
 		{name: "none found", want: map[string]project.Runtime{}},
 	}
 	for _, tt := range tests {
@@ -1014,7 +1019,7 @@ func TestInitRerunWithRuntimesIsNoOp(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dir := claudeRepo(t)
-			gittest.PathWith(t, "codex")
+			gittest.PathWith(t, "codex", "copilot")
 			before, tip := tree(t, dir), refTip(t, dir)
 
 			got := runInRepo(t, dir, tt.args...)
@@ -1036,6 +1041,10 @@ func TestInitRejectsDifferentRuntimeChoice(t *testing.T) {
 		found string
 	}{
 		{name: "runtime", args: runtimeArgs("codex"), found: "manifest runtimes [claude]; requested [codex]"},
+		{
+			name: "add copilot", args: runtimeArgs("claude,copilot"),
+			found: "manifest runtimes [claude]; requested [claude, copilot]",
+		},
 		{
 			name: "model", args: []string{"init", "--adversarial-model", "claude=sonnet", "--yes"},
 			found: `manifest adversarial_model claude "opus"; requested "sonnet"`,
