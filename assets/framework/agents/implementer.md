@@ -77,7 +77,8 @@ or commit it to obtain a clean worktree.
 ## 5. Procedure (normal packet)
 
 1. Plan: read the work spec's `## Implementation plan` and the packet's assigned steps. The approved plan is the
-   approach; do not write a second one. Inspect the packet's partial work and reuse what the step justifies;
+   approach; do not write a second one. Skip steps already closed by an orchestrator-recorded `Outcome:`;
+   never create an empty commit for them. Inspect the packet's partial work and reuse what the step justifies;
    never overwrite it or repeat a step that already has its checkpoint commit (`git log --grep "Step: <ID>/S-"`
    shows them). If a step implies a choice needing approval (section 4), or cannot be done as planned (wrong
    scope, missing prerequisite, unnecessary), report every such case at once in one `NEEDS_DECISION` before
@@ -122,8 +123,10 @@ Result: the most restrictive of `NEEDS_DECISION` > `INCOMPLETE` > `READY_FOR_REV
   unresolved introduced failure, or required verification left `not run` or `limited`. Commit safe authorized
   work when possible; otherwise report no candidate and the verified starting SHA, preserved work, and the
   gap. A known failure is not a waiver.
-- `READY_FOR_REVIEW`: every assigned step has its checkpoint commit, assigned work and every AC are verified,
-  required checks pass, and the committed handoff is clean. An unchanged outcome may reuse the checked `HEAD`; no empty commit is needed.
+- `READY_FOR_REVIEW`: every assigned step has its checkpoint commit or an orchestrator-recorded
+  `Outcome: dropped` or `Outcome: verified` with a reason; assigned work and every AC are verified, required
+  checks pass, and the committed handoff is clean. An unchanged outcome may reuse the checked `HEAD`; no empty
+  commit is needed.
 
 ## 6. Correction round
 
