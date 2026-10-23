@@ -74,7 +74,7 @@ reloading. Exclude accounts, payments, and recurring expenses.
 
 1. This top-level session takes the orchestrator role, registers one task, confirms registration, and creates its worktree.
 2. `work-spec` defines the outcome, boundaries, acceptance criteria, and checks. Only the minimum runnable baseline needed for this slice enters scope. Necessary architecture or dependency choices go to you for a decision.
-3. Once readiness passes, the implementer builds the slice and returns a committed candidate. Persistence makes this a tier 2 change: required specialists review it, followed by adversarial review.
+3. Once readiness passes and canonical changes are applied, the orchestrator presents the implementation plan. After you explicitly approve that exact plan, it commits `Status: Approved` before delegating. The implementer follows the plan and returns a committed candidate. Persistence makes this a tier 2 change: required specialists review it, followed by adversarial review.
 
 **You leave with:** a bounded implementation tied to observable checks. A useful criterion here is: after saving a valid expense and reloading, that expense is still listed. A passing implementation handoff alone does not complete the task.
 
