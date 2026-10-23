@@ -14,11 +14,11 @@ sources:
 
 A runtime is the agent product that runs sessions: Claude Code (`claude`), Codex (`codex`), or GitHub Copilot CLI (`copilot`). Each runtime gets small generated adapter files that point to the portable source in `docs/solomonar/`, never a second copy of it.
 
-The current build accepts `claude`, `codex`, and `copilot` through `init --runtime`. The [Copilot implementation plan]({{ 'docs/cli/plan.md' | source }}) tracks the remaining runtime acceptance. This delivery covers initialization only; the commands below remain unavailable. `init` never changes recorded runtime choices, so adding Copilot to an already initialized project must wait for `runtime add`.
+The current build accepts `claude`, `codex`, and `copilot` through `init --runtime`. The [Copilot acceptance record]({{ 'docs/cli/interface.md' | source }}#copilot-runtime-acceptance) lists the remaining runtime checks. This delivery covers initialization only; the commands below remain unavailable. `init` never changes recorded runtime choices, so adding Copilot to an already initialized project must wait for `runtime add`.
 
 Copilot targets the CLI only. It reads `AGENTS.md` natively and will get `.github/skills/<skill>/SKILL.md` and `.github/agents/<role>.agent.md` stubs, tracked as `runtime:copilot`. No extra root instruction file or Copilot guard hook is generated. Its entry skill is user-invoked with `/solomonar`; delegated roles load the portable role and repository instructions. IDE and cloud-agent compatibility are outside this delivery.
 
-The adapter follows GitHub's [CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference) and [custom-agent documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/create-custom-agents-for-cli), checked on 2026-10-23. Copilot 1.0.85 passed local instruction and skill discovery checks; a live session was rejected by account policy. Live workflow acceptance and the minimum supported version remain pending; see the [acceptance record]({{ 'docs/cli/plan.md' | source }}#copilot-runtime-acceptance).
+The adapter follows GitHub's [CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference) and [custom-agent documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/create-custom-agents-for-cli), checked on 2026-10-23. Copilot 1.0.85 passed local instruction and skill discovery checks; 1.0.103 sessions run, but prompt mode cannot invoke the entry skill. Live workflow acceptance and the minimum supported version remain pending; see the [acceptance record]({{ 'docs/cli/interface.md' | source }}#copilot-runtime-acceptance).
 
 ## solomonar runtime list
 
