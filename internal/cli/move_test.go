@@ -24,10 +24,21 @@ func moveRepo(t *testing.T) (dir, worktree, revision string) {
 	gittest.Commit(t, dir, "initial")
 	worktree = gittest.Worktree(t, dir, "feature/W-001")
 	require.NoError(t, os.MkdirAll(filepath.Join(worktree, "docs", "work"), 0o755))
-	require.NoError(t, os.WriteFile(filepath.Join(worktree, filepath.FromSlash(moveSpec)), []byte("# W-001\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(worktree, filepath.FromSlash(moveSpec)), []byte(approvedSpec), 0o644))
 	gittest.Git(t, worktree, "add", moveSpec)
 	gittest.Git(t, worktree, "commit", "-m", "spec")
 	return dir, worktree, gittest.Git(t, worktree, "rev-parse", "HEAD")
+}
+
+const approvedSpec = "# W-001: Login\nStatus: Approved\n\n## Implementation plan\n\n- S-1: feat(auth): add login\n"
+
+// checkpoint commits the S-1 step in the worktree and returns its full SHA.
+func checkpoint(t *testing.T, worktree string) string {
+	t.Helper()
+	require.NoError(t, os.WriteFile(filepath.Join(worktree, "login.go"), []byte("package login\n"), 0o644))
+	gittest.Git(t, worktree, "add", "login.go")
+	gittest.Git(t, worktree, "commit", "-m", "feat(auth): add login", "-m", "Step: W-001/S-1")
+	return gittest.Git(t, worktree, "rev-parse", "HEAD")
 }
 
 // putTask stores record as W-001 owned by orchestrator-1, confirmed past setup, with a next action.
@@ -66,7 +77,7 @@ func pushedLine(t *testing.T, dir string) string {
 func TestTaskMoveAdvancesThroughStages(t *testing.T) {
 	t.Parallel()
 
-	dir, worktree, revision := moveRepo(t)
+	dir, worktree, _ := moveRepo(t)
 	putTask(t, dir, reservedTask())
 
 	setup := runInRepo(t, dir, "task", "move", "W-001", "--as", "orchestrator-1", "--status", "running",
@@ -95,6 +106,7 @@ func TestTaskMoveAdvancesThroughStages(t *testing.T) {
 		"  state(W-001): running/implementation, stage implementation, spec "+moveSpec+", agents impl-1, next impl-1\n"+
 		pushedLine(t, dir), spec.stdout)
 
+	revision := checkpoint(t, worktree)
 	review := runInRepo(t, dir, "task", "move", "W-001", "--as", "orchestrator-1", "--revision", revision,
 		"--tier", "2", "--stage", "specialized_review", "--agent", "sec-1:security-reviewer",
 		"--agent", "cor-1:correctness-reviewer", "--agent", "spec-1:spec-reviewer",
