@@ -1,7 +1,8 @@
 # Git checkpoint task recovery: implementation plan
 
-Status: implemented on `feat/git-checkpoint-recovery`; live runtime acceptance (step 5) is pending.
-It does not describe behavior already delivered by the CLI.
+Status: delivered in v0.1.6; live runtime acceptance (step 5) is pending.
+The resolved contract below summarizes delivered behavior; the interface and architecture own its normative
+detail. The baseline table records the implementation before this delivery.
 
 ## Goal
 
@@ -18,10 +19,10 @@ heartbeats, a daemon, SQLite, a separate event journal, or a `checkpoint.json` f
 ### Task registry
 
 - Keep the registry on the separate `workflow-state` branch. Never merge it into `main`.
-- Store one JSON file per task, such as `W-001.json`, instead of one document containing every task.
-  The directory layout and schema-version metadata still need a contract.
-- The agreed record fields are the task title, task number, worktree, branch, base commit reference,
-  `depends_on`, and `updated_at`. Confirmation and lifecycle fields require the design work below.
+- Store one JSON file per task at `tasks/<ID>.json`, with `state.json` holding only `schema_version: 2`.
+  The layout is defined by CLI-D20 and interface section 8.6.
+- Task IDs come from the file names. Records retain the title, lifecycle fields, branch, base, worktree,
+  dependencies, confirmation, and timestamps under interface section 8.6 and rules section 7.
 - The base commit is the revision before task work starts. It is not the latest checkpoint or the
   candidate submitted for review, and importing subsequent changes from `main` does not change it.
 - A task starts unconfirmed. A new session inspects and reconciles its actual state before confirming
@@ -35,22 +36,20 @@ heartbeats, a daemon, SQLite, a separate event journal, or a `checkpoint.json` f
 - The agent in the main session is the orchestrator. Only it edits the task's work specification.
 - The work specification contains the objective and scope, acceptance criteria, relevant references,
   constraints and checks, and an implementation plan.
-- Put a plan-approval status immediately below the title, with no separate approval section. The agreed
-  values in the discussion were `status: In Review` and `status: Aprobat`, meaning approved. Settle the
-  canonical spelling for the English framework before implementation; do not silently translate a
-  machine-readable value.
+- Put `Status: In review` or `Status: Approved` immediately below the title, with no separate approval
+  section (CLI-D23). These are the canonical English values; other spellings are invalid.
 - The user explicitly approves the implementation plan before implementation starts. The orchestrator
   records that approval and commits the approved document before delegation. Reuse an existing explicit
   approval when it covers the exact plan; do not ask for a duplicate approval.
 - Express each implementation-plan step as its intended commit message, with enough detail to delimit
   the work. The document is the approved plan, not a second execution log.
-- The discussion used `W-001.md`; the current framework requires `docs/work/<ID>-<slug>.md`. Resolve the
-  filename contract explicitly while preserving existing task references.
+- Keep the existing filename contract, `docs/work/<ID>-<slug>.md` (CLI-D23), preserving recorded task references.
 
 ### Implementation and checkpoints
 
 - The orchestrator delegates implementation. The implementer executes the approved plan in the assigned
-  worktree and creates an actual checkpoint commit for each completed step.
+  worktree and creates an actual checkpoint commit for each completed step. The orchestrator closes an
+  unnecessary or verification-only step with an `Outcome:` and a reason; no empty commit is needed.
 - Use the planned message as the commit subject. Keep the body concise: progress, checks and their
   results, and observations needed to continue.
 - Git commits preserve the implementation and its checkpoint notes together. Do not duplicate progress
@@ -66,10 +65,10 @@ heartbeats, a daemon, SQLite, a separate event journal, or a `checkpoint.json` f
   and working-tree status. It loads detailed diffs and code only where needed.
 - Confirm the previous execution has stopped or isolate its access before allowing replacement work
   in the same worktree. A stored owner or a closed conversation is not proof that execution stopped.
-- Continue the plan steps without corresponding valid checkpoint commits. Inspect and reuse justified
-  partial work rather than overwriting it or repeating completed steps.
-- If all implementation steps have commits, proceed to review. Repeat verification whose evidence
-  cannot be recovered; do not treat lost reports as passing.
+- Continue the plan steps without a valid checkpoint commit or an orchestrator-recorded outcome. Inspect and
+  reuse justified partial work rather than overwriting it or repeating completed steps.
+- If all implementation steps have commits or recorded outcomes, proceed to review. Repeat verification whose
+  evidence cannot be recovered; do not treat lost reports as passing.
 - Review the cumulative task change on one stable candidate after the complete implementation or a
   complete correction batch, not after every checkpoint commit.
 - Preserve the current risk-based review policy: tier 0 uses CI only; tier 1 uses the required specialist
@@ -77,9 +76,12 @@ heartbeats, a daemon, SQLite, a separate event journal, or a `checkpoint.json` f
 - The orchestrator consolidates corrections, delegates them, and reruns affected reviews on the new
   candidate. Review success is followed by integration, required CI, PR checks, and merge before closure.
 
-## Current implementation and gaps
+## Historical baseline before v0.1.6
 
-| Area | Current behavior | Required change |
+This table records the starting point for this delivery, not the current implementation. The changes in the
+last column are delivered; live runtime acceptance remains separate (step 5).
+
+| Area | Previous behavior | Delivered change |
 | --- | --- | --- |
 | Registry | [`registry.go`](../../internal/task/registry.go) decodes schema 1 with a `tasks` map; [`store.go`](../../internal/task/store.go) stores `state.json` | Versioned per-task files, compatible discovery, and migration |
 | Concurrent updates | Store updates use Git compare-and-swap and revalidation, with five attempts | Preserve this protection, including global task-number allocation and other task files |
@@ -99,23 +101,23 @@ Separate task files do not remove contention on the shared Git reference.
 
 ### 1. Define the data and workflow contracts
 
-Update [the CLI interface](interface.md), [the architecture](architecture.md), and
-[the framework design](../design/framework-v0.1.md) before changing behavior.
+The delivered contracts are in [the CLI interface](interface.md), [the architecture](architecture.md), and
+`assets/framework/`. The [framework design](../design/framework-v0.1.md) remains a historical note.
 
-- [ ] Define the per-task registry layout, version metadata, empty-registry representation, and required
+- [x] Define the per-task registry layout, version metadata, empty-registry representation, and required
   fields at registration, completed setup, active work, and closure.
-- [ ] Distinguish the immutable base, approved-plan version, checkpoint commits, reviewed candidate,
+- [x] Distinguish the immutable base, approved plan, checkpoint commits, reviewed candidate,
   and final merge. Reuse derivable Git facts rather than adding redundant fields without a need.
-- [ ] Define confirmation independently from lifecycle progress. A task can require confirmation while
+- [x] Define confirmation independently from lifecycle progress. A task can require confirmation while
   already being at implementation or review. Settle field names and values rather than overloading one enum.
-- [ ] Define how an execution is identified for preflight and confirmation. The CLI cannot assume that
+- [x] Define how an execution is identified for preflight and confirmation. The CLI cannot assume that
   the runtime exposes a native session identifier or detect a new session automatically.
-- [ ] Define stable plan-step identifiers and how commits identify the task, step, and relevant plan
-  version. Recommend structured commit metadata; exact names and syntax are not yet approved.
-- [ ] Define corrections, plan amendments, steps that become unnecessary, and verification-only outcomes.
+- [x] Define stable plan-step identifiers and how commits identify the task, step, and their plan
+  step. Use the approved `Step: <ID>/S-<n>` trailer (CLI-D24); no plan-version trailer is required.
+- [x] Define corrections, plan amendments, steps that become unnecessary, and verification-only outcomes.
   Do not fabricate empty commits simply to satisfy a checklist.
-- [ ] Define workspace relocation and mismatches between the recorded path and Git's worktree listing.
-- [ ] Define preservation of the approved plan through closure. The existing deletion-before-merge policy
+- [x] Define workspace relocation and mismatches between the recorded path and Git's worktree listing.
+- [x] Define preservation of the approved plan through closure. The existing deletion-before-merge policy
   may remain only if durable references keep the plan recoverable.
 
 Completion: the normal flow, recovery flow, failure cases, and record invariants are specified without
@@ -137,8 +139,8 @@ Depends on the data contract in step 1.
 - [x] Define handling of legacy completed records, which have already discarded active fields. Define
   read compatibility, downgrade rejection, and a recovery procedure for unsuccessful migration.
 - [x] Keep registry migration separate from framework/adaptor updates, but document their compatible
-  versions so old instructions cannot silently operate against incompatible state. Framework 0.1.6 and
-  earlier read schema 1; these rules require schema 2, and a 0.1.6 CLI rejects schema 2 as `cli_outdated`.
+  versions so old instructions cannot silently operate against incompatible state. Framework 0.1.5 and
+  earlier read schema 1; these rules require schema 2, and a 0.1.5 CLI rejects schema 2 as `cli_outdated`.
 
 Completion: new repositories and migrated repositories support safe task updates, while unsupported
 versions fail clearly without discarding data.
@@ -274,7 +276,8 @@ The interface and architecture carry the normative detail; this section is the s
    one. `--worktree` records a relocation and must match Git's listing. A done record keeps `base`.
 3. **Confirmation.** An execution is an owner ID; a new session takes the task through `task handoff`, which
    clears `confirmed`. `task confirm <ID> --as <owner>` runs the preflight (branch, recorded worktree matching
-   Git, recorded base on the branch, an approved plan from `implementation` on) and sets `confirmed`.
+   Git, recorded base on the branch, and an approved plan from `implementation` up to, not including,
+   `integration`) and sets `confirmed`. Integration permits the work spec to have been deleted for closure.
    Stage changes and `task done` need `confirmed`; status-only moves do not. Confirmation proves neither plan
    approval, review success, nor that the previous execution stopped.
 4. **Work spec.** The path stays `docs/work/<ID>-<slug>.md`. The line below the title is `Status: In review`
@@ -284,8 +287,8 @@ The interface and architecture carry the normative detail; this section is the s
    to `In review`. Review corrections within the approved scope are appended as new steps without new approval.
 5. **Checkpoints.** The implementer commits each step with the planned subject and a `Step: <ID>/S-<n>`
    trailer; there is no plan-version trailer and no CLI commit command. Reconciliation reads
-   `git log --no-merges <base>..feature/<ID>`: a commit counts for a step only with the trailer, the exact
-   subject, and a non-empty change. Commits without a trailer (specification, decisions, closure) are other
+   `git log --first-parent --no-merges --reverse <base>..feature/<ID>`: a commit counts for a step only with
+   the trailer, the exact subject, and a non-empty change. Commits without a trailer (specification, decisions, closure) are other
    commits. Discrepancies: `step_untagged` (subject match without trailer), `step_subject_mismatch`,
    `step_unknown`, `step_foreign`, `step_empty`, `step_duplicate`.
 6. **Managed gates.** Entering `implementation` needs `Status: Approved` and at least one step in the spec
