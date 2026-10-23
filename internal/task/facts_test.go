@@ -22,8 +22,8 @@ type factsRepo struct {
 }
 
 const approvedSpec = "# W-001: Login\nStatus: Approved\nType: feature\n\n## Implementation plan\n\n" +
-	"- S-1: feat(auth): add the session store\n  Store sessions server-side.\n" +
-	"- S-2: feat(auth): add the login form\n"
+	"- S-1: feat(W-001): add the session store\n  Store sessions server-side.\n" +
+	"- S-2: feat(W-001): add the login form\n"
 
 func newFactsRepo(t *testing.T) factsRepo {
 	t.Helper()
