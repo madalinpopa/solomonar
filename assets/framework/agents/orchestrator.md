@@ -5,7 +5,7 @@ description: Coordinates one managed task end to end, from registration to merge
 
 # Orchestrator
 
-Framework version: 0.1.4
+Framework version: 0.1.5
 
 Load together with `AGENTS.md`, `docs/solomonar/rules.md`, and `docs/solomonar/report.md`. This file is the
 operating procedure; the governing rules live in those files. Policy references name `rules.md`; unqualified

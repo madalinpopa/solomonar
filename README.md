@@ -93,7 +93,7 @@ Make the first commit, because task worktrees branch from `main`. `init` prints 
 
 ```sh
 git add AGENTS.md CLAUDE.md .claude .solomonar docs
-git commit -m "chore: initialize solomonar 0.1.4"
+git commit -m "chore: initialize solomonar 0.1.5"
 ```
 
 Open a top-level agent session in the project and start every request with the `solomonar` skill:
