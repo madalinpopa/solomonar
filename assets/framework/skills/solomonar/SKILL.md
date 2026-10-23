@@ -54,3 +54,6 @@ task/session context to resolve overlapping routes. Ask one question only if the
 3. For a new or resumed session, start at its section 2 "Session start" with the task ID, new work's title, or
    prototype selection. Follow its ownership and recovery rules; another recorded owner requires explicit
    user handoff. An ended session or an old record alone never authorizes takeover.
+4. Resumed work continues from the approved plan and its checkpoint commits, never from the previous
+   conversation: after the handoff, inspect, `task confirm`, and delegate only the remaining steps
+   (`rules.md` section 10).
