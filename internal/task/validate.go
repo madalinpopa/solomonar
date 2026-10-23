@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"path"
 	"slices"
 	"strconv"
 	"strings"
@@ -47,6 +48,9 @@ func validateSHAs(r *Record) error {
 	if r.Revision != "" && !fullSHA(r.Revision) {
 		return fmt.Errorf("revision %q is not a full SHA", r.Revision)
 	}
+	if r.Base != "" && !fullSHA(r.Base) {
+		return fmt.Errorf("base %q is not a full SHA", r.Base)
+	}
 	if r.MergeCommit != "" && !fullSHA(r.MergeCommit) {
 		return fmt.Errorf("merge_commit %q is not a full SHA", r.MergeCommit)
 	}
@@ -62,6 +66,9 @@ func validateSHAs(r *Record) error {
 func validateReferences(r *Record) error {
 	if r.Tier != nil && (*r.Tier < 0 || *r.Tier > 2) {
 		return fmt.Errorf("tier %d is not 0, 1, or 2", *r.Tier)
+	}
+	if r.Worktree != "" && !worktreePath(r.Worktree) {
+		return fmt.Errorf("worktree %q is not a clean relative path", r.Worktree)
 	}
 	if r.UpdatedAt != "" && !utcTimestamp(r.UpdatedAt) {
 		return fmt.Errorf("updated_at %q is not an RFC 3339 UTC timestamp", r.UpdatedAt)
@@ -164,7 +171,7 @@ func validateDone(r *Record) error {
 	if err := requireFields(r, "summary", "spec_ref", "merge_commit"); err != nil {
 		return err
 	}
-	return allowOnly(r, "title", "status", "stage", "summary", "spec_ref", "merge_commit", "pr",
+	return allowOnly(r, "title", "status", "stage", "base", "summary", "spec_ref", "merge_commit", "pr",
 		"updated_at", "related_task")
 }
 
@@ -198,7 +205,10 @@ func presentFields(r *Record) []string {
 	add("status", r.Status != "")
 	add("stage", r.Stage != "")
 	add("owner", r.Owner != "")
+	add("confirmed", r.Confirmed)
 	add("branch", r.Branch != "")
+	add("base", r.Base != "")
+	add("worktree", r.Worktree != "")
 	add("spec", r.Spec != "")
 	add("revision", r.Revision != "")
 	add("tier", r.Tier != nil)
@@ -260,6 +270,11 @@ func allDigits(s string) bool {
 func fullSHA(s string) bool {
 	return (len(s) == 40 || len(s) == 64) &&
 		!strings.ContainsFunc(s, func(r rune) bool { return (r < '0' || r > '9') && (r < 'a' || r > 'f') })
+}
+
+// worktreePath accepts a clean slash-separated path relative to the main checkout, ".." included.
+func worktreePath(p string) bool {
+	return p != "" && p != "." && !path.IsAbs(p) && !strings.Contains(p, `\`) && path.Clean(p) == p
 }
 
 func utcTimestamp(s string) bool {
