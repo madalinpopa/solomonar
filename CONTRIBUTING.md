@@ -55,7 +55,7 @@ The documentation website lives in `site/`. Its setup and checks are in [`site/R
 | --- | --- |
 | `assets/framework/` | The framework core: `rules.md`, `report.md`, `reviewer.md`, the agent roles in `agents/`, and the skills in `skills/`. `init` installs it as `docs/solomonar/`. |
 | `assets/extensions/<group>/<name>/` | The extension catalog. Each extension is one skill or one agent, plus `extension.json`. |
-| `assets/templates/` | Templates for `AGENTS.md`, `docs/README.md`, and the empty task registry. |
+| `assets/templates/` | Templates for `AGENTS.md`, `docs/README.md`, and the empty task registry header (`state.json`). |
 | `internal/` | The CLI: commands, the task registry, the init plan, adapters, and the extension catalog loader. |
 | `docs/cli/` | The CLI interface specification and architecture. |
 | `docs/design/`, `docs/research/` | Framework design notes, validation, and the research behind adopted rules. |
