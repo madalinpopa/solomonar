@@ -17,6 +17,7 @@ type StatusFacts struct {
 	Branch   BranchFacts    `json:"branch"`
 	Worktree *WorktreeFacts `json:"worktree"`
 	Spec     SpecFacts      `json:"spec"`
+	Plan     *PlanFacts     `json:"plan"`
 	Merge    MergeFacts     `json:"merge"`
 	Forge    ForgeFacts     `json:"forge"`
 }
@@ -95,6 +96,11 @@ func GitFacts(ctx context.Context, repo *git.Repo, id, main string, record *Reco
 	}
 	if facts.Spec, err = specFacts(ctx, repo, worktree, record); err != nil {
 		return StatusFacts{}, err
+	}
+	if facts.Branch.Tip != nil && record.Status != StatusDone {
+		if facts.Plan, err = InspectPlan(ctx, repo, id, record, *facts.Branch.Tip); err != nil {
+			return StatusFacts{}, err
+		}
 	}
 	if facts.Merge, err = mergeFacts(ctx, repo, id, main, record); err != nil {
 		return StatusFacts{}, err
