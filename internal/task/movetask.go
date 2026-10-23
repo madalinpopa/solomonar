@@ -26,7 +26,7 @@ type Position struct {
 }
 
 // MoveTask applies m to the task id for the owner as, storing the record only when every check passes.
-func (r *Registry) MoveTask(ctx context.Context, repo *git.Repo, id, as string, m Move, roles []string, now time.Time) (MoveResult, error) {
+func (r *Registry) MoveTask(ctx context.Context, repo *git.Repo, id, as, main string, m Move, roles []string, now time.Time) (MoveResult, error) {
 	before, err := r.Lookup(id)
 	if err != nil {
 		return MoveResult{}, err
@@ -39,14 +39,17 @@ func (r *Registry) MoveTask(ctx context.Context, repo *git.Repo, id, as string, 
 		return MoveResult{}, err
 	}
 	after := *before
-	changed, err := after.Move(m, roles, now)
+	if _, err := after.Move(m, roles, now); err != nil {
+		return MoveResult{}, err
+	}
+	if err := checkConfirmed(id, before, &after); err != nil {
+		return MoveResult{}, err
+	}
+	specFound, err := CheckFacts(ctx, repo, id, main, before, &after, m)
 	if err != nil {
 		return MoveResult{}, err
 	}
-	specFound, err := CheckFacts(ctx, repo, id, before, &after, m)
-	if err != nil {
-		return MoveResult{}, err
-	}
+	changed := changedFields(before, &after)
 	result := MoveResult{From: before.position(), To: after.position(), Changed: changed, SpecFound: specFound}
 	if len(changed) == 0 {
 		return result, nil
@@ -85,6 +88,10 @@ func (r *Record) subjectPart(field string) string {
 		return "spec " + r.Spec
 	case "revision":
 		return "revision " + r.Revision[:min(7, len(r.Revision))]
+	case "base":
+		return "base " + r.Base[:min(7, len(r.Base))]
+	case "worktree":
+		return "worktree " + r.Worktree
 	case "tier":
 		return fmt.Sprintf("tier %d", *r.Tier)
 	case "active_agents":
