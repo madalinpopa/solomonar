@@ -55,6 +55,7 @@ func taskMoveCommand() command {
 			"  [--revision <full-sha>] [--spec <worktree-relative path>] [--tier <0|1|2>]\n" +
 			"  [--agent <id>:<role>]... | [--agent none]\n" +
 			"  [--pr <url|number>] [--next <actor>:<action>]\n" +
+			"  [--base <full-sha>] [--worktree <path relative to the main checkout>]\n" +
 			"  [--json] [--dry-run]",
 		description: "Apply every given field flag as one validated update and one registry commit.\n" +
 			"--as defaults to SOLOMONAR_OWNER; done and complete are written only by task done.",
@@ -73,6 +74,8 @@ func taskMoveCommand() command {
 			})
 			fs.StringVar(&m.move.PR, "pr", "", "")
 			fs.StringVar(&m.move.Next, "next", "", "")
+			fs.StringVar(&m.move.Base, "base", "", "")
+			fs.StringVar(&m.move.Worktree, "worktree", "", "")
 			fs.BoolVar(&m.dryRun, "dry-run", false, "")
 			return m.run
 		},
@@ -92,17 +95,17 @@ func (m *moveFlags) run(ctx context.Context, env Env, flags sharedFlags, args []
 	if err != nil {
 		return output{}, err
 	}
-	store, _, err := openStore(ctx, env, flags)
+	store, mainBranch, err := openStore(ctx, env, flags)
 	if err != nil {
 		return output{}, rejectedAs("task move "+args[0], err)
 	}
-	out, err := m.moveTask(ctx, env, store, args[0], as)
+	out, err := m.moveTask(ctx, env, store, args[0], as, mainBranch)
 	return out, rejectedAs("task move "+args[0], err)
 }
 
 func (m *moveFlags) hasField() bool {
 	f := m.move
-	return cmp.Or(f.Status, f.Stage, f.Revision, f.Spec, f.Tier, f.PR, f.Next) != "" || len(f.Agents) > 0
+	return cmp.Or(f.Status, f.Stage, f.Revision, f.Spec, f.Tier, f.PR, f.Next, f.Base, f.Worktree) != "" || len(f.Agents) > 0
 }
 
 // actingOwner resolves --as, falling back to SOLOMONAR_OWNER.
@@ -116,13 +119,13 @@ func actingOwner(env Env, as, command string) (string, error) {
 	return as, nil
 }
 
-func (m *moveFlags) moveTask(ctx context.Context, env Env, store *task.Store, id, as string) (output, error) {
+func (m *moveFlags) moveTask(ctx context.Context, env Env, store *task.Store, id, as, mainBranch string) (output, error) {
 	roles, err := installedRoles(env, store.Git.Dir)
 	if err != nil {
 		return output{}, err
 	}
 	return changeTask(ctx, store, id, "move", positionHeader(id), m.dryRun, func(reg *task.Registry) (task.MoveResult, []detail, error) {
-		result, err := reg.MoveTask(ctx, store.Git, id, as, m.move, roles, env.Now())
+		result, err := reg.MoveTask(ctx, store.Git, id, as, mainBranch, m.move, roles, env.Now())
 		return result, nil, err
 	})
 }
@@ -253,6 +256,12 @@ func moveDetails(id string, result task.MoveResult, record *task.Record) []detai
 	var details []detail
 	for _, field := range result.Changed {
 		switch field {
+		case "confirmed":
+			details = append(details, detail{"confirmed", map[bool]string{true: "yes", false: "no"}[record.Confirmed]})
+		case "base":
+			details = append(details, detail{"base", record.Base + " (on feature/" + id + ")"})
+		case "worktree":
+			details = append(details, detail{"worktree", record.Worktree + " (listed by git worktree list)"})
 		case "spec":
 			details = append(details, detail{"spec", specText(record.Spec, result.SpecFound)})
 		case "revision":
