@@ -1,7 +1,7 @@
 ---
 title: Project files and configuration
 navTitle: Project files
-description: Reference the files solomonar init creates, who owns each one, the Claude Code and Codex adapters, environment variables, and how edits survive re-runs.
+description: Reference Solomonar files, ownership, Claude Code and Codex adapters, the Copilot CLI adapter contract, environment variables, and edit preservation.
 kind: Reference
 group: Reference
 order: 12
@@ -10,11 +10,15 @@ sources:
   - assets/templates/AGENTS.md
   - assets/framework/rules.md
   - internal/cli/move.go
+  - internal/project/runtime.go
+  - internal/project/validate.go
 ---
 
 ## Files init creates
 
 `solomonar init` writes these files. The core and the adapters are managed: the manifest records their hashes so a later run can tell your edits from its own.
+
+Copilot adapter generation and manifest tracking are implemented in the project layer. CLI selection is still pending, so the current `init` command accepts only `claude` and `codex`. The Copilot paths below describe that adapter contract; `init --runtime copilot` is not available yet. See the [implementation plan]({{ 'docs/cli/plan.md' | source }}).
 
 | Path | Owns | Owner |
 | --- | --- | --- |
@@ -25,6 +29,7 @@ sources:
 | `docs/decisions.md`, `docs/stack.md` | One approved `P/D-n` entry per extension group you chose, and one stack line per group. Written only when you chose an extension. | Entries appended by `init`; the files are yours |
 | `CLAUDE.md`, `.claude/skills/`, `.claude/agents/` | Claude Code adapter stubs. | Managed runtime files |
 | `.agents/skills/`, `.codex/agents/` | Codex adapter stubs. | Managed runtime files |
+| `.github/skills/<skill>/SKILL.md`, `.github/agents/<role>.agent.md` | Copilot CLI adapter stubs; CLI installation pending. | Managed runtime files, `runtime:copilot` |
 | `.solomonar/manifest.json` | Your choices and the base hash of every managed file. | CLI only |
 | `refs/heads/workflow-state` | The task registry, `state.json`. | `solomonar task` commands only |
 
@@ -53,9 +58,27 @@ The skills and roles create these as the project grows. A small project does not
 | Agent roles | `.claude/agents/<role>.md`; reviewers get a read-only tool list | `.codex/agents/<role>.toml` |
 | Entry invocation | `/solomonar` | `$solomonar` |
 
+The Copilot CLI adapter uses the following format. These fields were checked against GitHub's [CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference), [skill locations](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills), and [custom-agent configuration](https://docs.github.com/en/copilot/reference/custom-agents-configuration) on 2026-10-23. Live compatibility and the minimum supported Copilot version remain unverified.
+
+| Concern | GitHub Copilot CLI |
+| --- | --- |
+| Root instructions | Native `AGENTS.md` loading; no additional root instruction file |
+| Skills | `.github/skills/<skill>/SKILL.md`, pointing to the portable skill |
+| Agent roles | `.github/agents/<role>.agent.md`, pointing to the portable role; `include-custom-instructions: true` opts delegated roles into repository instructions |
+| Reviewer tools | `read`, `search`, `execute`; the implementer inherits available tools |
+| Entry invocation | `/solomonar`; its stub sets `disable-model-invocation: true` so invocation remains yours |
+| Adversarial model | Optional `model` field on the adversarial reviewer only; omitted when unspecified |
+| Ownership | `runtime:copilot` and a SHA-256 base hash for each adapter; no hook entry |
+
+Copilot stubs cover core skills and delegated roles plus installed extension skills and reviewers. The orchestrator stays in the top-level session. Metadata is quoted as YAML strings so descriptions and model values preserve punctuation and cannot introduce extra fields. Portable instruction bodies remain in `docs/solomonar/`.
+
+Reviewer tool restrictions exclude direct editing tools, but shell commands can still write. Reviewers must follow the portable read-only contract, including running checks that write files in an external temporary directory. No Copilot guard hook is generated, and IDE/cloud-agent support is outside this delivery.
+
 The `solomonar` entry skill is invoked only by you, never by the model on its own. A portable request is “Use the solomonar skill.” The orchestrator has no adapter file: it is always the top-level session, because it must delegate the implementer and reviewers itself.
 
 `--adversarial-model <runtime>=<model>` sets the model of that runtime's adversarial reviewer.
+
+Once CLI selection is implemented, `--adversarial-model copilot=<model>` will configure the Copilot adversarial-reviewer stub. This is a runtime preference: overrides or unavailable models can cause a different model to run. Installation does not authenticate or check account model access. Live acceptance must observe the actual model rather than treating the configuration as proof of model isolation.
 
 ## Environment variables
 
@@ -81,5 +104,7 @@ An installed extension is listed in the `## Extensions` section of `AGENTS.md` w
 Project extensions will start as inactive drafts until adopted. Drafts do not contribute rules, runtime adapters, or required reviewers.
 
 `init` and upgrades preserve project edits. Identical managed content is a no-op; differing content becomes an explicit conflict. A retained project edit does not become the distributed base hash. This allows a later upgrade to detect the difference again.
+
+Copilot adapters use the same file classification and conflict rules, without taking ownership of unrelated `.github` files. The manifest stays at schema version 1; older binaries can reject a newer framework version or the unknown runtime. Do not hand-edit the manifest or lower its version. Adding Copilot to a project with other recorded runtimes remains deferred until `runtime add` is available; `init` never changes recorded runtime choices.
 
 The full catalog and conflict-resolution flags remain in the [CLI interface specification]({{ 'docs/cli/interface.md' | source }}).
