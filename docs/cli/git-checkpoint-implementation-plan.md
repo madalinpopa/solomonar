@@ -1,7 +1,7 @@
 # Git checkpoint task recovery: implementation plan
 
-Status: proposed. This document records the agreed direction and the implementation work still required.
-It does not describe behavior already delivered by the CLI. Unresolved contract details are listed below.
+Status: contract resolved (see Resolved contract); implementation in progress.
+It does not describe behavior already delivered by the CLI.
 
 ## Goal
 
@@ -125,16 +125,16 @@ requiring a particular runtime or claiming that recorded declarations prove exte
 
 Depends on the data contract in step 1.
 
-- [ ] Update [`registry.go`](../../internal/task/registry.go),
+- [x] Update [`registry.go`](../../internal/task/registry.go),
   [`validate.go`](../../internal/task/validate.go), and [`store.go`](../../internal/task/store.go) for the
   new layout, strict decoding, deterministic writes, and supported schema versions.
-- [ ] Preserve unrelated task files and registry metadata when constructing a new Git tree. Keep
+- [x] Preserve unrelated task files and registry metadata when constructing a new Git tree. Keep
   compare-and-swap retries and rerun validation against the latest registry.
-- [ ] Adapt [`init.go`](../../internal/cli/init.go), its plan rendering, and the
+- [x] Adapt [`init.go`](../../internal/cli/init.go), its plan rendering, and the
   [existing registry template](../../assets/templates/state.json) to initialize and recognize the new layout.
-- [ ] Provide an explicit migration path. Preserve IDs, dependencies, applicable lifecycle information,
+- [x] Provide an explicit migration path. Preserve IDs, dependencies, applicable lifecycle information,
   and the previous registry history. Do not infer missing baselines or past checkpoints as confirmed facts.
-- [ ] Define handling of legacy completed records, which have already discarded active fields. Define
+- [x] Define handling of legacy completed records, which have already discarded active fields. Define
   read compatibility, downgrade rejection, and a recovery procedure for unsuccessful migration.
 - [ ] Keep registry migration separate from framework/adaptor updates, but document their compatible
   versions so old instructions cannot silently operate against incompatible state.
@@ -256,16 +256,43 @@ The principal acceptance condition is that a new session can continue the same t
 evidence, without the previous conversation, repeating completed steps, or losing uncommitted work.
 Review and final integration remain required even when every planned checkpoint exists.
 
-## Decisions required before implementation
+## Resolved contract
 
-1. Exact registry layout, version metadata, lifecycle fields, and the representation of confirmation.
-2. Work-spec filename and canonical approval values for the English framework.
-3. Stable step identifiers, commit metadata, and approved-plan version association.
-4. How corrections and plan amendments affect approval and step-to-commit matching.
-5. Recorded worktree-path portability and relocation behavior.
-6. Final-spec retention and required completed-record references.
-7. Whether checkpoint creation remains a Git operation performed by the implementer, with CLI inspection,
-   or gains a dedicated CLI command. Neither option changes the decision to use actual Git commits.
+Decided by the author on 2026-10-23 (CLI-D20 to CLI-D26 in [the interface](interface.md#11-open-decisions)).
+The interface and architecture carry the normative detail; this section is the summary they implement.
 
-These details refine the agreed model; they do not reopen the selected Git storage, commit checkpoints,
-or managed-gate approach.
+1. **Registry layout (schema 2).** The `workflow-state` tree holds `state.json`, exactly
+   `{"schema_version": 2}`, and one `tasks/<ID>.json` per task with the record in canonical form. The file name
+   is the ID; no other entry is allowed. An empty registry is `state.json` alone. Keeping the version in
+   `state.json` makes a schema-1 CLI reject the new layout as `cli_outdated` instead of failing on a missing file.
+   Every write still swaps the whole ref, so allocation and revalidation keep their compare-and-swap guarantees.
+2. **Record fields.** New optional fields: `base` (full SHA), `worktree` (clean `/`-separated path relative to
+   the main checkout, such as `../ledger-worktrees/W-001`), and `confirmed` (`true`, omitted when false).
+   The move from `setup` to `specification` records `base` as `git merge-base <main> feature/<ID>`, `worktree`
+   from `git worktree list`, and `confirmed`. `base` never changes once recorded; `--base` only fills a missing
+   one. `--worktree` records a relocation and must match Git's listing. A done record keeps `base`.
+3. **Confirmation.** An execution is an owner ID; a new session takes the task through `task handoff`, which
+   clears `confirmed`. `task confirm <ID> --as <owner>` runs the preflight (branch, recorded worktree matching
+   Git, recorded base on the branch, an approved plan from `implementation` on) and sets `confirmed`.
+   Stage changes and `task done` need `confirmed`; status-only moves do not. Confirmation proves neither plan
+   approval, review success, nor that the previous execution stopped.
+4. **Work spec.** The path stays `docs/work/<ID>-<slug>.md`. The line below the title is `Status: In review`
+   or `Status: Approved`. `## Implementation plan` lists steps `- S-<n>: <commit subject>` with indented
+   detail lines; an indented `Outcome: dropped — <reason>` or `Outcome: verified — <reason>` closes a step without
+   a commit. Step IDs are unique and never reused; a changed approved step takes a new ID and the status returns
+   to `In review`. Review corrections within the approved scope are appended as new steps without new approval.
+5. **Checkpoints.** The implementer commits each step with the planned subject and a `Step: <ID>/S-<n>`
+   trailer; there is no plan-version trailer and no CLI commit command. Reconciliation reads
+   `git log --no-merges <base>..feature/<ID>`: a commit counts for a step only with the trailer, the exact
+   subject, and a non-empty change. Commits without a trailer (specification, decisions, closure) are other
+   commits. Discrepancies: `step_untagged` (subject match without trailer), `step_subject_mismatch`,
+   `step_unknown`, `step_foreign`, `step_empty`, `step_duplicate`.
+6. **Managed gates.** Entering `implementation` needs `Status: Approved` and at least one step in the spec
+   committed at the tip of `feature/<ID>`. Leaving `implementation` for review or integration needs `--revision`
+   equal to the branch tip, a clean worktree, every step committed or closed by an outcome, and no discrepancy.
+7. **Migration.** `solomonar task migrate` rewrites a schema-1 registry as schema 2 in one compare-and-swap
+   commit `state: migrate schema 1 -> 2` whose parent is the old tip, so history is kept. It adds no `base`,
+   `worktree`, or `confirmed`; migrated active tasks are confirmed explicitly. Other commands reject schema 1 with
+   `registry_outdated` (fix `solomonar task migrate`). `upgrade` no longer migrates the registry.
+8. **Closure.** The work spec is still deleted before merge; `spec_ref` keeps the final plan recoverable, and
+   `base` with `merge_commit^2` bounds the checkpoint history of a done task.
