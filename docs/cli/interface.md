@@ -10,8 +10,8 @@ Increment 1 (section 10) is implemented and released as v0.1.0; this spec keeps 
 accepted workflow-audit corrections are applied to these contracts and the framework assets on 2026-10-21. Runtime and fault-injection acceptance tests remain implementation work.
 
 The Copilot CLI contract was added on 2026-10-23 and is tracked in [the Copilot plan](plan.md):
-adapter generation and manifest tracking are implemented in the project layer; `init --runtime copilot` is still
-pending and not available in the current CLI. Runtime management and hooks remain increment 2; this addition
+adapter generation, manifest tracking, and `init --runtime copilot` are implemented. Live Copilot acceptance and
+the minimum supported runtime version remain pending. Runtime management and hooks remain increment 2; this addition
 defines no Copilot guard hook. Existing Claude and Codex contracts are unchanged.
 
 The command pages in `site/src/docs/cli/` are the reference for each command's synopsis, flags, when to use it, who
@@ -252,7 +252,7 @@ These are documentation checks; live Copilot acceptance and the minimum supporte
 | State guard | `PreToolUse` hook running `solomonar guard --runtime claude`, merged into `.claude/settings.json` | `PreToolUse` hook running `solomonar guard --runtime codex`, merged into `.codex/hooks.json`; Codex runs it only after the user trusts the project's `.codex/` layer and reviews the hook (`doctor` warns until then) |
 | Adversarial model | `--adversarial-model claude=<model>` writes `model: <model>` in its role stub | `--adversarial-model codex=<model>` writes `model = "<model>"` in its role stub |
 
-| Concern | `copilot` (GitHub Copilot CLI; planned) |
+| Concern | `copilot` (GitHub Copilot CLI; live acceptance pending) |
 |---|---|
 | Root instructions | `AGENTS.md`, read natively; no additional root instruction file generated |
 | Skills | `.github/skills/<skill>/SKILL.md` stub per installed skill; `solomonar` adds `disable-model-invocation: true` |
@@ -791,8 +791,9 @@ Project name [ledger]:
 Current objective, one line (optional): Track shared household expenses
 
 Runtimes that will run this project's sessions:
-    [x] claude  Claude Code: CLAUDE.md import, .claude/skills, .claude/agents, state guard hook
-    [x] codex   Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook
+    [x] claude   Claude Code: CLAUDE.md import, .claude/skills, .claude/agents, state guard hook
+    [x] codex    Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook
+    [ ] copilot  GitHub Copilot CLI: AGENTS.md (native), .github/skills, .github/agents
 
 Model for the adversarial reviewer in Claude Code, different from your main session model
 (blank = runtime default): opus
@@ -955,7 +956,7 @@ may contain commas. A relative `<dir>` is joined to `-C`, an absolute one is use
 root of the worktree containing `<dir>`. The help's usage ends `[--git-init] [-y|--yes] [--dry-run] [--json]`, and its
 description ends `--git-init runs git init -b <main-branch> when <dir> is not a repository.`
 
-`--runtime` takes `claude`, `codex`, `copilot`, or `none`, repeatable or comma-separated. The planned usage fragment is
+`--runtime` takes `claude`, `codex`, `copilot`, or `none`, repeatable or comma-separated. The usage fragment is
 `[--runtime <claude|codex|copilot|none>]...`. Another value is `unknown_runtime` (exit 2, `init rejected`), check
 `--runtime names a known runtime`, found `"<v>" is not a runtime; known: claude, codex, copilot`, fix `pass --runtime claude,
 codex, copilot, or none`; `none` beside another value is `invalid_value`, check `--runtime names runtimes or none`, found `none
@@ -984,7 +985,7 @@ Warnings go to stderr. The success form is `Initialized solomonar <fw> in <root>
 `pushed` line, when an existing registry is reused), `  pushed    <remote>/workflow-state` when pushed, a blank
 line, and `Next:`: step 1 is `git add <generated paths> && git commit -m "chore: initialize solomonar <fw>"`, step 2
 the top-level session start. The paths are `AGENTS.md`, then `CLAUDE.md` (only when this run creates it), `.claude`
-(claude), `.agents` and `.codex` (codex), the planned Copilot adapter file paths sorted within skills then roles
+(claude), `.agents` and `.codex` (codex), the Copilot adapter file paths sorted within skills then roles
 (copilot), then `.solomonar docs`. Name individual Copilot files rather than staging `.github` or its whole
 subdirectories, which may contain unrelated files. Apply the same rule to JSON `next`. Step 2 depends on the runtimes:
 
@@ -2096,8 +2097,8 @@ conditions.
 Copilot is an additional adapter delivery tracked in [plan.md](plan.md), after increment 1. Its first release
 adds generation and `init` selection only; runtime management remains increment 2, and no Copilot hook is
 specified by this addition. Support is established only after automated checks and a recorded live CLI smoke
-test, including a feature worktree and coexistence with the other adapters. Project-layer generation and
-manifest tracking are implemented; CLI selection and live acceptance are still pending.
+test, including a feature worktree and coexistence with the other adapters. Generation, manifest tracking,
+and CLI initialization are implemented; transcript and live runtime acceptance remain TASK-04.
 
 ## 11. Open decisions
 
