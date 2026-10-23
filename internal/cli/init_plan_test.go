@@ -96,6 +96,25 @@ func TestGroupedPlanSummarizesUC1(t *testing.T) {
 	assert.Equal(t, uc1Plan, uc1Run().groupedPlan())
 }
 
+func TestGroupedPlanCopilotCountsExtensionRoles(t *testing.T) {
+	t.Parallel()
+
+	r := initRun{
+		framework: "0.1.0", models: map[string]string{"codex": "other-model", "copilot": "gpt-5"},
+		extensions: []project.CatalogExtension{
+			extension("go", "language"), {Name: "contrast", Kind: "agent", Group: "review"},
+		},
+		plan: project.Plan{Changes: planned(project.ActionCreate, "runtime:copilot",
+			".github/skills/go/SKILL.md", ".github/skills/solomonar/SKILL.md",
+			".github/agents/adversarial-reviewer.agent.md", ".github/agents/contrast.agent.md",
+			".github/agents/implementer.agent.md")},
+	}
+
+	assert.Contains(t, r.groupedPlan(), "  runtime copilot\n"+
+		"    create     .github/skills/ (2 skill stubs: 1 core, 1 extension)\n"+
+		"    create     .github/agents/ (3 role stubs: 2 core, 1 extension; adversarial-reviewer model gpt-5)\n")
+}
+
 func TestGroupedPlanKeepsSetsWithReasonsOrMixedActions(t *testing.T) {
 	t.Parallel()
 
