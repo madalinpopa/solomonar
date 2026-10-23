@@ -10,6 +10,7 @@ import (
 // Move holds the raw task move flags; an empty string means the flag was not given.
 type Move struct {
 	Status, Stage, Revision, Spec, Tier, PR, Next string
+	Base, Worktree                                string
 	Agents                                        []string // repeated --agent; ["none"] clears
 	ResumeCancelled                               bool
 }
@@ -122,6 +123,9 @@ func (m Move) applyCommit(r *Record) error {
 }
 
 func (m Move) applyWork(r *Record, roles []string) error {
+	if err := m.applyWorkspace(r); err != nil {
+		return err
+	}
 	if m.Spec != "" {
 		if err := checkSpec(m.Spec); err != nil {
 			return err
@@ -144,6 +148,32 @@ func (m Move) applyWork(r *Record, roles []string) error {
 			return err
 		}
 		r.NextAction = next
+	}
+	return nil
+}
+
+// applyWorkspace sets --base only where none is recorded, and --worktree after a relocation.
+func (m Move) applyWorkspace(r *Record) error {
+	if m.Base != "" {
+		if !fullSHA(m.Base) {
+			return invalidValue("--base takes a full commit SHA", m.Base, "git rev-parse "+m.Base)
+		}
+		if r.Base != "" && r.Base != m.Base {
+			return &Rejection{
+				Code:  "base_recorded",
+				Check: "the base never changes once recorded (CLI-D21)",
+				Found: fmt.Sprintf("base is %.8s", r.Base),
+				Fix:   "omit --base; a wrong base needs the user's decision",
+			}
+		}
+		r.Base = m.Base
+	}
+	if m.Worktree != "" {
+		if !worktreePath(m.Worktree) {
+			return invalidValue("--worktree takes a clean slash-separated path relative to the main checkout",
+				m.Worktree, "pass --worktree ../<repo>-worktrees/<ID>")
+		}
+		r.Worktree = m.Worktree
 	}
 	return nil
 }
@@ -174,6 +204,9 @@ func checkFieldRules(before, after *Record, m Move) error {
 	case m.Spec != "" && !after.Stage.atOrAfter(StageSpecification):
 		return fieldNotAllowed("--spec is accepted from specification onward", found("--spec"),
 			"pass --spec at specification or later, or with --stage specification")
+	case (m.Base != "" || m.Worktree != "") && !after.Stage.atOrAfter(StageSpecification):
+		return fieldNotAllowed("--base and --worktree are accepted from specification onward", found("--base or --worktree"),
+			"leaving setup records both; pass them at specification or later")
 	case m.PR != "" && after.Stage != StageIntegration:
 		return fieldNotAllowed("--pr is accepted in integration", found("--pr"),
 			"pass --pr at integration or with --stage integration")
@@ -230,7 +263,10 @@ func changedFields(before, after *Record) []string {
 	add("status", before.Status != after.Status)
 	add("stage", before.Stage != after.Stage)
 	add("owner", before.Owner != after.Owner)
+	add("confirmed", before.Confirmed != after.Confirmed)
 	add("branch", before.Branch != after.Branch)
+	add("base", before.Base != after.Base)
+	add("worktree", before.Worktree != after.Worktree)
 	add("spec", before.Spec != after.Spec)
 	add("revision", before.Revision != after.Revision)
 	add("tier", !samePointee(before.Tier, after.Tier))
