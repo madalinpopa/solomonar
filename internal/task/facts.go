@@ -32,9 +32,27 @@ func CheckFacts(ctx context.Context, repo *git.Repo, id, main string, before, af
 		}
 	}
 	if m.Spec != "" || (after.Stage == StageImplementation && before.Stage != StageImplementation) {
-		return findSpec(ctx, repo, branch, after)
+		if specFound, err = findSpec(ctx, repo, branch, after); err != nil {
+			return "", err
+		}
 	}
-	return "", nil
+	return specFound, checkGates(ctx, repo, id, before, after)
+}
+
+// checkGates enforces the managed gates: an approved plan to enter implementation from specification,
+// and a fully checkpointed clean candidate to leave implementation for review or integration.
+func checkGates(ctx context.Context, repo *git.Repo, id string, before, after *Record) error {
+	switch {
+	case before.Stage == StageSpecification && after.Stage == StageImplementation:
+		tip, err := branchTip(ctx, repo, "feature/"+id)
+		if err != nil {
+			return err
+		}
+		return checkApprovedPlan(ctx, repo, id, after.Spec, tip)
+	case before.Stage == StageImplementation && after.Stage.atOrAfter(StageSpecializedReview):
+		return checkCandidate(ctx, repo, id, after)
+	}
+	return nil
 }
 
 func checkWorkspaceFlags(ctx context.Context, repo *git.Repo, id string, after *Record, m Move) error {
