@@ -30,10 +30,11 @@ func moveRepo(t *testing.T) (dir, worktree, revision string) {
 	return dir, worktree, gittest.Git(t, worktree, "rev-parse", "HEAD")
 }
 
-// putTask stores record as W-001 owned by orchestrator-1, adding a next action when none is given.
+// putTask stores record as W-001 owned by orchestrator-1, confirmed past setup, with a next action.
 func putTask(t *testing.T, dir string, record task.Record) {
 	t.Helper()
 	record.Title, record.Owner, record.Branch, record.UpdatedAt = "Login", "orchestrator-1", "feature/W-001", "2026-10-20T15:00:00Z"
+	record.Confirmed = record.Stage != task.StageSetup
 	if record.NextAction == nil {
 		record.NextAction = &task.NextAction{Actor: "orchestrator-1", Action: "Continue"}
 	}
@@ -43,6 +44,14 @@ func putTask(t *testing.T, dir string, record task.Record) {
 		return "state: fixture", nil
 	})
 	require.NoError(t, err)
+}
+
+// setupFields returns the base and relative worktree that leaving setup records for moveRepo.
+func setupFields(t *testing.T, dir, worktree string) (base, relative string) {
+	t.Helper()
+	relative, err := filepath.Rel(dir, worktree)
+	require.NoError(t, err)
+	return gittest.Git(t, dir, "rev-parse", "main"), filepath.ToSlash(relative)
 }
 
 func reservedTask() task.Record {
@@ -64,9 +73,14 @@ func TestTaskMoveAdvancesThroughStages(t *testing.T) {
 		"--stage", "specification", "--next", "orchestrator-1:Run work-spec")
 
 	require.Equal(t, 0, setup.exit, setup.stderr)
+	base, relative := setupFields(t, dir, worktree)
 	assert.Equal(t, "W-001  reserved/setup → running/specification\n"+
-		"  next  orchestrator-1: Run work-spec\n"+
-		"  state(W-001): running/specification, status running, stage specification, next orchestrator-1\n"+
+		"  confirmed  yes\n"+
+		"  base       "+base+" (on feature/W-001)\n"+
+		"  worktree   "+relative+" (listed by git worktree list)\n"+
+		"  next       orchestrator-1: Run work-spec\n"+
+		"  state(W-001): running/specification, status running, stage specification, confirmed, base "+base[:7]+
+		", worktree "+relative+", next orchestrator-1\n"+
 		pushedLine(t, dir), setup.stdout)
 	assert.Empty(t, setup.stderr)
 
@@ -215,7 +229,7 @@ func TestTaskMoveUnchangedWritesNothing(t *testing.T) {
 			"from": {"status": "running", "stage": "specification"},
 			"to": {"status": "running", "stage": "specification"},
 			"changed": [],
-			"record": {"title": "Login", "status": "running", "stage": "specification", "owner": "orchestrator-1",
+			"record": {"title": "Login", "status": "running", "stage": "specification", "owner": "orchestrator-1", "confirmed": true,
 				"branch": "feature/W-001", "updated_at": "2026-10-20T15:00:00Z",
 				"next_action": {"actor": "orchestrator-1", "action": "Continue"}},
 			"commit": "`+before+`",
@@ -229,8 +243,9 @@ func TestTaskMoveUnchangedWritesNothing(t *testing.T) {
 func TestTaskMoveJSON(t *testing.T) {
 	t.Parallel()
 
-	dir, _, _ := moveRepo(t)
+	dir, worktree, _ := moveRepo(t)
 	putTask(t, dir, reservedTask())
+	base, relative := setupFields(t, dir, worktree)
 
 	got := runInRepo(t, dir, "task", "move", "W-001", "--json", "--as", "orchestrator-1", "--status", "running",
 		"--stage", "specification", "--next", "orchestrator-1:Run work-spec")
@@ -243,9 +258,10 @@ func TestTaskMoveJSON(t *testing.T) {
 			"id": "W-001",
 			"from": {"status": "reserved", "stage": "setup"},
 			"to": {"status": "running", "stage": "specification"},
-			"changed": ["status", "stage", "next_action"],
+			"changed": ["status", "stage", "confirmed", "base", "worktree", "next_action"],
 			"record": {"title": "Login", "status": "running", "stage": "specification", "owner": "orchestrator-1",
-				"branch": "feature/W-001", "updated_at": "2026-10-21T12:00:00Z",
+				"confirmed": true, "branch": "feature/W-001", "base": "`+base+`", "worktree": "`+relative+`",
+				"updated_at": "2026-10-21T12:00:00Z",
 				"next_action": {"actor": "orchestrator-1", "action": "Run work-spec"}},
 			"commit": "`+registryTip(t, dir)+`",
 			"pushed": true
@@ -257,8 +273,9 @@ func TestTaskMoveJSON(t *testing.T) {
 func TestTaskMoveDryRunWritesNothing(t *testing.T) {
 	t.Parallel()
 
-	dir, _, _ := moveRepo(t)
+	dir, worktree, _ := moveRepo(t)
 	putTask(t, dir, reservedTask())
+	base, relative := setupFields(t, dir, worktree)
 	before := registryTip(t, dir)
 	args := []string{
 		"task", "move", "W-001", "--dry-run", "--as", "orchestrator-1", "--status", "running",
@@ -271,8 +288,12 @@ func TestTaskMoveDryRunWritesNothing(t *testing.T) {
 
 	require.Equal(t, 0, human.exit, human.stderr)
 	assert.Equal(t, "Would move W-001  reserved/setup → running/specification\n"+
-		"  next  orchestrator-1: Run work-spec\n"+
-		"  state(W-001): running/specification, status running, stage specification, next orchestrator-1\n",
+		"  confirmed  yes\n"+
+		"  base       "+base+" (on feature/W-001)\n"+
+		"  worktree   "+relative+" (listed by git worktree list)\n"+
+		"  next       orchestrator-1: Run work-spec\n"+
+		"  state(W-001): running/specification, status running, stage specification, confirmed, base "+base[:7]+
+		", worktree "+relative+", next orchestrator-1\n",
 		human.stdout)
 	require.Equal(t, 0, asJSON.exit, asJSON.stderr)
 	assert.JSONEq(t, `{
@@ -282,9 +303,10 @@ func TestTaskMoveDryRunWritesNothing(t *testing.T) {
 			"id": "W-001",
 			"from": {"status": "reserved", "stage": "setup"},
 			"to": {"status": "running", "stage": "specification"},
-			"changed": ["status", "stage", "next_action"],
+			"changed": ["status", "stage", "confirmed", "base", "worktree", "next_action"],
 			"record": {"title": "Login", "status": "running", "stage": "specification", "owner": "orchestrator-1",
-				"branch": "feature/W-001", "updated_at": "2026-10-21T12:00:00Z",
+				"confirmed": true, "branch": "feature/W-001", "base": "`+base+`", "worktree": "`+relative+`",
+				"updated_at": "2026-10-21T12:00:00Z",
 				"next_action": {"actor": "orchestrator-1", "action": "Run work-spec"}},
 			"dry_run": true
 		},
