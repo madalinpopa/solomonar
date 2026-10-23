@@ -16,6 +16,7 @@ Commands:
   task block      Add a blocker to a task
   task done       Complete a task after its merge
   task handoff    Hand off a task to a new owner
+  task migrate    Rewrite a schema-1 registry as one file per task
   task move       Apply a validated status, stage, or field change
   task plan       Plan a task under the next free ID
   task register   Reserve a task for an orchestrator
