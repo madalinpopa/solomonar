@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" class="dg" width="960" height="415" viewBox="0 0 960 415" role="img" aria-label="The Solomonar cycle: prototype and spec discover the product, solomonar task register and work-spec prepare the task, then implementation, tiered reviews, PR with merge, and solomonar task done; CHANGES_REQUIRED sends the task back to implementation.">
+<svg xmlns="http://www.w3.org/2000/svg" class="dg" width="960" height="415" viewBox="0 0 960 415" role="img" aria-label="The Solomonar cycle: prototype and spec discover the product, solomonar task register and work-spec prepare the task and the user approves its implementation plan, then implementation, tiered reviews, PR with merge, and solomonar task done; CHANGES_REQUIRED sends the task back to implementation.">
 <style>
 svg {
   --bg: #F2F4F1; --surface: #FFFFFF; --ink: #18211E; --muted: #56625D; --line: #9AA7A1; --grid: #DDE3DF;
@@ -85,14 +85,15 @@ svg { font-family: var(--sans); }
       <text class="lbl" x="720" y="116" text-anchor="middle">then worktree</text>
 
       <path class="e" d="M840 160 V263" marker-end="url(#f1a)"/>
-      <text class="lbl" x="852" y="208">readiness OK,</text>
-      <text class="lbl" x="852" y="222">specs updated</text>
+      <text class="lbl" x="852" y="194">readiness OK,</text>
+      <text class="lbl" x="852" y="208">specs updated,</text>
+      <text class="lbl" x="852" y="222">plan approved</text>
 
       <text class="ph" x="45" y="250">EXECUTION · IN PARALLEL, ONE WORKTREE PER TASK</text>
 
       <rect class="box" x="765" y="265" width="150" height="70" rx="4"/>
       <text class="t" x="840" y="296" text-anchor="middle">Implementation</text>
-      <text class="s" x="840" y="317" text-anchor="middle">approach, tests, code</text>
+      <text class="s" x="840" y="317" text-anchor="middle">steps + checkpoints</text>
 
       <rect class="box" x="525" y="265" width="150" height="70" rx="4"/>
       <text class="t" x="600" y="296" text-anchor="middle">Reviews</text>
