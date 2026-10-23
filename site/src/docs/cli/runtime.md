@@ -12,9 +12,9 @@ sources:
 
 > These commands are in development and not in the current build; running one today exits 2 with an unknown-command error. This page describes the planned behavior; the final output may differ in detail.
 
-A runtime is the agent product that runs sessions: Claude Code (`claude`), Codex (`codex`), or GitHub Copilot CLI (`copilot`, planned). Each runtime gets small generated adapter files that point to the portable source in `docs/solomonar/`, never a second copy of it.
+A runtime is the agent product that runs sessions: Claude Code (`claude`), Codex (`codex`), or GitHub Copilot CLI (`copilot`). Each runtime gets small generated adapter files that point to the portable source in `docs/solomonar/`, never a second copy of it.
 
-The current build accepts `claude` and `codex` through `init --runtime`. Copilot adapter generation and manifest tracking are implemented in the project layer, but `init --runtime copilot` is still pending in the [Copilot implementation plan]({{ 'docs/cli/plan.md' | source }}). The first Copilot delivery covers initialization only; the commands below remain unavailable. `init` never changes recorded runtime choices, so adding Copilot to an already initialized project must wait for `runtime add`.
+The current build accepts `claude`, `codex`, and `copilot` through `init --runtime`. The [Copilot implementation plan]({{ 'docs/cli/plan.md' | source }}) tracks the remaining runtime acceptance. This delivery covers initialization only; the commands below remain unavailable. `init` never changes recorded runtime choices, so adding Copilot to an already initialized project must wait for `runtime add`.
 
 Copilot targets the CLI only. It reads `AGENTS.md` natively and will get `.github/skills/<skill>/SKILL.md` and `.github/agents/<role>.agent.md` stubs, tracked as `runtime:copilot`. No extra root instruction file or Copilot guard hook is generated. Its entry skill is user-invoked with `/solomonar`; delegated roles load the portable role and repository instructions. IDE and cloud-agent compatibility are outside this delivery.
 
