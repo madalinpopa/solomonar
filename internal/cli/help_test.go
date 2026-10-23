@@ -14,6 +14,7 @@ Commands:
   init            Install the framework core and create the registry
   version         Print the CLI and project framework versions
   task block      Add a blocker to a task
+  task confirm    Confirm a task's continuation after inspecting it
   task done       Complete a task after its merge
   task handoff    Hand off a task to a new owner
   task migrate    Rewrite a schema-1 registry as one file per task
