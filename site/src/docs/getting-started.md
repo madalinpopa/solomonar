@@ -51,7 +51,7 @@ The CLI is built in increments. This table describes the source tree; check `sol
 | --- | --- |
 | `init`, interactive or with flags, with the core framework and Claude Code, Codex, or Copilot CLI adapters | Available; live Copilot workflow acceptance pending |
 | Extensions at `init`: the `go` extension | Available |
-| Task commands: `plan`, `register`, `show`, `status`, `move`, `block`, `unblock`, `handoff`, `done` | Available |
+| Task commands: `plan`, `register`, `show`, `status`, `move`, `block`, `unblock`, `handoff`, `confirm`, `migrate`, `done` | Available |
 | `extension` commands, project extensions, and more catalog extensions | Planned |
 | `doctor`, `sync`, `runtime`, `guard`, `upgrade`, `dashboard` | Planned |
 
