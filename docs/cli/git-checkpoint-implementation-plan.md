@@ -147,7 +147,7 @@ versions fail clearly without discarding data.
 Depends on steps 1 and 2. Final command names and flags belong in the interface contract; the current
 `task plan` command creates a backlog record and must not be confused with implementation-plan approval.
 
-- [ ] Extend registration and setup through [`register.go`](../../internal/task/register.go),
+- [x] Extend registration and setup through [`register.go`](../../internal/task/register.go),
   [the CLI registration command](../../internal/cli/register.go), and fact checks. Capture the verified
   base and validate the branch and worktree before accepting setup completion.
 - [ ] Add plan and checkpoint inspection that correlates approved steps with actual commits. Account
@@ -155,7 +155,7 @@ Depends on steps 1 and 2. Final command names and flags belong in the interface 
 - [ ] Extend [`status.go`](../../internal/task/status.go), [`drift.go`](../../internal/task/drift.go),
   and [CLI status output](../../internal/cli/status.go) with compact recovery information: approval,
   completed and remaining steps, dirty changes, and discrepancies requiring inspection.
-- [ ] Keep inspection read-only. Add explicit preflight/confirmation and reconcile ownership handoff with
+- [x] Keep inspection read-only. Add explicit preflight/confirmation and reconcile ownership handoff with
   [`handoff.go`](../../internal/task/handoff.go); do not turn inspection into automatic takeover.
 - [ ] Preserve partial and unrelated changes. Missing or inconsistent evidence requires investigation,
   not a reset, duplicate worktree, or assumption that a plan step succeeded.
