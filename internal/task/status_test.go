@@ -41,6 +41,7 @@ func TestGitFactsJSONOfWorktreeAheadAndDirty(t *testing.T) {
 		"worktree": {"path": %[2]q, "relative": %[3]q, "head": %[1]q, "ahead_of_revision": 1,
 		             "dirty": [{"path": "notes.txt", "state": "untracked"}]},
 		"spec": {"in_worktree": true, "at_revision": true},
+		"plan": null,
 		"merge": {"merged": false, "merge_commit": null, "derived_spec_ref": null},
 		"forge": {"available": false, "pr": null, "checks": "unknown"}
 	}`, worktreeHead, f.worktree, relativeOf(t, f)), string(out))
@@ -403,4 +404,18 @@ func TestForgeChecks(t *testing.T) {
 			assert.Empty(t, warnings)
 		})
 	}
+}
+
+func TestGitFactsReconcileThePlan(t *testing.T) {
+	t.Parallel()
+
+	f := newFactsRepo(t)
+	s1 := f.checkpoint(t, "feat(auth): add the session store", "W-001/S-1")
+
+	facts := gitFacts(t, f.repo, f.implementing(t))
+
+	require.NotNil(t, facts.Plan)
+	assert.Equal(t, PlanApproved, facts.Plan.Approval)
+	assert.Equal(t, s1, facts.Plan.At)
+	assert.Equal(t, []string{"S-2"}, facts.Plan.Remaining())
 }
