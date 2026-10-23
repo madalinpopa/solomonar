@@ -40,6 +40,10 @@ func DriftOf(id, main string, record *Record, facts StatusFacts, envOwner string
 			dirty, plural(dirty, "path", "paths"), plural(dirty, "it", "them")))
 		add(record.Spec != "" && !facts.Spec.InWorktree && !facts.Spec.AtRevision, "spec_missing",
 			record.Spec+" is not in the worktree or at the revision")
+		add(planStage(record.Stage) && facts.Plan != nil && facts.Plan.Approval != PlanApproved, "plan_not_approved",
+			fmt.Sprintf("the work spec at feature/%s has no approved plan (%s)", id, planApproval(facts.Plan)))
+		add(facts.Plan != nil && len(facts.Plan.Discrepancies) > 0, "checkpoint_discrepancy",
+			fmt.Sprintf("%d %s to inspect", discrepancies(facts.Plan), plural(discrepancies(facts.Plan), "commit claim", "commit claims")))
 		add(record.Status == StatusBlocked && len(record.Blockers) == 0,
 			"blocked_without_blockers", "blocked without an open blocker")
 		add(record.Tier == nil && record.Stage.atOrAfter(StageSpecializedReview),
@@ -54,6 +58,20 @@ func DriftOf(id, main string, record *Record, facts StatusFacts, envOwner string
 	add(envOwner != "" && record.Owner != "" && envOwner != record.Owner, "owned_by_other",
 		fmt.Sprintf("SOLOMONAR_OWNER is %s; %s is owned by %s", envOwner, id, record.Owner))
 	return drift
+}
+
+func planApproval(p *PlanFacts) string {
+	if p == nil {
+		return ""
+	}
+	return p.Approval
+}
+
+func discrepancies(p *PlanFacts) int {
+	if p == nil {
+		return 0
+	}
+	return len(p.Discrepancies)
 }
 
 func worktreeRelative(w *WorktreeFacts) string {
