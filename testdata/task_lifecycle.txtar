@@ -40,7 +40,7 @@ stdout '^W-001  running/specification → running/implementation$'
 
 cp ../login.go login.go
 exec git add login.go
-exec git commit -q -m 'feat: login'
+exec git commit -q -m 'feat: login' -m 'Step: W-001/S-1'
 exec git rev-parse HEAD
 capture REVISION
 exec solomonar task move W-001 --revision $REVISION --tier 0 --stage integration --pr 42
@@ -77,6 +77,11 @@ exec git ls-remote ../remote.git refs/heads/workflow-state
 stdout '^'$TIP'\s+refs/heads/workflow-state$'
 
 -- spec.md --
-# W-001 Login
+# W-001: Login
+Status: Approved
+
+## Implementation plan
+
+- S-1: feat: login
 -- login.go --
 package login
