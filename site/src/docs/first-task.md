@@ -70,6 +70,14 @@ This session now takes the **orchestrator** role for one task. It registers the 
 
 In the worktree, the `work-spec` skill writes the task's outcome, scope, acceptance criteria, and checks to `docs/work/`. It asks only the questions that block the work.
 
+The work spec ends with an implementation plan, one line per intended commit, such as `S-1: feat(W-001): store expenses`. The orchestrator shows it to you and waits:
+
+```text
+I approve the implementation plan for W-001.
+```
+
+Only then does implementation start. The implementer commits each step separately, so the plan and its commits show exactly what is done.
+
 ## Watch it from the terminal
 
 The registry tells you where every task stands. In the project directory:
@@ -90,7 +98,7 @@ For one task, `task status` compares the record with the real branch, worktree, 
 solomonar task status W-001
 ```
 
-Both commands only read. Agents write the record through the CLI, which refuses any step the record cannot support: implementation cannot start without a recorded spec, and a review needs a committed revision on the task branch.
+Both commands only read. Agents write the record through the CLI, which refuses any step the record cannot support: implementation cannot start without an approved plan, and a review needs every plan step committed and a clean revision on the task branch. Once implementation starts, `task status` also shows which plan steps are committed and which remain.
 
 ## Answer decisions
 
@@ -127,7 +135,7 @@ Sessions end. Your work does not:
 /solomonar Resume W-001.
 ```
 
-The new session reads the record, inspects the worktree and pull request, and continues from what actually exists. It does not start a second branch. To stop on purpose, say “Pause W-001”.
+The new session takes the task over on your instruction, reads the record, the approved plan, and its commits, and inspects the worktree and pull request. It confirms the task, then delegates only the steps that remain; uncommitted work is inspected, not overwritten. It does not start a second branch. Make sure the old session has stopped before you ask. To stop on purpose, say “Pause W-001”.
 
 ## Next
 
