@@ -18,7 +18,7 @@ sources:
 
 `solomonar init` writes these files. The core and the adapters are managed: the manifest records their hashes so a later run can tell your edits from its own.
 
-`init --runtime copilot` installs the Copilot adapters below. Copilot 1.0.85 discovered the instructions and all four core skills in a main checkout and feature worktree with all three adapters installed. A live session was rejected by account policy, so delegation, reviewer tool behavior, model selection, and the minimum supported version remain unverified. See the [acceptance record]({{ 'docs/cli/plan.md' | source }}#copilot-runtime-acceptance).
+`init --runtime copilot` installs the Copilot adapters below. Copilot 1.0.85 discovered the instructions and all four core skills in a main checkout and feature worktree with all three adapters installed. Copilot 1.0.103 sessions run, but prompt mode cannot invoke the entry skill; delegation, reviewer tool behavior, model selection, and the minimum supported version remain unverified. See the [acceptance record]({{ 'docs/cli/interface.md' | source }}#copilot-runtime-acceptance).
 
 | Path | Owns | Owner |
 | --- | --- | --- |
@@ -66,7 +66,7 @@ The Copilot CLI adapter uses the following format. These fields were checked aga
 | Skills | `.github/skills/<skill>/SKILL.md`, pointing to the portable skill |
 | Agent roles | `.github/agents/<role>.agent.md`, pointing to the portable role; `include-custom-instructions: true` opts delegated roles into repository instructions |
 | Reviewer tools | `read`, `search`, `execute`; the implementer inherits available tools |
-| Entry invocation | `/solomonar`; its stub sets `disable-model-invocation: true` so invocation remains yours |
+| Entry invocation | `/solomonar` in an interactive session; its stub sets `disable-model-invocation: true` so invocation remains yours, which also prevents prompt-mode (`-p`) invocation |
 | Adversarial model | Optional `model` field on the adversarial reviewer only; omitted when unspecified |
 | Ownership | `runtime:copilot` and a SHA-256 base hash for each adapter; no hook entry |
 
