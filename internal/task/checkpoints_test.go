@@ -265,3 +265,22 @@ func TestConfirmChecksThePlanBeforeIntegration(t *testing.T) {
 	requireRejection(t, reviewErr, "plan_not_approved")
 	require.NoError(t, integrationErr, "closure deletes the work spec at integration")
 }
+
+func TestInspectPlanSkipsCommitsMergedFromMain(t *testing.T) {
+	t.Parallel()
+
+	f := newFactsRepo(t)
+	r := f.implementing(t)
+	s1 := f.checkpoint(t, "feat(auth): add the session store", "W-001/S-1")
+	require.NoError(t, os.WriteFile(filepath.Join(f.repo.Dir, "export.go"), []byte("package export\n"), 0o644))
+	gittest.Git(t, f.repo.Dir, "add", "export.go")
+	gittest.Git(t, f.repo.Dir, "commit", "-m", "feat(export): add csv", "-m", "Step: W-002/S-1")
+	gittest.Git(t, f.worktree, "merge", "--no-ff", "-m", "Merge main", "main")
+
+	facts, err := InspectPlan(t.Context(), f.repo, "W-001", r, head(t, f.worktree))
+
+	require.NoError(t, err)
+	assert.Empty(t, facts.Discrepancies, "W-002's checkpoint came from main, not from the task branch")
+	assert.Equal(t, 1, facts.OtherCommits, "only the spec commit; main's commits are not the task's")
+	assert.Equal(t, &s1, facts.Steps[0].Commit)
+}
