@@ -150,16 +150,16 @@ Depends on steps 1 and 2. Final command names and flags belong in the interface 
 - [x] Extend registration and setup through [`register.go`](../../internal/task/register.go),
   [the CLI registration command](../../internal/cli/register.go), and fact checks. Capture the verified
   base and validate the branch and worktree before accepting setup completion.
-- [ ] Add plan and checkpoint inspection that correlates approved steps with actual commits. Account
+- [x] Add plan and checkpoint inspection that correlates approved steps with actual commits. Account
   for specification commits, integration merges, correction commits, and unrelated or duplicate matches.
-- [ ] Extend [`status.go`](../../internal/task/status.go), [`drift.go`](../../internal/task/drift.go),
+- [x] Extend [`status.go`](../../internal/task/status.go), [`drift.go`](../../internal/task/drift.go),
   and [CLI status output](../../internal/cli/status.go) with compact recovery information: approval,
   completed and remaining steps, dirty changes, and discrepancies requiring inspection.
 - [x] Keep inspection read-only. Add explicit preflight/confirmation and reconcile ownership handoff with
   [`handoff.go`](../../internal/task/handoff.go); do not turn inspection into automatic takeover.
-- [ ] Preserve partial and unrelated changes. Missing or inconsistent evidence requires investigation,
+- [x] Preserve partial and unrelated changes. Missing or inconsistent evidence requires investigation,
   not a reset, duplicate worktree, or assumption that a plan step succeeded.
-- [ ] Specify recovery when a checkpoint commit exists but a subsequent state update failed. A task-branch
+- [x] Specify recovery when a checkpoint commit exists but a subsequent state update failed. A task-branch
   commit and a registry update are separate operations, not one atomic transaction.
 
 Completion: a replacement session can locate the same task, identify remaining work, and confirm a
@@ -169,15 +169,15 @@ safe continuation point without the original conversation.
 
 Depends on the approved-plan and recovery contracts and step 3.
 
-- [ ] Update [`move.go`](../../internal/task/move.go), [`movetask.go`](../../internal/task/movetask.go),
+- [x] Update [`move.go`](../../internal/task/move.go), [`movetask.go`](../../internal/task/movetask.go),
   [`transition.go`](../../internal/task/transition.go), and fact checks to reject implementation entry
   without the required approved-plan evidence.
-- [ ] Require complete checkpoint coverage and a clean, correctly referenced candidate before review
+- [x] Require complete checkpoint coverage and a clean, correctly referenced candidate before review
   entry. Validate structural evidence without claiming to prove semantic completion.
-- [ ] Update allowed-next-command reporting from the same rules, and align human and JSON errors and output.
-- [ ] Preserve the existing risk tiers, review ordering, and review-reuse conditions. Do not add verdict
+- [x] Update allowed-next-command reporting from the same rules, and align human and JSON errors and output.
+- [x] Preserve the existing risk tiers, review ordering, and review-reuse conditions. Do not add verdict
   storage to the registry implicitly; missing durable evidence still requires verification to be repeated.
-- [ ] Adapt [`done.go`](../../internal/task/done.go) and final-spec discovery to the revised plan lifecycle.
+- [x] Adapt [`done.go`](../../internal/task/done.go) and final-spec discovery to the revised plan lifecycle.
   Closure must still verify the correct reviewed work was merged and preserve required historical references.
 
 Completion: the CLI rejects invalid managed transitions while leaving arbitrary file execution outside
