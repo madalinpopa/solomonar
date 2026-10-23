@@ -23,6 +23,9 @@ func AllowedNext(id string, record *Record, facts StatusFacts) []string {
 	case StatusPlanned:
 		return []string{"solomonar task register " + id + " --title <title> --owner <owner>"}
 	case StatusReserved, StatusRunning:
+		if needsConfirmation(record) {
+			return []string{c.task("confirm"), c.block(), c.task("move", "--status paused", nextPlaceholder), c.task("move", cancelFlags)}
+		}
 		next := c.stageMoves(record)
 		if record.Stage == StageIntegration {
 			next = append(next, c.done(nil))
@@ -39,6 +42,9 @@ func AllowedNext(id string, record *Record, facts StatusFacts) []string {
 		}
 		return append(next, c.block(), c.task("move", cancelFlags))
 	case StatusPaused:
+		if needsConfirmation(record) {
+			return []string{c.task("confirm"), c.task("move", prior), c.task("move", cancelFlags)}
+		}
 		return []string{c.task("move", prior), c.task("move", cancelFlags)}
 	case StatusCancelled:
 		return []string{c.task("move", prior, "--resume-cancelled")}
