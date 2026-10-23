@@ -49,7 +49,7 @@ The skills and roles create these as the project grows. A small project does not
 
 ## Runtime adapters
 
-`init --runtime claude`, `--runtime codex`, and `--runtime copilot` install adapters. Each adapter file is a stub: the runtime's frontmatter plus one line that loads the portable file in `docs/solomonar/`. Edit the portable file, never the stub.
+`init --runtime claude`, `--runtime codex`, and `--runtime copilot` install adapters. Each adapter file is a stub: the runtime's frontmatter plus one line that loads the portable file in `docs/solomonar/`. Edit the portable file, never the stub. Body-only edits apply when the runtime next loads that source. Changes to names or descriptions require adapter regeneration; `sync` is planned, so leave those metadata changes pending until it is available. Check `solomonar help` before following regeneration instructions.
 
 | Concern | Claude Code | Codex |
 | --- | --- | --- |
