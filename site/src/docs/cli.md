@@ -63,7 +63,7 @@ Increment 2 also completes the new-product path: a project initialized with `--e
 | `-v`, `--verbose` | Print each Git and `gh` command to stderr, as `+ git …` or `+ gh …`, before it runs. |
 | `-h`, `--help` | Show command help. |
 
-`solomonar` here means a binary on your `PATH`; see [Install the CLI]({{ '/docs/install/' | url }}). Writing task commands support `--dry-run`: they run validation and report the proposed record without writing it. Owner commands accept `--as <owner>`, with `SOLOMONAR_OWNER` as the default.
+`solomonar` here means a binary on your `PATH`; see [Install the CLI]({{ '/docs/install/' | url }}). Writing task commands except `task migrate` support `--dry-run`: they run validation and report the proposed record without writing it. Owner commands accept `--as <owner>`, with `SOLOMONAR_OWNER` as the default.
 
 ## Output formats
 
