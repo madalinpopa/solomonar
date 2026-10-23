@@ -175,7 +175,7 @@ To report a problem, include the output of `solomonar version`, the command, the
 
 ### Releases
 
-Maintainers release from `main` with `task release:patch`, `task release:minor`, or `task release:major`. The task sets the next version in the framework assets, docs, site, and this README, commits that to `main`, then tags it and pushes the tag; the release workflow reruns CI, publishes the archives with GoReleaser, updates the Homebrew cask, and republishes the website.
+Maintainers release from `main` with `task release:patch`, `task release:minor`, or `task release:major`. The task updates framework version headers and current-build examples in the docs, site, and this README while preserving historical release and compatibility references. It commits those changes to `main`, then tags the commit and pushes the tag; the release workflow reruns CI, publishes the archives with GoReleaser, updates the Homebrew cask, and republishes the website.
 
 ## License
 
