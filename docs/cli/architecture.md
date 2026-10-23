@@ -8,7 +8,8 @@ When the two differ, the interface spec wins for behavior and this document wins
 This is an implementation contract. Increment 1 follows it and is released as v0.1.0. The accepted workflow-audit
 fixes are applied, with runtime verification kept separate from completion of the design changes.
 
-The Copilot CLI adapter contract was added on 2026-10-23 and is tracked in [plan.md](plan.md). Project-layer
+The Copilot CLI adapter contract was added on 2026-10-23; its acceptance record is in
+[interface section 10](interface.md#copilot-runtime-acceptance). Project-layer
 generation, manifest tracking, and CLI `init` selection are implemented; live acceptance remains pending.
 Runtime management and hooks remain increment 2; this addition specifies no Copilot hook and changes no existing
 architectural decision.
@@ -551,7 +552,7 @@ Delivered in ten steps, each ending with `task check` green, and released as v0.
 are planned in detail before they start, once their inputs (CLI-D9 for Codex, the guard's real hook payloads) are
 verified.
 
-The additional Copilot delivery is sequenced in [plan.md](plan.md). It extends adapter generation and `init`
+The additional Copilot delivery is recorded in [interface section 10](interface.md#copilot-runtime-acceptance). It extends adapter generation and `init`
 before increment 2 without implementing runtime management. `init` continues rejecting changed recorded
 choices, so adding Copilot to an initialized project waits for `runtime add`.
 
