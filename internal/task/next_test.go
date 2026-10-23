@@ -44,6 +44,25 @@ func TestAllowedNext(t *testing.T) {
 			},
 		},
 		{
+			name:   "plan steps remaining at implementation",
+			record: withRevision(moving(StatusRunning, StageImplementation, new(1))),
+			facts: StatusFacts{Plan: &PlanFacts{
+				Approval: PlanApproved, Steps: []StepFacts{{ID: "S-1", State: StepRemaining}},
+			}},
+			want: []string{move + " --stage specification --next <actor>:<action>", block, pause, cancel},
+		},
+		{
+			name:   "plan in review at specification",
+			record: withSpec(moving(StatusRunning, StageSpecification, nil)),
+			facts:  StatusFacts{Plan: &PlanFacts{Approval: PlanInReview}},
+			want:   []string{block, pause, cancel},
+		},
+		{
+			name:   "unconfirmed task offers task confirm",
+			record: func() *Record { r := reviewing(); r.Confirmed = false; return r }(),
+			want:   []string{"solomonar task confirm W-001 --as orchestrator-1", block, pause, cancel},
+		},
+		{
 			name:   "UC-17 merged at integration",
 			record: withRevision(moving(StatusRunning, StageIntegration, new(2))),
 			facts:  merged,
