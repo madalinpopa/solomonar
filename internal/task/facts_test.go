@@ -65,7 +65,7 @@ func moved(t *testing.T, before *Record, m Move) *Record {
 
 func checkFacts(t *testing.T, repo *git.Repo, before *Record, m Move) (string, error) {
 	t.Helper()
-	return CheckFacts(t.Context(), repo, "W-001", before, moved(t, before, m), m)
+	return CheckFacts(t.Context(), repo, "W-001", "main", before, moved(t, before, m), m)
 }
 
 func requireRejection(t *testing.T, err error, code string) Rejection {
