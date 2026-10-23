@@ -61,13 +61,15 @@ copilot skill list --json
 
 The Solomonar skills should point into the selected worktree's `.github/skills/`. Copilot also reads compatible `.agents` and `.claude` skill directories, so inspect the resolved paths. Custom-agent discovery requires a live session: use `/agent` there. A personal agent in `~/.copilot/agents/` takes precedence over a project agent with the same ID. Check the filename-derived ID, not just its display name. These rules follow GitHub's [CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference) and [custom-agent documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/create-custom-agents-for-cli).
 
-Invoke `/solomonar` yourself in the top-level session. The entry skill disables automatic model invocation. Delegated roles opt into repository instructions with `include-custom-instructions: true`; a session using `--no-custom-instructions` disables that loading. Do not edit generated stubs to work around discovery; inspect the portable source and use only commands your Solomonar build provides.
+Invoke `/solomonar` yourself in an interactive top-level session. The entry skill disables automatic model invocation, and Copilot 1.0.103 does not expand `/solomonar` in prompt mode (`copilot -p`), so a prompt-mode session cannot load it. For a non-interactive session, ask Copilot to load `docs/solomonar/skills/solomonar/SKILL.md` and follow it. Delegated roles opt into repository instructions with `include-custom-instructions: true`; a session using `--no-custom-instructions` disables that loading. Do not edit generated stubs to work around discovery; inspect the portable source and use only commands your Solomonar build provides.
 
 ## Copilot rejects a session or uses another model
 
-`Access denied by policy settings` means Copilot rejected the session under account, subscription, or organization policy. Follow the error's settings link or contact the account administrator. Regenerating Solomonar adapters does not resolve that rejection. The 1.0.85 acceptance attempt reached this error, so live workflow compatibility remains unverified; see [the acceptance record]({{ 'docs/cli/plan.md' | source }}#copilot-runtime-acceptance).
+`Access denied by policy settings` means Copilot rejected the session under account, subscription, or organization policy. Follow the error's settings link or contact the account administrator. Regenerating Solomonar adapters does not resolve that rejection. The 1.0.85 acceptance attempt reached this error; later 1.0.103 sessions ran, but live workflow compatibility remains unverified; see [the acceptance record]({{ 'docs/cli/interface.md' | source }}#copilot-runtime-acceptance).
 
 `--adversarial-model copilot=<model>` writes a model preference, not proof of which model ran. Session settings, per-agent overrides, automatic selection, and account model access can change the effective model. Inspect the running session and its subagent settings before recording a model in review evidence. Installation performs no account/model access check.
+
+In Copilot 1.0.103, `--allow-tool 'shell(...)'` rules match only the first word: `shell(solomonar:*)` allows every `solomonar` command, while `shell(solomonar task show)` matches nothing.
 
 No Copilot guard hook is installed. Reviewer shell access still follows the portable read-only contract; generated tool lists do not establish a filesystem security boundary.
 
