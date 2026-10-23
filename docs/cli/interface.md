@@ -28,8 +28,8 @@ status` · 10 Delivery order · 11 Open decisions
 - **Guard and oracle, never a driver** (J1). The CLI validates and records what the orchestrator or the user
   decided, and reports what Git shows. It never launches agents, calls model providers, stores review verdicts or
   reports, or runs a daemon. The only long-running command is the read-only `dashboard`.
-- **One writer for state.** Only `solomonar task` commands write `refs/heads/workflow-state:state.json`, each
-  write one compare-and-swap commit (rules section 7).
+- **One writer for state.** Only `solomonar task` commands write the registry on `refs/heads/workflow-state`
+  (`state.json` and `tasks/<ID>.json`, 8.6), each write one compare-and-swap commit (rules section 7).
 - **Project files are copied, then owned.** `init` and the commands that add content copy embedded assets into
   the project and record each managed file in a manifest. A repeated operation with identical content is a no-op;
   a differing file is a conflict, never a silent overwrite.
@@ -62,6 +62,7 @@ each command writes and its use cases.
 | `upgrade` | managed files, manifest | UC-9 |
 | `doctor` | nothing | UC-10 |
 | `task plan`, `register`, `move`, `block`, `unblock`, `handoff`, `done` | `workflow-state` | UC-11 to UC-15, UC-18 to UC-21 |
+| `task migrate` | `workflow-state` | UC-25 |
 | `task show`, `task status` | nothing | UC-16, UC-17 |
 | `guard` | nothing | UC-22 |
 | `dashboard` | nothing | UC-23 |
@@ -123,7 +124,7 @@ behavior.
   would write is adopted into the manifest and shown as `unchanged  <path>  adopted` (CLI-D17).
 - A plan line is `  <action padded to 9>  <path>`; when the change has a reason, two spaces and the reason follow,
   with paths padded to the widest path that has a reason. `init`'s registry line is `  registry   create
-  refs/heads/workflow-state with an empty state.json` or `  registry   unchanged refs/heads/workflow-state`; with
+  refs/heads/workflow-state with an empty registry` or `  registry   unchanged refs/heads/workflow-state`; with
   `--git-init` the plan's first line is `  git        init -b <main-branch>` (UC-4).
 - The interactive `init` plan shown before `Proceed?` groups its lines and collapses uniform file sets (UC-1); `init
   --dry-run` and the `file_conflict` plan list every file in this form.
@@ -846,7 +847,7 @@ Plan
     create     .codex/agents/ (5 role stubs)
     create     .codex/hooks.json (state guard hook)
   registry
-    create     refs/heads/workflow-state with an empty state.json
+    create     refs/heads/workflow-state with an empty registry
   manifest
     create     .solomonar/manifest.json
 Proceed? [Y/n] y
@@ -904,7 +905,7 @@ The grouped plan is shown only before `Proceed?`; `--dry-run` (interactive or no
 JSON list every file (3.3). Its groups, in this order with empty groups omitted, are `git` (`init       -b
 <main-branch>`), `framework <fw>` (owners `core`, `core+notes`, `seed`), `extensions` (`ext`, `project-ext`),
 `decisions (approved, selected by you)`, `runtime claude`, `runtime codex`, `runtime copilot`, `registry` (`create     refs/heads/workflow-state
-with an empty state.json` or `unchanged  refs/heads/workflow-state`), and `manifest`. A header is indented two spaces and its lines four; a line is `<action padded to 9>  <path>`, and a note
+with an empty registry` or `unchanged  refs/heads/workflow-state`), and `manifest`. A header is indented two spaces and its lines four; a line is `<action padded to 9>  <path>`, and a note
 follows two spaces after the path padded to the widest noted path in its group. Within a group the plan order is
 kept, and a collapsed line takes its set's first position. A set collapses into one line only when all its lines
 share one action and none has a reason; otherwise each file gets its own line. The sets are
@@ -1017,7 +1018,7 @@ nothing was written
 
 Exit 2. A no-op (UC-3) needs no confirmation; every other run does, including one where every file matches but the
 registry is absent. `--dry-run` prints `Plan`, every file line, the registry line (`  registry   create
-refs/heads/workflow-state with an empty state.json`, or `  registry   unchanged refs/heads/workflow-state` with an
+refs/heads/workflow-state with an empty registry`, or `  registry   unchanged refs/heads/workflow-state` with an
 existing registry), then, with no blank line, `Would initialize solomonar <fw> in <root>` and `  <counts>`, and
 writes nothing; on a terminal it still prompts for the choices (UC-1) but never for the confirmation.
 
@@ -1345,9 +1346,9 @@ Upgraded framework 0.1.0 → 0.2.0: 7 files updated, 1 kept.
 Next: commit on main as "chore: upgrade solomonar framework to 0.2.0"; running tasks pick it up after updating from main.
 ```
 
-An upgrade that changes `state.json`'s `schema_version` also migrates the registry with one compare-and-swap commit
-`state: migrate schema 1 -> 2`, shown in the plan. Downgrade is rejected (`cli_outdated`, fix: install the
-matching CLI). The upgrade never commits on main.
+`upgrade` never touches the registry: a registry schema change is the separate `task migrate` (UC-25, CLI-D26),
+so framework files and registry state are updated by different commands. Downgrade is rejected (`cli_outdated`,
+fix: install the matching CLI). The upgrade never commits on main.
 
 ### UC-10 Check the project
 
@@ -1546,7 +1547,8 @@ required`), and so are `unblock` without the blocker ID (`blocker ID is required
 · <commit time>`, the time in RFC 3339 UTC. `task show <ID>` prints the stored record exactly as JSON, the raw read
 (J3).
 
-`--json` data: `{"registry": <state.json>, "commit": "<sha>"}`; with an ID, `{"id": "W-001", "record": { },
+`--json` data: `{"registry": {"schema_version": 2, "tasks": {"<ID>": <record>, …}}, "commit": "<sha>"}`, the
+registry files (8.6) joined into one document; with an ID, `{"id": "W-001", "record": { },
 "commit": "<sha>"}`.
 
 The oracle (rules section 7, J3):
@@ -1739,6 +1741,37 @@ When the re-validation fails on the new tip (for example the same planned ID was
 fails with that check's code (exit 3). After 5 lost attempts: `cas_exhausted` (exit 4), fix "retry the command; no
 state was written".
 
+Each task is its own file (8.6), so a write changes only the files of the records it touches; the other files keep
+their blobs. The swap still covers the whole ref, so separate files do not remove contention between writers.
+
+### UC-25 Migrate the registry
+
+`solomonar task migrate [--json]` is the user's command (no `--as`). Every other command that reads the registry
+rejects a schema-1 registry, the single `state.json` of CLI 0.1.5 and earlier, with `registry_outdated` (exit 3),
+found `registry schema 1, this CLI uses 2`, fix `solomonar task migrate`; `init` keeps such a registry
+`unchanged`, and `version` reports it (UC-24).
+
+```
+$ solomonar task migrate
+Migrated registry to schema 2: 4 tasks, one tasks/<ID>.json each
+  unconfirmed  W-001, W-004
+  next         inspect each with solomonar task status <ID>, then solomonar task confirm <ID>
+  registry @ 4f0c2b7d9e1a3c5f7b9d1e3a5c7f9b1d3e5a7c9f
+```
+
+The migration decodes the schema-1 registry strictly (8.6 validation; `registry_invalid` otherwise), writes the
+same records as schema-2 files in one compare-and-swap commit `state: migrate schema 1 -> 2` whose parent is the
+old tip, and pushes as any write. It copies records unchanged: it never infers a `base`, `worktree`, or
+`confirmed`, and a done record without `base` stays valid. `unconfirmed` lists, in ID order, every record with an
+owner that is not `done`, is past `setup`, and is not confirmed; the line is omitted when none. A registry already
+at schema 2 writes nothing and prints `Registry already at schema 2; nothing to migrate.` (exit 0); a newer one is
+`cli_outdated`. A failed migration writes nothing. A schema-1 CLI reading a migrated registry rejects it as
+`cli_outdated`, since `state.json` keeps the version; to return to it, point the ref back at the previous commit:
+`git update-ref refs/heads/workflow-state refs/heads/workflow-state^` (losing writes made after the migration).
+
+`--json` data: `{"migrated": true, "schema": 2, "tasks": 4, "unconfirmed": ["W-001", "W-004"], "commit": "<sha>",
+"pushed": true}`; without a migration `migrated` is `false` and `commit` the current tip.
+
 ## 7. Use cases: runtime integration
 
 ### UC-22 The state guard denies a direct registry write
@@ -1796,8 +1829,9 @@ other than absence, a failure opening the worktree, and a registry commit whose 
 unexpected errors (exit 1), not `invalid`. A suffix follows whichever registry part is shown (`registry schema <n>`,
 `registry missing`, or `registry invalid`): a project framework newer than the embedded one adds ` (newer than this
 CLI; install solomonar <project fw> or later)`; otherwise a manifest or registry schema newer than this CLI supports
-adds ` (newer than this CLI; install a newer solomonar release)`. `--json`: `{"cli": "0.1.5", "framework": "0.1.5",
-"project_framework": "0.1.5", "registry_schema": 1}`; a value not shown (not initialized, missing, invalid) is `null`,
+adds ` (newer than this CLI; install a newer solomonar release)`, and a registry schema older than this CLI's adds `
+(older than this CLI; run solomonar task migrate)` (UC-25). `--json`: `{"cli": "0.1.5", "framework": "0.1.5",
+"project_framework": "0.1.5", "registry_schema": 2}`; a value not shown (not initialized, missing, invalid) is `null`,
 so an invalid manifest leaves both project values `null`.
 
 ## 8. Reference: task validation
@@ -1870,7 +1904,7 @@ rejection) unless the command was cancelled; any other Git failure is `unexpecte
 |---|---|---|---|
 | `not_a_repository` | 3 | `-C` or the working directory is not in a Git repository | run inside a Git repository or pass `-C <path>` |
 | `not_initialized` | 3 | No `refs/heads/workflow-state` | `solomonar init` |
-| `registry_invalid` | 1 | `state.json` fails the schema | inspect with `git show refs/heads/workflow-state:state.json`; never edit it by hand |
+| `registry_invalid` | 1 | A registry file fails the schema (8.6) | inspect with `git show refs/heads/workflow-state:state.json`; never edit it by hand |
 | `manifest_invalid` | 1 | `.solomonar/manifest.json` fails strict decoding or the 4.7 validation | inspect .solomonar/manifest.json; never edit it by hand |
 | `task_not_found` | 3 | Unknown ID | `solomonar task show` |
 | `not_planned` | 3 | `register <ID>` on a non-planned record | `solomonar task show <ID>; resume the task instead` |
@@ -1906,6 +1940,7 @@ rejection) unless the command was cancelled; any other Git failure is `unexpecte
 | `invalid_usage` | 2 | Unknown flag, missing required flag, or unexpected argument | run solomonar help |
 | `cas_exhausted` | 4 | Lost the compare-and-swap 5 times | retry |
 | `cli_outdated` | 3 | Registry or manifest written by a newer CLI | install a newer solomonar release |
+| `registry_outdated` | 3 | Registry at schema 1 (UC-25) | `solomonar task migrate` |
 | `git_too_old` | 1 | Git older than 2.40 | install git 2.40 or later |
 | `unexpected_error` | 1 | I/O, Git error, corrupt object (3.5) | - |
 | `interrupted` | 130, 143 | Signal before the compare-and-swap | rerun (the error form already states nothing was written) |
@@ -1929,7 +1964,31 @@ previous tip.
 | `task handoff` | `handoff <old> -> <new>`, also with `--next` |
 | `task done` | `merged <short merge sha>` |
 | `init` | subject `state: initialize registry` (root commit) |
-| `upgrade` | subject `state: migrate schema <n> -> <m>` |
+| `task migrate` | subject `state: migrate schema 1 -> 2` |
+
+### 8.6 Registry layout
+
+Schema 2 (CLI-D20). The tree at the tip of `refs/heads/workflow-state` holds exactly:
+
+| Path | Content |
+|---|---|
+| `state.json` | `{"schema_version": 2}`, nothing else |
+| `tasks/<ID>.json` | one record (rules section 7), the file name its ID (`W-` and three or more digits) |
+
+An empty registry is `state.json` alone. Every file is written in canonical form: struct field order, two-space
+indent, trailing newline. Reading checks `state.json`'s `schema_version` first (`cli_outdated` above 2,
+`registry_outdated` at 1), then decodes every file strictly: unknown members, duplicate keys, a `tasks` member in
+`state.json`, any other path, a subtree other than `tasks`, or a record failing validation is `registry_invalid`.
+
+Record fields added by schema 2 (CLI-D21):
+
+| Field | Value | Written by |
+|---|---|---|
+| `confirmed` | `true`; omitted when false | the move out of `setup`, `task confirm`; cleared by `task handoff` |
+| `base` | full SHA of the commit the task branched from; never changed once recorded | the move out of `setup`, or `--base` when missing |
+| `worktree` | clean `/`-separated path relative to the main checkout, `..` allowed, never absolute | the move out of `setup`, or `--worktree` after a relocation |
+
+A `planned` record has none of them. A `done` record keeps `base` when it had one and drops the other two.
 
 ## 9. Reference: `task status`
 
@@ -2156,3 +2215,10 @@ and the minimum supported Copilot version. Version 1.0.85 is a discovery baselin
 | CLI-D17 | An unmanaged file whose content equals what the CLI would write | a) conflict, as any unmanaged file; b) adopted into the manifest, shown as `unchanged (adopted)` | b: a re-run after an `init` killed before its manifest write completes instead of failing on the run's own files; nothing is lost, since the recorded base is the file's content | **b**, author, 2026-10-21 |
 | CLI-D18 | Exit code of an interrupted command | a) 1, as an unexpected failure; b) 130 or 143 whenever a signal arrives; c) the exit code reports what was written: 128 + signal with `interrupted` when nothing was written, 0 with `push_interrupted` after the compare-and-swap | c: after a successful write, a failure exit makes a script or agent retry and repeat a non-idempotent write such as `task plan` | **c**, author, 2026-10-21 |
 | CLI-D19 | A project or registry written by a newer CLI | a) `already_initialized` for a downgrade only; b) `cli_outdated` (exit 3) for every command that reads the manifest or the registry, checked before strict decoding; `version` and `doctor` report instead of rejecting | b: with strict decoding, a newer schema would otherwise read as `registry_invalid` with the wrong fix | **b**, author, 2026-10-21 |
+| CLI-D20 | Registry layout | a) one `state.json` holding every task; b) `state.json` with the schema only, plus `tasks/<ID>.json` per task | b: a write changes one task's file, history per task reads with `git log -- tasks/<ID>.json`, and keeping the version in `state.json` makes a schema-1 CLI reject the layout as `cli_outdated` | **b**, author, 2026-10-23 (8.6) |
+| CLI-D21 | Workspace fields | a) derive the worktree from Git and store no base; b) store `base` (immutable) and `worktree` (relative to the main checkout), with Git's listing authoritative | b: recovery needs the base to bound checkpoints; a relative path stays portable across machines with the same layout | **b**, author, 2026-10-23 (8.6) |
+| CLI-D22 | How an execution is identified for confirmation | a) the owner ID: a new session takes the task with `task handoff`, which clears `confirmed`, and runs `task confirm`; b) a separate opaque execution field | a: no second identity beside the owner; the CLI cannot detect a new session, so the handoff is the boundary | **a**, author, 2026-10-23 |
+| CLI-D23 | Work-spec plan contract | a) `Status: In review` / `Status: Approved` below the title, steps `S-<n>: <commit subject>` under `## Implementation plan`, IDs never reused; b) a separate approval section | a: one line to check, one list to reconcile; the path stays `docs/work/<ID>-<slug>.md` | **a**, author, 2026-10-23 |
+| CLI-D24 | Checkpoint commit metadata | a) the planned subject and a `Step: <ID>/S-<n>` trailer; b) a, plus a `Plan: <sha>` trailer | a: step IDs are never reused, so a plan version adds noise without disambiguating | **a**, author, 2026-10-23 |
+| CLI-D25 | Who creates checkpoints | a) the implementer, with Git; the CLI only inspects; b) a CLI commit command | a: the decision to use real Git commits needs no wrapper | **a**, author, 2026-10-23 |
+| CLI-D26 | Registry migration | a) an explicit `task migrate`; b) automatic in `init` or `upgrade` | a: registry migration stays separate from framework updates and never runs implicitly | **a**, author, 2026-10-23 (UC-25) |
