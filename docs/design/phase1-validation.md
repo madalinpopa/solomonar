@@ -1,5 +1,9 @@
 # Phase 1 validation — framework v0.1.0
 
+> Historical validation record. The scenarios, gaps, and line counts below describe the framework at validation,
+> including superseded compaction and registry designs. Current behavior is owned by `assets/framework/`;
+> CLI behavior and structure are in [interface.md](../cli/interface.md) and [architecture.md](../cli/architecture.md).
+
 Abbreviations: R = `rules.md`, P = `report.md`, O = `orchestrator.md`, I = `implementer.md`, Rv = `reviewer.md`,
 SEC/COR/SPC/ADV = specialist role files, A = `AGENTS.md`, sk:x = skill `x` `SKILL.md`. `X section n` is section n of file X.
 Source of intent: [`framework-v0.1.md`](framework-v0.1.md). Role names follow the current framework; the B8 line
