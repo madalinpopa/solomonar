@@ -18,7 +18,7 @@ sources:
 
 `solomonar init` writes these files. The core and the adapters are managed: the manifest records their hashes so a later run can tell your edits from its own.
 
-Copilot adapter generation and manifest tracking are implemented in the project layer. CLI selection is still pending, so the current `init` command accepts only `claude` and `codex`. The Copilot paths below describe that adapter contract; `init --runtime copilot` is not available yet. See the [implementation plan]({{ 'docs/cli/plan.md' | source }}).
+`init --runtime copilot` installs the Copilot adapters below. Live runtime acceptance and the minimum supported Copilot version remain pending in the [implementation plan]({{ 'docs/cli/plan.md' | source }}).
 
 | Path | Owns | Owner |
 | --- | --- | --- |
@@ -29,7 +29,7 @@ Copilot adapter generation and manifest tracking are implemented in the project 
 | `docs/decisions.md`, `docs/stack.md` | One approved `P/D-n` entry per extension group you chose, and one stack line per group. Written only when you chose an extension. | Entries appended by `init`; the files are yours |
 | `CLAUDE.md`, `.claude/skills/`, `.claude/agents/` | Claude Code adapter stubs. | Managed runtime files |
 | `.agents/skills/`, `.codex/agents/` | Codex adapter stubs. | Managed runtime files |
-| `.github/skills/<skill>/SKILL.md`, `.github/agents/<role>.agent.md` | Copilot CLI adapter stubs; CLI installation pending. | Managed runtime files, `runtime:copilot` |
+| `.github/skills/<skill>/SKILL.md`, `.github/agents/<role>.agent.md` | Copilot CLI adapter stubs. | Managed runtime files, `runtime:copilot` |
 | `.solomonar/manifest.json` | Your choices and the base hash of every managed file. | CLI only |
 | `refs/heads/workflow-state` | The task registry, `state.json`. | `solomonar task` commands only |
 
@@ -49,7 +49,7 @@ The skills and roles create these as the project grows. A small project does not
 
 ## Runtime adapters
 
-`init --runtime claude` and `--runtime codex` install adapters. Each adapter file is a stub: the runtime's frontmatter plus one line that loads the portable file in `docs/solomonar/`. Edit the portable file, never the stub.
+`init --runtime claude`, `--runtime codex`, and `--runtime copilot` install adapters. Each adapter file is a stub: the runtime's frontmatter plus one line that loads the portable file in `docs/solomonar/`. Edit the portable file, never the stub.
 
 | Concern | Claude Code | Codex |
 | --- | --- | --- |
@@ -78,7 +78,7 @@ The `solomonar` entry skill is invoked only by you, never by the model on its ow
 
 `--adversarial-model <runtime>=<model>` sets the model of that runtime's adversarial reviewer.
 
-Once CLI selection is implemented, `--adversarial-model copilot=<model>` will configure the Copilot adversarial-reviewer stub. This is a runtime preference: overrides or unavailable models can cause a different model to run. Installation does not authenticate or check account model access. Live acceptance must observe the actual model rather than treating the configuration as proof of model isolation.
+`--adversarial-model copilot=<model>` configures the Copilot adversarial-reviewer stub. This is a runtime preference: overrides or unavailable models can cause a different model to run. Installation does not authenticate or check account model access. Live acceptance must observe the actual model rather than treating the configuration as proof of model isolation.
 
 ## Environment variables
 
