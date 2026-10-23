@@ -1,7 +1,7 @@
 ---
 title: solomonar runtime
 navTitle: solomonar runtime
-description: List, add, and remove the Claude Code and Codex adapters of a Solomonar project with the solomonar runtime commands. In development.
+description: Planned runtime commands for Claude Code, Codex, and GitHub Copilot CLI adapters. List, add, or remove runtimes once runtime management is available.
 kind: Reference
 group: In development
 order: 19
@@ -12,7 +12,13 @@ sources:
 
 > These commands are in development and not in the current build; running one today exits 2 with an unknown-command error. This page describes the planned behavior; the final output may differ in detail.
 
-A runtime is the agent product that runs sessions: Claude Code (`claude`) or Codex (`codex`). Each runtime gets small generated adapter files that point to the portable source in `docs/solomonar/`, never a second copy of it. Until these commands exist, choose runtimes with `init --runtime`.
+A runtime is the agent product that runs sessions: Claude Code (`claude`), Codex (`codex`), or GitHub Copilot CLI (`copilot`, planned). Each runtime gets small generated adapter files that point to the portable source in `docs/solomonar/`, never a second copy of it.
+
+The current build accepts `claude` and `codex` through `init --runtime`. Copilot adapter generation and `init --runtime copilot` are planned in the [Copilot implementation plan]({{ 'docs/cli/plan.md' | source }}). The first Copilot delivery covers initialization only; the commands below remain unavailable. `init` never changes recorded runtime choices, so adding Copilot to an already initialized project must wait for `runtime add`.
+
+Copilot targets the CLI only. It reads `AGENTS.md` natively and will get `.github/skills/<skill>/SKILL.md` and `.github/agents/<role>.agent.md` stubs, tracked as `runtime:copilot`. No extra root instruction file or Copilot guard hook is generated. Its entry skill is user-invoked with `/solomonar`; delegated roles load the portable role and repository instructions. IDE and cloud-agent compatibility are outside this delivery.
+
+The planned adapter follows GitHub's [CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference) and [custom-agent documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/create-custom-agents-for-cli), checked on 2026-10-23. Live acceptance and the minimum supported Copilot version are still pending.
 
 ## solomonar runtime list
 
@@ -34,23 +40,24 @@ solomonar runtime list
 RUNTIME  STATUS     ON PATH  ADAPTER
 claude   installed  yes      CLAUDE.md, .claude/skills (8), .claude/agents (5), guard hook
 codex    available  yes      AGENTS.md (native), .agents/skills, .codex/agents, guard hook
+copilot  available  yes      AGENTS.md (native), .github/skills, .github/agents; no guard hook
 ```
 
 ## solomonar runtime add
 
-Generates the adapter files of one runtime: its skill stubs, role stubs, and state guard hook, then records them in the manifest.
+Generates the adapter files of one runtime and records them in the manifest. Claude and Codex also get their planned state guard hooks; Copilot gets skill and role stubs only.
 
 {% cliUsage "When you start using a second runtime in a project set up for one, or chose `--runtime none` at `init`.", "You. Commit the new files on main afterwards." %}
 
 ```text
-solomonar runtime add <claude|codex> [--adversarial-model <model>] [-y] [--dry-run] [--json]
+solomonar runtime add <claude|codex|copilot> [--adversarial-model <model>] [-y] [--dry-run] [--json]
 ```
 
 ### Flags
 
 | Flag | Meaning |
 | --- | --- |
-| `<claude\|codex>` | Required. The runtime to add. |
+| `<claude\|codex\|copilot>` | Required. The runtime to add. |
 | `--adversarial-model` | Model for this runtime's adversarial reviewer. |
 | `-y`, `--yes` | Accept the plan without prompts. |
 | `--dry-run` | Print the plan and write nothing. |
@@ -73,21 +80,23 @@ Added runtime codex: 16 files.
 Next: commit the files on main.
 ```
 
+For Copilot, `--adversarial-model <model>` writes only the adversarial-reviewer stub's `model` field. An omitted model inherits runtime defaults. Copilot can override or fall back from the configured model; installation does not authenticate, check account access, or guarantee model isolation. There is no Copilot hook entry to install.
+
 ## solomonar runtime remove
 
-Deletes the runtime's unmodified adapter files and its hook entry. It keeps a `CLAUDE.md` it did not create. A modified adapter file is a conflict (exit 4).
+Deletes the runtime's unmodified adapter files and its hook entry when one exists. Copilot has no hook entry. It keeps a `CLAUDE.md` it did not create and leaves unrelated `.github` files alone. A modified adapter file is a conflict (exit 4).
 
 {% cliUsage "When the project stops using a runtime.", "You." %}
 
 ```text
-solomonar runtime remove <claude|codex> [--keep <path>]... [--overwrite <path>]... [-y] [--dry-run] [--json]
+solomonar runtime remove <claude|codex|copilot> [--keep <path>]... [--overwrite <path>]... [-y] [--dry-run] [--json]
 ```
 
 ### Flags
 
 | Flag | Meaning |
 | --- | --- |
-| `<claude\|codex>` | Required. The runtime to remove. |
+| `<claude\|codex\|copilot>` | Required. The runtime to remove. |
 | `--keep` | Untrack one modified adapter file and leave it on disk; one path per flag. |
 | `--overwrite` | Delete one modified adapter file; one path per flag. |
 | `-y`, `--yes` | Accept the plan without prompts. |
