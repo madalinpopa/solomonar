@@ -45,7 +45,7 @@ These commands are specified and scheduled for the next delivery increment. They
 | --- | --- | --- |
 | [`doctor`]({{ '/docs/cli/doctor/' | url }}) | Check the repository, registry, files, extensions, adapters, and forge settings. | You, or CI |
 | [`sync`]({{ '/docs/cli/sync/' | url }}) | Regenerate runtime adapter files from the portable source. | You, or CI with `--check` |
-| [`runtime list/add/remove`]({{ '/docs/cli/runtime/' | url }}) | Manage the Claude Code and Codex adapters. | You |
+| [`runtime list/add/remove`]({{ '/docs/cli/runtime/' | url }}) | Manage Claude Code, Codex, and Copilot CLI adapters. | You |
 | [`extension list/show/add/remove/new`]({{ '/docs/cli/extension/' | url }}) | Choose the stack and add skills or reviewers; alias `ext`. | You, or an orchestrator with an approved decision |
 | [`guard`]({{ '/docs/cli/guard/' | url }}) | Deny direct registry writes from an agent session. | The runtime's hook |
 
