@@ -136,8 +136,9 @@ Depends on the data contract in step 1.
   and the previous registry history. Do not infer missing baselines or past checkpoints as confirmed facts.
 - [x] Define handling of legacy completed records, which have already discarded active fields. Define
   read compatibility, downgrade rejection, and a recovery procedure for unsuccessful migration.
-- [ ] Keep registry migration separate from framework/adaptor updates, but document their compatible
-  versions so old instructions cannot silently operate against incompatible state.
+- [x] Keep registry migration separate from framework/adaptor updates, but document their compatible
+  versions so old instructions cannot silently operate against incompatible state. Framework 0.1.5 and
+  earlier read schema 1; these rules require schema 2, and a 0.1.5 CLI rejects schema 2 as `cli_outdated`.
 
 Completion: new repositories and migrated repositories support safe task updates, while unsupported
 versions fail clearly without discarding data.
@@ -197,13 +198,13 @@ Depends on the settled CLI contract. Deliver these instructions with the compati
 | [`reviewer.md`](../../assets/framework/reviewer.md), [`report.md`](../../assets/framework/report.md), and reviewer roles | Cumulative review scope, stable candidate references, recoverable evidence, and correction rounds |
 | [`AGENTS.md` template](../../assets/templates/AGENTS.md) and [document-index template](../../assets/templates/docs/README.md) | New registry references and concise ownership/navigation guidance |
 
-- [ ] Remove the conflicting requirement that the implementer independently establishes the implementation
+- [x] Remove the conflicting requirement that the implementer independently establishes the implementation
   approach after an orchestrator-approved plan already exists.
-- [ ] Keep framework instructions in English and keep `AGENTS.md` compact. Place detailed procedures in
+- [x] Keep framework instructions in English and keep `AGENTS.md` compact. Place detailed procedures in
   the relevant role or skill rather than duplicating the whole workflow.
-- [ ] Keep checkpoint notes incremental and short. Give implementers the remaining approved steps and
+- [x] Keep checkpoint notes incremental and short. Give implementers the remaining approved steps and
   relevant constraints; give reviewers the specification and candidate diff, not the implementation conversation.
-- [ ] Inspect [`runtime.go`](../../internal/project/runtime.go) and adapter tests for required changes.
+- [x] Inspect [`runtime.go`](../../internal/project/runtime.go) and adapter tests for required changes.
   Prefer the existing portable instruction sources; do not introduce hooks without a separate requirement.
 - [ ] Verify instruction discovery and delegation packets for Claude, Codex, and Copilot. Generated-file
   tests do not establish live runtime acceptance, including the currently pending Copilot workflow acceptance.
