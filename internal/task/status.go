@@ -32,6 +32,7 @@ type BranchFacts struct {
 // WorktreeFacts describe the worktree that has the task branch checked out.
 type WorktreeFacts struct {
 	Path            string      `json:"path"`
+	Relative        string      `json:"relative"`
 	Head            string      `json:"head"`
 	AheadOfRevision *int        `json:"ahead_of_revision"`
 	Dirty           []DirtyPath `json:"dirty"`
@@ -86,6 +87,9 @@ func GitFacts(ctx context.Context, repo *git.Repo, id, main string, record *Reco
 	}
 	if worktree != "" {
 		if facts.Worktree, err = worktreeFacts(ctx, &git.Repo{Dir: worktree, Trace: repo.Trace}, record.Revision); err != nil {
+			return StatusFacts{}, err
+		}
+		if facts.Worktree.Relative, err = relativeWorktree(ctx, repo, worktree); err != nil {
 			return StatusFacts{}, err
 		}
 	}
