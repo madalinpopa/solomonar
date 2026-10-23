@@ -30,14 +30,14 @@ func moveRepo(t *testing.T) (dir, worktree, revision string) {
 	return dir, worktree, gittest.Git(t, worktree, "rev-parse", "HEAD")
 }
 
-const approvedSpec = "# W-001: Login\nStatus: Approved\n\n## Implementation plan\n\n- S-1: feat(auth): add login\n"
+const approvedSpec = "# W-001: Login\nStatus: Approved\n\n## Implementation plan\n\n- S-1: feat(W-001): add login\n"
 
 // checkpoint commits the S-1 step in the worktree and returns its full SHA.
 func checkpoint(t *testing.T, worktree string) string {
 	t.Helper()
 	require.NoError(t, os.WriteFile(filepath.Join(worktree, "login.go"), []byte("package login\n"), 0o644))
 	gittest.Git(t, worktree, "add", "login.go")
-	gittest.Git(t, worktree, "commit", "-m", "feat(auth): add login", "-m", "Step: W-001/S-1")
+	gittest.Git(t, worktree, "commit", "-m", "feat(W-001): add login", "-m", "Step: W-001/S-1")
 	return gittest.Git(t, worktree, "rev-parse", "HEAD")
 }
 
