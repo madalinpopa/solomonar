@@ -53,6 +53,7 @@ func commands() []command {
 			bind: withoutFlags(runVersion),
 		},
 		taskBlockCommand(),
+		taskConfirmCommand(),
 		taskDoneCommand(),
 		taskHandoffCommand(),
 		taskMigrateCommand(),
