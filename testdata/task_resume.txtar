@@ -38,5 +38,31 @@ stdout '^W-001  running/specification \(unchanged\)$'
 exec solomonar task move W-001 --as orchestrator-2 --spec docs/work/W-001-login.md --stage implementation
 stdout '^W-001  running/specification → running/implementation$'
 
+# The plan reconciliation names the remaining step; review waits for its checkpoint commit.
+exec solomonar task status W-001 --no-forge
+stdout '^  steps     0 of 1 committed; remaining S-1$'
+exec git rev-parse HEAD
+capture SPEC
+! exec solomonar task move W-001 --as orchestrator-2 --revision $SPEC --tier 0 --stage integration
+stderr '^error: task move W-001 rejected \(plan_incomplete\)$'
+stderr '^  found: S-1 has no checkpoint commit$'
+
+cp ../login.go login.go
+exec git add login.go
+exec git commit -q -m 'feat: login' -m 'Checks: go test ./... passed.' -m 'Step: W-001/S-1'
+exec git rev-parse HEAD
+capture REVISION
+exec solomonar task status W-001 --no-forge
+stdout '^  steps     1 of 1 committed$'
+exec solomonar task move W-001 --as orchestrator-2 --revision $REVISION --tier 0 --stage integration
+stdout '^W-001  running/implementation → running/integration$'
+
 -- spec.md --
-# W-001 Login
+# W-001: Login
+Status: Approved
+
+## Implementation plan
+
+- S-1: feat: login
+-- login.go --
+package login
