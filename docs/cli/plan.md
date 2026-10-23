@@ -1,7 +1,7 @@
 # Implementation Plan: GitHub Copilot CLI Runtime
 
-Status: TASK-01 and TASK-02 complete; CLI selection and live acceptance remain pending. Checkboxes track the
-work completed and verified, not runtime support in the current CLI.
+Status: TASK-01 through TASK-03 complete; transcript and live runtime acceptance remain TASK-04. Checkboxes
+track completed and verified work; CLI installation does not establish live Copilot compatibility.
 
 ## Objective
 
@@ -13,7 +13,7 @@ and oracle.
 
 - `go.mod` declares Go 1.27.3. No new dependency is needed.
 - `internal/project/runtime.go` generates Claude, Codex, and Copilot adapters from portable skills and roles.
-  Copilot generation and manifest tracking are implemented; CLI selection remains TASK-03.
+  Copilot generation, manifest tracking, and CLI selection are implemented.
 - `internal/project` owns manifest validation, file classification, conflict handling, and rollback.
 - `internal/cli` owns runtime selection, prompts, plan output, and session-start instructions.
 - `runtime list/add/remove`, `sync`, `doctor`, and `guard` are specified but unimplemented.
@@ -47,7 +47,7 @@ Constraints and exclusions:
 ## Architectural Decisions
 
 TASK-01 extends the interface contract to include `copilot`; TASK-02 implements project-layer generation and
-manifest tracking. The current CLI still permits only `claude` and `codex`; Copilot runtime acceptance is pending.
+manifest tracking; TASK-03 adds CLI installation. Live Copilot runtime acceptance remains pending.
 
 | Concern | Decision |
 | --- | --- |
@@ -199,37 +199,46 @@ vulnerability checks), Markdown/diff checks, and `rtk npm run build` followed by
 **Dependencies:** TASK-02.
 
 **Relevant code:** `internal/cli/init.go`, `internal/cli/init_prompt.go`, `internal/cli/init_plan.go`,
-`internal/cli/init_test.go`, `internal/cli/init_prompt_test.go`, `internal/cli/init_plan_test.go`,
+`internal/cli/init_test.go`, `internal/cli/init_copilot_test.go`, `internal/cli/init_prompt_test.go`, `internal/cli/init_plan_test.go`,
 `internal/cli/init_ext_test.go`, `site/src/docs/cli/init.md`, `site/src/docs/set-up-a-project.md`.
 
 **Scope and implementation guidance**
 
-- [ ] Extend parsing, validation messages, executable detection, help, runtime choices, and model prompts.
-- [ ] Extend grouped plans to recognize `.github/skills/` and `.github/agents/`; account for `.agent.md` when
+- [x] Extend parsing, validation messages, executable detection, help, runtime choices, and model prompts.
+- [x] Extend grouped plans to recognize `.github/skills/` and `.github/agents/`; account for `.agent.md` when
   identifying extension roles and counting stubs.
-- [ ] Update JSON choices, generated-file records, and next steps for Copilot alone and mixed selections.
-- [ ] Preserve existing output for selections without Copilot; handle any supported runtime combination
+- [x] Update JSON choices, generated-file records, and next steps for Copilot alone and mixed selections.
+- [x] Preserve existing output for selections without Copilot; handle any supported runtime combination
   without assuming exactly two runtimes.
-- [ ] Limit suggested staging paths to the generated adapters; do not include unrelated GitHub configuration.
-- [ ] Preserve confirmation, dry-run, conflict resolution, rollback, and same-choice rerun behavior.
-- [ ] Update `site/src/docs/cli/init.md`: synopsis, flags, defaults, examples, output, and session invocation.
-- [ ] Update `site/src/docs/set-up-a-project.md`: runtime selection, generated-file inventory, Copilot startup,
+- [x] Limit suggested staging paths to the generated adapters; do not include unrelated GitHub configuration.
+- [x] Preserve confirmation, dry-run, conflict resolution, rollback, and same-choice rerun behavior.
+- [x] Update `site/src/docs/cli/init.md`: synopsis, flags, defaults, examples, output, and session invocation.
+- [x] Update `site/src/docs/set-up-a-project.md`: runtime selection, generated-file inventory, Copilot startup,
   and a representative setup example. Keep examples consistent with actual output.
 
 **Acceptance criteria**
 
-- [ ] Explicit selection works without Copilot installed; new-project defaults detect it on `PATH`.
-- [ ] Interactive selection and model prompts identify GitHub Copilot CLI correctly.
-- [ ] Plans, counts, JSON, and next steps are accurate for Copilot and mixed selections.
-- [ ] Dry runs write nothing; identical reruns are no-ops; collisions follow existing conflict rules.
-- [ ] Changing recorded runtime choices remains rejected, including attempts to add Copilot through `init`.
+- [x] Explicit selection works without Copilot installed; new-project defaults detect it on `PATH`.
+- [x] Interactive selection and model prompts identify GitHub Copilot CLI correctly.
+- [x] Plans, counts, JSON, and next steps are accurate for Copilot and mixed selections.
+- [x] Dry runs write nothing; identical reruns are no-ops; collisions follow existing conflict rules.
+- [x] Changing recorded runtime choices remains rejected, including attempts to add Copilot through `init`.
 
 **Verification**
 
-- [ ] Extend init tests for representative runtime combinations, isolated `PATH` detection, prompts,
+- [x] Extend init tests for representative runtime combinations, isolated `PATH` detection, prompts,
   non-interactive behavior, model validation, conflicts, and reruns. Reuse existing rollback coverage.
-- [ ] Run `rtk go test ./internal/cli -run TestInit -count=1`.
-- [ ] Check documented examples against command output; label abbreviated output clearly.
+- [x] Run `rtk go test ./internal/cli -run 'TestInit|TestInteractiveInit|TestGroupedPlan' -count=1`.
+- [x] Check documented examples against command output; label abbreviated output clearly.
+
+Completed 2026-10-23. Rechecked Copilot executable, instruction discovery, and skill invocation against the
+official GitHub CLI reference and skill documentation linked in interface section 4.2. Existing runtime outputs
+are preserved for explicit selections; the interactive runtime list now includes Copilot and adjusts alignment.
+Verification passed: focused init/prompt/grouped-plan tests above, `rtk task check` (lint, all Go tests with the
+race detector, and vulnerability checks), Markdown/diff checks, and site build/check (24 HTML pages). Built the
+CLI with `rtk task build` and verified Copilot preview/install plus the setup-guide preview in disposable
+repositories: 28 created files, individual adapter staging paths, correct invocation, and no writes on preview.
+No Copilot session was launched; process transcript coverage and live runtime acceptance remain TASK-04.
 
 **Out of scope:** `runtime add/remove`, `sync`, `doctor`, and `guard` implementation.
 
@@ -290,7 +299,7 @@ Documentation changes accompany the task that owns the behavior rather than wait
 
 ## Final Verification
 
-Run after implementation; these checks have not been completed for the proposed feature:
+Final gate after TASK-04. Interim check results are recorded under the completed tasks above:
 
 - [ ] Run `rtk task check` from the repository root.
 - [ ] Run `rtk task test:integration` from the repository root.
