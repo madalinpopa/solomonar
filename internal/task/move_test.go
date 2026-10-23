@@ -20,6 +20,7 @@ func moving(status Status, stage Stage, tier *int) *Record {
 	r := record(status, stage, tier)
 	r.Title, r.Owner, r.Branch, r.UpdatedAt = "Login", "orchestrator-1", "feature/W-001", updatedAt
 	r.NextAction = &NextAction{Actor: "orchestrator-1", Action: "Continue"}
+	r.Confirmed = stage != StageSetup
 	if stage.atOrAfter(StageImplementation) {
 		r.Spec = specPath
 	}
