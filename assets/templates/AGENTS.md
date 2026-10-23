@@ -67,7 +67,7 @@ Cite a rule as `AGENTS.md rule n`.
 2. New architecture/dependency changes require user approval; investigate first, then follow your role's
    decision procedure. Scoped approvals persist; silence approves nothing.
 3. Only `solomonar task` writes the registry: orchestrators own their task records; the user owns `task plan`.
-   Never directly edit, commit, or check out registry `state.json` on `workflow-state`.
+   Never directly edit, commit, or check out the registry files on `workflow-state`.
 4. Run `solomonar task register` before creating the feature worktree; setup: `rules.md` section 4.
 5. Edit only your role/skill's allowed files and assigned worktree. Reviewers are read-only on one stable revision.
 6. Orchestrators delegate implementation/reviews and consolidate findings; delegated roles report only to them.
