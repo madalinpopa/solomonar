@@ -2098,7 +2098,10 @@ Copilot is an additional adapter delivery tracked in [plan.md](plan.md), after i
 adds generation and `init` selection only; runtime management remains increment 2, and no Copilot hook is
 specified by this addition. Support is established only after automated checks and a recorded live CLI smoke
 test, including a feature worktree and coexistence with the other adapters. Generation, manifest tracking,
-and CLI initialization are implemented; transcript and live runtime acceptance remain TASK-04.
+and CLI initialization are implemented. The Copilot installation transcript passes, and CLI 1.0.85 discovers
+instructions and core skills in main and feature worktrees with all three adapters installed. A live session
+was rejected by account policy; delegation, tool behavior, model selection, and the minimum supported version
+remain unverified. See [the acceptance record](plan.md#copilot-runtime-acceptance).
 
 ## 11. Open decisions
 
