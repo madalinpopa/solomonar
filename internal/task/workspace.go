@@ -73,14 +73,33 @@ func checkWorkspace(ctx context.Context, repo *git.Repo, id string, r *Record) e
 		return err
 	}
 	if r.Base == "" {
-		return &Rejection{
-			Code:  "base_missing",
-			Check: "the record names the commit the task branched from",
-			Found: id + " has no recorded base",
-			Fix:   fmt.Sprintf("solomonar task move %s --as %s --base <full sha>, after inspecting the branch history", id, r.Owner),
-		}
+		return baseMissing(id, r.Owner)
 	}
-	return checkBase(ctx, repo, branch, r.Base)
+	if err := checkBase(ctx, repo, branch, r.Base); err != nil {
+		return err
+	}
+	if !planStage(r.Stage) {
+		return nil
+	}
+	tip, err := branchTip(ctx, repo, branch)
+	if err != nil {
+		return err
+	}
+	return checkApprovedPlan(ctx, repo, id, r.Spec, tip)
+}
+
+// planStage reports the stages whose work spec holds the approved plan; closure deletes it later.
+func planStage(stage Stage) bool {
+	return stage.atOrAfter(StageImplementation) && !stage.atOrAfter(StageIntegration)
+}
+
+func baseMissing(id, owner string) *Rejection {
+	return &Rejection{
+		Code:  "base_missing",
+		Check: "the record names the commit the task branched from",
+		Found: id + " has no recorded base",
+		Fix:   fmt.Sprintf("solomonar task move %s --as %s --base <full sha>, after inspecting the branch history", id, owner),
+	}
 }
 
 // checkConfirmed rejects a stage change of an unconfirmed task; leaving setup confirms it.
