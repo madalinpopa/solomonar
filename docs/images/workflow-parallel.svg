@@ -54,7 +54,7 @@ svg { font-family: var(--sans); }
       </defs>
 
       <text class="t-sm" x="20" y="66">orch-01</text><text class="s" x="20" y="82">task W-001</text>
-      <text class="t-sm" x="20" y="146">state.json</text><text class="s" x="20" y="162">update-ref CAS</text>
+      <text class="t-sm" x="20" y="146">tasks/*.json</text><text class="s" x="20" y="162">update-ref CAS</text>
       <text class="t-sm" x="20" y="226">orch-02</text><text class="s" x="20" y="242">task W-002</text>
       <text class="t-sm" x="20" y="306">main</text><text class="s" x="20" y="322">code + docs</text>
 
