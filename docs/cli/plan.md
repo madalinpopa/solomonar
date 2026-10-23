@@ -1,7 +1,8 @@
 # Implementation Plan: GitHub Copilot CLI Runtime
 
-Status: TASK-01 through TASK-03 complete; transcript and live runtime acceptance remain TASK-04. Checkboxes
-track completed and verified work; CLI installation does not establish live Copilot compatibility.
+Status: TASK-01 through TASK-03 complete. TASK-04 automated coverage and documentation are complete; local
+Copilot discovery passes, but live workflow acceptance is blocked by account policy. Checkboxes track completed
+and verified work; CLI installation and discovery do not establish full live Copilot compatibility.
 
 ## Objective
 
@@ -249,12 +250,13 @@ No Copilot session was launched; process transcript coverage and live runtime ac
 **Dependencies:** TASK-03.
 
 **Relevant code:** `main_test.go`, `testdata/init_new_repo.txtar`, `testdata/init_conflict.txtar`,
+`testdata/init_copilot.txtar`, `internal/cli/render_test.go`,
 `README.md`, `site/src/docs/getting-started.md`, `site/src/docs/configuration.md`,
 `site/src/docs/troubleshooting.md`, `site/src/docs/cli.md`, `Taskfile.yml`, `site/package.json`.
 
 **Scope and implementation guidance**
 
-- [ ] Add one focused Copilot transcript under `testdata/` for installation, stream separation, generated
+- [x] Add one focused Copilot transcript under `testdata/` for installation, stream separation, generated
   ownership, and an unchanged rerun. Keep detailed adapter assertions in project tests.
 - [ ] Perform runtime acceptance in a disposable repository using an authenticated Copilot installation;
   record the exact version, steps, results, and limitations in `docs/cli/plan.md`.
@@ -264,31 +266,96 @@ No Copilot session was launched; process transcript coverage and live runtime ac
   portable read-only contract remains explicit where shell access is allowed.
 - [ ] Observe the configured adversarial model, including runtime fallback or override behavior; do not
   claim model isolation based only on generated metadata.
-- [ ] Confirm discovery in a feature worktree and with Claude, Codex, and Copilot adapters installed together.
-  Check that Copilot selects the intended `.github` definitions despite compatible discovery locations.
-- [ ] Update `README.md` and `site/src/docs/getting-started.md`: runtime support, requirements, availability,
-  and the Copilot entry invocation, using the tested version as the compatibility baseline.
-- [ ] Update `site/src/docs/troubleshooting.md`: missing discovery, personal-agent shadowing, runtime/model
+- [x] Confirm local instruction and core-skill discovery in a feature worktree with all three adapters
+  installed; the four resolved skill paths use `.github/skills` rather than compatible adapter directories.
+- [ ] Confirm live role discovery and delegation in the feature worktree, including which agent definitions win.
+- [x] Update `README.md` and `site/src/docs/getting-started.md`: runtime support, requirements, availability,
+  and the Copilot entry invocation. Record 1.0.85 as the discovery-tested version, not a supported-version floor.
+- [x] Update `site/src/docs/troubleshooting.md`: missing discovery, personal-agent shadowing, runtime/model
   overrides, and the restriction on adding a runtime to an initialized project.
-- [ ] Update `site/src/docs/cli.md` and affected site descriptions to include Copilot without marking deferred
+- [x] Update `site/src/docs/cli.md` and affected site descriptions to include Copilot without marking deferred
   commands as available. Search README, `docs/cli`, and `site/src` for remaining two-runtime assumptions;
   change only statements affected by this feature.
-- [ ] Ensure public documentation and future-command pages do not imply installed Copilot guard enforcement.
+- [x] Ensure public documentation and future-command pages do not imply installed Copilot guard enforcement.
+- [x] Serialize the existing process-wide signal subtests in `internal/cli/render_test.go` after final checks
+  exposed cross-delivery of SIGINT/SIGTERM between parallel cases; production code is unchanged.
 
 **Acceptance criteria**
 
-- [ ] Process-level tests pass and live discovery/delegation checks have recorded evidence.
-- [ ] The tested Copilot version and any observed limitations are documented.
-- [ ] README, specifications, command references, setup guidance, and configuration tables agree.
-- [ ] Documentation does not claim IDE/cloud compatibility or unimplemented runtime-management support.
+- [x] Process-level Copilot installation tests pass.
+- [ ] Live workflow discovery/delegation checks have successful recorded evidence.
+- [x] The discovery-tested Copilot version and observed limitations are documented.
+- [x] README, specifications, command references, setup guidance, and configuration tables agree.
+- [x] Documentation does not claim IDE/cloud compatibility or unimplemented runtime-management support.
 
 **Verification**
 
-- [ ] Complete the final automated checks below and record outcomes separately from live smoke results.
-- [ ] If live acceptance cannot run, leave its checkboxes open and report the exact blocker; generated-file
+- [x] Complete the final automated checks below and record outcomes separately from live smoke results.
+- [x] If live acceptance cannot run, leave its checkboxes open and report the exact blocker; generated-file
   tests alone do not establish runtime compatibility.
 
 **Out of scope:** Provider-backed CI, credential setup, and IDE/cloud compatibility testing.
+
+### Copilot runtime acceptance
+
+Attempted 2026-10-23 with **GitHub Copilot CLI 1.0.85** at `/opt/homebrew/bin/copilot`.
+Official command formats, discovery paths, invocation, and agent precedence were rechecked against the
+[CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference) and
+[custom-agent documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/create-custom-agents-for-cli).
+
+Fixture: `/tmp/solomonar-copilot-acceptance-ro_5y8e2/project`, initialized by the built Solomonar CLI with
+`--runtime claude,codex,copilot --ext none --name copilot-acceptance --yes`, committed in that disposable
+repository, with a linked checkout at `../feature` on `feature/W-001`. This is an acceptance fixture, not a
+registered managed task. The user's runtime configuration was retained; no credentials or policies were changed.
+
+Commands and observed outcomes:
+
+| Check | Command / observation | Result |
+| --- | --- | --- |
+| Version | `copilot --version` | `GitHub Copilot CLI 1.0.85.` |
+| Main instruction discovery | `copilot --no-auto-update -C <project> instruction list --json` | Repository `AGENTS.md` and `CLAUDE.md` listed; user-level sources also present |
+| Main skill discovery | `copilot --no-auto-update -C <project> skill list --json` | `prototype`, `solomonar`, `spec`, `work-spec` enabled from this checkout's `.github/skills/` |
+| Feature discovery | The same two list commands with `-C <feature>` | Repository instructions listed; all four skills resolve to the feature checkout's `.github/skills/` |
+| Coexistence | All three adapters installed in both checkouts | Copilot resolves the four core skills to `.github/skills`, ahead of compatible `.agents` and `.claude` locations |
+| Live entry / workflow | Prompt command below | Exit 1: `Access denied by policy settings`; workflow did not run |
+| Worktree writes | `git -C <project> status --short` after the attempt | Empty; tracked fixture content unchanged |
+
+Live entry attempt, run from the disposable repository:
+
+```sh
+copilot --no-auto-update -C <project> \
+  --disable-builtin-mcps --no-remote --no-remote-export --no-ask-user \
+  --no-bash-env --log-level error --allow-tool 'shell(solomonar task show:*)' \
+  -p '/solomonar Report the status of this initialized project only. Load the portable Solomonar entry skill. Do not create tasks, edit files, or run writing commands. Return the CLI task status and the path of the portable skill you loaded.'
+```
+
+Copilot reported that organization policy disabled three configured third-party MCP servers, then rejected
+the session with `Access denied by policy settings` (request ID `CD46:38BC33:14CBD8F:16A0D4B:6ADB1186`).
+Its diagnostic names organization restrictions, subscription access, or required account policy as possible
+causes and points to `https://github.com/settings/copilot`; it does not establish which account setting caused it.
+Do not treat the rejected session as evidence of successful portable-source loading, orchestration, agent/tool
+discovery, model selection, or reviewer isolation. No bypass or credential change was attempted.
+
+To finish TASK-04, restore authorized Copilot session access, put the built Solomonar CLI on `PATH`, rerun the
+entry check, then verify delegation with an actual registered fixture task and assigned worktree/revision.
+Observe reviewer tool availability and actual adversarial-model selection; record session evidence and the
+tested version before claiming full compatibility. Version 1.0.85 is a local-discovery baseline only; the
+minimum supported version remains open.
+
+Automated verification on 2026-10-23:
+
+- Focused process transcript: `rtk proxy env INTEGRATION=true go test . -run '^TestScript/init_copilot$' -count=1`
+  passed. It covers confirmation exit/streams, installation, manifest ownership, and a no-op rerun without a
+  Copilot process or network call.
+- The first `rtk task check` exposed an existing signal-test race (expected SIGINT exit 130, observed SIGTERM
+  exit 143). A focused rerun also observed the inverse. Both subtests listened for both process-wide signals
+  while sending different ones concurrently. Removed only their parallel execution, with an explanatory comment.
+- `rtk proxy go test -race ./internal/cli -run '^TestInterruptExitsWithSignalCode$' -count=20` passed after the fix.
+- Final `rtk task check` passed: lint, all Go tests with the race detector, and vulnerability checks.
+- Final `rtk task test:integration` and `rtk go vet ./...` passed.
+- `rtk npm run build` and `rtk npm run check` in `site/` passed; the checker validated 24 HTML pages.
+- Final diff, Markdown fence, local-link target, and acceptance-anchor checks passed. Live workflow checkboxes
+  remain open; automated success does not resolve the account-policy rejection.
 
 ## Dependency Order
 
@@ -299,19 +366,20 @@ Documentation changes accompany the task that owns the behavior rather than wait
 
 ## Final Verification
 
-Final gate after TASK-04. Interim check results are recorded under the completed tasks above:
+Automated gate for the current changes; the separate live acceptance gate is still blocked:
 
-- [ ] Run `rtk task check` from the repository root.
-- [ ] Run `rtk task test:integration` from the repository root.
-- [ ] Run `rtk go vet ./...` from the repository root.
-- [ ] Run `rtk npm run build` from `site/`.
-- [ ] Run `rtk npm run check` from `site/`.
-- [ ] Inspect the final diff for unintended changes, broken local links, and inconsistent runtime availability.
+- [x] Run `rtk task check` from the repository root.
+- [x] Run `rtk task test:integration` from the repository root.
+- [x] Run `rtk go vet ./...` from the repository root.
+- [x] Run `rtk npm run build` from `site/`.
+- [x] Run `rtk npm run check` from `site/`.
+- [x] Inspect the final diff for unintended changes, broken local links, and inconsistent runtime availability.
 - [ ] Record successful live Copilot acceptance separately from automated test results before claiming support.
 
 ## Open Questions
 
-No question blocks implementation under the scope assumptions above.
+Implementation is complete. Full runtime acceptance needs Copilot session access that permits the live checks;
+the current account-policy rejection is recorded above.
 
 - [ ] Establish the minimum supported Copilot CLI version from TASK-04 evidence.
 
