@@ -1,6 +1,7 @@
 # Implementation Plan: GitHub Copilot CLI Runtime
 
-Status: planned. Checkboxes track implementation and verification; none of these tasks is complete.
+Status: TASK-01 contract updates complete; implementation and live acceptance remain pending. Checkboxes track
+the work completed and verified, not runtime support in the current build.
 
 ## Objective
 
@@ -39,11 +40,13 @@ Constraints and exclusions:
 - No agent launching, model calls, credential handling, SDK integration, new environment variables, or
   runtime abstraction layer.
 - No changes to task transitions or portable workflow rules.
+- Before changing runtime options, templates, or discovery choices, research and follow the runtime's current
+  official documentation. Record sources and dates; keep documentation checks separate from live acceptance.
 
 ## Architectural Decisions
 
-The accepted interface currently permits only `claude` and `codex`. TASK-01 explicitly extends that contract;
-the decisions below are the proposed Copilot addition, not claims about the current implementation.
+TASK-01 extends the interface contract to include `copilot`; the current implementation still permits only
+`claude` and `codex`. The decisions below describe the Copilot contract, not current runtime support.
 
 | Concern | Decision |
 | --- | --- |
@@ -114,25 +117,30 @@ solomonar init --runtime copilot --adversarial-model copilot=<model> --yes
 
 **Scope and implementation guidance**
 
-- [ ] Extend the interface's runtime names, adapter table, manifest validation, ordering, prompts, error text,
+- [x] Extend the interface's runtime names, adapter table, manifest validation, ordering, prompts, error text,
   and next-step contracts to include Copilot.
-- [ ] Record native `AGENTS.md` loading, portable-source stubs, delegated roles, entry-skill policy, tool
+- [x] Record native `AGENTS.md` loading, portable-source stubs, delegated roles, entry-skill policy, tool
   restrictions, and model handling without changing the existing runtime contracts.
-- [ ] Update the architecture's adapter responsibilities and ordering; retain the existing package boundaries,
+- [x] Update the architecture's adapter responsibilities and ordering; retain the existing package boundaries,
   standard-library approach, and manifest schema.
-- [ ] Update the planned runtime-management contract and `site/src/docs/cli/runtime.md` to include Copilot,
+- [x] Update the planned runtime-management contract and `site/src/docs/cli/runtime.md` to include Copilot,
   explicitly retaining their unavailable status. Do not promise a Copilot hook in this delivery.
-- [ ] Document older-binary compatibility and the existing prohibition on changing choices through `init`.
+- [x] Document older-binary compatibility and the existing prohibition on changing choices through `init`.
 
 **Acceptance criteria**
 
-- [ ] Specifications agree on Copilot paths, metadata, ownership, CLI behavior, and delivery boundaries.
-- [ ] Available initialization is distinguished from deferred management and hooks.
+- [x] Specifications agree on Copilot paths, metadata, ownership, CLI behavior, and delivery boundaries.
+- [x] Available initialization is distinguished from deferred management and hooks.
 
 **Verification**
 
-- [ ] Review the documentation diff against the behavior and decisions above.
-- [ ] Confirm version-sensitive adapter fields against the official sources before implementing them.
+- [x] Review the documentation diff against the behavior and decisions above.
+- [x] Confirm version-sensitive adapter fields against the official sources before implementing them.
+
+Completed 2026-10-23. Official sources and their check date are recorded in interface section 4.2.
+Verification passed: documentation diff/whitespace review, fenced-block and local-link checks for the four
+changed Markdown files, and `rtk npm run build` followed by `rtk npm run check` in `site/` (24 HTML pages).
+No Go code changed; Go tests and live Copilot acceptance were not run for this documentation task.
 
 **Out of scope:** Command implementation and changes to existing architectural decisions.
 
