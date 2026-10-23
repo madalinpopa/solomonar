@@ -16,6 +16,7 @@ func (r *Registry) HandoffTask(id, owner, next string, now time.Time) (MoveResul
 	}
 	after := *before
 	after.Owner = owner
+	after.Confirmed = false
 	if next != "" {
 		if _, err := after.Move(Move{Next: next}, nil, now); err != nil {
 			return MoveResult{}, err
