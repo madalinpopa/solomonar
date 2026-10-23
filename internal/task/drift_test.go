@@ -232,6 +232,17 @@ func TestDriftOf(t *testing.T) {
 			},
 		},
 		{
+			name:   "plan",
+			record: func(r *Record) { r.Stage = StageImplementation },
+			facts: func(f *StatusFacts) {
+				f.Plan = &PlanFacts{Approval: PlanInReview, Discrepancies: []Discrepancy{{Code: "step_empty"}}}
+			},
+			want: []Drift{
+				{Code: "plan_not_approved", Message: "the work spec at feature/W-001 has no approved plan (in_review)"},
+				{Code: "checkpoint_discrepancy", Message: "1 commit claim to inspect"},
+			},
+		},
+		{
 			name:   "migrated record without workspace fields",
 			record: func(r *Record) { r.Worktree = "" },
 			want:   []Drift{},
