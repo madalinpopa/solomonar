@@ -9,6 +9,10 @@ length and shape.
 Increment 1 (section 10) is implemented and released as v0.1.0; this spec keeps the final v0.1 behavior. The
 accepted workflow-audit corrections are applied to these contracts and the framework assets on 2026-10-21. Runtime and fault-injection acceptance tests remain implementation work.
 
+The Copilot CLI contract was added on 2026-10-23. It is planned work tracked in [the Copilot plan](plan.md):
+adapter generation and `init --runtime copilot` are not in the current build. Runtime management and hooks remain
+increment 2; this addition defines no Copilot guard hook. Existing Claude and Codex contracts are unchanged.
+
 The command pages in `site/src/docs/cli/` are the reference for each command's synopsis, flags, when to use it, who
 runs it, and its typical output; this spec does not repeat them. It holds the contract beneath those pages: check
 order, exact texts, file planning, the manifest, JSON data, and the task rules. A use case cites its command page and
@@ -32,7 +36,7 @@ status` · 10 Delivery order · 11 Open decisions
   knowledge, supporting procedures, and extra reviewers are extensions, skills or agents, that the user chooses at
   `init` or adds later (4.1).
 - **Portable source, runtime adapters.** `docs/solomonar/` is the single source for rules, roles, skills, and
-  extensions. A runtime (Claude Code, Codex) gets small generated adapter files that point to that source; it
+  extensions. A runtime (Claude Code, Codex, Copilot CLI) gets small generated adapter files that point to that source; it
   never gets a second copy of the content.
 - **Actionable rejections.** A rejected command names the failed check and the corrective action, writes nothing,
   and exits non-zero.
@@ -62,7 +66,7 @@ each command writes and its use cases.
 | `dashboard` | nothing | UC-23 |
 | `version`, `help` | nothing | UC-24 |
 
-"Runtime" is the agent product that runs sessions (Claude Code, Codex). "Agent" and "role" keep their framework
+"Runtime" is the agent product that runs sessions (Claude Code, Codex, Copilot CLI). "Agent" and "role" keep their framework
 meaning (orchestrator, implementer, reviewers), so the CLI never uses `agent` for a runtime.
 
 ## 3. Conventions
@@ -215,7 +219,7 @@ one being present.
 | Part | Contains | Installed |
 |---|---|---|
 | Core: the process | `docs/solomonar/rules.md`, `report.md`, `reviewer.md`; the process roles `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`; the process skills `solomonar` (user entry point, CLI-D15), `prototype`, `spec`, `work-spec`; `AGENTS.md`; `docs/README.md`; the empty registry on `refs/heads/workflow-state`; `.solomonar/manifest.json` | always; cannot be removed |
-| Runtimes | Adapter files for `claude`, `codex` (4.2) | zero or more; default: those found on `PATH` |
+| Runtimes | Adapter files for `claude`, `codex`, `copilot` (4.2) | zero or more; default: those found on `PATH` |
 | Extensions | Skills (knowledge of a language, library, or practice; or a supporting procedure) and agents (extra specialist reviewers), grouped by decision type (4.3) | zero or more; default: `go` when `go.mod` exists |
 
 Core boundary (CLI-D14, decided): the core is the current framework in `assets/framework/`, the items `rules.md`
@@ -230,7 +234,13 @@ A project whose stack is not known yet starts with no stack extension: the stack
 An adapter adapts the portable framework to one runtime: it registers the instructions, the skills, and the roles
 where the runtime discovers them, and restricts tools where the runtime allows. Adapter files are generated stubs:
 the runtime frontmatter plus a one-line body that loads the portable file, so the content lives only in
-`docs/solomonar/` (CLI-D7). Verified against the runtimes' documentation on 2026-10-21 (CLI-D9).
+`docs/solomonar/` (CLI-D7). Claude and Codex forms were checked against documentation on 2026-10-21 (CLI-D9);
+Copilot CLI fields were checked on 2026-10-23 against its
+[CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference),
+[skills documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills),
+[agent configuration](https://docs.github.com/en/copilot/reference/custom-agents-configuration), and
+[delegated instruction loading](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/create-custom-agents-for-cli).
+These are documentation checks; live Copilot acceptance and the minimum supported version remain TASK-04.
 
 | Concern | `claude` (Claude Code) | `codex` (Codex) |
 |---|---|---|
@@ -241,18 +251,38 @@ the runtime frontmatter plus a one-line body that loads the portable file, so th
 | State guard | `PreToolUse` hook running `solomonar guard --runtime claude`, merged into `.claude/settings.json` | `PreToolUse` hook running `solomonar guard --runtime codex`, merged into `.codex/hooks.json`; Codex runs it only after the user trusts the project's `.codex/` layer and reviews the hook (`doctor` warns until then) |
 | Adversarial model | `--adversarial-model claude=<model>` writes `model: <model>` in its role stub | `--adversarial-model codex=<model>` writes `model = "<model>"` in its role stub |
 
-Delegated roles are every `docs/solomonar/agents/` role except `orchestrator`, installed extension agents included;
-skills are the core skills and the installed extension skills (4.3). Each stub copies `name` and `description`
-verbatim from the portable file's frontmatter, for an extension the installed file under `docs/solomonar/`; its path
-uses the skill directory or role file name instead (the two match for every shipped file). An extension agent takes
-the reviewer form: claude `tools: Read, Grep, Glob, Bash`; codex the role TOML without `model`.
+| Concern | `copilot` (GitHub Copilot CLI; planned) |
+|---|---|
+| Root instructions | `AGENTS.md`, read natively; no additional root instruction file generated |
+| Skills | `.github/skills/<skill>/SKILL.md` stub per installed skill; `solomonar` adds `disable-model-invocation: true` |
+| Roles | `.github/agents/<role>.agent.md` per delegated role; `name`, `description`, and `include-custom-instructions: true`; reviewers add `tools: [read, search, execute]` |
+| Orchestrator | no native agent file: it remains the top-level session (G13) |
+| State guard | none in this delivery; no hook file or manifest hook entry generated |
+| Adversarial model | `--adversarial-model copilot=<model>` writes the `model` field only in the adversarial-reviewer stub; absent when unspecified |
 
-Plan order: runtimes always in the order `claude`, `codex`, whatever the flag order. `claude`: `CLAUDE.md`, skill
-stubs, role stubs; `codex`: skill stubs, `.agents/skills/solomonar/agents/openai.yaml`, role TOMLs. Skills and roles,
+Copilot skill and role bodies load the same portable paths as the existing adapters. Role bodies explicitly load
+`AGENTS.md`, the portable role, and the files its first lines require. Copilot metadata is serialized as valid YAML
+strings preserving the source values, including quotes and YAML-significant characters; this does not change
+Claude or Codex serialization. Copilot file ownership is `runtime:copilot`, with SHA-256 tracking under 4.5.
+
+Copilot's `model` is a preference: runtime overrides, unavailable models, and session model selection can affect
+the actual model. Solomonar does not authenticate, check model availability, or enforce a different model;
+record actual runtime behavior during acceptance. No additional model-policy fields are generated.
+
+Delegated roles are every `docs/solomonar/agents/` role except `orchestrator`, installed extension agents included;
+skills are the core skills and the installed extension skills (4.3). Each stub preserves the `name` and `description`
+values from the portable file's frontmatter, for an extension the installed file under `docs/solomonar/`; its path
+uses the skill directory or role file name instead (the two match for every shipped file). An extension agent takes
+the reviewer form: claude `tools: Read, Grep, Glob, Bash`; codex the role TOML without `model`;
+copilot `tools: [read, search, execute]` without `model`.
+
+Plan order: runtimes always in the order `claude`, `codex`, `copilot`, whatever the flag order. `claude`: `CLAUDE.md`, skill
+stubs, role stubs; `codex`: skill stubs, `.agents/skills/solomonar/agents/openai.yaml`, role TOMLs;
+`copilot`: skill stubs, role stubs. Skills and roles,
 core and extension together, are sorted by directory or file name.
 
-Skill stub (identical for both runtimes, except that the claude `solomonar` stub adds `disable-model-invocation:
-true`):
+Skill stub (the same portable-source body for every runtime; the claude and copilot `solomonar` stubs add
+`disable-model-invocation: true`; Copilot YAML strings preserve the same metadata values):
 
 ```markdown
 ---
@@ -303,6 +333,10 @@ it. The `codex` stub is accompanied by `.agents/skills/solomonar/agents/openai.y
 allow_implicit_invocation: false`; Codex's documentation does not say whether the description then stays out of
 the context, so the skill's own boundary (invoked only by the user) remains a behavioral contract.
 
+The `copilot` entry stub sets `disable-model-invocation: true` and retains the default user invocation through
+`/solomonar`; other Copilot skills remain eligible for normal skill discovery. No Codex policy file is generated
+under `.github/skills/`.
+
 `CLAUDE.md` is create-only (CLI-D3, G10): absent, it is created and managed from then on; present and unmanaged, it
 is `skip`, never a conflict, and is not recorded in the manifest, even when it is not a regular file. The reason is
 `exists; add this line so Claude Code loads the framework:  @AGENTS.md` when it is not a regular file or has no line
@@ -311,10 +345,19 @@ exactly `@AGENTS.md`, else `exists and imports AGENTS.md`. A managed `CLAUDE.md`
 Tool lists (Claude Code): `implementer` inherits the session's tools; every reviewer gets `Read, Grep, Glob, Bash`
 (read-only for tracked files is a behavioral contract, rules section 11; `Bash` is needed to run checks).
 
+Tool lists (Copilot CLI): `implementer` omits `tools` and inherits available tools; every reviewer, extension
+reviewers included, gets `read`, `search`, and `execute`. Direct editing and delegation tools are excluded;
+shell commands can still write, so `reviewer.md`'s read-only contract applies. `include-custom-instructions: true`
+opts delegated roles into repository instructions; a session started with custom instructions disabled does
+not establish acceptance of that discovery behavior.
+
 **Starting a session.** Print the selected runtime's invocation in `Next`: Claude Code uses `/solomonar`, Codex
-CLI/IDE uses `$solomonar` or selection from `/skills`. The portable prompt is "Use the solomonar skill". A new
+CLI/IDE uses `$solomonar` or selection from `/skills`; Copilot CLI uses `/solomonar`. The portable prompt is
+"Use the solomonar skill". A new
 managed task takes the orchestrator role in that same top-level session. Adapter acceptance includes a real
 skill-discovery and delegation smoke test, not just checking generated paths (architecture section 11).
+Copilot acceptance covers a feature worktree and coexistence with Claude and Codex adapters, including which
+definitions win discovery. Copilot IDE and cloud-agent compatibility are outside this addition.
 
 ### 4.3 Extensions
 
@@ -645,6 +688,11 @@ required by triage when its "applies when" matches.`
 
 ### 4.7 Manifest
 
+Adding the `copilot` runtime keeps `schema_version` at 1: no field shape changes. Release it with the normal
+framework version increase. Older binaries reject a newer framework before strict decoding; an older binary
+given an otherwise readable manifest with `copilot` rejects the unknown runtime. Do not lower the version or
+hand-edit runtime choices to make an old binary accept it. Existing Claude/Codex manifests need no migration.
+
 `.solomonar/manifest.json` is committed on main, written only by the CLI, and records the choices and every managed
 file. `extensions` maps a name to its state, kind, group, source (`catalog`, or `path` with the repo-relative source
 directory), the decision for its current installed group selection (stack groups only), and the extensions it was
@@ -704,7 +752,8 @@ Validation, in order, reporting the first failure:
 - Strict decoding: unknown members and duplicate keys are rejected.
 - `project.name`, `main_branch`, and `remote` are non-empty; `runtimes`, `extensions`, and `files` are present
   (`{}` is allowed, `null` or missing is rejected).
-- `runtimes` keys are `claude` or `codex`, each value `{}` or `{"adversarial_model": ...}`.
+- `runtimes` keys are `claude`, `codex`, or `copilot`, each value `{}` or `{"adversarial_model": ...}`.
+  Copilot adapters use `owner: "runtime:copilot"` and `sha256`; they have no hook `entry`.
 - Extension names match `[a-z][a-z0-9-]*`; `state` is `installed` or `draft`, `kind` `skill` or `agent`, `group`
   one of the nine 4.3 groups, `source` `catalog` or `path`; only a `path` source has `path`, a clean repo-relative
   directory. An installed stack-group extension has `decision` `P/D-<n>`; a `workflow` or `review` extension and a
@@ -825,11 +874,12 @@ line separates each asked block: the name and objective, the runtimes, the model
 each group.
 
 - `Project name [<default>]: `, then `Current objective, one line (optional): `;
-- `Runtimes that will run this project's sessions:` and a multi-select over `claude` and `codex` with the
-  descriptions above, the runtimes found on `PATH` marked;
-- without `--adversarial-model`, per selected runtime in the order claude, codex: `Model for the adversarial
-  reviewer in <Claude Code|Codex>, different from your main session model`, then `(blank = runtime default): `;
-  blank records no model; both prompts form one block, with no blank line between them;
+- `Runtimes that will run this project's sessions:` and a multi-select over `claude`, `codex`, and `copilot`,
+  in that order. Claude and Codex use the descriptions above; Copilot uses
+  `GitHub Copilot CLI: AGENTS.md (native), .github/skills, .github/agents`. Runtimes found on `PATH` are marked;
+- without `--adversarial-model`, per selected runtime in the order claude, codex, copilot: `Model for the adversarial
+  reviewer in <Claude Code|Codex|GitHub Copilot CLI>, different from your main session model`, then `(blank = runtime default): `;
+  blank records no model; all selected runtime model prompts form one block, with no blank line between them;
 - when the catalog is not empty and `--ext` was not given: the extensions paragraph, then per group that has catalog
   extensions, in 4.3 order, `<Group>:` (first letter capitalized) and a multi-select over its extensions sorted by
   name, each described by its title plus ` (requires <a>, <b>)`, in catalog order, when it requires others; `go` is
@@ -849,19 +899,20 @@ terminal, and stays `interactive_required`.
 The grouped plan is shown only before `Proceed?`; `--dry-run` (interactive or not), the `file_conflict` plan, and
 JSON list every file (3.3). Its groups, in this order with empty groups omitted, are `git` (`init       -b
 <main-branch>`), `framework <fw>` (owners `core`, `core+notes`, `seed`), `extensions` (`ext`, `project-ext`),
-`decisions (approved, selected by you)`, `runtime claude`, `runtime codex`, `registry` (`create     refs/heads/workflow-state
+`decisions (approved, selected by you)`, `runtime claude`, `runtime codex`, `runtime copilot`, `registry` (`create     refs/heads/workflow-state
 with an empty state.json` or `unchanged  refs/heads/workflow-state`), and `manifest`. A header is indented two spaces and its lines four; a line is `<action padded to 9>  <path>`, and a note
 follows two spaces after the path padded to the widest noted path in its group. Within a group the plan order is
 kept, and a collapsed line takes its set's first position. A set collapses into one line only when all its lines
 share one action and none has a reason; otherwise each file gets its own line. The sets are
 `docs/solomonar/agents/ (<n> roles)`; `docs/solomonar/skills/<s>/ (<files, comma-joined, sorted>)` per core skill;
-`.claude/skills/` and `.agents/skills/` as `(<n> skill stubs: <c> core, <e> extensions)`, `: <c> core` always shown,
-the codex one adding `; solomonar/agents/openai.yaml`; and `.claude/agents/` and `.codex/agents/` as `(<n> role
+`.claude/skills/`, `.agents/skills/`, and `.github/skills/` as `(<n> skill stubs: <c> core, <e> extensions)`, `: <c> core` always shown,
+the codex one adding `; solomonar/agents/openai.yaml`; and `.claude/agents/`, `.codex/agents/`, and `.github/agents/` as `(<n> role
 stubs[: <c> core, <e> extensions][; adversarial-reviewer model <m>])`, the split only when an extension role exists
 and the model when the runtime has one. A count of 1 is singular (`1 role`, `1 role stub`, `1 extension`). Notes join
 with `; `, the reason first: an extension's main file is noted `rendered with: <names>` when not empty;
 `docs/decisions.md` is noted `<ID> <group>: <names> · …` and each group document `<group>: <names> (<ID>) · …` for the
 entries this run records; an `unchanged` document gets no note.
+Copilot role identifiers strip the full `.agent.md` suffix when counting core versus extension roles.
 
 Postconditions: the files exist uncommitted on main; each chosen group has an approved `P/D-n` entry; `workflow-state` exists as a root commit
 `state: initialize registry` containing `{"schema_version": 1, "tasks": {}}`; the manifest records every choice.
@@ -903,11 +954,13 @@ may contain commas. A relative `<dir>` is joined to `-C`, an absolute one is use
 root of the worktree containing `<dir>`. The help's usage ends `[--git-init] [-y|--yes] [--dry-run] [--json]`, and its
 description ends `--git-init runs git init -b <main-branch> when <dir> is not a repository.`
 
-`--runtime` takes `claude`, `codex`, or `none`. Another value is `unknown_runtime` (exit 2, `init rejected`), check
-`--runtime names a known runtime`, found `"<v>" is not a runtime; known: claude, codex`, fix `pass --runtime claude,
-codex, or none`; `none` beside another value is `invalid_value`, check `--runtime names runtimes or none`, found `none
+`--runtime` takes `claude`, `codex`, `copilot`, or `none`, repeatable or comma-separated. The planned usage fragment is
+`[--runtime <claude|codex|copilot|none>]...`. Another value is `unknown_runtime` (exit 2, `init rejected`), check
+`--runtime names a known runtime`, found `"<v>" is not a runtime; known: claude, codex, copilot`, fix `pass --runtime claude,
+codex, copilot, or none`; `none` beside another value is `invalid_value`, check `--runtime names runtimes or none`, found `none
 cannot be combined with <v>`, fix `pass --runtime none alone`. Without `--runtime`, a project with a manifest keeps
-its runtimes; otherwise the default is each of `claude`, `codex` whose executable is found on `PATH`.
+its runtimes; otherwise the default is each of `claude`, `codex`, `copilot` whose executable is found on `PATH`.
+Explicit selection does not require the runtime executable. No Copilot process or authentication check runs.
 
 `--ext` takes extension names or `none`, which requests no extension. `none` beside another value is
 `invalid_value`, check `--ext names extensions or none`, found `none cannot be combined with <v>`, fix `pass --ext
@@ -922,22 +975,28 @@ empty side is `invalid_value`, check `--adversarial-model is <runtime>=<model>`,
 an empty runtime`, or `"<v>" has an empty model`, fix `pass --adversarial-model claude=<model>`. A runtime not
 selected, an unknown name included, is `invalid_value`, check `--adversarial-model names a selected runtime`, found
 `<r> is not selected`, fix `add --runtime <r> or drop the model` naming that runtime. Models start from the
-manifest's models for the selected runtimes, with the requested ones applied on top.
+manifest's models for the selected runtimes, with the requested ones applied on top. This includes
+`--adversarial-model copilot=<model>`; model access is not validated during installation.
 
 Warnings go to stderr. The success form is `Initialized solomonar <fw> in <root>`, `  <counts>` (3.3),
 `  registry  refs/heads/workflow-state @ <sha>` (`  registry  refs/heads/workflow-state @ <tip> unchanged`, with no
 `pushed` line, when an existing registry is reused), `  pushed    <remote>/workflow-state` when pushed, a blank
 line, and `Next:`: step 1 is `git add <generated paths> && git commit -m "chore: initialize solomonar <fw>"`, step 2
 the top-level session start. The paths are `AGENTS.md`, then `CLAUDE.md` (only when this run creates it), `.claude`
-(claude), `.agents` and `.codex` (codex), then `.solomonar docs`. Step 2 depends on the runtimes:
+(claude), `.agents` and `.codex` (codex), the planned Copilot adapter file paths sorted within skills then roles
+(copilot), then `.solomonar docs`. Name individual Copilot files rather than staging `.github` or its whole
+subdirectories, which may contain unrelated files. Apply the same rule to JSON `next`. Step 2 depends on the runtimes:
 
 - claude only: `  2. Start a top-level Claude Code session in <root>:`, then
   `       /solomonar Explore the next useful flow.`;
 - codex only: `  2. Start a top-level Codex session in <root>:`, then
   `       $solomonar Explore the next useful flow.`;
-- both (UC-1): `  2. Start a top-level session in <root> with your selected outcome:`, then
-  `       Claude Code: /solomonar Explore the next useful flow.`,
-  `       Codex:       $solomonar Explore the next useful flow.`, and
+- copilot only: `  2. Start a top-level GitHub Copilot CLI session in <root>:`, then
+  `       /solomonar Explore the next useful flow.`;
+- two or more: `  2. Start a top-level session in <root> with your selected outcome:`, then one line per
+  selected runtime in claude, codex, copilot order: `       Claude Code: /solomonar Explore the next useful flow.`,
+  `       Codex:       $solomonar Explore the next useful flow.`, or
+  `       GitHub Copilot CLI: /solomonar Explore the next useful flow.`, followed by
   `       Portable:    Use the solomonar skill to explore the next useful flow.`;
 - none: `  2. Start a top-level session in <root>:`, then
   `       Use the solomonar skill to explore the next useful flow.`
@@ -1114,6 +1173,10 @@ before the registry's warnings (such as the no-remote warning).
 
 Synopsis, flags, and examples: [`solomonar runtime`](../../site/src/docs/cli/runtime.md). The adapter files are those
 of 4.2, planned as `init` plans them; a modified adapter file on `remove` is a conflict under 4.5.
+These commands remain unimplemented. Their planned runtime names are `claude`, `codex`, and `copilot`.
+Copilot add/remove manages only its adapter files and manifest records, without a guard hook. `list` reports its
+native `AGENTS.md` loading, `.github/skills`, `.github/agents`, executable presence, and project installation.
+Until `runtime add` exists, `init` cannot add Copilot to a project with different recorded runtimes (UC-3).
 
 ### UC-6 Choose extensions for an architecture or stack decision
 
@@ -2028,6 +2091,12 @@ conditions.
 | 1 | `init` (core, runtimes, catalog extensions), every `task` command, `version`, `help` | UC-1 to UC-4 and UC-11 to UC-21 pass as tests in temporary repositories, including the compare-and-swap retry and repeated `init` as a no-op |
 | 2 | `doctor`, `sync`, `runtime` list/add/remove, `extension` list/show/add/remove/new, `guard` | UC-5 to UC-8, UC-10, UC-22 |
 | 3 | `upgrade`, `dashboard` | UC-9, UC-23; an upgrade test between two embedded framework versions |
+
+Copilot is an additional adapter delivery tracked in [plan.md](plan.md), after increment 1. Its first release
+adds generation and `init` selection only; runtime management remains increment 2, and no Copilot hook is
+specified by this addition. Support is established only after automated checks and a recorded live CLI smoke
+test, including a feature worktree and coexistence with the other adapters. The current build has neither
+Copilot generation nor `init` selection yet.
 
 ## 11. Open decisions
 
