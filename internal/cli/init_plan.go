@@ -21,7 +21,7 @@ func (r initRun) groupedPlan() string {
 	}
 	registry := planLine{action: "unchanged", path: task.Ref}
 	if r.tip == "" {
-		registry = planLine{action: "create", path: task.Ref + " with an empty state.json"}
+		registry = planLine{action: "create", path: task.Ref + " with an empty registry"}
 	}
 	var b strings.Builder
 	if r.gitInit {
