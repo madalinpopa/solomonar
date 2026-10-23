@@ -2104,7 +2104,8 @@ Type: feature
   "Step: W-001/S-1"`. The CLI never creates commits (CLI-D25).
 
 Reconciliation reads the spec committed at the branch tip (or, at the review gate, at the candidate) and the commits
-of `git log --no-merges --reverse <base>..<tip>`, so merges from main never count. Per commit, oldest first:
+of `git log --first-parent --no-merges --reverse <base>..<tip>`: only the task branch's own commits count, never a
+merge or the commits a merge from main brought in (other tasks' checkpoints among them). Per commit, oldest first:
 
 | Case | Result |
 |---|---|
@@ -2135,7 +2136,7 @@ registry update is found again by the next reconciliation, since the registry ho
 | HEAD vs `revision` | `git rev-list --count <revision>..HEAD` in the worktree | null without a worktree or revision |
 | dirty paths | `git status --porcelain=v2` in the worktree | `worktree` null |
 | spec present | the worktree file, and `git cat-file -t <revision>:<spec>` is `blob` | false |
-| plan | the spec at the branch tip and `git log --no-merges --reverse --shortstat <base>..<tip>` with `Step` trailers (8.7) | `plan` null without a spec, base, or branch, and for `done` |
+| plan | the spec at the branch tip and `git log --first-parent --no-merges --reverse --shortstat <base>..<tip>` with `Step` trailers (8.7) | `plan` null without a spec, base, or branch, and for `done` |
 | merged | first merge commit on main whose ancestry contains `revision` (`git rev-list --ancestry-path --merges --reverse <revision>..main`) | `merged` false, also without a revision |
 | derived `spec_ref` | first commit in `git log --topo-order --format="%H %s" <merge>^2` whose subject (never a body line) starts with `spec(<ID>):`, with the recorded `spec` path | null before merge |
 | PR, checks | `gh pr view feature/<ID> --json number,url,state,mergeCommit,statusCheckRollup` | `pr` null, `checks` `unknown`, never passing (J6) |
