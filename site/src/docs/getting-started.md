@@ -28,9 +28,9 @@ You need:
 
 No model-provider API key is needed by the CLI itself.
 
-Copilot CLI adapter installation is available. Instruction and skill discovery were checked with Copilot 1.0.85, including a feature worktree and all three adapters together. A live session was rejected by account policy; delegation, reviewer tools, model selection, and the minimum supported version remain unverified. This covers the CLI only, not IDE or cloud-agent compatibility. See [the acceptance record]({{ 'docs/cli/plan.md' | source }}#copilot-runtime-acceptance).
+Copilot CLI adapter installation is available. Instruction and skill discovery were checked with Copilot 1.0.85, including a feature worktree and all three adapters together. Copilot 1.0.103 sessions run, but prompt mode (`copilot -p`) cannot invoke the entry skill. Delegation, reviewer tools, model selection, and the minimum supported version remain unverified. This covers the CLI only, not IDE or cloud-agent compatibility. See [the acceptance record]({{ 'docs/cli/interface.md' | source }}#copilot-runtime-acceptance).
 
-Start Copilot with `copilot` in the project directory, then invoke `/solomonar` in the top-level session. See [Set up a project]({{ '/docs/set-up-a-project/' | url }}) for installation and the printed commit command.
+Start Copilot interactively with `copilot` in the project directory, then invoke `/solomonar` in the top-level session. See [Set up a project]({{ '/docs/set-up-a-project/' | url }}) for installation and the printed commit command.
 
 ## Your path through the docs
 
