@@ -18,7 +18,7 @@ sources:
 
 `solomonar init` writes these files. The core and the adapters are managed: the manifest records their hashes so a later run can tell your edits from its own.
 
-`init --runtime copilot` installs the Copilot adapters below. Live runtime acceptance and the minimum supported Copilot version remain pending in the [implementation plan]({{ 'docs/cli/plan.md' | source }}).
+`init --runtime copilot` installs the Copilot adapters below. Copilot 1.0.85 discovered the instructions and all four core skills in a main checkout and feature worktree with all three adapters installed. A live session was rejected by account policy, so delegation, reviewer tool behavior, model selection, and the minimum supported version remain unverified. See the [acceptance record]({{ 'docs/cli/plan.md' | source }}#copilot-runtime-acceptance).
 
 | Path | Owns | Owner |
 | --- | --- | --- |
