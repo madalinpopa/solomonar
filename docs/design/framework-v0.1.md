@@ -134,6 +134,7 @@ The skill reads existing context, clarifies only choices that affect the selecte
 
 ```markdown
 # W-001 — Change title
+Status: In review
 
 ## Outcome and scope
 <Authorized outcome, included behavior, and relevant boundaries.>
@@ -153,6 +154,9 @@ The skill reads existing context, clarifies only choices that affect the selecte
 
 ## Open questions
 - <Only unresolved choices relevant to this work; mark blocking choices.>
+
+## Implementation plan
+- S-1: <type>(W-001): <intended checkpoint commit subject>
 ```
 
 Requirements and context live in the work spec; execution state lives in the canonical committed state.json. Resolve active spec paths against the assigned feature worktree or its recorded Git revision, not the state checkout. After compaction, resolve spec_ref from Git history. Current product rules remain in the canonical project specifications.
@@ -638,3 +642,22 @@ These scenarios define the reviewable v0.1 behavior. A real pilot can adjust con
 **From intent to verified code.**
 
 The planned CLI form is `varnu init`. The name is a proposal, not an accepted product identity.
+
+# Amendment: Git checkpoint task recovery (2026-10-23)
+
+This amendment supersedes the statements above that the registry is one `state.json`, that the worktree path is
+never stored, and that the work spec holds no plan. The contract is in
+[the implementation plan](../cli/git-checkpoint-implementation-plan.md#resolved-contract) and the interface
+(sections 8.6 and 8.7, UC-25 and UC-26).
+
+- The registry stores one file per task (`tasks/<ID>.json`) beside `state.json`, which keeps only the schema
+  version. A record past setup holds its immutable `base`, its worktree path relative to the main checkout, and
+  whether its current owner confirmed it.
+- The work spec carries `Status: In review | Approved` below the title and an implementation plan whose steps
+  are the intended commit subjects. The user approves the plan before implementation; the orchestrator records and
+  commits that approval, and alone edits the plan.
+- The implementer commits each step as a checkpoint with the planned subject and a `Step: <ID>/S-<n>` trailer.
+  Progress lives only in those commits. `task status` reconciles steps with commits; the CLI rejects
+  implementation without an approved plan and review without a clean, fully checkpointed candidate.
+- A new session takes a task through `task handoff`, inspects it, and runs `task confirm` before any stage
+  change; it delegates only the remaining steps. Reviews still run on one stable cumulative candidate.
