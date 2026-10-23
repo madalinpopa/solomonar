@@ -8,6 +8,10 @@ When the two differ, the interface spec wins for behavior and this document wins
 This is an implementation contract. Increment 1 follows it and is released as v0.1.0. The accepted workflow-audit
 fixes are applied, with runtime verification kept separate from completion of the design changes.
 
+The Copilot CLI adapter contract was added on 2026-10-23 and is tracked in [plan.md](plan.md). Its generation and
+`init` selection are not implemented yet. Runtime management and hooks remain increment 2; this addition
+specifies no Copilot hook and changes no existing architectural decision.
+
 Contents: 1 Scope · 2 Analysis of the interface design · 3 Toolchain · 4 Architectural decisions · 5 Layout and
 packages · 6 Key types · 7 Execution flow · 8 Errors, cancellation, and file safety · 9 Code conventions ·
 10 Tooling · 11 Testing · 12 Implementation plan · 13 Open questions · 14 Non-goals and deferred work
@@ -293,9 +297,18 @@ func (j *Journal) Rollback() error
 `CoreWants` returns the core files from `framework/` as `docs/solomonar/`, then `AGENTS.md` and `docs/README.md`
 from `templates/`, rendered with `text/template`, with the `AGENTS.md` extension lists of I section 4.6 from
 `Choices.Extensions`.
-`RuntimeWants` returns the adapter stubs of I section 4.2 per runtime, in the order `claude`, `codex`, extension skills and
+`RuntimeWants` returns the adapter stubs of I section 4.2 per runtime, in the order `claude`, `codex`, `copilot`, extension skills and
 agents sorted with the core ones; a `CreateOnly` want (`CLAUDE.md`) present and unmanaged is `skip`, never a conflict,
 and `InitPlan` records `runtimes` and `extensions` (nil records `{}`) in the manifest.
+The planned Copilot addition stays in `internal/project`: `.github/skills/<skill>/SKILL.md` and
+`.github/agents/<role>.agent.md` wants, owned by `runtime:copilot`, with the same file classification, hashes,
+plan/apply, and rollback. Preserve metadata values through valid YAML string serialization; add no production
+dependency. There is no extra root instruction file, orchestrator adapter, or hook want. Manifest schema 1 is
+unchanged; the release framework version gates older binaries as I section 4.7 describes.
+`internal/cli` extends its explicit runtime selection, detection via `git.OnPath("copilot")`, prompts, grouped
+plans, and session instructions. Copilot role counting strips `.agent.md`; suggested staging names the actual
+adapter files to avoid including unrelated `.github` files. Existing public APIs and package boundaries remain;
+introduce no runtime interface, registration layer, SDK, or process invocation.
 `InitPlan` runs `Classify`, puts the `decisions` changes after the classified wants, merges their files into the
 manifest built from the entries, and appends the manifest change last (I section 4.5); it turns a present `docs/README.md`
 `skip` into `append` with `decisions.Index` under `## Documents`, or keeps the `skip` with the reason (I section 4.3).
@@ -505,7 +518,7 @@ contract walkthrough and the runtime smoke results distinct in the audit report.
 | F-01, F-03 | README-only correction in an empty product repository; maintenance in an existing application with unknown run commands | Assigned documentation is permitted; no new application baseline is added. The first authorized executable outcome still establishes only its needed baseline. |
 | F-02 | Offered A, local B, `init --keep`, upgrade C, keep B, repeat C, then upgrade D | Base hashes follow A → C; B is preserved, repeated C keeps B, and D conflicts rather than overwriting B. Cover rendered assets and the managed part of AGENTS. |
 | F-04 | Main changes a contract used by a feature in a different file; separate control changes only an unrelated logo | CI reruns in both; affected or uncertain reviews rerun for the contract, while unrelated changes permit justified reuse. Use the audit's exporter/policy counterexample. |
-| F-05 | Real Claude Code and Codex sessions after init/runtime add, including a feature worktree | The documented invocation discovers the skill, loads the portable source, takes the orchestrator role in the same top-level session, and delegates with the assigned worktree/revision. Record runtime versions; file-tree assertions alone do not pass this check. |
+| F-05 | Real Claude Code and Codex sessions after init/runtime add; Copilot CLI after its init delivery; each including a feature worktree | The documented invocation discovers the skill, loads the portable source, takes the orchestrator role in the same top-level session, and delegates with the assigned worktree/revision. Record runtime versions; file-tree assertions alone do not pass this check. |
 | F-06 | Real hook payloads for product state.json, read-only registry inspection, task move, and direct protected-ref writes | Product writes and authorized CLI/read calls are allowed; direct registry mutations are denied. Include linked-worktree Git paths and packed refs. |
 | F-07 | `new → list/show → sync/doctor → add → repeated add`, for a skill and an agent | Draft is visible but inactive and needs no decision; adoption validates metadata and installs once; a repeated identical adoption is a no-op. Test local-directory flags with no terminal. |
 | F-08 | Add htmx, add templ, remove templ | Every remaining installed frontend extension points to the approved decision for the full new selection; old decisions remain in history; doctor does not fail on the valid transition. |
@@ -516,6 +529,18 @@ Manual runtime smoke checks belong to the runtime adapter's increment; they need
 into model-provider calls. Use the existing human/JSON, rollback, concurrency, and use-case suites for the other
 acceptance scenarios instead of duplicating them in another layer.
 
+Before adding or changing any runtime option, adapter template, or discovery choice, research the runtime's
+current official documentation and follow its supported format. Cite the relevant sources and date in the
+interface contract; do not infer compatibility from another runtime's fields or from generated-file tests.
+I section 4.2 records the Copilot sources checked on 2026-10-23. Recheck the affected fields when implementing;
+documentation validation and live runtime acceptance are distinct evidence.
+
+Copilot acceptance also verifies `include-custom-instructions: true` in delegated roles, entry-skill invocation
+through `/solomonar`, reviewer tools and the shell's behavioral read-only boundary, and actual adversarial-model
+selection or fallback. Check discovery with all three adapters installed and in a feature worktree; record the
+Copilot version and observed limitations. Minimum-version support remains unestablished until that test. No
+Copilot hook enforcement or IDE/cloud compatibility is claimed.
+
 Transcripts do not repeat what the in-process tests already cover (rules, every usage error, help text, every
 rejection code); prompts stay in-process because the binary prompts only when both stdin and stdout are terminals.
 
@@ -524,6 +549,10 @@ rejection code); prompts stay in-process because the binary prompts only when bo
 Delivered in ten steps, each ending with `task check` green, and released as v0.1.0 (I section 10). Increments 2 and 3
 are planned in detail before they start, once their inputs (CLI-D9 for Codex, the guard's real hook payloads) are
 verified.
+
+The additional Copilot delivery is sequenced in [plan.md](plan.md). It extends adapter generation and `init`
+before increment 2 without implementing runtime management. `init` continues rejecting changed recorded
+choices, so adding Copilot to an initialized project waits for `runtime add`.
 
 ## 13. Open questions
 
