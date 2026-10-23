@@ -213,6 +213,15 @@ Resuming reconciles the record with the worktree, decisions, and PR. Uncommitted
 
 If ownership must change, explicitly request the handoff and confirm the previous execution stopped. Only then does the new session take ownership before writing. Elapsed time alone never transfers ownership.
 
+**Agent prompt, in a new session after the old one stopped:**
+
+```text
+Use the solomonar skill. The session that owned W-001 has stopped.
+Take over W-001 and continue from its approved plan.
+```
+
+The new session runs `task handoff`, then `task status`. Its `plan` section shows, for example, `steps 1 of 2 committed; remaining S-2`, and `dirty` lists an uncommitted file the earlier implementer left. The session inspects that file, runs `task confirm`, and delegates only `S-2`, naming the partial work to reuse. `S-1` is not repeated: its checkpoint commit already holds it. The full terminal output is in the [`task status` example]({{ '/docs/cli/task/#solomonar-task-status' | url }}).
+
 **You leave with:** the same task, worktree, and PR, with a known next action. `task show` reports the stored record, not live agent activity; `task status W-001` compares it with the actual worktree and PR. See [task state]({{ '/docs/task-state/' | url }}) for the distinction between recorded state and Git or forge facts.
 
 ## Finish the task and handle a later regression
