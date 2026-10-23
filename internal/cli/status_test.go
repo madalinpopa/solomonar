@@ -86,6 +86,10 @@ func TestTaskStatusUC16(t *testing.T) {
 		"  dirty     1 path: "+moveSpec+" (modified)\n"+
 		"  spec      present in worktree and at revision\n"+
 		"  merged    no\n"+
+		"plan\n"+
+		"  approval  approved at "+head[:8]+"\n"+
+		"  steps     0 of 1 committed; remaining S-1\n"+
+		"  other     2 commits without a Step trailer\n"+
 		"forge (gh)\n"+
 		"  pr      none for feature/W-001\n"+
 		"  checks  unknown (no PR)\n"+
@@ -126,6 +130,8 @@ func TestTaskStatusJSON(t *testing.T) {
 				"worktree": {"path": "`+worktree+`", "relative": "`+relative+`", "head": "`+head+`", "ahead_of_revision": 1,
 					"dirty": [{"path": "`+moveSpec+`", "state": "modified"}]},
 				"spec": {"in_worktree": true, "at_revision": true},
+				"plan": {"approval": "approved", "at": "`+head+`", "other_commits": 2, "discrepancies": [],
+					"steps": [{"id": "S-1", "subject": "feat(auth): add login", "state": "remaining", "commit": null}]},
 				"merge": {"merged": false, "merge_commit": null, "derived_spec_ref": null},
 				"forge": {"available": true, "pr": null, "checks": "unknown"}
 			},
@@ -178,6 +184,8 @@ func TestTaskStatusUC17MergedNotDone(t *testing.T) {
 		"  spec      present in worktree and at revision\n"+
 		"  merged    yes, by "+f.merge+" (merge commit on main)\n"+
 		"  spec_ref  derived "+f.spec+":"+moveSpec+" (last spec(W-001) commit merged)\n"+
+		"plan\n"+
+		"  approval  missing at "+f.revision[:8]+"\n"+
 		"forge (gh)\n"+
 		"  pr      #42 merged\n"+
 		"  checks  none\n"+
