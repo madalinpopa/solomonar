@@ -81,8 +81,9 @@ func TestInteractiveInitUC1(t *testing.T) {
 	require.True(t, ok, transcript)
 	assert.Equal(t, repoHeader(dir)+"Project name ["+filepath.Base(dir)+"]: Current objective, one line (optional): \n"+
 		"Runtimes that will run this project's sessions:\n"+
-		"    [x] claude  Claude Code: CLAUDE.md import, .claude/skills, .claude/agents, state guard hook\n"+
-		"    [x] codex   Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook\n"+
+		"    [x] claude   Claude Code: CLAUDE.md import, .claude/skills, .claude/agents, state guard hook\n"+
+		"    [x] codex    Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook\n"+
+		"    [ ] copilot  GitHub Copilot CLI: AGENTS.md (native), .github/skills, .github/agents\n"+
 		"\nModel for the adversarial reviewer in Claude Code, different from your main session model\n"+
 		"(blank = runtime default): "+
 		"Model for the adversarial reviewer in Codex, different from your main session model\n"+
@@ -122,6 +123,12 @@ func TestInteractiveInitAsksOnlyForMissingFlags(t *testing.T) {
 			prompts: "Model for the adversarial reviewer in Claude Code, different from your main session model\n" +
 				"(blank = runtime default): \n",
 		},
+		{
+			name: "copilot model asked", input: "gpt-5\ny\n",
+			args: []string{"init", "--name", "ledger", "--objective", "Track", "--runtime", "copilot", "--ext", "none"},
+			prompts: "Model for the adversarial reviewer in GitHub Copilot CLI, different from your main session model\n" +
+				"(blank = runtime default): \n",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -136,6 +143,23 @@ func TestInteractiveInitAsksOnlyForMissingFlags(t *testing.T) {
 			assert.Contains(t, got.stdout, "Proceed? [Y/n] \nInitialized solomonar "+shipped+" in ")
 		})
 	}
+}
+
+func TestInteractiveInitCopilotSelectionAndPlan(t *testing.T) {
+	gittest.PathWith(t, "copilot")
+	dir := committedRepo(t)
+
+	got := runInteractive(t, repoAssets(t), dir, "\rgpt-5\ny\n",
+		"init", "--name", "ledger", "--objective", "Track", "--ext", "none")
+
+	require.Equal(t, 0, got.exit, got.stderr)
+	transcript := screen(t, got.stdout)
+	assert.Contains(t, transcript, "[x] copilot  GitHub Copilot CLI: AGENTS.md (native), .github/skills, .github/agents")
+	assert.Contains(t, transcript, "Model for the adversarial reviewer in GitHub Copilot CLI, different from your main session model")
+	assert.Contains(t, transcript, "  runtime copilot\n"+
+		"    create     .github/skills/ (4 skill stubs: 4 core)\n"+
+		"    create     .github/agents/ (5 role stubs; adversarial-reviewer model gpt-5)\n")
+	assert.Equal(t, map[string]project.Runtime{"copilot": {AdversarialModel: "gpt-5"}}, manifestOf(t, dir).Runtimes)
 }
 
 func TestInteractiveInitRerunAsksNoChoices(t *testing.T) {
@@ -202,8 +226,9 @@ func TestInteractiveInitDryRunAsksChoicesWithoutConfirmation(t *testing.T) {
 	assert.True(t, strings.HasPrefix(transcript, repoHeader(dir)+
 		"Project name ["+filepath.Base(dir)+"]: Current objective, one line (optional): \n"+
 		"Runtimes that will run this project's sessions:\n"+
-		"    [ ] claude  Claude Code: CLAUDE.md import, .claude/skills, .claude/agents, state guard hook\n"+
-		"    [ ] codex   Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook\n"+
+		"    [ ] claude   Claude Code: CLAUDE.md import, .claude/skills, .claude/agents, state guard hook\n"+
+		"    [ ] codex    Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook\n"+
+		"    [ ] copilot  GitHub Copilot CLI: AGENTS.md (native), .github/skills, .github/agents\n"+
 		extensionsIntro+
 		"\nLanguage:\n    [ ] go  Go language rules\n\nPlan\n"), transcript)
 	assert.Contains(t, transcript, "\nWould initialize solomonar "+shipped+" in "+dir+"\n")
