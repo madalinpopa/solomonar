@@ -83,14 +83,9 @@ tasks:
     cmd: rm -rf {{.BIN}} coverage.out
 
   version:set:
-    desc: 'Set the release version in assets and docs, e.g. task version:set VERSION=0.1.3'
+    desc: 'Set current release headers and examples, preserving historical versions'
     requires: {vars: [VERSION]}
-    vars:
-      CURRENT:
-        sh: "sed -n 's/^Framework version: //p' assets/framework/rules.md"
-    cmd: >-
-      git grep -lF '{{.CURRENT}}' -- assets README.md site/src docs/cli
-      | xargs perl -pi -e 's/(?<![\d.])\Q{{.CURRENT}}\E(?!\d|\.\d)/{{.VERSION}}/g'
+    cmd: perl scripts/set-version.pl '{{.VERSION}}'
 
   release:next:
     desc: Tag and push the next patch release
