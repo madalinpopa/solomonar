@@ -410,7 +410,7 @@ func TestGitFactsReconcileThePlan(t *testing.T) {
 	t.Parallel()
 
 	f := newFactsRepo(t)
-	s1 := f.checkpoint(t, "feat(auth): add the session store", "W-001/S-1")
+	s1 := f.checkpoint(t, "feat(W-001): add the session store", "W-001/S-1")
 
 	facts := gitFacts(t, f.repo, f.implementing(t))
 
