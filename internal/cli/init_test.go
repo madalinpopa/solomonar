@@ -160,7 +160,8 @@ func TestInitUC2CoreOnly(t *testing.T) {
 	assert.Equal(t, project.Project{Name: filepath.Base(dir), MainBranch: "main", Remote: "origin"}, manifest.Project)
 	assert.Len(t, manifest.Files, len(initPaths()))
 	assert.Equal(t, "state: initialize registry", gittest.Git(t, dir, "log", "-1", "--format=%s%n%P", task.Ref))
-	assert.JSONEq(t, `{"schema_version": 1, "tasks": {}}`, gittest.Git(t, dir, "show", task.Ref+":state.json"))
+	assert.JSONEq(t, `{"schema_version": 2}`, gittest.Git(t, dir, "show", task.Ref+":state.json"))
+	assert.Equal(t, "state.json", gittest.Git(t, dir, "ls-tree", "-r", "--name-only", task.Ref))
 	assert.Equal(t, tip, gittest.Git(t, dir, "ls-remote", "origin", task.Ref)[:len(tip)])
 }
 
@@ -413,7 +414,7 @@ func TestInitDryRunWritesNothing(t *testing.T) {
 	for _, p := range initPaths() {
 		want.WriteString("  create     " + p + "\n")
 	}
-	want.WriteString("  registry   create refs/heads/workflow-state with an empty state.json\n" +
+	want.WriteString("  registry   create refs/heads/workflow-state with an empty registry\n" +
 		"Would initialize solomonar " + shipped + " in " + dir + "\n  19 files created\n")
 	require.Equal(t, 0, human.exit, human.stderr)
 	assert.Equal(t, want.String(), human.stdout)
@@ -641,7 +642,7 @@ func TestInitGitInitDryRunRunsNoGit(t *testing.T) {
 	require.Equal(t, 0, human.exit, human.stderr)
 	assert.True(t, strings.HasPrefix(human.stdout, "Plan\n  git        init -b main\n  create     docs/solomonar/"),
 		human.stdout)
-	assert.Contains(t, human.stdout, "  registry   create refs/heads/workflow-state with an empty state.json\n")
+	assert.Contains(t, human.stdout, "  registry   create refs/heads/workflow-state with an empty registry\n")
 	require.Equal(t, 0, asJSON.exit, asJSON.stderr)
 	assert.JSONEq(t, `{
 		"ok": true,
