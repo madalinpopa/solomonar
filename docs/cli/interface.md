@@ -9,7 +9,7 @@ length and shape.
 Increment 1 (section 10) is implemented and released as v0.1.0; this spec keeps the final v0.1 behavior. The
 accepted workflow-audit corrections are applied to these contracts and the framework assets on 2026-10-21. Runtime and fault-injection acceptance tests remain implementation work.
 
-The Copilot CLI contract was added on 2026-10-23 and is tracked in [the Copilot plan](plan.md):
+The Copilot CLI contract was added on 2026-10-23 (acceptance record: [section 10](#copilot-runtime-acceptance)):
 adapter generation, manifest tracking, and `init --runtime copilot` are implemented. Live Copilot acceptance and
 the minimum supported runtime version remain pending. Runtime management and hooks remain increment 2; this addition
 defines no Copilot guard hook. Existing Claude and Codex contracts are unchanged.
@@ -336,7 +336,9 @@ the context, so the skill's own boundary (invoked only by the user) remains a be
 
 The `copilot` entry stub sets `disable-model-invocation: true` and retains the default user invocation through
 `/solomonar`; other Copilot skills remain eligible for normal skill discovery. No Codex policy file is generated
-under `.github/skills/`.
+under `.github/skills/`. Copilot CLI 1.0.103 does not expand `/solomonar` in prompt mode (`-p`), and the flag
+blocks the model's skill tool, so prompt-mode sessions cannot invoke the entry skill; the flag is retained and
+interactive sessions remain the supported entry.
 
 `CLAUDE.md` is create-only (CLI-D3, G10): absent, it is created and managed from then on; present and unmanaged, it
 is `skip`, never a conflict, and is not recorded in the manifest, even when it is not a regular file. The reason is
@@ -2094,14 +2096,42 @@ conditions.
 | 2 | `doctor`, `sync`, `runtime` list/add/remove, `extension` list/show/add/remove/new, `guard` | UC-5 to UC-8, UC-10, UC-22 |
 | 3 | `upgrade`, `dashboard` | UC-9, UC-23; an upgrade test between two embedded framework versions |
 
-Copilot is an additional adapter delivery tracked in [plan.md](plan.md), after increment 1. Its first release
+Copilot is an additional adapter delivery, after increment 1. Its first release
 adds generation and `init` selection only; runtime management remains increment 2, and no Copilot hook is
 specified by this addition. Support is established only after automated checks and a recorded live CLI smoke
 test, including a feature worktree and coexistence with the other adapters. Generation, manifest tracking,
 and CLI initialization are implemented. The Copilot installation transcript passes, and CLI 1.0.85 discovers
-instructions and core skills in main and feature worktrees with all three adapters installed. A live session
-was rejected by account policy; delegation, tool behavior, model selection, and the minimum supported version
-remain unverified. See [the acceptance record](plan.md#copilot-runtime-acceptance).
+instructions and core skills in main and feature worktrees with all three adapters installed. CLI 1.0.103
+sessions run, but prompt mode cannot invoke the entry skill; delegation, tool behavior, model selection, and the
+minimum supported version remain unverified. See [the acceptance record](#copilot-runtime-acceptance).
+
+### Copilot runtime acceptance
+
+The Copilot delivery ran in four steps: contract (section 4.2), project-layer generation and `runtime:copilot`
+manifest tracking, `init --runtime copilot`, and validation with public documentation. All four steps are implemented.
+Automated coverage: project tests for ownership, ordering, extension inclusion, metadata escaping, and model
+selection; init tests for runtime combinations, `PATH` detection, prompts, conflicts, and reruns; the
+`testdata/init_copilot.txtar` process transcript; `task check`, `task test:integration`, `go vet ./...`, and the
+site build and check.
+
+Live checks on 2026-10-23, in disposable repositories initialized with all three adapters:
+
+| Version | Check | Result |
+| --- | --- | --- |
+| 1.0.85 | `copilot instruction list --json`, `copilot skill list --json` in main and feature worktrees | `AGENTS.md` and the four core skills resolve to the checkout's `.github/skills/`, ahead of `.agents` and `.claude` |
+| 1.0.85 | Live `-p` session | Rejected: `Access denied by policy settings` (account policy) |
+| 1.0.103 | Live `-p` session | Runs; skills load with `source: project` |
+| 1.0.103 | `-p '/solomonar'` | Not expanded; `disable-model-invocation: true` also blocks the model's skill tool, so prompt mode cannot invoke the entry skill. Removing the flag in a fixture made the model call `skill: solomonar` |
+| 1.0.103 | `-p` delegation on a registered task and worktree | No delegation happened (entry skill unavailable); registry unchanged |
+| 1.0.103 | `--allow-tool 'shell(...)'` | Rules match only the first word: `shell(solomonar:*)` allows, `shell(solomonar task show)` matches nothing |
+| 1.0.103 | `auto` model routing | One model available per session (`mai-code-1.1-flash`, `gpt-6-luna`); `--model claude-sonnet-5.5` rejected as unavailable |
+
+Decision 2026-10-23 (user): keep `disable-model-invocation: true` on the Copilot entry stub. Interactive
+`/solomonar` is the supported entry; prompt-mode sessions ask Copilot to load
+`docs/solomonar/skills/solomonar/SKILL.md`. Claude Code is the focus runtime, so these checks stay open with no
+work scheduled: interactive entry, delegation and repository-instruction loading in delegated roles, reviewer
+tool restrictions, adversarial-model selection (account access suggests `claude-haiku-5.5` may be unavailable),
+and the minimum supported Copilot version. Version 1.0.85 is a discovery baseline, not a supported floor.
 
 ## 11. Open decisions
 
