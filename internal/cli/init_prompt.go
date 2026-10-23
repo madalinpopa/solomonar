@@ -27,6 +27,7 @@ func runtimeItems() []choice {
 	return []choice{
 		{name: "claude", description: "Claude Code: CLAUDE.md import, .claude/skills, .claude/agents, state guard hook"},
 		{name: "codex", description: "Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook"},
+		{name: "copilot", description: "GitHub Copilot CLI: AGENTS.md (native), .github/skills, .github/agents"},
 	}
 }
 
@@ -72,7 +73,7 @@ func (a *initPrompts) choices(f *initFlags, root *os.Root, defaultName string, c
 }
 
 func (a *initPrompts) models(f *initFlags) error {
-	titles := map[string]string{"claude": "Claude Code", "codex": "Codex"}
+	titles := map[string]string{"claude": "Claude Code", "codex": "Codex", "copilot": "GitHub Copilot CLI"}
 	first := true
 	for _, runtime := range f.requested.Runtimes {
 		if _, ok := f.requested.AdversarialModels[runtime]; ok {
