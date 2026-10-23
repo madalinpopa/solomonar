@@ -53,7 +53,7 @@ The name comes from Romanian folklore: a solomonar is a wizard who learns every 
 
 The CLI needs no model-provider API key.
 
-Copilot CLI discovery was checked with version 1.0.85. A live session was rejected by account policy, so delegation, reviewer tools, model selection, and the minimum supported Copilot version remain unverified. See the [acceptance record](docs/cli/plan.md#copilot-runtime-acceptance). Copilot adapter installation is available in this source tree; check `solomonar init --help` for `copilot` in an installed build. IDE and cloud-agent compatibility are outside this delivery.
+Copilot CLI discovery was checked with versions 1.0.85 and 1.0.103. Invoke `/solomonar` in an interactive session; prompt mode (`copilot -p`) cannot invoke the entry skill. Delegation, reviewer tools, model selection, and the minimum supported Copilot version remain unverified. See the [acceptance record](docs/cli/interface.md#copilot-runtime-acceptance). Copilot adapter installation is available in this source tree; check `solomonar init --help` for `copilot` in an installed build. IDE and cloud-agent compatibility are outside this delivery.
 
 ## Installation
 
