@@ -22,7 +22,7 @@
 
 ## What is Solomonar?
 
-Solomonar is an open-source workflow for building software with AI coding agents such as Claude Code and Codex. You agree on what the software should do, an agent builds one focused task against that agreement, separate agents review it, and a small CLI records every step in Git.
+Solomonar is an open-source workflow for building software with AI coding agents. You agree on what the software should do, an agent builds one focused task against that agreement, separate agents review it, and a small CLI records every step in Git.
 
 It has two parts:
 
@@ -41,17 +41,19 @@ The name comes from Romanian folklore: a solomonar is a wizard who learns every 
 - **Parallel tasks in isolated worktrees.** Tasks start one at a time, run in parallel, and merge into `main` one at a time.
 - **A task record that cannot drift silently.** State lives on a dedicated Git branch, is written only through checked CLI commands, and is compared with the real branch, worktree, and pull request on demand.
 - **Small current docs, full history.** Each finished task keeps a compact record; its final work spec stays in Git history.
-- **Runtime-agnostic.** Adapters for Claude Code and Codex point to one portable source of instructions.
+- **Runtime-agnostic.** Claude Code, Codex, and GitHub Copilot CLI adapters point to one portable source of instructions. Copilot installation and discovery are verified; live workflow acceptance is pending.
 
 ## Requirements
 
 - macOS or Linux. Windows is not supported in v0.1.
 - Git 2.40 or later.
-- Claude Code or Codex, to run the agent sessions.
+- Claude Code, Codex, or GitHub Copilot CLI, to run the agent sessions.
 - Optional: the GitHub CLI (`gh`), so `task status` can report pull requests and checks.
 - To build from source: Go 1.27.3 or later.
 
 The CLI needs no model-provider API key.
+
+Copilot CLI discovery was checked with version 1.0.85. A live session was rejected by account policy, so delegation, reviewer tools, model selection, and the minimum supported Copilot version remain unverified. See the [acceptance record](docs/cli/plan.md#copilot-runtime-acceptance). Copilot adapter installation is available in this source tree; check `solomonar init --help` for `copilot` in an installed build. IDE and cloud-agent compatibility are outside this delivery.
 
 ## Installation
 
@@ -100,7 +102,10 @@ Open a top-level agent session in the project and start every request with the `
 | --- | --- |
 | Claude Code | `/solomonar Prototype adding a shared expense.` |
 | Codex | `$solomonar Prototype adding a shared expense.` |
+| GitHub Copilot CLI | `/solomonar Prototype adding a shared expense.` (live workflow acceptance pending) |
 | Any runtime | `Use the solomonar skill to prototype adding a shared expense.` |
+
+To install the Copilot adapter in a project with no recorded Solomonar choices, use `--runtime copilot` instead of `--runtime claude`. Follow the printed commit command: it lists individual Copilot files rather than the whole `.github` directory. Adding Copilot to an already initialized Solomonar project must wait for the planned `runtime add` command; `init` never changes recorded choices.
 
 With no request, the skill reports what is waiting on you and what can start next. Follow the tasks from your shell:
 
