@@ -8,9 +8,9 @@ When the two differ, the interface spec wins for behavior and this document wins
 This is an implementation contract. Increment 1 follows it and is released as v0.1.0. The accepted workflow-audit
 fixes are applied, with runtime verification kept separate from completion of the design changes.
 
-The Copilot CLI adapter contract was added on 2026-10-23 and is tracked in [plan.md](plan.md). Its generation and
-`init` selection are not implemented yet. Runtime management and hooks remain increment 2; this addition
-specifies no Copilot hook and changes no existing architectural decision.
+The Copilot CLI adapter contract was added on 2026-10-23 and is tracked in [plan.md](plan.md). Project-layer
+generation and manifest tracking are implemented; CLI `init` selection is still pending. Runtime management and
+hooks remain increment 2; this addition specifies no Copilot hook and changes no existing architectural decision.
 
 Contents: 1 Scope · 2 Analysis of the interface design · 3 Toolchain · 4 Architectural decisions · 5 Layout and
 packages · 6 Key types · 7 Execution flow · 8 Errors, cancellation, and file safety · 9 Code conventions ·
