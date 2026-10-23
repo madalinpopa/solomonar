@@ -100,7 +100,7 @@ git commit -m "chore: initialize solomonar 0.1.4"
 
 For a Copilot selection, use the printed command: it names each generated adapter file under `.github/skills/` and `.github/agents/`. Do not substitute `git add .github`, which can stage unrelated project files.
 
-Start your selected runtime at the repository root. For Copilot CLI, run `copilot`, then enter `/solomonar Explore the next useful flow.` in its top-level session. The entry skill stays user-invoked; the orchestrator continues in that session and delegates the other roles. Live Copilot discovery/delegation acceptance and the minimum supported version are still pending; the generated adapters follow the [official CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference).
+Start your selected runtime at the repository root. For Copilot CLI, run `copilot`, then enter `/solomonar Explore the next useful flow.` in its top-level session. The entry skill stays user-invoked; the orchestrator is intended to continue in that session and delegate the other roles. Copilot 1.0.85 passed local discovery checks, but account policy rejected a live session; delegation and the minimum supported version remain unverified. See the [acceptance record]({{ 'docs/cli/plan.md' | source }}#copilot-runtime-acceptance) and the [official CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference).
 
 ## What init created
 
