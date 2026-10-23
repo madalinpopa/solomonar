@@ -9,8 +9,9 @@ This is an implementation contract. Increment 1 follows it and is released as v0
 fixes are applied, with runtime verification kept separate from completion of the design changes.
 
 The Copilot CLI adapter contract was added on 2026-10-23 and is tracked in [plan.md](plan.md). Project-layer
-generation and manifest tracking are implemented; CLI `init` selection is still pending. Runtime management and
-hooks remain increment 2; this addition specifies no Copilot hook and changes no existing architectural decision.
+generation, manifest tracking, and CLI `init` selection are implemented; live acceptance remains pending.
+Runtime management and hooks remain increment 2; this addition specifies no Copilot hook and changes no existing
+architectural decision.
 
 Contents: 1 Scope · 2 Analysis of the interface design · 3 Toolchain · 4 Architectural decisions · 5 Layout and
 packages · 6 Key types · 7 Execution flow · 8 Errors, cancellation, and file safety · 9 Code conventions ·
@@ -300,7 +301,7 @@ from `templates/`, rendered with `text/template`, with the `AGENTS.md` extension
 `RuntimeWants` returns the adapter stubs of I section 4.2 per runtime, in the order `claude`, `codex`, `copilot`, extension skills and
 agents sorted with the core ones; a `CreateOnly` want (`CLAUDE.md`) present and unmanaged is `skip`, never a conflict,
 and `InitPlan` records `runtimes` and `extensions` (nil records `{}`) in the manifest.
-The planned Copilot addition stays in `internal/project`: `.github/skills/<skill>/SKILL.md` and
+The Copilot addition stays in `internal/project`: `.github/skills/<skill>/SKILL.md` and
 `.github/agents/<role>.agent.md` wants, owned by `runtime:copilot`, with the same file classification, hashes,
 plan/apply, and rollback. Preserve metadata values through valid YAML string serialization; add no production
 dependency. There is no extra root instruction file, orchestrator adapter, or hook want. Manifest schema 1 is
