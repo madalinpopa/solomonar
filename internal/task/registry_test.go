@@ -2,6 +2,8 @@ package task
 
 import (
 	"errors"
+	"maps"
+	"slices"
 	"strings"
 	"testing"
 
@@ -25,8 +27,14 @@ const doneRecord = `{"title": "Login", "status": "done", "stage": "complete",
 	"summary": "Password login with sessions", "spec_ref": "` + sha + `:docs/work/W-001-login.md",
 	"merge_commit": "` + sha + `", "pr": "https://example.com/pr/1", "updated_at": "2026-01-20T09:00:00Z"}`
 
+const header = `{"schema_version": 2}`
+
 func registryWith(id, record string) []byte {
 	return []byte(`{"schema_version": 1, "tasks": {"` + id + `": ` + record + `}}`)
+}
+
+func decodeRecord(id, record string) (*Registry, error) {
+	return DecodeFiles(map[string][]byte{"state.json": []byte(header), "tasks/" + id + ".json": []byte(record)})
 }
 
 func rejectionOf(t *testing.T, err error) *Rejection {
@@ -54,10 +62,10 @@ func TestDecodeAcceptsValidRecords(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			registry, err := Decode(registryWith(tt.id, tt.record))
+			registry, err := decodeRecord(tt.id, tt.record)
 
 			require.NoError(t, err)
-			assert.Equal(t, 1, registry.SchemaVersion)
+			assert.Equal(t, 2, registry.SchemaVersion)
 			assert.Contains(t, registry.Tasks, tt.id)
 		})
 	}
@@ -66,14 +74,14 @@ func TestDecodeAcceptsValidRecords(t *testing.T) {
 func TestDecodeKeepsTierZero(t *testing.T) {
 	t.Parallel()
 
-	registry, err := Decode(registryWith("W-001", replace(activeRecord, `"tier": 2`, `"tier": 0`)))
+	registry, err := decodeRecord("W-001", replace(activeRecord, `"tier": 2`, `"tier": 0`))
 
 	require.NoError(t, err)
 	require.NotNil(t, registry.Tasks["W-001"].Tier)
 	assert.Equal(t, 0, *registry.Tasks["W-001"].Tier)
 }
 
-func TestDecodeRejectsInvalidRegistry(t *testing.T) {
+func TestDecodeLegacyRejectsInvalidRegistry(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -94,12 +102,13 @@ func TestDecodeRejectsInvalidRegistry(t *testing.T) {
 		},
 		{name: "unknown record member", data: string(registryWith("W-001", replace(doneRecord, `"pr"`, `"prr"`))), found: "prr"},
 		{name: "bad id", data: string(registryWith("W-01", plannedRecord)), found: "W-01"},
+		{name: "per-task schema", data: `{"schema_version": 2}`, found: "single-file schema 1"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			_, err := Decode([]byte(tt.data))
+			_, err := DecodeLegacy([]byte(tt.data))
 
 			rejection := rejectionOf(t, err)
 			assert.Equal(t, "registry_invalid", rejection.Code)
@@ -155,7 +164,7 @@ func TestDecodeRejectsInvalidRecord(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			_, err := Decode(registryWith("W-001", tt.record))
+			_, err := decodeRecord("W-001", tt.record)
 
 			rejection := rejectionOf(t, err)
 			assert.Equal(t, "registry_invalid", rejection.Code)
@@ -165,75 +174,111 @@ func TestDecodeRejectsInvalidRecord(t *testing.T) {
 	}
 }
 
-func TestDecodeRejectsNewerSchemaBeforeStrictDecoding(t *testing.T) {
+func TestDecodeFilesRejectsInvalidTree(t *testing.T) {
 	t.Parallel()
 
-	_, err := Decode([]byte(`{"schema_version": 2, "tasks": {}, "added_in_v2": true}`))
+	tests := []struct {
+		name  string
+		files map[string]string
+		found string
+	}{
+		{name: "missing header", files: map[string]string{"tasks/W-001.json": plannedRecord}, found: "state.json is missing"},
+		{name: "unknown header member", files: map[string]string{"state.json": `{"schema_version": 2, "x": 1}`}, found: "x"},
+		{name: "tasks in header", files: map[string]string{"state.json": `{"schema_version": 2, "tasks": {}}`}, found: "state.json holds tasks"},
+		{name: "unexpected file", files: map[string]string{"state.json": header, "notes.md": "x"}, found: "unexpected file notes.md"},
+		{name: "bad record name", files: map[string]string{"state.json": header, "tasks/W-01.json": plannedRecord}, found: "tasks/W-01.json"},
+		{name: "nested record", files: map[string]string{"state.json": header, "tasks/a/W-001.json": plannedRecord}, found: "tasks/a/W-001.json"},
+		{name: "unknown record member", files: map[string]string{"state.json": header, "tasks/W-001.json": replace(doneRecord, `"pr"`, `"prr"`)}, found: "prr"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			files := map[string][]byte{}
+			for path, data := range tt.files {
+				files[path] = []byte(data)
+			}
 
-	rejection := rejectionOf(t, err)
-	assert.Equal(t, "cli_outdated", rejection.Code)
-	assert.Equal(t, "registry schema 2, this CLI supports 1", rejection.Found)
-	assert.Equal(t, "install a newer solomonar release", rejection.Fix)
+			_, err := DecodeFiles(files)
+
+			rejection := rejectionOf(t, err)
+			assert.Equal(t, "registry_invalid", rejection.Code)
+			assert.Contains(t, rejection.Found, tt.found)
+		})
+	}
+}
+
+func TestDecodeFilesChecksSchemaBeforeStrictDecoding(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name, header, code, found, fix string
+	}{
+		{
+			name: "newer", header: `{"schema_version": 3, "added_in_v3": true}`, code: "cli_outdated",
+			found: "registry schema 3, this CLI supports 2", fix: "install a newer solomonar release",
+		},
+		{
+			name: "single-file", header: `{"schema_version": 1, "tasks": {}}`, code: "registry_outdated",
+			found: "registry schema 1, this CLI uses 2", fix: "solomonar task migrate",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := DecodeFiles(map[string][]byte{"state.json": []byte(tt.header)})
+
+			rejection := rejectionOf(t, err)
+			assert.Equal(t, tt.code, rejection.Code)
+			assert.Equal(t, tt.found, rejection.Found)
+			assert.Equal(t, tt.fix, rejection.Fix)
+		})
+	}
 }
 
 func TestEncodeEmptyRegistry(t *testing.T) {
 	t.Parallel()
 
-	want := "{\n  \"schema_version\": 1,\n  \"tasks\": {}\n}\n"
-
-	data, err := NewRegistry().Encode()
-
+	view, err := NewRegistry().Encode()
 	require.NoError(t, err)
-	assert.Equal(t, want, string(data))
+	files, err := NewRegistry().Files()
+	require.NoError(t, err)
+
+	//nolint:testifylint // the exact bytes are the contract, not only the JSON value
+	assert.Equal(t, "{\n  \"schema_version\": 2,\n  \"tasks\": {}\n}\n", string(view))
+	assert.Equal(t, map[string][]byte{"state.json": []byte("{\n  \"schema_version\": 2\n}\n")}, files)
 }
 
-func TestEncodeIsCanonical(t *testing.T) {
+func TestFilesAreCanonical(t *testing.T) {
 	t.Parallel()
 
-	input := `{"tasks": {"W-002": {"updated_at": "2026-10-20T14:58:03Z", "status": "planned", "title": "B"},
-		"W-001": {"title": "A", "status": "planned", "updated_at": "2026-10-20T14:58:03Z"}}, "schema_version": 1}`
-	want := `{
-  "schema_version": 1,
-  "tasks": {
-    "W-001": {
-      "title": "A",
-      "status": "planned",
-      "updated_at": "2026-10-20T14:58:03Z"
-    },
-    "W-002": {
-      "title": "B",
-      "status": "planned",
-      "updated_at": "2026-10-20T14:58:03Z"
-    }
-  }
-}
-`
-	registry, err := Decode([]byte(input))
+	registry, err := DecodeLegacy([]byte(`{"tasks": {"W-002": {"updated_at": "2026-10-20T14:58:03Z", "status": "planned",
+		"title": "B"}, "W-001": {"title": "A", "status": "planned", "updated_at": "2026-10-20T14:58:03Z"}}, "schema_version": 1}`))
 	require.NoError(t, err)
 
-	data, err := registry.Encode()
+	files, err := registry.Files()
 
 	require.NoError(t, err)
-	assert.Equal(t, want, string(data))
+	assert.Equal(t, []string{"state.json", "tasks/W-001.json", "tasks/W-002.json"}, slices.Sorted(maps.Keys(files)))
+	//nolint:testifylint // the exact bytes are the contract, not only the JSON value
+	assert.Equal(t, "{\n  \"title\": \"B\",\n  \"status\": \"planned\",\n  \"updated_at\": \"2026-10-20T14:58:03Z\"\n}\n",
+		string(files["tasks/W-002.json"]))
 }
 
-func TestEncodeRoundTrips(t *testing.T) {
+func TestFilesRoundTrip(t *testing.T) {
 	t.Parallel()
 
-	data := `{"schema_version": 1, "tasks": {"W-001": ` + activeRecord + `, "W-002": ` + doneRecord +
-		`, "W-003": ` + plannedRecord + `}}`
-	registry, err := Decode([]byte(data))
+	registry, err := DecodeLegacy([]byte(`{"schema_version": 1, "tasks": {"W-001": ` + activeRecord + `, "W-002": ` +
+		doneRecord + `, "W-003": ` + plannedRecord + `}}`))
 	require.NoError(t, err)
+	registry.SchemaVersion = SchemaVersion
 
-	encoded, err := registry.Encode()
+	files, err := registry.Files()
 	require.NoError(t, err)
-	decoded, err := Decode(encoded)
-	require.NoError(t, err)
-	reencoded, err := decoded.Encode()
+	decoded, err := DecodeFiles(files)
 
 	require.NoError(t, err)
 	assert.Equal(t, registry, decoded)
-	assert.Equal(t, string(encoded), string(reencoded))
 }
 
 func replace(s, old, replacement string) string {
@@ -243,10 +288,10 @@ func replace(s, old, replacement string) string {
 func TestSchemaOfReadsNewerSchema(t *testing.T) {
 	t.Parallel()
 
-	schema, err := SchemaOf([]byte(`{"schema_version": 2, "added_in_v2": true}`))
+	schema, err := SchemaOf([]byte(`{"schema_version": 3, "added_in_v3": true}`))
 
 	require.NoError(t, err)
-	assert.Equal(t, 2, schema)
+	assert.Equal(t, 3, schema)
 }
 
 func TestSchemaOfRejectsUnreadableSchema(t *testing.T) {
