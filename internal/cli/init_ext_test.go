@@ -90,9 +90,11 @@ func TestInitWithGoAddsTheRuntimeSkillStub(t *testing.T) {
 	tests := []struct {
 		runtime string
 		path    string
+		name    string
 	}{
-		{runtime: "claude", path: ".claude/skills/go/SKILL.md"},
-		{runtime: "codex", path: ".agents/skills/go/SKILL.md"},
+		{runtime: "claude", path: ".claude/skills/go/SKILL.md", name: "go"},
+		{runtime: "codex", path: ".agents/skills/go/SKILL.md", name: "go"},
+		{runtime: "copilot", path: ".github/skills/go/SKILL.md", name: `"go"`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.runtime, func(t *testing.T) {
@@ -104,7 +106,7 @@ func TestInitWithGoAddsTheRuntimeSkillStub(t *testing.T) {
 
 			require.Equal(t, 0, got.exit, got.stderr)
 			stub := tree(t, dir)[tt.path]
-			assert.True(t, strings.HasPrefix(stub, "---\nname: go\n"), stub)
+			assert.True(t, strings.HasPrefix(stub, "---\nname: "+tt.name+"\n"), stub)
 			assert.True(t, strings.HasSuffix(stub, "Load `docs/solomonar/skills/go/SKILL.md` and follow it.\n"), stub)
 			assert.Equal(t, "runtime:"+tt.runtime, manifestOf(t, dir).Files[tt.path].Owner)
 		})
