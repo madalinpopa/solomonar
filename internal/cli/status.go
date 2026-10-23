@@ -131,8 +131,13 @@ func recordDetails(r *task.Record, tip string) []detail {
 	if r.NextAction != nil {
 		next = r.NextAction.Actor + ": " + r.NextAction.Action
 	}
+	if r.Owner != "" && r.Stage != task.StageSetup {
+		status.value = strings.Replace(status.value, "owner "+r.Owner, "owner "+r.Owner+confirmation(r), 1)
+	}
 	return []detail{
 		status,
+		{"base", cmp.Or(r.Base, "none")},
+		{"worktree", cmp.Or(r.Worktree, "none")},
 		{"spec", cmp.Or(r.Spec, "none")},
 		{"revision", cmp.Or(r.Revision, "none")},
 		{"agents", agents},
@@ -140,6 +145,13 @@ func recordDetails(r *task.Record, tip string) []detail {
 		{"next", next},
 		pr, updated,
 	}
+}
+
+func confirmation(r *task.Record) string {
+	if r.Confirmed {
+		return " (confirmed)"
+	}
+	return " (unconfirmed)"
 }
 
 func blockersText(blockers []task.Blocker) string {
