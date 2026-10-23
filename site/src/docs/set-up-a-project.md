@@ -1,7 +1,7 @@
 ---
 title: Set up a project
 navTitle: Set up a project
-description: Run solomonar init to install the framework, Claude Code or Codex adapters, extensions, and the task registry in a new or existing Git repository, then make the first commit.
+description: Set up Solomonar with Claude Code, Codex, or Copilot CLI adapters, extensions, and the task registry in a Git repository, then make the first commit.
 kind: Tutorial
 group: Start here
 order: 3
@@ -44,7 +44,16 @@ Would initialize solomonar 0.1.4 in /work/ledger
   39 files created
 ```
 
-Choose runtimes with `--runtime claude`, `--runtime codex`, both, or `--runtime none`. Without the flag, `init` selects each runtime whose executable it finds on your `PATH`.
+Choose `--runtime claude`, `--runtime codex`, `--runtime copilot`, any combination, or `--runtime none` alone. Without the flag, a new project's defaults select the runtimes found on your `PATH`. Explicit selection does not require the executable installed; a rerun preserves the manifest's choices.
+
+To follow this walkthrough with Copilot CLI alone, replace the two runtime flags in both the preview and initialization commands with `--runtime copilot`:
+
+```sh
+solomonar init --git-init --runtime copilot --ext none \
+  --name ledger --objective "Shared expenses for small groups" --dry-run --yes
+```
+
+This plan creates 28 files, including `.github/skills/` and `.github/agents/` adapters. The [init reference]({{ '/docs/cli/init/' | url }}) shows abbreviated Copilot output. Run the preview in a project that has not recorded another Solomonar runtime selection.
 
 ## Choose extensions
 
@@ -89,6 +98,10 @@ git add AGENTS.md CLAUDE.md .claude .agents .codex .solomonar docs
 git commit -m "chore: initialize solomonar 0.1.4"
 ```
 
+For a Copilot selection, use the printed command: it names each generated adapter file under `.github/skills/` and `.github/agents/`. Do not substitute `git add .github`, which can stage unrelated project files.
+
+Start your selected runtime at the repository root. For Copilot CLI, run `copilot`, then enter `/solomonar Explore the next useful flow.` in its top-level session. The entry skill stays user-invoked; the orchestrator continues in that session and delegates the other roles. Live Copilot discovery/delegation acceptance and the minimum supported version are still pending; the generated adapters follow the [official CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference).
+
 ## What init created
 
 | Path | What it is |
@@ -99,6 +112,7 @@ git commit -m "chore: initialize solomonar 0.1.4"
 | `docs/decisions.md`, `docs/stack.md` | Your approved stack decisions, written only when you chose an extension. |
 | `CLAUDE.md`, `.claude/` | Claude Code adapters: an `@AGENTS.md` import, skill stubs, and agent stubs. |
 | `.agents/`, `.codex/` | Codex adapters: skill stubs and agent definitions. |
+| `.github/skills/<skill>/SKILL.md`, `.github/agents/<role>.agent.md` | Copilot CLI skill and delegated-role adapters, when selected; no extra root instruction file or guard hook. |
 | `.solomonar/manifest.json` | Your choices and the hashes of the files `init` manages. |
 | `refs/heads/workflow-state` | The task registry: a Git branch with one `state.json`, never checked out. |
 
@@ -125,7 +139,7 @@ If the repository already has an application, agents discover its build and test
 Already initialized with solomonar 0.1.4; nothing to do.
 ```
 
-It never changes a recorded choice, such as the runtimes or the extensions. Those will change through the planned `runtime` and `extension` commands.
+It never changes a recorded choice, such as the runtimes or the extensions. Those will change through the planned `runtime` and `extension` commands. To add Copilot to an already initialized Solomonar project with different runtimes, wait for `runtime add`; do not edit the manifest or pass different runtimes to `init`.
 
 ## Next
 
