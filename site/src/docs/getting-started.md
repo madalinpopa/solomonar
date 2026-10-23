@@ -14,7 +14,7 @@ Solomonar is a spec-driven workflow for building software with AI coding agents.
 
 It has two parts:
 
-- **The framework:** Markdown rules, skills, and agent roles that live in your repository under `docs/solomonar/`. Your agent runtime, Claude Code or Codex, reads them.
+- **The framework:** Markdown rules, skills, and agent roles that live in your repository under `docs/solomonar/`. Your configured runtime, Claude Code, Codex, or GitHub Copilot CLI, reads them.
 - **The CLI:** the `solomonar` binary. It installs the framework into a project and keeps the task record honest. It never calls a model or starts an agent.
 
 ## Before you begin
@@ -24,9 +24,13 @@ You need:
 - macOS or Linux. Windows is not supported in v0.1.
 - Git 2.40 or later.
 - Go 1.27.3 or later, only to build the CLI from source.
-- Claude Code or Codex, to run the agent sessions.
+- Claude Code, Codex, or GitHub Copilot CLI, to run the agent sessions.
 
 No model-provider API key is needed by the CLI itself.
+
+Copilot CLI adapter installation is available. Instruction and skill discovery were checked with Copilot 1.0.85, including a feature worktree and all three adapters together. A live session was rejected by account policy; delegation, reviewer tools, model selection, and the minimum supported version remain unverified. This covers the CLI only, not IDE or cloud-agent compatibility. See [the acceptance record]({{ 'docs/cli/plan.md' | source }}#copilot-runtime-acceptance).
+
+Start Copilot with `copilot` in the project directory, then invoke `/solomonar` in the top-level session. See [Set up a project]({{ '/docs/set-up-a-project/' | url }}) for installation and the printed commit command.
 
 ## Your path through the docs
 
@@ -41,11 +45,11 @@ After that, use the [workflow examples]({{ '/docs/use-cases/' | url }}) for ever
 
 ## What works today
 
-Version 0.1.4 is the current release. The framework contracts are defined, and the CLI is built in increments:
+The CLI is built in increments. This table describes the source tree; check `solomonar help` and `solomonar init --help` to confirm availability in your installed build:
 
 | Area | Status |
 | --- | --- |
-| `init`, interactive or with flags, with the core framework and Claude Code or Codex adapters | Available |
+| `init`, interactive or with flags, with the core framework and Claude Code, Codex, or Copilot CLI adapters | Available; live Copilot workflow acceptance pending |
 | Extensions at `init`: the `go` extension | Available |
 | Task commands: `plan`, `register`, `show`, `status`, `move`, `block`, `unblock`, `handoff`, `done` | Available |
 | `extension` commands, project extensions, and more catalog extensions | Planned |
