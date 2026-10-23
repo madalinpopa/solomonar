@@ -1,7 +1,7 @@
 # Implementation Plan: GitHub Copilot CLI Runtime
 
-Status: TASK-01 contract updates complete; implementation and live acceptance remain pending. Checkboxes track
-the work completed and verified, not runtime support in the current build.
+Status: TASK-01 and TASK-02 complete; CLI selection and live acceptance remain pending. Checkboxes track the
+work completed and verified, not runtime support in the current CLI.
 
 ## Objective
 
@@ -12,7 +12,8 @@ and oracle.
 ## Current State
 
 - `go.mod` declares Go 1.27.3. No new dependency is needed.
-- `internal/project/runtime.go` generates Claude and Codex adapters from portable skills and roles.
+- `internal/project/runtime.go` generates Claude, Codex, and Copilot adapters from portable skills and roles.
+  Copilot generation and manifest tracking are implemented; CLI selection remains TASK-03.
 - `internal/project` owns manifest validation, file classification, conflict handling, and rollback.
 - `internal/cli` owns runtime selection, prompts, plan output, and session-start instructions.
 - `runtime list/add/remove`, `sync`, `doctor`, and `guard` are specified but unimplemented.
@@ -45,8 +46,8 @@ Constraints and exclusions:
 
 ## Architectural Decisions
 
-TASK-01 extends the interface contract to include `copilot`; the current implementation still permits only
-`claude` and `codex`. The decisions below describe the Copilot contract, not current runtime support.
+TASK-01 extends the interface contract to include `copilot`; TASK-02 implements project-layer generation and
+manifest tracking. The current CLI still permits only `claude` and `codex`; Copilot runtime acceptance is pending.
 
 | Concern | Decision |
 | --- | --- |
@@ -156,31 +157,38 @@ No Go code changed; Go tests and live Copilot acceptance were not run for this d
 
 **Scope and implementation guidance**
 
-- [ ] Extend runtime generation and runtime-name validation using the existing portable discovery, extension
+- [x] Extend runtime generation and runtime-name validation using the existing portable discovery, extension
   inclusion, stub generation, and `Want` ownership patterns.
-- [ ] Generate core and installed extension skill/role adapters with the agreed policies, source references,
+- [x] Generate core and installed extension skill/role adapters with the agreed policies, source references,
   tool restrictions, and optional adversarial model. Exclude the orchestrator.
-- [ ] Serialize Copilot metadata safely, including descriptions and model values containing YAML-significant
+- [x] Serialize Copilot metadata safely, including descriptions and model values containing YAML-significant
   characters; do not promote a new YAML dependency to production.
-- [ ] Keep generated paths distinct from Claude and Codex paths, with `runtime:copilot` ownership and hashes.
-- [ ] Reuse classification and apply behavior without refactoring the filesystem engine.
-- [ ] Update `site/src/docs/configuration.md`: file inventory, adapter comparison, native instructions,
+- [x] Keep generated paths distinct from Claude and Codex paths, with `runtime:copilot` ownership and hashes.
+- [x] Reuse classification and apply behavior without refactoring the filesystem engine.
+- [x] Update `site/src/docs/configuration.md`: file inventory, adapter comparison, native instructions,
   ownership, entry-skill policy, reviewer limitations, model configuration, and edit-preservation behavior.
 
 **Acceptance criteria**
 
-- [ ] Copilot-only and mixed-runtime generation are deterministic and have no overlapping managed paths.
-- [ ] Representative core and extension adapters have correct metadata and portable-source references.
-- [ ] Copilot manifests round-trip; unsupported names remain rejected.
-- [ ] No orchestrator adapter or extra root instruction file is generated.
-- [ ] Existing Claude and Codex adapter bytes remain unchanged.
+- [x] Copilot-only and mixed-runtime generation are deterministic and have no overlapping managed paths.
+- [x] Representative core and extension adapters have correct metadata and portable-source references.
+- [x] Copilot manifests round-trip; unsupported names remain rejected.
+- [x] No orchestrator adapter or extra root instruction file is generated.
+- [x] Existing Claude and Codex adapter bytes remain unchanged.
 
 **Verification**
 
-- [ ] Extend existing project tests for ownership, ordering, extension inclusion, metadata escaping, and model
+- [x] Extend existing project tests for ownership, ordering, extension inclusion, metadata escaping, and model
   omission/selection; avoid duplicating file-engine coverage.
-- [ ] Run `rtk go test ./internal/project -run 'Test(RuntimeWants|DecodeManifest)' -count=1`.
-- [ ] Compare the configuration reference with the generated files and manifest entries.
+- [x] Run `rtk go test ./internal/project -run 'Test(RuntimeWants|DecodeManifest)' -count=1`.
+- [x] Compare the configuration reference with the generated files and manifest entries.
+
+Completed 2026-10-23. Rechecked the official GitHub sources from interface section 4.2. Copilot metadata uses
+standard-library string quoting; semantic YAML assertions cover punctuation, scalar types, Unicode, control
+characters, and model values containing frontmatter delimiters. No dependency or manifest schema changed.
+Verification passed: focused tests above, `rtk task check` (lint, all Go tests with the race detector, and
+vulnerability checks), Markdown/diff checks, and `rtk npm run build` followed by `rtk npm run check` in `site/`
+(24 HTML pages). CLI selection and live Copilot acceptance were not performed in this task.
 
 **Out of scope:** Generic runtime abstractions and filesystem-engine changes.
 
