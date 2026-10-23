@@ -91,7 +91,7 @@ func TestInteractiveInitUC1(t *testing.T) {
 		extensionsIntro+
 		"\nLanguage:\n    [x] go  Go language rules\n"+
 		"\nFrontend:\n    [x] htmx   T\n    [ ] react  T\n    [x] templ  T (requires htmx)\n\n", prompts)
-	assert.Contains(t, rest, "  registry\n    create     refs/heads/workflow-state with an empty state.json\n"+
+	assert.Contains(t, rest, "  registry\n    create     refs/heads/workflow-state with an empty registry\n"+
 		"  manifest\n    create     .solomonar/manifest.json\n"+
 		"Proceed? [Y/n] \nInitialized solomonar "+shipped+" in "+dir+"\n")
 	manifest := manifestOf(t, dir)
