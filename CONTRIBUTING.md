@@ -416,7 +416,10 @@ never gets an adapter, because it runs as the top-level session.
 - Add or update tests for every behavior change, and run `task check` until it passes.
 - In the pull request, link the issue, summarize the behavior change, and list the documents you updated. For a
   framework change, describe how you verified it.
-- Do not edit version strings by hand; maintainers set them at release.
+- Do not edit current-release version strings by hand; maintainers set them at release with
+  `task version:set VERSION=X.Y.Z`. Its Perl script updates framework headers and current-build examples;
+  keep historical delivery versions and compatibility boundaries fixed. When introducing a new version-bearing
+  example format, update `scripts/set-version.pl` and `testdata/release_version.txtar` together.
 
 ## Reporting problems
 
