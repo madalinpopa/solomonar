@@ -170,10 +170,12 @@ const (
 	commitSep = "\x1e"
 )
 
-// listCommits reads the non-merge commits of base..tip, oldest first, with their Step trailers.
+// listCommits reads the task branch's own non-merge commits of base..tip, oldest first, with their
+// Step trailers. First-parent history leaves out what a merge from main brought in.
 func listCommits(ctx context.Context, repo *git.Repo, base, tip string) ([]commit, error) {
 	format := commitSep + "%H" + fieldSep + "%s" + fieldSep + "%(trailers:key=Step,valueonly,separator=%x1f)" + fieldSep
-	out, err := repo.Run(ctx, "log", "--no-merges", "--reverse", "--shortstat", "--format="+format, base+".."+tip)
+	out, err := repo.Run(ctx, "log", "--first-parent", "--no-merges", "--reverse", "--shortstat", "--format="+format,
+		base+".."+tip)
 	if err != nil {
 		return nil, fmt.Errorf("list commits of %.8s..%.8s: %w", base, tip, err)
 	}
