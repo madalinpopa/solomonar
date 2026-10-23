@@ -40,14 +40,14 @@ func TestInspectPlanReconcilesCheckpoints(t *testing.T) {
 	t.Parallel()
 
 	f := newFactsRepo(t)
-	s1 := f.checkpoint(t, "feat(auth): add the session store", "W-001/S-1")
-	untagged := f.checkpoint(t, "feat(auth): add the login form", "")
-	foreign := f.checkpoint(t, "feat(auth): add the login form", "W-002/S-2")
-	unknown := f.checkpoint(t, "feat(auth): add the login form", "W-001/S-9")
-	mismatch := f.checkpoint(t, "feat(auth): add a login form", "W-001/S-2")
-	gittest.Git(t, f.worktree, "commit", "--allow-empty", "-m", "feat(auth): add the login form", "-m", "Step: W-001/S-2")
+	s1 := f.checkpoint(t, "feat(W-001): add the session store", "W-001/S-1")
+	untagged := f.checkpoint(t, "feat(W-001): add the login form", "")
+	foreign := f.checkpoint(t, "feat(W-001): add the login form", "W-002/S-2")
+	unknown := f.checkpoint(t, "feat(W-001): add the login form", "W-001/S-9")
+	mismatch := f.checkpoint(t, "feat(W-001): add a login form", "W-001/S-2")
+	gittest.Git(t, f.worktree, "commit", "--allow-empty", "-m", "feat(W-001): add the login form", "-m", "Step: W-001/S-2")
 	empty := head(t, f.worktree)
-	duplicate := f.checkpoint(t, "feat(auth): add the session store", "W-001/S-1")
+	duplicate := f.checkpoint(t, "feat(W-001): add the session store", "W-001/S-1")
 	gittest.Git(t, f.worktree, "merge", "--no-ff", "-m", "Merge main", "main")
 	f.checkpoint(t, "chore: tidy", "")
 
@@ -56,8 +56,8 @@ func TestInspectPlanReconcilesCheckpoints(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, PlanApproved, facts.Approval)
 	assert.Equal(t, []StepFacts{
-		{ID: "S-1", Subject: "feat(auth): add the session store", State: StepCommitted, Commit: &s1},
-		{ID: "S-2", Subject: "feat(auth): add the login form", State: StepRemaining},
+		{ID: "S-1", Subject: "feat(W-001): add the session store", State: StepCommitted, Commit: &s1},
+		{ID: "S-2", Subject: "feat(W-001): add the login form", State: StepRemaining},
 	}, facts.Steps)
 	assert.Equal(t, 2, facts.OtherCommits, "the spec commit and chore: tidy; the merge is skipped")
 	assert.Equal(t, []Discrepancy{
@@ -172,8 +172,8 @@ func TestReviewEntryNeedsCheckpointedCandidate(t *testing.T) {
 			name: "complete",
 			setup: func(t *testing.T, f factsRepo, r *Record) {
 				t.Helper()
-				f.checkpoint(t, "feat(auth): add the session store", "W-001/S-1")
-				r.Revision = f.checkpoint(t, "feat(auth): add the login form", "W-001/S-2")
+				f.checkpoint(t, "feat(W-001): add the session store", "W-001/S-1")
+				r.Revision = f.checkpoint(t, "feat(W-001): add the login form", "W-001/S-2")
 			},
 		},
 		{
@@ -183,14 +183,14 @@ func TestReviewEntryNeedsCheckpointedCandidate(t *testing.T) {
 				spec := approvedSpec + "  Outcome: verified — covered by S-1\n"
 				require.NoError(t, os.WriteFile(filepath.Join(f.worktree, filepath.FromSlash(specPath)), []byte(spec), 0o644))
 				gittest.Git(t, f.worktree, "commit", "-qam", "spec(W-001): record the S-2 outcome")
-				r.Revision = f.checkpoint(t, "feat(auth): add the session store", "W-001/S-1")
+				r.Revision = f.checkpoint(t, "feat(W-001): add the session store", "W-001/S-1")
 			},
 		},
 		{
 			name: "remaining steps",
 			setup: func(t *testing.T, f factsRepo, r *Record) {
 				t.Helper()
-				r.Revision = f.checkpoint(t, "feat(auth): add the session store", "W-001/S-1")
+				r.Revision = f.checkpoint(t, "feat(W-001): add the session store", "W-001/S-1")
 			},
 			code: "plan_incomplete", found: "S-2 has no checkpoint commit",
 		},
@@ -198,8 +198,8 @@ func TestReviewEntryNeedsCheckpointedCandidate(t *testing.T) {
 			name: "discrepancy",
 			setup: func(t *testing.T, f factsRepo, r *Record) {
 				t.Helper()
-				f.checkpoint(t, "feat(auth): add the session store", "W-001/S-1")
-				r.Revision = f.checkpoint(t, "feat(auth): add the login form", "")
+				f.checkpoint(t, "feat(W-001): add the session store", "W-001/S-1")
+				r.Revision = f.checkpoint(t, "feat(W-001): add the login form", "")
 			},
 			code: "checkpoint_discrepancy",
 		},
@@ -207,8 +207,8 @@ func TestReviewEntryNeedsCheckpointedCandidate(t *testing.T) {
 			name: "not the tip",
 			setup: func(t *testing.T, f factsRepo, r *Record) {
 				t.Helper()
-				f.checkpoint(t, "feat(auth): add the session store", "W-001/S-1")
-				r.Revision = f.checkpoint(t, "feat(auth): add the login form", "W-001/S-2")
+				f.checkpoint(t, "feat(W-001): add the session store", "W-001/S-1")
+				r.Revision = f.checkpoint(t, "feat(W-001): add the login form", "W-001/S-2")
 				f.checkpoint(t, "chore: later", "")
 			},
 			code: "candidate_not_tip",
@@ -217,8 +217,8 @@ func TestReviewEntryNeedsCheckpointedCandidate(t *testing.T) {
 			name: "dirty",
 			setup: func(t *testing.T, f factsRepo, r *Record) {
 				t.Helper()
-				f.checkpoint(t, "feat(auth): add the session store", "W-001/S-1")
-				r.Revision = f.checkpoint(t, "feat(auth): add the login form", "W-001/S-2")
+				f.checkpoint(t, "feat(W-001): add the session store", "W-001/S-1")
+				r.Revision = f.checkpoint(t, "feat(W-001): add the login form", "W-001/S-2")
 				require.NoError(t, os.WriteFile(filepath.Join(f.worktree, "draft.txt"), nil, 0o644))
 			},
 			code: "candidate_dirty", found: "1 uncommitted path",
@@ -271,7 +271,7 @@ func TestInspectPlanSkipsCommitsMergedFromMain(t *testing.T) {
 
 	f := newFactsRepo(t)
 	r := f.implementing(t)
-	s1 := f.checkpoint(t, "feat(auth): add the session store", "W-001/S-1")
+	s1 := f.checkpoint(t, "feat(W-001): add the session store", "W-001/S-1")
 	require.NoError(t, os.WriteFile(filepath.Join(f.repo.Dir, "export.go"), []byte("package export\n"), 0o644))
 	gittest.Git(t, f.repo.Dir, "add", "export.go")
 	gittest.Git(t, f.repo.Dir, "commit", "-m", "feat(export): add csv", "-m", "Step: W-002/S-1")
