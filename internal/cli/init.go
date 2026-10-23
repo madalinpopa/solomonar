@@ -82,7 +82,7 @@ func initCommand() command {
 	return command{
 		name:    "init",
 		summary: "Install the framework core and create the registry",
-		usage: "solomonar init [<dir>] [--name <name>] [--objective <text>] [--runtime <claude|codex|none>]...\n" +
+		usage: "solomonar init [<dir>] [--name <name>] [--objective <text>] [--runtime <claude|codex|copilot|none>]...\n" +
 			"                      [--ext <name|none>]... [--adversarial-model <runtime>=<model>]...\n" +
 			"                      [--main-branch <name>] [--remote <name>] [--keep <path>]... [--overwrite <path>]...\n" +
 			"                      [--git-init] [-y|--yes] [--dry-run] [--json]",
@@ -207,12 +207,12 @@ func knownRuntimes(values []string) ([]string, error) {
 		return nil, nil
 	}
 	for _, v := range values {
-		if v != "claude" && v != "codex" && v != "none" {
+		if v != "claude" && v != "codex" && v != "copilot" && v != "none" {
 			return nil, &project.Rejection{
 				Code:  "unknown_runtime",
 				Check: "--runtime names a known runtime",
-				Found: fmt.Sprintf("%q is not a runtime; known: claude, codex", v),
-				Fix:   "pass --runtime claude, codex, or none",
+				Found: fmt.Sprintf("%q is not a runtime; known: claude, codex, copilot", v),
+				Fix:   "pass --runtime claude, codex, copilot, or none",
 			}
 		}
 	}
@@ -312,7 +312,7 @@ func selectRuntimes(requested []string, existing *project.Manifest) []string {
 		return slices.Sorted(maps.Keys(existing.Runtimes))
 	}
 	var found []string
-	for _, runtime := range []string{"claude", "codex"} {
+	for _, runtime := range []string{"claude", "codex", "copilot"} {
 		if git.OnPath(runtime) {
 			found = append(found, runtime)
 		}
@@ -586,6 +586,13 @@ func (r initRun) generatedPaths() []string {
 	if slices.Contains(r.runtimes, "codex") {
 		paths = append(paths, ".agents", ".codex")
 	}
+	if slices.Contains(r.runtimes, "copilot") {
+		for _, c := range r.plan.Changes {
+			if c.Owner == "runtime:copilot" {
+				paths = append(paths, c.Path)
+			}
+		}
+	}
 	return append(paths, ".solomonar", "docs")
 }
 
@@ -593,16 +600,26 @@ func (r initRun) generatedPaths() []string {
 func (r initRun) sessionStep() string {
 	const explore = "Explore the next useful flow.\n"
 	claude, codex := slices.Contains(r.runtimes, "claude"), slices.Contains(r.runtimes, "codex")
+	copilot := slices.Contains(r.runtimes, "copilot")
 	switch {
-	case claude && codex:
-		return "  2. Start a top-level session in " + r.root + " with your selected outcome:\n" +
-			"       Claude Code: /solomonar " + explore +
-			"       Codex:       $solomonar " + explore +
-			"       Portable:    Use the solomonar skill to explore the next useful flow.\n"
+	case len(r.runtimes) > 1:
+		step := "  2. Start a top-level session in " + r.root + " with your selected outcome:\n"
+		if claude {
+			step += "       Claude Code: /solomonar " + explore
+		}
+		if codex {
+			step += "       Codex:       $solomonar " + explore
+		}
+		if copilot {
+			step += "       GitHub Copilot CLI: /solomonar " + explore
+		}
+		return step + "       Portable:    Use the solomonar skill to explore the next useful flow.\n"
 	case claude:
 		return "  2. Start a top-level Claude Code session in " + r.root + ":\n       /solomonar " + explore
 	case codex:
 		return "  2. Start a top-level Codex session in " + r.root + ":\n       $solomonar " + explore
+	case copilot:
+		return "  2. Start a top-level GitHub Copilot CLI session in " + r.root + ":\n       /solomonar " + explore
 	}
 	return "  2. Start a top-level session in " + r.root + ":\n" +
 		"       Use the solomonar skill to explore the next useful flow.\n"
