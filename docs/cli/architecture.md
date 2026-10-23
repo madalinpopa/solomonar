@@ -80,7 +80,7 @@ Section 10 enforces these with lint rules.
 | AD-7 | The registry files (`state.json`, `tasks/<ID>.json`) and the manifest are decoded strictly and validated after decoding; written with stable key order and a trailing newline. Their version fields are read first, and a newer version is `cli_outdated` (CLI-D19) before strict decoding runs. | The registry is the authority; a hand edit or a newer schema fails loudly (`registry_invalid`, `manifest_invalid`) instead of losing fields on the next write. | Lenient decoding: unknown fields vanish on rewrite. |
 | AD-8 | Task rules are pure functions over the record; fact checks are a separate step that takes the repository. | The I section 8.1 and section 8.2 tables are tested without Git; `allowed_next` (I section 9.3) comes from the same tables, so validation and the oracle cannot disagree. | Rules and Git calls interleaved: every rule test needs a repository. |
 | AD-9 | Process inputs (args, standard streams, environment lookup, clock, terminal detection, embedded assets) reach `cli.Run` as one `Env` value. | In-process tests of every use case, without building the binary or touching `os` globals. | Reading `os.Args`, `os.Getenv`, `time.Now` inside commands. |
-| AD-10 | One version, read from the embedded `rules.md` header: it is both the CLI and the framework version, since the framework, docs, and site ship inside the CLI. A build between releases reports the last release; `go version -m` shows its build information. `task release:*` sets it in `assets`, `docs/cli`, `site/src`, and the README (`task version:set`), commits that to `main`, then tags. | No version constant and no `-ldflags -X` to forget; one version for the CLI and everything it embeds. | A hand-maintained `const Version`. |
+| AD-10 | One version, read from the embedded `rules.md` header: it is both the CLI and the framework version, since the CLI embeds the framework assets and shares their version. A build between releases reports the last release; `go version -m` shows its build information. `task release:*` sets framework headers and current-build examples through `task version:set` (`scripts/set-version.pl`), commits that to `main`, then tags; historical release and compatibility references stay fixed. | No version constant and no `-ldflags -X` to forget; one version for the CLI and everything it embeds. | A hand-maintained `const Version`. |
 | AD-11 | Platforms: macOS and Linux. Windows is deferred. | Windows changes hook command quoting, path handling in the guard, and terminal detection; no user needs it yet. | Windows from the start. |
 | AD-12 | Distribution: `go install github.com/madalinpopa/solomonar@vX.Y.Z` now; release binaries for linux and darwin on amd64 and arm64, built by GoReleaser with `-trimpath` from a `vX.Y.Z` tag on `main`, and a Homebrew cask in `madalinpopa/homebrew-tap` that GoReleaser regenerates on each stable release (section 10). | AD-10 makes both carry the right version without extra flags. A release tool is a build tool and stays out of `go.mod`. The cask comes from the same release, so it never drifts from the published archives. | A hand-written formula or cask in the tap. |
 | AD-13 | The entry point is `main.go` at the module root, not `cmd/solomonar/main.go`; it also holds `//go:embed assets` and passes the tree to `cli.Run` in `Env`. | The repository holds one binary, which is the official layout for "a command with supporting packages" (go.dev/doc/modules/layout); the install path shortens to the module path; the `assets` package and its global disappear. | `cmd/solomonar/`: meant for repositories with several binaries. A `cmd` package holding the command handlers (the Cobra convention): in Go, `cmd/<name>` means a `main` package, so it misleads readers and `go install ./cmd/...`. |
@@ -376,10 +376,10 @@ Exit 0 whatever the drift.
 for `init`); take choices from flags, then prompts when interactive; build the `Plan` from the embedded assets and
 the files on disk; show it; stop on conflicts (exit 4) or after `--dry-run`; confirm, only when the plan creates or
 updates a file or, for `init`, creates the registry (`interactive_required` without `--yes` and without a terminal);
-`Apply` every project file, including the manifest. For `init` create the registry, or for a schema-changing
-`upgrade` migrate it, only after all file writes succeed. Keep the file journal until that CAS succeeds, rolling
-back this run's changes on a handled failure. With an existing valid init registry, reuse it unchanged; successful
-file apply is then the local commit point. Publish only after local success; print `Next:`.
+`Apply` every project file, including the manifest. When `init` creates the registry, do so only after all file
+writes succeed. Keep the file journal until that CAS succeeds, rolling back this run's changes on a handled
+failure. Registry migration runs separately through `task migrate` (CLI-D26); `upgrade` never writes the registry.
+With an existing valid init registry, reuse it unchanged; successful file apply is then the local commit point. Publish only after local success; print `Next:`.
 
 For init, the selection is the requested `--ext` names, else the manifest's, else `go` for a root `go.mod`, after
 `Resolve`; `PlanDecisions` feeds `ByGroup` to `ExtensionWants` and `Index` to `CoreWants`, and the core, extension,
@@ -459,6 +459,11 @@ the name, at most 100 characters per line), and nothing requires one (revive `ex
 | `task tools` | Installs golangci-lint v2.15.0 and govulncheck v1.9.0 into `.bin/`; skipped when the pinned versions are there. `task tools --force` rebuilds after a Go upgrade. |
 | `task clean` | Removes `bin/` and coverage output. |
 | `task release:patch`, `release:minor`, `release:major` | Fetch the tags, bump the latest stable `vX.Y.Z` (none counts as `v0.0.0`; prerelease tags are ignored), and after a confirmation set that version with `task version:set` (AD-10), commit it, push `main`, then tag and push the tag, which starts the release workflow. They refuse when `HEAD` is not on `origin/main`, the worktree has uncommitted changes, or the tag exists. `release:next` is `release:patch`. |
+
+`task version:set VERSION=X.Y.Z` uses Perl to update the release contexts listed in `scripts/set-version.pl`:
+framework headers, generated/output examples, JSON version fields, and current catalog descriptions. Historical
+compatibility boundaries and delivery records are excluded. `testdata/release_version.txtar` checks successive
+bumps against both current examples and historical statements; the transcript needs Perl on `PATH`.
 
 `.golangci.yml` (v2 format) starts from the standard linters (errcheck, govet with all analyzers except
 `fieldalignment` and `shadow`, ineffassign, staticcheck, unused) and adds rules that encode this document:
