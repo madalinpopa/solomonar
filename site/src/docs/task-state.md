@@ -34,7 +34,7 @@ A task is `reserved` exactly while at `setup`. On leaving setup, it becomes `run
 
 The registry lives on `refs/heads/workflow-state`, created empty by `solomonar init`: `state.json` holds only the schema version, and each task is one file, `tasks/<ID>.json`. It has no filesystem checkout. Only `solomonar task` commands write it, using Git compare-and-swap updates. A write changes only the files of the tasks it touches, but every writer still swaps the same ref.
 
-A registry written by CLI 0.1.5 or earlier keeps every task in one `state.json` (schema 1). Commands reject it until you run [`solomonar task migrate`]({{ '/docs/cli/task/#solomonar-task-migrate' | url }}) once; the migration is one commit on top of the registry history.
+A registry written by CLI 0.1.6 or earlier keeps every task in one `state.json` (schema 1). Commands reject it until you run [`solomonar task migrate`]({{ '/docs/cli/task/#solomonar-task-migrate' | url }}) once; the migration is one commit on top of the registry history.
 
 A command reads the current tip, validates the record and required Git facts, and attempts an atomic ref update. If another writer wins, it re-reads and re-validates before retrying. The local ref is canonical; remote publication can warn without undoing a successful local write.
 

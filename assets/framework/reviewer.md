@@ -1,6 +1,6 @@
 # Reviewer contract
 
-Framework version: 0.1.5
+Framework version: 0.1.6
 
 Load `AGENTS.md`, `docs/solomonar/report.md`, your role file, and the context in section 2. Do not load
 orchestrator-only `docs/solomonar/rules.md`. Unqualified section references mean this file.

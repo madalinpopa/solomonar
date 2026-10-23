@@ -137,8 +137,8 @@ Depends on the data contract in step 1.
 - [x] Define handling of legacy completed records, which have already discarded active fields. Define
   read compatibility, downgrade rejection, and a recovery procedure for unsuccessful migration.
 - [x] Keep registry migration separate from framework/adaptor updates, but document their compatible
-  versions so old instructions cannot silently operate against incompatible state. Framework 0.1.5 and
-  earlier read schema 1; these rules require schema 2, and a 0.1.5 CLI rejects schema 2 as `cli_outdated`.
+  versions so old instructions cannot silently operate against incompatible state. Framework 0.1.6 and
+  earlier read schema 1; these rules require schema 2, and a 0.1.6 CLI rejects schema 2 as `cli_outdated`.
 
 Completion: new repositories and migrated repositories support safe task updates, while unsupported
 versions fail clearly without discarding data.

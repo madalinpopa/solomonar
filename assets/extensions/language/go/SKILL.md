@@ -5,7 +5,7 @@ description: Engineering rules for writing or reviewing Go source, module change
 
 # Go language rules
 
-Framework version: 0.1.5
+Framework version: 0.1.6
 
 Cite `go/C-n`; apply framework authority and review gates.
 
