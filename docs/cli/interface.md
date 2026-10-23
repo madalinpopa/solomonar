@@ -9,9 +9,10 @@ length and shape.
 Increment 1 (section 10) is implemented and released as v0.1.0; this spec keeps the final v0.1 behavior. The
 accepted workflow-audit corrections are applied to these contracts and the framework assets on 2026-10-21. Runtime and fault-injection acceptance tests remain implementation work.
 
-The Copilot CLI contract was added on 2026-10-23. It is planned work tracked in [the Copilot plan](plan.md):
-adapter generation and `init --runtime copilot` are not in the current build. Runtime management and hooks remain
-increment 2; this addition defines no Copilot guard hook. Existing Claude and Codex contracts are unchanged.
+The Copilot CLI contract was added on 2026-10-23 and is tracked in [the Copilot plan](plan.md):
+adapter generation and manifest tracking are implemented in the project layer; `init --runtime copilot` is still
+pending and not available in the current CLI. Runtime management and hooks remain increment 2; this addition
+defines no Copilot guard hook. Existing Claude and Codex contracts are unchanged.
 
 The command pages in `site/src/docs/cli/` are the reference for each command's synopsis, flags, when to use it, who
 runs it, and its typical output; this spec does not repeat them. It holds the contract beneath those pages: check
@@ -2095,8 +2096,8 @@ conditions.
 Copilot is an additional adapter delivery tracked in [plan.md](plan.md), after increment 1. Its first release
 adds generation and `init` selection only; runtime management remains increment 2, and no Copilot hook is
 specified by this addition. Support is established only after automated checks and a recorded live CLI smoke
-test, including a feature worktree and coexistence with the other adapters. The current build has neither
-Copilot generation nor `init` selection yet.
+test, including a feature worktree and coexistence with the other adapters. Project-layer generation and
+manifest tracking are implemented; CLI selection and live acceptance are still pending.
 
 ## 11. Open decisions
 
