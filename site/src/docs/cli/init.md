@@ -71,7 +71,7 @@ Plan
   create     .claude/skills/solomonar/SKILL.md
   ...
   create     .solomonar/manifest.json
-  registry   create refs/heads/workflow-state with an empty state.json
+  registry   create refs/heads/workflow-state with an empty registry
 Would initialize solomonar 0.1.5 in /work/ledger
   29 files created
 ```
@@ -119,7 +119,7 @@ Plan
   ...
   create     .github/agents/spec-reviewer.agent.md
   create     .solomonar/manifest.json
-  registry   create refs/heads/workflow-state with an empty state.json
+  registry   create refs/heads/workflow-state with an empty registry
 Would initialize solomonar 0.1.5 in /work/ledger
   28 files created
 ```

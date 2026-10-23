@@ -27,6 +27,11 @@ func DriftOf(id, main string, record *Record, facts StatusFacts, envOwner string
 		add(record.Status == StatusRunning && record.Stage != StageSetup && !facts.Branch.Exists,
 			"branch_missing", branch+" does not exist")
 		add(facts.Branch.Exists && facts.Worktree == nil, "worktree_missing", branch+" has no worktree")
+		add(record.Worktree != "" && facts.Worktree != nil && record.Worktree != facts.Worktree.Relative,
+			"worktree_mismatch", fmt.Sprintf("recorded %s; Git lists %s", record.Worktree, worktreeRelative(facts.Worktree)))
+		add(record.Stage != StageSetup && record.Base == "", "base_missing", id+" has no recorded base")
+		add(needsConfirmation(record), "unconfirmed", fmt.Sprintf("%s is not confirmed by %s; inspect, then task confirm",
+			id, record.Owner))
 		add(ahead > 0, "head_ahead_of_revision",
 			fmt.Sprintf("HEAD is %d %s past the recorded revision", ahead, plural(ahead, "commit", "commits")))
 		add(facts.Branch.ContainsRevision != nil && !*facts.Branch.ContainsRevision, "revision_not_on_branch",
@@ -35,6 +40,10 @@ func DriftOf(id, main string, record *Record, facts StatusFacts, envOwner string
 			dirty, plural(dirty, "path", "paths"), plural(dirty, "it", "them")))
 		add(record.Spec != "" && !facts.Spec.InWorktree && !facts.Spec.AtRevision, "spec_missing",
 			record.Spec+" is not in the worktree or at the revision")
+		add(planStage(record.Stage) && facts.Plan != nil && facts.Plan.Approval != PlanApproved, "plan_not_approved",
+			fmt.Sprintf("the work spec at feature/%s has no approved plan (%s)", id, planApproval(facts.Plan)))
+		add(facts.Plan != nil && len(facts.Plan.Discrepancies) > 0, "checkpoint_discrepancy",
+			fmt.Sprintf("%d %s to inspect", discrepancies(facts.Plan), plural(discrepancies(facts.Plan), "commit claim", "commit claims")))
 		add(record.Status == StatusBlocked && len(record.Blockers) == 0,
 			"blocked_without_blockers", "blocked without an open blocker")
 		add(record.Tier == nil && record.Stage.atOrAfter(StageSpecializedReview),
@@ -49,6 +58,32 @@ func DriftOf(id, main string, record *Record, facts StatusFacts, envOwner string
 	add(envOwner != "" && record.Owner != "" && envOwner != record.Owner, "owned_by_other",
 		fmt.Sprintf("SOLOMONAR_OWNER is %s; %s is owned by %s", envOwner, id, record.Owner))
 	return drift
+}
+
+func planApproval(p *PlanFacts) string {
+	if p == nil {
+		return ""
+	}
+	return p.Approval
+}
+
+func discrepancies(p *PlanFacts) int {
+	if p == nil {
+		return 0
+	}
+	return len(p.Discrepancies)
+}
+
+func worktreeRelative(w *WorktreeFacts) string {
+	if w == nil {
+		return ""
+	}
+	return w.Relative
+}
+
+// needsConfirmation reports an active task past setup whose owner has not confirmed it (CLI-D22).
+func needsConfirmation(r *Record) bool {
+	return ownsActively(r.Status) && r.Stage != StageSetup && !r.Confirmed
 }
 
 func worktreeCounts(w *WorktreeFacts) (ahead, dirty int) {

@@ -12,22 +12,62 @@ import (
 )
 
 // CheckFacts verifies a move against Git (I section 8.3) and returns where it found the checked spec.
-func CheckFacts(ctx context.Context, repo *git.Repo, id string, before, after *Record, m Move) (specFound string, err error) {
+// Leaving setup also records the base, the worktree, and the confirmation in after.
+func CheckFacts(ctx context.Context, repo *git.Repo, id, main string, before, after *Record, m Move) (specFound string, err error) {
 	branch := "feature/" + id
 	if m.Revision != "" {
 		if err := checkRevisionOnBranch(ctx, repo, branch, m.Revision); err != nil {
 			return "", err
 		}
 	}
+	if err := checkWorkspaceFlags(ctx, repo, id, after, m); err != nil {
+		return "", err
+	}
 	if before.Stage == StageSetup && after.Stage == StageSpecification {
 		if err := checkWorktree(ctx, repo, id, branch); err != nil {
 			return "", err
 		}
+		if err := recordWorkspace(ctx, repo, id, main, after); err != nil {
+			return "", err
+		}
 	}
 	if m.Spec != "" || (after.Stage == StageImplementation && before.Stage != StageImplementation) {
-		return findSpec(ctx, repo, branch, after)
+		if specFound, err = findSpec(ctx, repo, branch, after); err != nil {
+			return "", err
+		}
 	}
-	return "", nil
+	return specFound, checkGates(ctx, repo, id, before, after)
+}
+
+// checkGates enforces the managed gates: an approved plan to enter implementation from specification,
+// and a fully checkpointed clean candidate to leave implementation for review or integration.
+func checkGates(ctx context.Context, repo *git.Repo, id string, before, after *Record) error {
+	switch {
+	case before.Stage == StageSpecification && after.Stage == StageImplementation:
+		tip, err := branchTip(ctx, repo, "feature/"+id)
+		if err != nil {
+			return err
+		}
+		return checkApprovedPlan(ctx, repo, id, after.Spec, tip)
+	case before.Stage == StageImplementation && after.Stage.atOrAfter(StageSpecializedReview):
+		return checkCandidate(ctx, repo, id, after)
+	}
+	return nil
+}
+
+func checkWorkspaceFlags(ctx context.Context, repo *git.Repo, id string, after *Record, m Move) error {
+	if m.Base != "" {
+		if err := checkBranch(ctx, repo, "feature/"+id); err != nil {
+			return err
+		}
+		if err := checkBase(ctx, repo, "feature/"+id, m.Base); err != nil {
+			return err
+		}
+	}
+	if m.Worktree != "" {
+		return checkRecordedWorktree(ctx, repo, id, after.Worktree)
+	}
+	return nil
 }
 
 func checkRevisionOnBranch(ctx context.Context, repo *git.Repo, branch, revision string) error {

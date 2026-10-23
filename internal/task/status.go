@@ -17,6 +17,7 @@ type StatusFacts struct {
 	Branch   BranchFacts    `json:"branch"`
 	Worktree *WorktreeFacts `json:"worktree"`
 	Spec     SpecFacts      `json:"spec"`
+	Plan     *PlanFacts     `json:"plan"`
 	Merge    MergeFacts     `json:"merge"`
 	Forge    ForgeFacts     `json:"forge"`
 }
@@ -32,6 +33,7 @@ type BranchFacts struct {
 // WorktreeFacts describe the worktree that has the task branch checked out.
 type WorktreeFacts struct {
 	Path            string      `json:"path"`
+	Relative        string      `json:"relative"`
 	Head            string      `json:"head"`
 	AheadOfRevision *int        `json:"ahead_of_revision"`
 	Dirty           []DirtyPath `json:"dirty"`
@@ -88,9 +90,17 @@ func GitFacts(ctx context.Context, repo *git.Repo, id, main string, record *Reco
 		if facts.Worktree, err = worktreeFacts(ctx, &git.Repo{Dir: worktree, Trace: repo.Trace}, record.Revision); err != nil {
 			return StatusFacts{}, err
 		}
+		if facts.Worktree.Relative, err = relativeWorktree(ctx, repo, worktree); err != nil {
+			return StatusFacts{}, err
+		}
 	}
 	if facts.Spec, err = specFacts(ctx, repo, worktree, record); err != nil {
 		return StatusFacts{}, err
+	}
+	if facts.Branch.Tip != nil && record.Status != StatusDone {
+		if facts.Plan, err = InspectPlan(ctx, repo, id, record, *facts.Branch.Tip); err != nil {
+			return StatusFacts{}, err
+		}
 	}
 	if facts.Merge, err = mergeFacts(ctx, repo, id, main, record); err != nil {
 		return StatusFacts{}, err

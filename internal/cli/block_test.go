@@ -93,7 +93,7 @@ func TestTaskUnblockLeavesOtherBlockerOpen(t *testing.T) {
 }
 
 const blockedRecordJSON = `{"title": "Login", "status": "blocked", "stage": "implementation",
-	"owner": "orchestrator-1", "branch": "feature/W-001", "spec": "docs/work/W-001-login.md",
+	"owner": "orchestrator-1", "confirmed": true, "branch": "feature/W-001", "spec": "docs/work/W-001-login.md",
 	"blockers": [{"id": "B-1", "kind": "decision", "summary": "Session storage", "ref": "W-001/D-1"}],
 	"last_blocker": 1, "updated_at": "2026-10-21T12:00:00Z",
 	"next_action": {"actor": "user", "action": "Decide W-001/D-1: session storage"}}`
@@ -141,7 +141,7 @@ func TestTaskUnblockJSON(t *testing.T) {
 			"to": {"status": "blocked", "stage": "implementation"},
 			"changed": ["blockers"],
 			"record": {"title": "Login", "status": "blocked", "stage": "implementation",
-				"owner": "orchestrator-1", "branch": "feature/W-001", "spec": "docs/work/W-001-login.md",
+				"owner": "orchestrator-1", "confirmed": true, "branch": "feature/W-001", "spec": "docs/work/W-001-login.md",
 				"blockers": [{"id": "B-1", "kind": "decision", "summary": "Session storage", "ref": "W-001/D-1"}],
 				"last_blocker": 2, "updated_at": "2026-10-21T12:00:00Z",
 				"next_action": {"actor": "orchestrator-1", "action": "Continue"}},

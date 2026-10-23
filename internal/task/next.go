@@ -23,7 +23,10 @@ func AllowedNext(id string, record *Record, facts StatusFacts) []string {
 	case StatusPlanned:
 		return []string{"solomonar task register " + id + " --title <title> --owner <owner>"}
 	case StatusReserved, StatusRunning:
-		next := c.stageMoves(record)
+		if needsConfirmation(record) {
+			return []string{c.task("confirm"), c.block(), c.task("move", "--status paused", nextPlaceholder), c.task("move", cancelFlags)}
+		}
+		next := c.stageMoves(record, facts.Plan)
 		if record.Stage == StageIntegration {
 			next = append(next, c.done(nil))
 		}
@@ -39,6 +42,9 @@ func AllowedNext(id string, record *Record, facts StatusFacts) []string {
 		}
 		return append(next, c.block(), c.task("move", cancelFlags))
 	case StatusPaused:
+		if needsConfirmation(record) {
+			return []string{c.task("confirm"), c.task("move", prior), c.task("move", cancelFlags)}
+		}
 		return []string{c.task("move", prior), c.task("move", cancelFlags)}
 	case StatusCancelled:
 		return []string{c.task("move", prior, "--resume-cancelled")}
@@ -67,9 +73,11 @@ func (c commands) done(merge *string) string {
 }
 
 // stageMoves lists r's stage moves in stage order; implementation without a tier offers both.
-func (c commands) stageMoves(r *Record) []string {
+// A move a managed gate would reject on the reconciled plan is left out.
+func (c commands) stageMoves(r *Record, plan *PlanFacts) []string {
 	moves := slices.DeleteFunc(stageMoves(), func(m stageMove) bool {
-		return m.from != r.Stage || !m.allows(r.Tier) && (r.Tier != nil || m.from != StageImplementation)
+		return m.from != r.Stage || !m.allows(r.Tier) && (r.Tier != nil || m.from != StageImplementation) ||
+			gateClosed(m, plan)
 	})
 	slices.SortFunc(moves, func(a, b stageMove) int { return compareStages(a.to, b.to) })
 	next := make([]string, 0, len(moves))
@@ -81,6 +89,21 @@ func (c commands) stageMoves(r *Record) []string {
 		next = append(next, c.task("move", flags...))
 	}
 	return next
+}
+
+// gateClosed reports a forward move into or out of implementation that the plan does not allow yet.
+func gateClosed(m stageMove, plan *PlanFacts) bool {
+	if plan == nil || !m.to.atOrAfter(m.from) {
+		return false
+	}
+	switch m.from {
+	case StageSpecification:
+		return plan.Approval != PlanApproved
+	case StageImplementation:
+		return plan.Approval != PlanApproved || len(plan.Discrepancies) > 0 || len(plan.Remaining()) > 0
+	case StageSetup, StageSpecializedReview, StageAdversarialReview, StageIntegration, StageComplete:
+	}
+	return false
 }
 
 // stageFlags adds the flags a stage move needs and the record lacks, as placeholders (I section 8.2).

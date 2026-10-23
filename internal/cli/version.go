@@ -80,6 +80,8 @@ func projectVersions(ctx context.Context, env Env, flags sharedFlags, data *vers
 		line += " (newer than this CLI; install solomonar " + projectFramework + " or later)"
 	case schema > project.ManifestSchemaVersion || registrySchema > task.SchemaVersion:
 		line += " (newer than this CLI; install a newer solomonar release)"
+	case present && registrySchema > 0 && registrySchema < task.SchemaVersion:
+		line += " (older than this CLI; run solomonar task migrate)"
 	}
 	return line, nil
 }

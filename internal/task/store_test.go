@@ -129,11 +129,147 @@ func TestUpdateWritesOneCommitOnTopOfTip(t *testing.T) {
 	assert.Equal(t, commit.SHA, tip(t, store))
 	assert.Equal(t, before, gittest.Git(t, dir, "rev-parse", Ref+"^"))
 	assert.Equal(t, "state: plan W-001", gittest.Git(t, dir, "log", "-1", "--format=%s", Ref))
-	want := NewRegistry()
-	want.Tasks["W-001"] = plannedTask("Login")
-	encoded, err := want.Encode()
+	assert.Equal(t, "state.json\ntasks/W-001.json", gittest.Git(t, dir, "ls-tree", "-r", "--name-only", Ref))
+	assert.Equal(t, "{\n  \"schema_version\": 2\n}", gittest.Git(t, dir, "cat-file", "blob", Ref+":state.json"))
+	encoded, err := plannedTask("Login").Encode()
 	require.NoError(t, err)
-	assert.Equal(t, strings.TrimSpace(string(encoded)), gittest.Git(t, dir, "cat-file", "blob", Ref+":state.json"))
+	assert.Equal(t, strings.TrimSpace(string(encoded)), gittest.Git(t, dir, "cat-file", "blob", Ref+":tasks/W-001.json"))
+}
+
+func TestUpdateKeepsOtherTaskFiles(t *testing.T) {
+	t.Parallel()
+
+	store := createdStore(t)
+	for _, title := range []string{"Login", "Export", "Import"} {
+		_, err := store.Update(t.Context(), addTask(title))
+		require.NoError(t, err)
+	}
+	dir := store.Git.Dir
+	before := gittest.Git(t, dir, "rev-parse", Ref+":tasks/W-001.json", Ref+":tasks/W-003.json")
+
+	_, err := store.Update(t.Context(), func(reg *Registry) (string, error) {
+		reg.Tasks["W-002"].Title = "Export as CSV"
+		return "state: retitle W-002", nil
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, before, gittest.Git(t, dir, "rev-parse", Ref+":tasks/W-001.json", Ref+":tasks/W-003.json"))
+	assert.Equal(t, "tasks/W-002.json", gittest.Git(t, dir, "diff", "--name-only", Ref+"^", Ref))
+	reg, _, err := store.Read(t.Context())
+	require.NoError(t, err)
+	assert.Equal(t, []string{"W-001", "W-002", "W-003"}, reg.IDs())
+	assert.Equal(t, "Export as CSV", reg.Tasks["W-002"].Title)
+}
+
+func TestReadRejectsUnexpectedTreeEntry(t *testing.T) {
+	t.Parallel()
+
+	store := createdStore(t)
+	dir := store.Git.Dir
+	header := gittest.Git(t, dir, "rev-parse", Ref+":state.json")
+	tree := gittestInput(t, dir, "100644 blob "+header+"\tstate.json\n100644 blob "+header+"\tnotes.json\n", "mktree")
+	commit := gittest.Git(t, dir, "commit-tree", tree, "-p", Ref, "-m", "state: hand edit")
+	gittest.Git(t, dir, "update-ref", Ref, commit)
+
+	_, _, err := store.Read(t.Context())
+
+	rejection := rejectionOf(t, err)
+	assert.Equal(t, "registry_invalid", rejection.Code)
+	assert.Contains(t, rejection.Found, "unexpected file notes.json")
+}
+
+const legacyRegistry = `{"schema_version": 1, "tasks": {"W-001": ` + activeRecord + `, "W-002": ` + doneRecord + `}}`
+
+// legacyStore holds a schema-1 registry, a single state.json written by an older CLI.
+func legacyStore(t *testing.T) *Store {
+	t.Helper()
+	store := newStore(t)
+	dir := store.Git.Dir
+	blob := gittestInput(t, dir, legacyRegistry, "hash-object", "-w", "--stdin")
+	tree := gittestInput(t, dir, "100644 blob "+blob+"\tstate.json\n", "mktree")
+	gittest.Git(t, dir, "update-ref", Ref, gittest.Git(t, dir, "commit-tree", tree, "-m", "state: initialize registry"))
+	return store
+}
+
+func gittestInput(t *testing.T, dir, input string, args ...string) string {
+	t.Helper()
+	out, err := (&git.Repo{Dir: dir}).RunInput(t.Context(), strings.NewReader(input), args...)
+	require.NoError(t, err)
+	return out
+}
+
+func TestReadRejectsLegacySchema(t *testing.T) {
+	t.Parallel()
+
+	_, _, err := legacyStore(t).Read(t.Context())
+
+	rejection := rejectionOf(t, err)
+	assert.Equal(t, "registry_outdated", rejection.Code)
+	assert.Equal(t, "solomonar task migrate", rejection.Fix)
+}
+
+func TestMigrateRewritesLegacyRegistryOnTopOfHistory(t *testing.T) {
+	t.Parallel()
+
+	store := legacyStore(t)
+	before := tip(t, store)
+	legacy, err := DecodeLegacy([]byte(legacyRegistry))
+	require.NoError(t, err)
+
+	reg, commit, migrated, err := store.Migrate(t.Context())
+
+	require.NoError(t, err)
+	assert.True(t, migrated)
+	dir := store.Git.Dir
+	assert.Equal(t, commit.SHA, tip(t, store))
+	assert.Equal(t, before, gittest.Git(t, dir, "rev-parse", Ref+"^"))
+	assert.Equal(t, "state: migrate schema 1 -> 2", gittest.Git(t, dir, "log", "-1", "--format=%s", Ref))
+	assert.Equal(t, legacy.Tasks, reg.Tasks)
+	read, _, err := store.Read(t.Context())
+	require.NoError(t, err)
+	assert.Equal(t, reg, read)
+	assert.Empty(t, read.Tasks["W-001"].Base)
+	assert.False(t, read.Tasks["W-001"].Confirmed)
+}
+
+func TestMigrateCurrentSchemaWritesNothing(t *testing.T) {
+	t.Parallel()
+
+	store := createdStore(t)
+	before := tip(t, store)
+
+	reg, commit, migrated, err := store.Migrate(t.Context())
+
+	require.NoError(t, err)
+	assert.False(t, migrated)
+	assert.Equal(t, before, commit.SHA)
+	assert.Equal(t, NewRegistry(), reg)
+	assert.Equal(t, before, tip(t, store))
+}
+
+func TestMigrateRejectsNewerSchemaAndInvalidLegacy(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct{ name, data, code string }{
+		{name: "newer", data: `{"schema_version": 3}`, code: "cli_outdated"},
+		{name: "invalid legacy", data: `{"schema_version": 1, "tasks": {"W-1": {}}}`, code: "registry_invalid"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			store := newStore(t)
+			dir := store.Git.Dir
+			blob := gittestInput(t, dir, tt.data, "hash-object", "-w", "--stdin")
+			tree := gittestInput(t, dir, "100644 blob "+blob+"\tstate.json\n", "mktree")
+			gittest.Git(t, dir, "update-ref", Ref, gittest.Git(t, dir, "commit-tree", tree, "-m", "state"))
+			before := tip(t, store)
+
+			_, _, _, err := store.Migrate(t.Context())
+
+			assert.Equal(t, tt.code, rejectionOf(t, err).Code)
+			assert.Equal(t, before, tip(t, store))
+		})
+	}
 }
 
 func TestUpdateRejectionWritesNothing(t *testing.T) {

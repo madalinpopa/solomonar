@@ -30,7 +30,7 @@ solomonar version
 
 ```text
 solomonar 0.1.5
-project   framework 0.1.5 · registry schema 1
+project   framework 0.1.5 · registry schema 2
 ```
 
 Outside a project:

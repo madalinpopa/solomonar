@@ -21,7 +21,11 @@ Use the [availability table]({{ '/docs/cli/#current-commands' | url }}) before f
 
 `not_initialized` means `refs/heads/workflow-state` is missing. Task commands depend on that registry. Run `solomonar init` in the repository; see [Set up a project]({{ '/docs/set-up-a-project/' | url }}).
 
-Do not write `state.json` by hand or create a registry branch to bypass initialization.
+Do not write registry files by hand or create a registry branch to bypass initialization.
+
+## The registry is outdated
+
+`registry_outdated` means the registry was written by CLI 0.1.5 or earlier, with every task in one `state.json`. Upgrade every machine that writes the registry, then run [`solomonar task migrate`]({{ '/docs/cli/task/#solomonar-task-migrate' | url }}) once. The migration keeps the old registry as the parent commit. An older CLI reading the migrated registry reports `cli_outdated`: install the current release there instead of undoing the migration.
 
 ## init asks for a confirmation
 
@@ -94,6 +98,12 @@ Read the error's `check`, `found`, and `fix` lines before retrying. Typical caus
 - `spec_not_found`: the spec must exist in the task worktree or at the recorded revision.
 - `tier_required`: entering a review or integration stage needs the recorded risk tier.
 - `blockers_required`: a blocked task needs an open blocker; unblocking the last one must also resume the prior status.
+- `confirmation_required`: the task changed hands or was migrated. Inspect it with `task status`, then run `task confirm`.
+- `plan_not_approved` or `plan_invalid`: implementation needs the work spec's `Status: Approved` line and at least one `- S-<n>: <subject>` step, committed on the task branch.
+- `plan_incomplete`: a plan step has neither a checkpoint commit with its `Step:` trailer nor an `Outcome:` line.
+- `checkpoint_discrepancy`: a commit claims a step it does not match. `task status` lists each one under `plan`; correct the commit or amend the plan, never rewrite history to hide it.
+- `candidate_not_tip` or `candidate_dirty`: review starts from the clean tip of the task branch; commit or preserve the remaining changes first.
+- `worktree_mismatch`: the worktree moved. Record the new path with `task move <ID> --as <owner> --worktree <path>`.
 
 A rejected state update leaves the registry unchanged. A failed remote push after a successful local update is different: the local write remains successful and publication is reported as a warning. Inspect the current record before repeating a write.
 

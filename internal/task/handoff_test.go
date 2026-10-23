@@ -21,7 +21,7 @@ func TestHandoffTaskRetargetsOwnersNextAction(t *testing.T) {
 	assert.Equal(t, MoveResult{
 		From:    position,
 		To:      position,
-		Changed: []string{"owner", "next_action"},
+		Changed: []string{"owner", "confirmed", "next_action"},
 		Subject: "state(W-001): blocked/specification, handoff orchestrator-1 -> orchestrator-3",
 	}, result)
 	stored := registry.Tasks["W-001"]
@@ -41,7 +41,7 @@ func TestHandoffTaskKeepsNextActionOfAnotherActor(t *testing.T) {
 	result, err := registry.HandoffTask("W-001", "orchestrator-3", "", clock())
 	require.NoError(t, err)
 
-	assert.Equal(t, []string{"owner"}, result.Changed)
+	assert.Equal(t, []string{"owner", "confirmed"}, result.Changed)
 	assert.Equal(t, &NextAction{Actor: "user", Action: "Fix CI"}, registry.Tasks["W-001"].NextAction)
 }
 
@@ -53,7 +53,7 @@ func TestHandoffTaskSetsNextForNewOwner(t *testing.T) {
 	result, err := registry.HandoffTask("W-001", "orchestrator-3", "orchestrator-3:Resume at specification", clock())
 	require.NoError(t, err)
 
-	assert.Equal(t, []string{"owner", "next_action"}, result.Changed)
+	assert.Equal(t, []string{"owner", "confirmed", "next_action"}, result.Changed)
 	assert.Equal(t, &NextAction{Actor: "orchestrator-3", Action: "Resume at specification"},
 		registry.Tasks["W-001"].NextAction)
 }

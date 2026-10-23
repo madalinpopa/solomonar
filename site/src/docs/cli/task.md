@@ -1,7 +1,7 @@
 ---
 title: solomonar task
 navTitle: solomonar task
-description: Plan, register, inspect, move, block, hand off, and complete Solomonar tasks with the solomonar task commands, with real examples of each.
+description: Plan, register, inspect, move, block, hand off, confirm, migrate, and complete Solomonar tasks with the solomonar task commands, with real examples of each.
 kind: Reference
 group: Commands
 order: 14
@@ -13,12 +13,14 @@ sources:
   - internal/cli/block.go
   - internal/cli/handoff.go
   - internal/cli/done.go
+  - internal/cli/confirm.go
+  - internal/cli/migrate.go
   - docs/cli/interface.md
 ---
 
-The `task` commands read and write the task registry, `state.json` on the branch `refs/heads/workflow-state`. They are the only way the registry is written: each write is validated against the record and Git, and becomes one registry commit. They need a project prepared with [`init`]({{ '/docs/cli/init/' | url }}).
+The `task` commands read and write the task registry on the branch `refs/heads/workflow-state`: `state.json` with the schema version and one `tasks/<ID>.json` per task. They are the only way the registry is written: each write is validated against the record and Git, and becomes one registry commit. They need a project prepared with [`init`]({{ '/docs/cli/init/' | url }}).
 
-The examples on this page come from one run of the current build in the fictional `ledger` project. They follow task `W-001` from plan to `done`. Paths are shortened to `/work/ledger`; the SHAs and timestamps are those the run produced.
+The examples on this page come from runs of the current build in the fictional `ledger` project. They follow task `W-001` from plan to `done`, including a handoff to a new session. Paths are shortened to `/work/ledger`; the SHAs and timestamps are those the runs produced, so they match within each section.
 
 ## Conventions
 
@@ -131,7 +133,7 @@ Create the worktree:
 
 ## solomonar task show
 
-Read-only. Without an ID it prints every task sorted by ID, with its status, stage, owner, and next action, and the registry commit. With an ID it prints the stored record exactly as JSON.
+Read-only. Without an ID it prints every task sorted by ID, with its status, stage, owner, and next action, and the registry commit. With an ID it prints the stored record, the content of `tasks/<ID>.json`, exactly as JSON.
 
 {% cliUsage "To see at a glance what is running, blocked, or waiting on you, or to read one record as the agents see it.", "You, most often. Agents read it too when they resume." %}
 
@@ -166,7 +168,10 @@ solomonar task show W-001
   "status": "blocked",
   "stage": "implementation",
   "owner": "orchestrator-1",
+  "confirmed": true,
   "branch": "feature/W-001",
+  "base": "ac06d8df21b7c78152b780f19e0a0074c0ff8496",
+  "worktree": "../ledger-worktrees/W-001",
   "spec": "docs/work/W-001-add-shared-expense.md",
   "active_agents": [
     {
@@ -211,7 +216,7 @@ solomonar task status <ID> [--json] [--no-forge]
 
 ### Example
 
-After the pull request merged but before `task done`:
+A new session has taken the task with `task handoff` and has not confirmed it yet. Step `S-1` is committed, and the implementer left `S-2` uncommitted:
 
 ```sh
 solomonar task status W-001 --no-forge
@@ -220,33 +225,41 @@ solomonar task status W-001 --no-forge
 ```text
 W-001  Add a shared expense
 record
-  status    running / integration   owner orchestrator-2   tier 0
+  status    running / implementation   owner orchestrator-2 (unconfirmed)   tier none
+  base      ac06d8df21b7c78152b780f19e0a0074c0ff8496
+  worktree  ../ledger-worktrees/W-001
   spec      docs/work/W-001-add-shared-expense.md
-  revision  c2eb0409c46f23bf8c89c856b1ac46f175f3bdf0
-  agents    none
+  revision  none
+  agents    impl-1 implementer (last reported, not liveness)
   blockers  none
-  next      orchestrator-2: Merge after checks pass
-  pr        12
-  updated   2026-10-22T17:21:27Z (registry @ 627c4b8)
+  next      impl-1: Implement S-1 and S-2
+  pr        none
+  updated   2026-10-23T16:28:20Z (registry @ 2a80590)
 git
-  branch    feature/W-001 @ e0e85c9cfb6b901e8ed34bffa04c37a5f9f34aa2
+  branch    feature/W-001 @ b4c551b27d78956c448001987212fd088e3cf5f6
   worktree  /work/ledger-worktrees/W-001
-  HEAD      e0e85c9c · 1 commit ahead of revision
-  dirty     clean
-  spec      present in worktree and at revision
-  merged    yes, by e53d5697b950d3417a659fd9a6a23728d0c854be (merge commit on main)
-  spec_ref  derived e0e85c9cfb6b901e8ed34bffa04c37a5f9f34aa2:docs/work/W-001-add-shared-expense.md (last spec(W-001) commit merged)
+  HEAD      b4c551b2
+  dirty     1 path: expense/split.go (untracked)
+  spec      present in worktree only
+  merged    no
+plan
+  approval  approved at b4c551b2
+  steps     1 of 2 committed; remaining S-2
+  other     2 commits without a Step trailer
 forge (gh)
   pr      unknown (--no-forge)
   checks  unknown
 drift
-  head_ahead_of_revision  HEAD is 1 commit past the recorded revision
-  merged_not_done         feature/W-001 is merged into main but the record is not done
+  unconfirmed     W-001 is not confirmed by orchestrator-2; inspect, then task confirm
+  dirty_worktree  1 uncommitted path; preserve it (rules section 10)
 allowed next
-  solomonar task done W-001 --as orchestrator-2 --merge e53d5697b950d3417a659fd9a6a23728d0c854be --spec-ref <PR "Final specification" line> --summary <one sentence>
+  solomonar task confirm W-001 --as orchestrator-2
+  solomonar task block W-001 --as orchestrator-2 --kind <kind> --summary <text>
+  solomonar task move W-001 --as orchestrator-2 --status paused --next <actor>:<action>
+  solomonar task move W-001 --as orchestrator-2 --status cancelled --next <actor>:<action>
 ```
 
-Here the drift is expected: the final spec commit follows the reviewed revision, and the merge is waiting for `task done`.
+The `plan` section is the recovery point: `S-1` needs no repetition, `S-2` remains, and the untracked file is partial work to inspect before delegating it. The two other commits are the work spec's draft and approval. A commit that claims a step without matching it appears under `plan` with its code, such as `step_untagged` or `step_subject_mismatch`, and blocks review until resolved. After a merge, `drift` reports `merged_not_done` and `allowed next` lists only `task done`, with the merge commit filled in.
 
 ## solomonar task move
 
@@ -261,8 +274,11 @@ solomonar task move <ID> [--as <owner>]
   [--revision <full-sha>] [--spec <worktree-relative path>] [--tier <0|1|2>]
   [--agent <id>:<role>]... | [--agent none]
   [--pr <url|number>] [--next <actor>:<action>]
+  [--base <full-sha>] [--worktree <path relative to the main checkout>]
   [--json] [--dry-run]
 ```
+
+Leaving `setup` records the task's base commit, its worktree path relative to the main checkout, and the owner's confirmation. Every later stage change, and `task done`, needs a confirmed task (see [`task confirm`](#solomonar-task-confirm)); status-only moves do not.
 
 ### Flags
 
@@ -277,6 +293,10 @@ solomonar task move <ID> [--as <owner>]
 | `--agent` | An active delegated agent as `<id>:<role>`, such as `impl-1:implementer`; repeatable, replacing the list. `--agent none` clears it. The role is a core delegated role or an installed agent extension, never `orchestrator` or a draft. |
 | `--pr` | The pull request, as a positive number or an `https://` URL. Accepted in `integration`. |
 | `--next` | New next action. An agent added by `--agent` in the same command may be the actor. |
+| `--base` | Fills a missing base, such as after a migration. It must be on `feature/<ID>`; a recorded base never changes. |
+| `--worktree` | Records a relocation after `git worktree move`. It must be the path Git lists for `feature/<ID>`. |
+
+Two moves are gated by the work specification's plan. Entering `implementation` from `specification` needs `Status: Approved` and at least one plan step in the spec committed on `feature/<ID>`. Leaving `implementation` for a review stage or `integration` needs the candidate to be the clean tip of the branch, every plan step committed with its `Step:` trailer or closed by an outcome, and no commit claiming a step it does not match.
 
 ### Example
 
@@ -292,9 +312,27 @@ solomonar task move W-001 --as orchestrator-1 --stage implementation \
 
 ```text
 W-001  reserved/setup → running/specification
-  next  orchestrator-1: Write the work spec
-  state(W-001): running/specification, status running, stage specification, next orchestrator-1
-  registry @ f5feb47defc2ba481c5bfa5a5c5149ad592809c5 · pushed origin/workflow-state
+  confirmed  yes
+  base       ac06d8df21b7c78152b780f19e0a0074c0ff8496 (on feature/W-001)
+  worktree   ../ledger-worktrees/W-001 (listed by git worktree list)
+  next       orchestrator-1: Write the work spec
+  state(W-001): running/specification, status running, stage specification, confirmed, base ac06d8d, worktree ../ledger-worktrees/W-001, next orchestrator-1
+  registry @ 7059a0eca533755a40da5184dd241bc4d3702c47 · pushed origin/workflow-state
+```
+
+Before the plan is approved, implementation cannot start:
+
+```text
+error: task move W-001 rejected (plan_not_approved)
+  check: the work spec committed on feature/W-001 has an approved implementation plan
+  found: status is "In review" at 24455a8b
+  fix:   record the user's approval as Status: Approved below the title and commit the work spec
+nothing was written
+```
+
+After the approval is committed:
+
+```text
 W-001  running/specification → running/implementation
   spec    docs/work/W-001-add-shared-expense.md (found in /work/ledger-worktrees/W-001)
   agents  impl-1 implementer
@@ -434,30 +472,73 @@ solomonar task handoff W-001 --owner orchestrator-2
 ```
 
 ```text
-W-001  owner orchestrator-1 → orchestrator-2 (running/integration)
-  next  orchestrator-2: Open the pull request
-  state(W-001): running/integration, handoff orchestrator-1 -> orchestrator-2
-  registry @ c49649696f1b35ba10805498b2d9a7f5478246b5 · pushed origin/workflow-state
+W-001  owner orchestrator-1 → orchestrator-2 (running/implementation)
+  confirmed  no
+  state(W-001): running/implementation, handoff orchestrator-1 -> orchestrator-2
+  registry @ 2a80590bb8c4304cb9219be0f45e313dad80184f · pushed origin/workflow-state
   The previous owner must stop writing this record.
+  Inspect with solomonar task status W-001, then solomonar task confirm W-001 --as orchestrator-2.
 ```
 
-The new owner then records the pull request with `task move`:
+The handoff clears the confirmation. Until the new owner runs [`task confirm`](#solomonar-task-confirm), its stage changes and `task done` are rejected with `confirmation_required`.
+
+## solomonar task confirm
+
+Records that the owner inspected the task and continues it from its actual state. It checks the branch, the recorded worktree against Git's listing, the recorded base, and, from `implementation` until `integration`, the approved plan at the branch tip. An already confirmed task is unchanged.
+
+{% cliUsage "After a handoff or a migration, once the new session has read `task status` and preserved any partial work. Leaving `setup` confirms a task, so a task that never changed hands needs no confirmation.", "The orchestrator that owns the task. Confirmation proves neither plan approval, review success, nor that the earlier session stopped; make sure it did." %}
+
+```text
+solomonar task confirm <ID> [--as <owner>] [--json] [--dry-run]
+```
+
+### Example
 
 ```sh
-solomonar task move W-001 --as orchestrator-2 --pr 12 --next "orchestrator-2:Merge after checks pass"
+solomonar task confirm W-001 --as orchestrator-2
 ```
 
 ```text
-W-001  running/integration
-  next  orchestrator-2: Merge after checks pass
-  pr    12
-  state(W-001): running/integration, next orchestrator-2, pr 12
-  registry @ 627c4b80a785ec70ef8cbc13a5e66da296566846 · pushed origin/workflow-state
+W-001  running/implementation
+  confirmed  yes
+  state(W-001): running/implementation, confirmed by orchestrator-2
+  registry @ 24b1064cc13acb6c0251168ba4f7c578d697c3f0 · pushed origin/workflow-state
 ```
+
+A rejection names the missing evidence: `worktree_mismatch` when the worktree moved (record it with `task move --worktree`), `base_missing` after a migration (record it with `task move --base`), or `plan_not_approved` when the committed plan is no longer approved.
+
+## solomonar task migrate
+
+Rewrites a registry written by CLI 0.1.5 or earlier, one `state.json` with every task (schema 1), as one file per task (schema 2). The migration is one commit on top of the registry history. It infers nothing: active tasks stay unconfirmed and keep no base or worktree until their owners record them.
+
+{% cliUsage "Once per repository, when any command reports `registry_outdated`. Run it after upgrading every machine that writes the registry: CLI 0.1.5 rejects the migrated registry.", "You. It takes no `--as`." %}
+
+```text
+solomonar task migrate [--json]
+```
+
+### Example
+
+```sh
+solomonar task show
+solomonar task migrate
+```
+
+```text
+error: task show rejected (registry_outdated)
+  check: registry schema version
+  found: registry schema 1, this CLI uses 2
+  fix:   solomonar task migrate
+nothing was written
+Migrated registry to schema 2: 2 tasks, one tasks/<ID>.json each
+  registry @ 21edeae27613f9e3ab8600f34cce9cf0a89e35a9
+```
+
+When active tasks are past `setup`, the output lists them as `unconfirmed` with the next step: inspect each with `task status`, then `task confirm`. A registry already at schema 2 prints `Registry already at schema 2; nothing to migrate.` To undo a migration, point the ref back to its parent with `git update-ref refs/heads/workflow-state refs/heads/workflow-state^`; writes made after the migration are lost.
 
 ## solomonar task done
 
-Completes a `running` task at stage `integration` with no open blocker, after its pull request merged. It verifies the facts with Git only, then replaces the record with the compact `done` record.
+Completes a confirmed `running` task at stage `integration` with no open blocker, after its pull request merged. It verifies the facts with Git only, then replaces the record with the compact `done` record.
 
 {% cliUsage "Right after the pull request is merged with a merge commit. `task status` lists the exact command, with the merge commit filled in.", "The orchestrator that owns the task. You read the result with `task show`." %}
 
@@ -478,29 +559,30 @@ solomonar task done <ID> --merge <full-sha> --spec-ref <full-sha>:<path> --summa
 
 ```sh
 solomonar task done W-001 --as orchestrator-2 \
-  --merge e53d5697b950d3417a659fd9a6a23728d0c854be \
-  --spec-ref e0e85c9cfb6b901e8ed34bffa04c37a5f9f34aa2:docs/work/W-001-add-shared-expense.md \
-  --summary "Add and list shared expenses with SQLite storage"
+  --merge 3b6f524bb592fed2488cae041a0321320218b3b6 \
+  --spec-ref 630056c7a51878ee3b978a58d4ade9d71d6e230d:docs/work/W-001-add-shared-expense.md \
+  --summary "Add shared expenses split equally"
 ```
 
 ```text
 Verified
-  merge     e53d5697 is a merge commit reachable from main
-  revision  c2eb0409 is contained in the merge
-  spec_ref  resolves; e0e85c9c is the last spec(W-001) commit merged
+  merge     3b6f524b is a merge commit reachable from main
+  revision  d0751e9b is contained in the merge
+  spec_ref  resolves; 630056c7 is the last spec(W-001) commit merged
 W-001  running/integration → done/complete
-  state(W-001): done/complete, merged e53d569
-  registry @ db65aad2ac8ba02c6fc70c18baa99a94ada6684b · pushed origin/workflow-state
+  state(W-001): done/complete, merged 3b6f524
+  registry @ 8457273c982a762cfcf7cf12c6b663354ca6c914 · pushed origin/workflow-state
 Compact record
   {
     "title": "Add a shared expense",
     "status": "done",
     "stage": "complete",
+    "base": "ac06d8df21b7c78152b780f19e0a0074c0ff8496",
     "pr": "12",
-    "summary": "Add and list shared expenses with SQLite storage",
-    "spec_ref": "e0e85c9cfb6b901e8ed34bffa04c37a5f9f34aa2:docs/work/W-001-add-shared-expense.md",
-    "merge_commit": "e53d5697b950d3417a659fd9a6a23728d0c854be",
-    "updated_at": "2026-10-22T17:21:33Z"
+    "summary": "Add shared expenses split equally",
+    "spec_ref": "630056c7a51878ee3b978a58d4ade9d71d6e230d:docs/work/W-001-add-shared-expense.md",
+    "merge_commit": "3b6f524bb592fed2488cae041a0321320218b3b6",
+    "updated_at": "2026-10-23T16:29:29Z"
   }
 Next: delete the worktree only after confirming it holds no uncommitted or unmerged work:
   git worktree remove ../ledger-worktrees/W-001
@@ -510,7 +592,7 @@ The registry overview now shows the summary in place of a next action:
 
 ```text
 ID     STATUS     STAGE     OWNER  NEXT
-W-001  done       complete  -      Add and list shared expenses with SQLite storage
+W-001  done       complete  -      Add shared expenses split equally
 W-002  planned    -         -      -
-registry refs/heads/workflow-state @ db65aad · 2026-10-22T17:21:33Z
+registry refs/heads/workflow-state @ 8457273 · 2026-10-23T16:29:29Z
 ```

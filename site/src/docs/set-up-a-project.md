@@ -39,7 +39,7 @@ Plan
   ...
   create     .codex/agents/spec-reviewer.toml
   create     .solomonar/manifest.json
-  registry   create refs/heads/workflow-state with an empty state.json
+  registry   create refs/heads/workflow-state with an empty registry
 Would initialize solomonar 0.1.5 in /work/ledger
   39 files created
 ```
@@ -114,7 +114,7 @@ Start your selected runtime at the repository root. For Copilot CLI, run `copilo
 | `.agents/`, `.codex/` | Codex adapters: skill stubs and agent definitions. |
 | `.github/skills/<skill>/SKILL.md`, `.github/agents/<role>.agent.md` | Copilot CLI skill and delegated-role adapters, when selected; no extra root instruction file or guard hook. |
 | `.solomonar/manifest.json` | Your choices and the hashes of the files `init` manages. |
-| `refs/heads/workflow-state` | The task registry: a Git branch with one `state.json`, never checked out. |
+| `refs/heads/workflow-state` | The task registry: a Git branch with `state.json` and one `tasks/<ID>.json` per task, never checked out. |
 
 The adapter files are short stubs that point to `docs/solomonar/`. The real instructions live in one place, whatever runtime you use. The [configuration reference]({{ '/docs/configuration/' | url }}) lists every file and who owns it.
 

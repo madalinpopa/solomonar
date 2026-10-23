@@ -43,7 +43,11 @@ func TestVersionReportsTheProject(t *testing.T) {
 	}{
 		{
 			name: "manifest and registry", manifest: current, registry: `{"schema_version": 1, "tasks": {}}`,
-			want: "framework " + shipped + " · registry schema 1",
+			want: "framework " + shipped + " · registry schema 1 (older than this CLI; run solomonar task migrate)",
+		},
+		{
+			name: "current registry", manifest: current, registry: `{"schema_version": 2}`,
+			want: "framework " + shipped + " · registry schema 2",
 		},
 		{
 			name: "registry missing", manifest: current,
@@ -58,8 +62,8 @@ func TestVersionReportsTheProject(t *testing.T) {
 			want: "framework " + shipped + " · registry schema 1 (newer than this CLI; install a newer solomonar release)",
 		},
 		{
-			name: "newer registry schema", manifest: current, registry: `{"schema_version": 2, "added": true}`,
-			want: "framework " + shipped + " · registry schema 2 (newer than this CLI; install a newer solomonar release)",
+			name: "newer registry schema", manifest: current, registry: `{"schema_version": 3, "added": true}`,
+			want: "framework " + shipped + " · registry schema 3 (newer than this CLI; install a newer solomonar release)",
 		},
 		{
 			name: "unreadable manifest versions", manifest: `{"schema_version": "one"}`, registry: `{"schema_version": 1}`,

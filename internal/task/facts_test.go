@@ -21,6 +21,10 @@ type factsRepo struct {
 	onMain   string
 }
 
+const approvedSpec = "# W-001: Login\nStatus: Approved\nType: feature\n\n## Implementation plan\n\n" +
+	"- S-1: feat(auth): add the session store\n  Store sessions server-side.\n" +
+	"- S-2: feat(auth): add the login form\n"
+
 func newFactsRepo(t *testing.T) factsRepo {
 	t.Helper()
 	dir := gittest.NewRepo(t)
@@ -29,7 +33,7 @@ func newFactsRepo(t *testing.T) factsRepo {
 	gittest.Commit(t, dir, "main only")
 	spec := filepath.Join(worktree, filepath.FromSlash(specPath))
 	require.NoError(t, os.MkdirAll(filepath.Dir(spec), 0o755))
-	require.NoError(t, os.WriteFile(spec, []byte("# Login\n"), 0o644))
+	require.NoError(t, os.WriteFile(spec, []byte(approvedSpec), 0o644))
 	gittest.Git(t, worktree, "add", ".")
 	gittest.Git(t, worktree, "commit", "-m", "spec")
 	return factsRepo{
@@ -65,7 +69,7 @@ func moved(t *testing.T, before *Record, m Move) *Record {
 
 func checkFacts(t *testing.T, repo *git.Repo, before *Record, m Move) (string, error) {
 	t.Helper()
-	return CheckFacts(t.Context(), repo, "W-001", before, moved(t, before, m), m)
+	return CheckFacts(t.Context(), repo, "W-001", "main", before, moved(t, before, m), m)
 }
 
 func requireRejection(t *testing.T, err error, code string) Rejection {
@@ -262,7 +266,6 @@ func TestCheckFactsWithoutFactFieldsRunsNoGit(t *testing.T) {
 		move   Move
 	}{
 		{name: "next action", before: moving(StatusRunning, StageImplementation, nil), move: Move{Next: "user:Review"}},
-		{name: "stage past implementation", before: withRevision(moving(StatusRunning, StageImplementation, new(2))), move: Move{Stage: "specialized_review"}},
 	}
 	for _, tt := range moves {
 		t.Run(tt.name, func(t *testing.T) {

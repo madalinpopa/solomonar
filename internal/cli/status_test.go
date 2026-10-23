@@ -21,12 +21,25 @@ func reviewRepo(t *testing.T) (dir, worktree, revision string) {
 	dir, worktree, revision = moveRepo(t)
 	gittest.Commit(t, worktree, "fix: session expiry")
 	require.NoError(t, os.WriteFile(filepath.Join(worktree, filepath.FromSlash(moveSpec)), []byte("# W-001 draft\n"), 0o644))
+	base, relative := setupFields(t, dir, worktree)
 	putTask(t, dir, task.Record{
 		Status: task.StatusRunning, Stage: task.StageSpecializedReview, Spec: moveSpec, Revision: revision, Tier: new(2),
+		Base: base, Worktree: relative,
 		ActiveAgents: []task.Agent{{ID: "sec-1", Role: "security-reviewer"}, {ID: "cor-1", Role: "correctness-reviewer"}},
 		NextAction:   &task.NextAction{Actor: "orchestrator-1", Action: "Collect specialist reports"},
 	})
 	return dir, worktree, revision
+}
+
+// editTask changes the stored W-001 record in place.
+func editTask(t *testing.T, dir string, edit func(*task.Record)) {
+	t.Helper()
+	store := &task.Store{Git: &git.Repo{Dir: dir}}
+	_, err := store.Update(t.Context(), func(reg *task.Registry) (string, error) {
+		edit(reg.Tasks["W-001"])
+		return "state: fixture edit", nil
+	})
+	require.NoError(t, err)
 }
 
 // putRecord stores record as W-001 unchanged.
@@ -47,6 +60,7 @@ func updatedLine(t *testing.T, dir, updatedAt string) string {
 
 func TestTaskStatusUC16(t *testing.T) {
 	dir, worktree, revision := reviewRepo(t)
+	base, relative := setupFields(t, dir, worktree)
 	head := gittest.Git(t, worktree, "rev-parse", "HEAD")
 	gittest.FakeGH(t, "", noPR+"\n", 1)
 
@@ -55,7 +69,9 @@ func TestTaskStatusUC16(t *testing.T) {
 	require.Equal(t, 0, got.exit, got.stderr)
 	assert.Equal(t, "W-001  Login\n"+
 		"record\n"+
-		"  status    running / specialized_review   owner orchestrator-1   tier 2\n"+
+		"  status    running / specialized_review   owner orchestrator-1 (confirmed)   tier 2\n"+
+		"  base      "+base+"\n"+
+		"  worktree  "+relative+"\n"+
 		"  spec      "+moveSpec+"\n"+
 		"  revision  "+revision+"\n"+
 		"  agents    sec-1 security-reviewer, cor-1 correctness-reviewer (last reported, not liveness)\n"+
@@ -70,6 +86,10 @@ func TestTaskStatusUC16(t *testing.T) {
 		"  dirty     1 path: "+moveSpec+" (modified)\n"+
 		"  spec      present in worktree and at revision\n"+
 		"  merged    no\n"+
+		"plan\n"+
+		"  approval  approved at "+head[:8]+"\n"+
+		"  steps     0 of 1 committed; remaining S-1\n"+
+		"  other     2 commits without a Step trailer\n"+
 		"forge (gh)\n"+
 		"  pr      none for feature/W-001\n"+
 		"  checks  unknown (no PR)\n"+
@@ -87,6 +107,7 @@ func TestTaskStatusUC16(t *testing.T) {
 
 func TestTaskStatusJSON(t *testing.T) {
 	dir, worktree, revision := reviewRepo(t)
+	base, relative := setupFields(t, dir, worktree)
 	head := gittest.Git(t, worktree, "rev-parse", "HEAD")
 	gittest.FakeGH(t, "", noPR+"\n", 1)
 
@@ -98,17 +119,19 @@ func TestTaskStatusJSON(t *testing.T) {
 		"command": "task status",
 		"data": {
 			"id": "W-001",
-			"record": {"title": "Login", "status": "running", "stage": "specialized_review", "owner": "orchestrator-1",
-				"branch": "feature/W-001", "spec": "`+moveSpec+`", "revision": "`+revision+`", "tier": 2,
+			"record": {"title": "Login", "status": "running", "stage": "specialized_review", "owner": "orchestrator-1", "confirmed": true,
+				"branch": "feature/W-001", "base": "`+base+`", "worktree": "`+relative+`", "spec": "`+moveSpec+`", "revision": "`+revision+`", "tier": 2,
 				"active_agents": [{"id": "sec-1", "role": "security-reviewer"}, {"id": "cor-1", "role": "correctness-reviewer"}],
 				"next_action": {"actor": "orchestrator-1", "action": "Collect specialist reports"},
 				"updated_at": "2026-10-20T15:00:00Z"},
 			"registry_commit": "`+registryTip(t, dir)+`",
 			"facts": {
 				"branch": {"name": "feature/W-001", "exists": true, "tip": "`+head+`", "contains_revision": true},
-				"worktree": {"path": "`+worktree+`", "head": "`+head+`", "ahead_of_revision": 1,
+				"worktree": {"path": "`+worktree+`", "relative": "`+relative+`", "head": "`+head+`", "ahead_of_revision": 1,
 					"dirty": [{"path": "`+moveSpec+`", "state": "modified"}]},
 				"spec": {"in_worktree": true, "at_revision": true},
+				"plan": {"approval": "approved", "at": "`+head+`", "other_commits": 2, "discrepancies": [],
+					"steps": [{"id": "S-1", "subject": "feat(auth): add login", "state": "remaining", "commit": null}]},
 				"merge": {"merged": false, "merge_commit": null, "derived_spec_ref": null},
 				"forge": {"available": true, "pr": null, "checks": "unknown"}
 			},
@@ -132,6 +155,9 @@ func TestTaskStatusUC17MergedNotDone(t *testing.T) {
 	f := doneRepo(t)
 	worktree := filepath.Join(gittest.Resolved(t, t.TempDir()), "W-001")
 	gittest.Git(t, f.dir, "worktree", "add", worktree, "feature/W-001")
+	_, relative := setupFields(t, f.dir, worktree)
+	base := gittest.Git(t, f.dir, "rev-parse", "feature/W-001~2")
+	editTask(t, f.dir, func(r *task.Record) { r.Base, r.Worktree = base, relative })
 	gittest.FakeGH(t, `{"number": 42, "url": "https://github.com/acme/ledger/pull/42", "state": "MERGED",
 		"mergeCommit": {"oid": "`+f.merge+`"}, "statusCheckRollup": []}`, "", 0)
 
@@ -140,7 +166,9 @@ func TestTaskStatusUC17MergedNotDone(t *testing.T) {
 	require.Equal(t, 0, got.exit, got.stderr)
 	assert.Equal(t, "W-001  Login\n"+
 		"record\n"+
-		"  status    running / integration   owner orchestrator-1   tier 1\n"+
+		"  status    running / integration   owner orchestrator-1 (confirmed)   tier 1\n"+
+		"  base      "+base+"\n"+
+		"  worktree  "+relative+"\n"+
 		"  spec      "+moveSpec+"\n"+
 		"  revision  "+f.revision+"\n"+
 		"  agents    none\n"+
@@ -156,6 +184,8 @@ func TestTaskStatusUC17MergedNotDone(t *testing.T) {
 		"  spec      present in worktree and at revision\n"+
 		"  merged    yes, by "+f.merge+" (merge commit on main)\n"+
 		"  spec_ref  derived "+f.spec+":"+moveSpec+" (last spec(W-001) commit merged)\n"+
+		"plan\n"+
+		"  approval  missing at "+f.revision[:8]+"\n"+
 		"forge (gh)\n"+
 		"  pr      #42 merged\n"+
 		"  checks  none\n"+
@@ -214,6 +244,8 @@ func TestTaskStatusPlannedRecord(t *testing.T) {
 	assert.Equal(t, "W-001  Export\n"+
 		"record\n"+
 		"  status    planned / -   owner -   tier none\n"+
+		"  base      none\n"+
+		"  worktree  none\n"+
 		"  spec      none\n"+
 		"  revision  none\n"+
 		"  agents    none\n"+
@@ -272,9 +304,10 @@ func TestTaskStatusBlockedOwnedByOther(t *testing.T) {
 	got := runCLIWithEnv(t, repoAssets(t), getenv, "-C", dir, "task", "status", "W-001", "--no-forge")
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Contains(t, got.stdout, "  status    blocked / implementation   owner orchestrator-1   tier none\n")
+	assert.Contains(t, got.stdout, "  status    blocked / implementation   owner orchestrator-1 (confirmed)   tier none\n")
 	assert.Contains(t, got.stdout, "  blockers  B-1 decision: Session storage (W-001/D-1); B-2 check: CI is red\n")
 	assert.Contains(t, got.stdout, "drift\n"+
+		"  base_missing    W-001 has no recorded base\n"+
 		"  spec_missing    "+moveSpec+" is not in the worktree or at the revision\n"+
 		"  owned_by_other  SOLOMONAR_OWNER is orchestrator-2; W-001 is owned by orchestrator-1\n"+
 		"allowed next\n")

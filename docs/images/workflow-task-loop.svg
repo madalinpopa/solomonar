@@ -70,7 +70,7 @@ svg { font-family: var(--sans); }
       <rect class="box" x="40" y="220" width="200" height="80" rx="4"/>
       <text class="t" x="140" y="250" text-anchor="middle">Implementer</text>
       <text class="s" x="140" y="270" text-anchor="middle">worktree feature/W-001</text>
-      <text class="s" x="140" y="286" text-anchor="middle">approach before code</text>
+      <text class="s" x="140" y="286" text-anchor="middle">one commit per plan step</text>
 
       <text class="ph" x="690" y="120">SPECIALISTS, IN PARALLEL</text>
       <rect class="frame" x="690" y="130" width="230" height="170" rx="6"/>
@@ -90,7 +90,7 @@ svg { font-family: var(--sans); }
       <text class="s" x="805" y="415" text-anchor="middle">tier 2 · other model</text>
 
       <rect class="box" x="40" y="400" width="200" height="60" rx="4"/>
-      <text class="t" x="140" y="426" text-anchor="middle">state.json</text>
+      <text class="t" x="140" y="426" text-anchor="middle">tasks/W-001.json</text>
       <text class="s" x="140" y="445" text-anchor="middle">refs/heads/workflow-state</text>
 
       <!-- user approval loop -->

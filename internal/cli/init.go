@@ -510,6 +510,9 @@ func existingRegistry(ctx context.Context, store *task.Store) (string, error) {
 	switch {
 	case ok && rejection.Code == "not_initialized":
 		return "", nil
+	case ok && rejection.Code == "registry_outdated":
+		// A schema-1 registry is kept as it is; task migrate rewrites it (CLI-D26).
+		return store.Tip(ctx)
 	case ok && rejection.Code == "registry_invalid":
 		return "", &task.Rejection{
 			Code:  "registry_exists_invalid",
@@ -663,7 +666,7 @@ func (r initRun) dryRun() output {
 func (r initRun) planText() string {
 	registry := "unchanged " + task.Ref
 	if r.tip == "" {
-		registry = "create " + task.Ref + " with an empty state.json"
+		registry = "create " + task.Ref + " with an empty registry"
 	}
 	text := "Plan\n"
 	if r.gitInit {

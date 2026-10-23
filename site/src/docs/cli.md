@@ -31,6 +31,8 @@ These commands are present in the current implementation. Use `solomonar help` f
 | [`task block`]({{ '/docs/cli/task/#solomonar-task-block' | url }}) | Add a blocker, optionally updating status and next action atomically. | Owning orchestrator | Yes |
 | [`task unblock`]({{ '/docs/cli/task/#solomonar-task-unblock' | url }}) | Clear an open blocker, optionally resuming the prior status. | Owning orchestrator | Yes |
 | [`task handoff`]({{ '/docs/cli/task/#solomonar-task-handoff' | url }}) | Transfer ownership on explicit user instruction. | New orchestrator, on your instruction | Yes |
+| [`task confirm`]({{ '/docs/cli/task/#solomonar-task-confirm' | url }}) | Confirm a task's continuation after a handoff or migration, once its state is inspected. | Owning orchestrator | Yes |
+| [`task migrate`]({{ '/docs/cli/task/#solomonar-task-migrate' | url }}) | Rewrite a schema-1 registry as one file per task, once. | You | Yes |
 | [`task done`]({{ '/docs/cli/task/#solomonar-task-done' | url }}) | Verify the merge and final spec reference, then write the compact record. | Owning orchestrator | Yes |
 | [`version`]({{ '/docs/cli/version/' | url }}) | Print the CLI and project framework versions. | You | No |
 | [`help`]({{ '/docs/cli/help/' | url }}) | Print help; `-h` and `--help` are equivalent. | You and agents | No |

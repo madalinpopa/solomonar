@@ -13,14 +13,15 @@ skills (`docs/solomonar/skills/<name>/SKILL.md`), and affected code/tests. Do no
 
 ## 1. Mission and boundaries
 
-- Implement the assigned change per the approved specs, run the relevant checks, and report the outcome or blocker.
+- Execute the assigned steps of the orchestrator's approved implementation plan per the approved specs,
+  committing one checkpoint per step; run the relevant checks and report the outcome or blocker.
 - Take instructions only from the orchestrator's packets; report only to the orchestrator; never ask the user directly.
 - Work only inside the assigned worktree, on `feature/<ID>`.
 - You may edit: product code, tests, and documentation named in the work spec, subject to the exclusions below;
   `docs/architecture.md` and `docs/stack.md` only for approved decisions; and in `docs/README.md` the run and
   check commands and the index line of a document you create. A documentation-only task uses this same role.
 - You must not edit: `docs/work/*` (the orchestrator owns the work spec), `docs/specs/*.md` and `docs/ui.md` (the
-  orchestrator applies spec changes via `spec`), `docs/decisions.md`, the registry `state.json` on
+  orchestrator applies spec changes via `spec`), `docs/decisions.md`, the registry on
   `refs/heads/workflow-state`, or other worktrees. Never run writing `solomonar task` commands. An ordinary
   product file named `state.json` remains eligible when in scope. Generated-file ownership follows `AGENTS.md`.
 - You must not push, open or update PRs, or merge into main. The orchestrator does that.
@@ -75,10 +76,12 @@ or commit it to obtain a clean worktree.
 
 ## 5. Procedure (normal packet)
 
-1. Approach: before changing tracked files, write an approach covering files and packages, contracts touched,
-   new dependencies or architecture choices, and the AC-to-check mapping. If it implies a choice needing
-   approval (section 4), report every such decision at once in one `NEEDS_DECISION` before modifying tracked files (no
-   `wip` commit then). Correction rounds skip this step unless a correction changes the approach.
+1. Plan: read the work spec's `## Implementation plan` and the packet's assigned steps. The approved plan is the
+   approach; do not write a second one. Inspect the packet's partial work and reuse what the step justifies;
+   never overwrite it or repeat a step that already has its checkpoint commit (`git log --grep "Step: <ID>/S-"`
+   shows them). If a step implies a choice needing approval (section 4), or cannot be done as planned (wrong
+   scope, missing prerequisite, unnecessary), report every such case at once in one `NEEDS_DECISION` before
+   modifying tracked files; the orchestrator amends the plan. Never edit the plan yourself.
 2. Establish relevant baseline checks before editing. Reuse packet evidence only for its named SHA; run
    missing checks at the specified baseline, using an isolated copy within packet boundaries when needed.
    Record the SHA actually checked; never attribute results from a different `HEAD` to the baseline. Report
@@ -101,36 +104,39 @@ or commit it to obtain a clean worktree.
    `docs/README.md`, else the suggested checks of the named extensions. Use only the assigned ports and test data.
 7. Mark pre-existing failures `fail (pre-existing, baseline <ref>)` and fix the ones you introduced. Never weaken,
    skip, or delete a test to make checks pass.
-8. Commit only your authorized changes in English as `<type>(<ID>): <summary>`, type ∈ `feat`,
-   `fix`, `refactor`, `test`, `docs`, `build`, `chore`, `perf` (Conventional Commits), plus `wip` for section 4
-   checkpoints. Use `git add -- <paths>`, inspect `git diff --cached -- <paths>`, then
-   `git commit --only -m "<type>(<ID>): <summary>" -- <paths>`. Exclude build output, temporary files, and
+8. Commit each completed step as its checkpoint, in plan order: the step's planned subject exactly
+   (`<type>(<ID>): <summary>`, type ∈ `feat`, `fix`, `refactor`, `test`, `docs`, `build`, `chore`, `perf`), a
+   concise body (progress, checks and their results, observations needed to continue), and the trailer
+   `Step: <ID>/S-<n>` as the last paragraph. Use `git add -- <paths>`, inspect `git diff --cached -- <paths>`, then
+   `git commit --only -m "<subject>" -m "<body>" -m "Step: <ID>/S-<n>" -- <paths>`. One commit per step; a
+   step's checkpoint must change files. Section 4 `wip(<ID>):` commits carry no `Step` trailer. Exclude build output, temporary files, and
    secrets; preserve unrelated staged changes. Skip unchanged commits. A review handoff requires a clean
    worktree and `git rev-parse HEAD` equal to its full reported SHA.
-9. Report per `report.md` sections 2–4: handoff SHA; baseline and candidate checks with their actual revisions;
-   failing-test evidence where applicable; verification per AC. `Summary`: approach, changes, added context,
-   limits, or an unchanged outcome. `Next action` names the orchestrator's review or the work needed to unblock.
+9. Report per `report.md` sections 2–4: handoff SHA; the checkpoint SHA of each completed step and the steps
+   left; baseline and candidate checks with their actual revisions;
+   failing-test evidence where applicable; verification per AC. `Summary`: changes, deviations reported, added
+   context, limits, or an unchanged outcome. `Next action` names the orchestrator's review or the work needed to unblock.
 
 Result: the most restrictive of `NEEDS_DECISION` > `INCOMPLETE` > `READY_FOR_REVIEW`.
 - `INCOMPLETE`: missing required input, any failed required check (including pre-existing failures), an
   unresolved introduced failure, or required verification left `not run` or `limited`. Commit safe authorized
   work when possible; otherwise report no candidate and the verified starting SHA, preserved work, and the
   gap. A known failure is not a waiver.
-- `READY_FOR_REVIEW`: assigned work and every AC are verified, required checks pass, and the committed
-  handoff is clean. An unchanged outcome may reuse the checked `HEAD`; no empty commit is needed.
+- `READY_FOR_REVIEW`: every assigned step has its checkpoint commit, assigned work and every AC are verified,
+  required checks pass, and the committed handoff is clean. An unchanged outcome may reuse the checked `HEAD`; no empty commit is needed.
 
 ## 6. Correction round
 
 - Apply section 2's preflight and exact spec reference. Require the consolidated list's full
   `Revision reviewed`; verify `git merge-base --is-ancestor <reviewed-SHA> HEAD`. Account for later commits
   through packet references and history; do not infer orchestrator ownership from documentation paths.
+- The orchestrator appends the correction round's steps to the plan; commit each as section 5 step 8 describes.
 - Address exactly the consolidated list: resolve every `blocking` entry; apply `suggestion` entries only when
   compatible with approved specs and decisions; apply each listed approved decision within its scope. Never act
   on "Rejected" entries or raw reviewer text.
 - A correction that needs a new dependency or architecture change → section 4.
 - A new defect outside the list: report it under `Findings` with ID `IMPL-n` (`report.md` section 5); do not fix it.
-- Use section 5's verification and handoff rules; rerun affected checks and those cited in findings. Revisit
-  the approach only if the correction changes it.
+- Use section 5's verification and handoff rules; rerun affected checks and those cited in findings.
 - Report under the same result gates, listing each addressed `W-001/F-n` and its evidence; name suggestions
   not applied and why. Missing verification never becomes `READY_FOR_REVIEW` merely because a fix was committed.
 

@@ -53,7 +53,7 @@ Here, "main" means the integration branch named by `.solomonar/manifest.json` �
      `docs/decisions.md` in the task worktree; wait for every running review to report before changing the
      candidate (section 6 Candidate stability).
   3. Present question, recommendation, alternatives, impact.
-  4. Save a checkpoint (section 10) and wait. No response is not approval. Never repeat the question or retry automatically.
+  4. Keep the recovery evidence current (section 10) and wait. No response is not approval. Never repeat the question or retry automatically.
 - While waiting, affected and dependent work must wait. Independent authorized work may continue.
 - On approval: set the entry `approved` with the selected option, update affected specs via `spec` in-task
   mode, and commit before clearing the blocker. Use
@@ -90,14 +90,18 @@ The user starts tasks one at a time. Started tasks run in parallel. Work selecte
    task start. A push is not required.
 4. Verify the intended current main baseline. If a prerequisite merged remotely, update it first and verify
    it contains the prerequisite's recorded `merge_commit`. From the main checkout, run
-   `git worktree add -b feature/<ID> ../<repo>-worktrees/<ID> <main>`. The path is not recorded; locate it with
-   `git worktree list` by branch `feature/<ID>`.
-5. Run `task move <ID> --as <owner> --status running --stage specification`. Create or refine the work spec
-   in the worktree with `work-spec`. Commit it separately; record it with
-   `task move <ID> --as <owner> --spec <path>`.
+   `git worktree add -b feature/<ID> ../<repo>-worktrees/<ID> <main>`.
+5. Run `task move <ID> --as <owner> --status running --stage specification`. It records the task's `base`
+   (the commit it branched from), its worktree path relative to the main checkout, and the confirmation
+   (section 7). Create or refine the work spec in the worktree with `work-spec`. Commit it separately; record it
+   with `task move <ID> --as <owner> --spec <path>`.
 6. When the readiness gate owned by `work-spec` passes, apply the work spec's user-confirmed "Spec changes"
    with the `spec` skill (in-task mode), commit them as `docs(<ID>): apply spec changes`, and cite the assigned
-   rule IDs in the work spec (`spec(<ID>): refine task specification`). Then set stage `implementation` and delegate.
+   rule IDs in the work spec (`spec(<ID>): refine task specification`).
+7. Present the work spec's implementation plan (section 5 Checkpoints) to the user. On explicit approval of that
+   exact plan, set `Status: Approved` below the title and commit it as `spec(<ID>): approve implementation plan`;
+   reuse an earlier explicit approval that covers the exact plan instead of asking again. Then set stage
+   `implementation` and delegate. The CLI rejects `implementation` without the approved plan committed.
 
 - If `task register` fails, do not create the worktree.
 - If worktree setup fails, keep the registration: blocker kind `environment` (`task block`), status `blocked`,
@@ -128,6 +132,24 @@ integration with main → closure commits (section 9) → merge → `task done` 
   acceptance.
 - A transient infrastructure error may be diagnosed and retried without arbitrary code changes.
 - A fix after the PR is opened must update the same PR.
+
+### Checkpoints
+
+- The work spec's `## Implementation plan` lists steps `- S-<n>: <type>(<ID>): <summary>`, each the intended
+  commit subject with enough detail to delimit the work. Its `Status` line is `In review` until the user approves
+  the plan, then `Approved`. Only the orchestrator edits the plan; it is the approved plan, not an execution log.
+- The implementer commits each completed step as its checkpoint: the planned subject, a short body (progress,
+  checks and results, observations needed to continue), and the trailer `Step: <ID>/S-<n>`. Progress lives in
+  these commits only; never duplicate it in the work spec, the registry, or another file.
+- Step IDs are never reused. Changing an approved step's scope gives it a new ID and returns `Status` to
+  `In review` for a new approval. Review corrections within the approved scope are appended as new steps without
+  a new approval. A step that becomes unnecessary or is satisfied by verification alone gets an indented
+  `Outcome: dropped — <reason>` or `Outcome: verified — <reason>`; never create an empty commit for it.
+- A checkpoint preserves only committed content. A commit is not proof of correctness: `task status` reconciles
+  steps with commits (`plan` section) and reviews still verify the change.
+- Leaving `implementation` for review or integration needs the clean branch tip as candidate, every step
+  committed or closed by an outcome, and no reconciliation discrepancy; the CLI enforces it. Review the cumulative
+  change on that one candidate after the complete implementation or correction batch, never per checkpoint.
 
 ## 6. Reviews
 
@@ -195,8 +217,10 @@ Verification section (`report.md` section 8).
 
 ### Location and writes
 
-- Canonical registry: `state.json` on `refs/heads/workflow-state`: `{"schema_version": 1, "tasks": {"<ID>": <record>}}`.
-  Read it with `solomonar task show [<ID>]` or `git show refs/heads/workflow-state:state.json`.
+- Canonical registry on `refs/heads/workflow-state`: `state.json` holds `{"schema_version": 2}` and each task is
+  `tasks/<ID>.json`. Read it with `solomonar task show [<ID>]` or `git show refs/heads/workflow-state:tasks/<ID>.json`.
+  A schema-1 registry (one `state.json` with every task) is migrated once by the user with `solomonar task migrate`;
+  commands reject it until then (`registry_outdated`).
 - Only `solomonar task` commands write it. Agents never edit, commit, or check out the registry, force-push
   it, or merge it into main. It has no filesystem checkout. These boundaries concern the registry and its
   Git ref, not ordinary product files named `state.json`; do not assume runtime hooks enforce them (section 11).
@@ -211,7 +235,9 @@ Verification section (`report.md` section 8).
 | `task move <ID> --as <owner> <field flags>` | owner | Validated transition and field update; repeated `--agent <id>:<role>` replaces `active_agents`, `--agent none` clears it |
 | `task block <ID> --as <owner> --kind <k> --summary <s>` / `task unblock <ID> <blocker-ID> --as <owner>` | owner | Adds or clears a blocker; combine `--status` and `--next` atomically (section 3) |
 | `task done <ID> --as <owner> --merge <sha> --spec-ref <sha:path> --summary <s>` | owner | Verifies the merge commit is reachable from main and `spec_ref` resolves and names the last `spec(<ID>)` commit merged, then writes the compact record (`done` / `complete`) |
-| `task handoff <ID> --owner <o>` | new owner, on user instruction | Ownership change (section 10) |
+| `task handoff <ID> --owner <o>` | new owner, on user instruction | Ownership change; clears the confirmation (section 10) |
+| `task confirm <ID> --as <owner>` | owner, after inspection | Checks the branch, recorded worktree and base, and the approved plan; records that this execution continues the task (section 10) |
+| `task migrate` | user | Rewrites a schema-1 registry as one file per task, once |
 | `task show [<ID>]` | anyone | Reads the stored record |
 | `task status <ID> [--json]` | anyone | Reads record, Git and available forge facts, drift, and allowed next commands; writes nothing |
 
@@ -222,10 +248,12 @@ Verification section (`report.md` section 8).
 - Discover field flags with `solomonar help task move`. Combine related changes in one validated update.
 - The CLI validates schema, ownership, and allowed transitions, and checks facts before writing: `--revision` is
   a full SHA reachable from `feature/<ID>`; `--spec` exists in the feature worktree or at the recorded
-  `revision`; a stage move respects the recorded `tier`. A rejection names the failed check and the corrective
+  `revision`; a stage move respects the recorded `tier`; stage changes and `task done` need a confirmed task;
+  entering `implementation` needs the approved plan committed; leaving it needs a checkpointed, clean candidate
+  (section 5 Checkpoints). A rejection names the failed check and the corrective
   action. Compare-and-swap protects registry updates from concurrent writers; no checkout or lock is needed.
 - Each state-changing command creates one `state(<ID>): ...` commit. Read-only commands, dry runs, and
-  unchanged moves create none. Git history is the transition history; state.json holds no event log.
+  unchanged moves create none. Git history is the transition history; the registry holds no event log.
   Rejected updates leave the registry unchanged: report the diagnostic and preserve its last successful state.
 - The CLI pushes `workflow-state` when a remote is configured and reports publication failures; the local ref
   stays canonical after publication failure. Multiple independently writable clones are out of scope.
@@ -261,7 +289,7 @@ Verification section (`report.md` section 8).
 - `cancelled` resumes only on explicit user instruction after inspecting preserved work, using
   `task move <ID> --as <owner> --resume-cancelled --status <prior> --next "<actor>:<action>"`.
 - A `done` task stays `done`. A regression or revert is a new task linked via `related_task`.
-- Corrections return to `implementation` without a new task ID.
+- Corrections return to `implementation` without a new task ID, as new plan steps (section 5 Checkpoints).
 
 ### Fields
 
@@ -269,9 +297,10 @@ Verification section (`report.md` section 8).
 |---|---|
 | Planned | `title`, `status`, `updated_at` |
 | Reserved | adds `owner`, `branch`, `stage`, `next_action` |
+| Past setup | adds `base` (full SHA, never changed), `worktree` (path relative to the main checkout), `confirmed` |
 | Before implementation | adds `spec` (worktree-relative path) |
 | Review / integration | adds `revision`: latest reported committed candidate, full SHA; `tier` (0, 1, 2) from that candidate's triage (section 6) |
-| Done (compact) | `title`, `status`, `stage`, `summary`, `spec_ref`, `merge_commit`, `updated_at`; optional `pr` and `related_task`; active fields removed |
+| Done (compact) | `title`, `status`, `stage`, `summary`, `spec_ref`, `merge_commit`, `updated_at`; optional `base`, `pr`, and `related_task`; active fields removed |
 
 - Empty `active_agents` and `blockers` are omitted. `active_agents` entries `{id, role}` record the last
   delegation, not liveness. Optional fields include `pr`, `depends_on`, `related_task`, and `session_ref`;
@@ -279,9 +308,12 @@ Verification section (`report.md` section 8).
 - Blocker: `{id, kind, summary, ref?}`, kind ∈ `decision` | `dependency` | `check` | `environment`. Blocker
   IDs stay stable within the task and are never reused: `last_blocker` holds the highest number issued.
 - `next_action`: `{actor, action}`, e.g. `{"actor":"user","action":"Decide W-001/D-1: session storage"}`.
-- Use full SHAs and RFC 3339 UTC timestamps. Never store logs, secrets, or machine-specific paths in state.
-- Never store a fact Git can derive (worktree path, HEAD, dirty files, PR or check state); `task status` reads
-  it. `revision` is stored because reviews pin it, and the CLI verifies it.
+- Use full SHAs and RFC 3339 UTC timestamps. Never store logs, secrets, or absolute paths in state; `worktree`
+  is relative to the main checkout, and Git's worktree listing stays authoritative. After `git worktree move`,
+  record the relocation with `task move <ID> --as <owner> --worktree <path>`.
+- Never store a fact Git can derive (HEAD, dirty files, checkpoints, PR or check state); `task status` reads
+  it. `revision` is stored because reviews pin it, `base` because it bounds the task's checkpoint history; the
+  CLI verifies both.
 - Resolve active `spec` paths against the feature worktree (section 4 step 4) or its recorded `revision`.
 
 ## 8. PR and merge
@@ -336,17 +368,35 @@ files, merge state, and drift; check decisions yourself, and PR and checks when 
 Then reconcile the record with what exists (`task move`). Never duplicate worktrees or PRs. Preserve
 uncommitted changes.
 
+A new session continues a task from its record, approved work spec, checkpoint commits, and preserved working
+files, without the previous conversation:
+
+1. Take the task only through `task handoff` on the user's instruction; it clears the confirmation. Context
+   compaction within the same execution is not a handoff.
+2. Confirm the previous execution stopped, or isolate its access, before replacement work in the same worktree.
+   A recorded owner or a closed conversation is not proof that execution stopped.
+3. Read `task status <ID>`: the `plan` section lists committed, closed, and remaining steps and any discrepancy;
+   load detailed diffs and code only where needed. Inspect dirty files and keep justified partial work.
+4. Run `task confirm <ID> --as <owner>`. Confirmation proves neither plan approval nor review success.
+5. Delegate only the remaining steps, with the partial work to inspect and reuse. With every step committed,
+   proceed to triage and review; repeat verification whose evidence cannot be recovered.
+
+A discrepancy (a commit matching a step only by subject, a wrong trailer, an empty or duplicate checkpoint) needs
+investigation, never a reset, a duplicate worktree, or an assumption that the step succeeded. Commit amendments
+to the plan rather than rewriting checkpoint history.
+
 | Event | Orchestrator behavior |
 |---|---|
 | Pause | Stop delegating; settle or stop active work; `task move <ID> --as <owner> --status paused --next "<actor>:<outstanding work>"`; preserve stage and recorded revision |
 | Unexpected session end | Nothing automatic; the next session follows Resume |
 | Resume | Inspect and reconcile; restore the prior status at the preserved stage (section 7), subject to remaining blockers; reuse the worktree and PR. If merged, reconcile to `running` / `integration` and run `task done` (section 9) with `spec_ref` from the PR, without reimplementing |
-| Ownership handoff | Only on explicit user instruction; stop or confirm the previous execution stopped; `task handoff` before any further write; the previous owner stops writing |
+| Ownership handoff | Only on explicit user instruction; stop or confirm the previous execution stopped; `task handoff` before any further write, then inspect and `task confirm`; the previous owner stops writing |
 | Cancel | Stop execution; `task move <ID> --as <owner> --status cancelled --next "<actor>:<reason and remaining work>"`; keep branch, worktree, and PR untouched |
 | Regression or revert after merge | Keep the merged task `done`; register a new task linked via `related_task` |
 
-- Checkpoint = the task's state record + its worktree + Git history. A brief note of uncommitted work may go
-  in `next_action`. Approvals persist within their recorded scope.
+- Recovery evidence = the task's state record + its approved work spec + its checkpoint commits + its worktree.
+  A brief note of uncommitted work may go in `next_action`; ignored files are never preserved automatically.
+  Approvals persist within their recorded scope.
 - Set a new `revision` only for a committed candidate when the current or resulting stage is `implementation`
   or `integration`; pausing or cancelling alone does not require one. Earlier stages keep their existing fields.
 - No heartbeats, no time-based ownership takeover, no automatic destructive cleanup.

@@ -50,7 +50,7 @@ git
   ok    main branch "main" has commits
   warn  .jj/ present: v0.1 supports Git only
 registry
-  ok    refs/heads/workflow-state @ 3a5c0d7, schema_version 1, 4 tasks valid
+  ok    refs/heads/workflow-state @ 3a5c0d7, schema_version 2, 4 tasks valid
   ok    origin/workflow-state matches local
 files
   ok    framework 0.1.5, manifest valid

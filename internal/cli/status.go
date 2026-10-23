@@ -87,6 +87,9 @@ func (s *statusFlags) statusText(d statusData, mainBranch string) string {
 	fmt.Fprintf(&b, "%s  %s\n", d.ID, d.Record.Title)
 	writeSection(&b, "record", recordDetails(d.Record, d.RegistryCommit))
 	writeSection(&b, "git", gitDetails(d.ID, d.Record, d.Facts, mainBranch))
+	if d.Record.Status != task.StatusDone && d.Record.Status != task.StatusPlanned {
+		writeSection(&b, "plan", planDetails(d.Facts.Plan))
+	}
 	writeSection(&b, "forge (gh)", s.forgeDetails(d.Facts))
 	drift := make([]detail, len(d.Drift))
 	for i, entry := range d.Drift {
@@ -131,8 +134,13 @@ func recordDetails(r *task.Record, tip string) []detail {
 	if r.NextAction != nil {
 		next = r.NextAction.Actor + ": " + r.NextAction.Action
 	}
+	if r.Owner != "" && r.Stage != task.StageSetup {
+		status.value = strings.Replace(status.value, "owner "+r.Owner, "owner "+r.Owner+confirmation(r), 1)
+	}
 	return []detail{
 		status,
+		{"base", cmp.Or(r.Base, "none")},
+		{"worktree", cmp.Or(r.Worktree, "none")},
 		{"spec", cmp.Or(r.Spec, "none")},
 		{"revision", cmp.Or(r.Revision, "none")},
 		{"agents", agents},
@@ -140,6 +148,13 @@ func recordDetails(r *task.Record, tip string) []detail {
 		{"next", next},
 		pr, updated,
 	}
+}
+
+func confirmation(r *task.Record) string {
+	if r.Confirmed {
+		return " (confirmed)"
+	}
+	return " (unconfirmed)"
 }
 
 func blockersText(blockers []task.Blocker) string {
@@ -183,6 +198,45 @@ func gitDetails(id string, r *task.Record, f task.StatusFacts, mainBranch string
 	// A done record's spec_ref is recorded, not derived; the record section shows it.
 	if ref := f.Merge.DerivedSpecRef; ref != nil && r.Status != task.StatusDone {
 		details = append(details, detail{"spec_ref", "derived " + *ref + " (last spec(" + id + ") commit merged)"})
+	}
+	return details
+}
+
+// planDetails summarizes the plan reconciliation; each discrepancy follows on its own line.
+func planDetails(p *task.PlanFacts) []detail {
+	if p == nil {
+		return []detail{{"approval", "unknown (no spec, base, or branch recorded)"}}
+	}
+	approval := strings.ReplaceAll(p.Approval, "_", " ") + " at " + p.At[:8]
+	if p.Problem != "" {
+		approval += ": " + p.Problem
+	}
+	details := []detail{{"approval", approval}}
+	if len(p.Steps) == 0 {
+		return details
+	}
+	var committed int
+	var closed []string
+	for _, step := range p.Steps {
+		switch step.State {
+		case task.StepCommitted:
+			committed++
+		case task.OutcomeDropped, task.OutcomeVerified:
+			closed = append(closed, step.ID+" "+step.State)
+		}
+	}
+	steps := fmt.Sprintf("%d of %d committed", committed, len(p.Steps))
+	if remaining := p.Remaining(); len(remaining) > 0 {
+		steps += "; remaining " + strings.Join(remaining, ", ")
+	}
+	details = append(details, detail{"steps", steps})
+	if len(closed) > 0 {
+		details = append(details, detail{"closed", strings.Join(closed, ", ")})
+	}
+	details = append(details, detail{"other", fmt.Sprintf("%d %s without a Step trailer", p.OtherCommits,
+		plural(p.OtherCommits, "commit", "commits"))})
+	for _, d := range p.Discrepancies {
+		details = append(details, detail{d.Code, d.Message})
 	}
 	return details
 }

@@ -23,6 +23,9 @@ func (r *Registry) DoneTask(ctx context.Context, repo *git.Repo, id, as, main st
 	if err := checkDoneState(id, before); err != nil {
 		return MoveResult{}, err
 	}
+	if !before.Confirmed {
+		return MoveResult{}, confirmationRequired(id, before)
+	}
 	summary, err := parseDone(d)
 	if err != nil {
 		return MoveResult{}, err
@@ -37,6 +40,7 @@ func (r *Registry) DoneTask(ctx context.Context, repo *git.Repo, id, as, main st
 		Title:       before.Title,
 		Status:      StatusDone,
 		Stage:       StageComplete,
+		Base:        before.Base,
 		Summary:     summary,
 		SpecRef:     d.SpecRef,
 		MergeCommit: d.Merge,

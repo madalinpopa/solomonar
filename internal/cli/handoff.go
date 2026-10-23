@@ -56,7 +56,8 @@ func (h *handoffFlags) run(ctx context.Context, env Env, flags sharedFlags, args
 		return result, nil, err
 	})
 	if err == nil && !h.dryRun {
-		out.text += "  The previous owner must stop writing this record.\n"
+		out.text += "  The previous owner must stop writing this record.\n" +
+			"  Inspect with solomonar task status " + id + ", then solomonar task confirm " + id + " --as " + h.owner + ".\n"
 	}
 	return out, rejectedAs("task handoff "+id, err)
 }

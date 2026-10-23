@@ -8,12 +8,12 @@ stdout '^project   not initialized$'
 exec git init -q -b main project
 exec solomonar -C project init --runtime none --ext none --yes
 exec solomonar -C project version
-stdout '^project   framework \d+\.\d+\.\d+ · registry schema 1$'
+stdout '^project   framework \d+\.\d+\.\d+ · registry schema 2$'
 
 cd project
 exec solomonar --json version
 stdout '"project_framework": "\d+\.\d+\.\d+"'
-stdout '"registry_schema": 1'
+stdout '"registry_schema": 2'
 ! stderr .
 
 # -v traces each Git command on stderr, keeping stdout for the result.

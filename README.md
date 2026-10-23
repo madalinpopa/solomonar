@@ -40,6 +40,7 @@ The name comes from Romanian folklore: a solomonar is a wizard who learns every 
 - **Independent, risk-based review.** Security, correctness, and spec reviewers check the same committed revision in parallel. Risky changes also face an adversarial reviewer.
 - **Parallel tasks in isolated worktrees.** Tasks start one at a time, run in parallel, and merge into `main` one at a time.
 - **A task record that cannot drift silently.** State lives on a dedicated Git branch, is written only through checked CLI commands, and is compared with the real branch, worktree, and pull request on demand.
+- **Resume from Git, not from a conversation.** You approve each task's implementation plan; every step becomes its own checkpoint commit. A new session continues the remaining steps from the plan and its commits.
 - **Small current docs, full history.** Each finished task keeps a compact record; its final work spec stays in Git history.
 - **Runtime-agnostic.** Claude Code, Codex, and GitHub Copilot CLI adapters point to one portable source of instructions. Copilot installation and discovery are verified; live workflow acceptance is pending.
 

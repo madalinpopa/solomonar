@@ -5,12 +5,23 @@ import (
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"fmt"
+	"maps"
+	"slices"
+	"strings"
 )
 
 // SchemaVersion is the registry schema this CLI reads and writes.
-const SchemaVersion = 1
+const SchemaVersion = 2
 
-// Registry is the decoded state.json (rules section 7).
+// legacySchema is the single-file state.json layout that task migrate reads (CLI-D26).
+const legacySchema = 1
+
+const (
+	headerFile = "state.json"
+	tasksDir   = "tasks/"
+)
+
+// Registry is the decoded registry: state.json and one tasks/<ID>.json per task (CLI-D20).
 type Registry struct {
 	SchemaVersion int                `json:"schema_version"`
 	Tasks         map[string]*Record `json:"tasks"`
@@ -22,7 +33,10 @@ type Record struct {
 	Status       Status      `json:"status,omitempty"`
 	Stage        Stage       `json:"stage,omitempty"`
 	Owner        string      `json:"owner,omitempty"`
+	Confirmed    bool        `json:"confirmed,omitzero"`
 	Branch       string      `json:"branch,omitempty"`
+	Base         string      `json:"base,omitempty"`
+	Worktree     string      `json:"worktree,omitempty"`
 	Spec         string      `json:"spec,omitempty"`
 	Revision     string      `json:"revision,omitempty"`
 	Tier         *int        `json:"tier,omitzero"`
@@ -101,10 +115,14 @@ func NewRegistry() *Registry {
 	return &Registry{SchemaVersion: SchemaVersion, Tasks: map[string]*Record{}}
 }
 
-// Decode reads state.json, checking the schema version before decoding strictly (CLI-D19, AD-7).
-func Decode(data []byte) (*Registry, error) {
-	if err := checkSchemaVersion(data); err != nil {
+// DecodeLegacy reads a schema-1 state.json, checking its version before decoding strictly (AD-7).
+func DecodeLegacy(data []byte) (*Registry, error) {
+	version, err := SchemaOf(data)
+	if err != nil {
 		return nil, err
+	}
+	if version != legacySchema {
+		return nil, invalidRegistry("schema_version %d is not the single-file schema %d", version, legacySchema)
 	}
 	var registry Registry
 	if err := json.Unmarshal(data, &registry, json.RejectUnknownMembers(true)); err != nil {
@@ -119,7 +137,76 @@ func Decode(data []byte) (*Registry, error) {
 	return &registry, nil
 }
 
-// Encode writes the registry in its canonical form: struct order, sorted task IDs, two-space indent.
+// DecodeFiles reads the registry from its files keyed by tree path, strictly (CLI-D20).
+func DecodeFiles(files map[string][]byte) (*Registry, error) {
+	header, ok := files[headerFile]
+	if !ok {
+		return nil, invalidRegistry("state.json is missing")
+	}
+	if err := checkSchemaVersion(header); err != nil {
+		return nil, err
+	}
+	registry := &Registry{}
+	if err := json.Unmarshal(header, registry, json.RejectUnknownMembers(true)); err != nil {
+		return nil, invalidRegistry("decode state.json: %v", err)
+	}
+	if registry.Tasks != nil {
+		return nil, invalidRegistry("state.json holds tasks; records live in tasks/<ID>.json")
+	}
+	registry.Tasks = map[string]*Record{}
+	for _, path := range slices.Sorted(maps.Keys(files)) {
+		if path == headerFile {
+			continue
+		}
+		id, ok := recordID(path)
+		if !ok {
+			return nil, invalidRegistry("unexpected file %s; only state.json and tasks/<ID>.json belong", path)
+		}
+		var record Record
+		if err := json.Unmarshal(files[path], &record, json.RejectUnknownMembers(true)); err != nil {
+			return nil, invalidRegistry("decode %s: %v", path, err)
+		}
+		registry.Tasks[id] = &record
+	}
+	if err := registry.validate(); err != nil {
+		return nil, err
+	}
+	return registry, nil
+}
+
+// Files encodes the registry as its tree files keyed by path, each in canonical form.
+func (r *Registry) Files() (map[string][]byte, error) {
+	header, err := json.Marshal(struct {
+		SchemaVersion int `json:"schema_version"`
+	}{r.SchemaVersion}, jsontext.WithIndent("  "))
+	if err != nil {
+		return nil, fmt.Errorf("encode state.json: %w", err)
+	}
+	files := map[string][]byte{headerFile: append(header, '\n')}
+	for id, record := range r.Tasks {
+		data, err := record.Encode()
+		if err != nil {
+			return nil, err
+		}
+		files[recordPath(id)] = data
+	}
+	return files, nil
+}
+
+func recordPath(id string) string {
+	return tasksDir + id + ".json"
+}
+
+func recordID(path string) (string, bool) {
+	name, ok := strings.CutPrefix(path, tasksDir)
+	if !ok {
+		return "", false
+	}
+	id, ok := strings.CutSuffix(name, ".json")
+	return id, ok && validTaskID(id)
+}
+
+// Encode writes the registry as one JSON document: the task show --json view.
 func (r *Registry) Encode() ([]byte, error) {
 	data, err := json.Marshal(r, json.Deterministic(true), jsontext.WithIndent("  "))
 	if err != nil {
@@ -128,7 +215,7 @@ func (r *Registry) Encode() ([]byte, error) {
 	return append(data, '\n'), nil
 }
 
-// Encode writes the record as it appears in state.json, at the top level.
+// Encode writes the record as it appears in its tasks/<ID>.json file.
 func (r *Record) Encode() ([]byte, error) {
 	data, err := json.Marshal(r, json.Deterministic(true), jsontext.WithIndent("  "))
 	if err != nil {
@@ -142,12 +229,20 @@ func checkSchemaVersion(data []byte) error {
 	if err != nil {
 		return err
 	}
-	if version > SchemaVersion {
+	switch {
+	case version > SchemaVersion:
 		return &Rejection{
 			Code:  "cli_outdated",
 			Check: "registry schema version",
 			Found: fmt.Sprintf("registry schema %d, this CLI supports %d", version, SchemaVersion),
 			Fix:   "install a newer solomonar release",
+		}
+	case version < SchemaVersion:
+		return &Rejection{
+			Code:  "registry_outdated",
+			Check: "registry schema version",
+			Found: fmt.Sprintf("registry schema %d, this CLI uses %d", version, SchemaVersion),
+			Fix:   "solomonar task migrate",
 		}
 	}
 	return nil

@@ -11,7 +11,8 @@ import (
 	"github.com/madalinpopa/solomonar/internal/task"
 )
 
-const handoffClosing = "  The previous owner must stop writing this record.\n"
+const handoffClosing = "  The previous owner must stop writing this record.\n" +
+	"  Inspect with solomonar task status W-001, then solomonar task confirm W-001 --as orchestrator-3.\n"
 
 func TestTaskHandoffRetargetsNextAction(t *testing.T) {
 	t.Parallel()
@@ -23,7 +24,8 @@ func TestTaskHandoffRetargetsNextAction(t *testing.T) {
 
 	require.Equal(t, 0, got.exit, got.stderr)
 	assert.Equal(t, "W-001  owner orchestrator-1 → orchestrator-3 (blocked/implementation)\n"+
-		"  next  orchestrator-3: Continue\n"+
+		"  confirmed  no\n"+
+		"  next       orchestrator-3: Continue\n"+
 		"  state(W-001): blocked/implementation, handoff orchestrator-1 -> orchestrator-3\n"+
 		pushedLine(t, dir)+handoffClosing, got.stdout)
 	assert.Empty(t, got.stderr)
@@ -43,6 +45,7 @@ func TestTaskHandoffKeepsNextActionOfUser(t *testing.T) {
 
 	require.Equal(t, 0, got.exit, got.stderr)
 	assert.Equal(t, "W-001  owner orchestrator-1 → orchestrator-3 (blocked/implementation)\n"+
+		"  confirmed  no\n"+
 		"  state(W-001): blocked/implementation, handoff orchestrator-1 -> orchestrator-3\n"+
 		pushedLine(t, dir)+handoffClosing, got.stdout)
 }
@@ -63,7 +66,7 @@ func TestTaskHandoffIgnoresOwnerEnvironment(t *testing.T) {
 		"--next", "orchestrator-3:Resume at implementation")
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Contains(t, got.stdout, "  next  orchestrator-3: Resume at implementation\n")
+	assert.Contains(t, got.stdout, "  next       orchestrator-3: Resume at implementation\n")
 }
 
 const handoffRecordJSON = `{"title": "Login", "status": "running", "stage": "implementation",
@@ -86,7 +89,7 @@ func TestTaskHandoffJSON(t *testing.T) {
 			"id": "W-001",
 			"from": {"status": "running", "stage": "implementation"},
 			"to": {"status": "running", "stage": "implementation"},
-			"changed": ["owner", "next_action"],
+			"changed": ["owner", "confirmed", "next_action"],
 			"record": `+handoffRecordJSON+`,
 			"commit": "`+registryTip(t, dir)+`",
 			"pushed": true
@@ -108,7 +111,8 @@ func TestTaskHandoffDryRunWritesNothing(t *testing.T) {
 
 	require.Equal(t, 0, human.exit, human.stderr)
 	assert.Equal(t, "Would hand off W-001  owner orchestrator-1 → orchestrator-3 (running/implementation)\n"+
-		"  next  user: Review\n"+
+		"  confirmed  no\n"+
+		"  next       user: Review\n"+
 		"  state(W-001): running/implementation, handoff orchestrator-1 -> orchestrator-3\n", human.stdout)
 	require.Equal(t, 0, asJSON.exit, asJSON.stderr)
 	assert.JSONEq(t, `{
@@ -118,7 +122,7 @@ func TestTaskHandoffDryRunWritesNothing(t *testing.T) {
 			"id": "W-001",
 			"from": {"status": "running", "stage": "implementation"},
 			"to": {"status": "running", "stage": "implementation"},
-			"changed": ["owner", "next_action"],
+			"changed": ["owner", "confirmed", "next_action"],
 			"record": `+handoffRecordJSON+`,
 			"dry_run": true
 		},

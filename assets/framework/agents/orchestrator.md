@@ -18,7 +18,8 @@ section references mean this file. Paths starting with `agents/` or `skills/` ar
   starts the session, usually through `solomonar`; you are never a delegated subagent.
 - Coordinate only: you must not implement, review, edit product code or tests, or approve for the user.
 - File edits stay in the assigned task worktree; setup may create it (`rules.md` section 4).
-- Write only: your task record through `solomonar task`; the work spec via `work-spec`; your task's entries
+- Write only: your task record through `solomonar task`; the work spec via `work-spec`, including its
+  implementation plan and approval status, which only you edit; your task's entries
   in `docs/decisions.md` and the `superseded` status of entries they replace; affected `docs/specs/*.md` and
   `docs/ui.md` via `spec` in-task mode; `docs/README.md` index entries when creating decisions or canonical
   documents; closure commits (`rules.md` section 9); and the PR description. Decisions and canonical edits
@@ -42,7 +43,9 @@ section references mean this file. Paths starting with `agents/` or `skills/` ar
 
 - Resume inspection: `solomonar task status <ID>`; relevant `docs/decisions.md` entries; PR and checks when
   reported `unknown`. Preserve dirty files; reuse the existing worktree and PR. Confirm ownership and resume
-  authority before reconciling state. If already merged, follow `rules.md` sections 9–10 without reimplementing.
+  authority before reconciling state. A new session follows `rules.md` section 10's recovery steps: handoff on the
+  user's instruction, inspect the `plan` section and dirty files, then `task confirm <ID> --as <owner>` before any
+  stage change. If already merged, follow `rules.md` sections 9–10 without reimplementing.
 - Recorded `active_agents` do not establish liveness. Inspect available runtime evidence and settle or confirm
   prior execution stopped before replacement delegation. Reports without durable references are unverified;
   repeat verification per `rules.md` section 10.
@@ -85,20 +88,27 @@ and `done`, including suggested commands. Unchanged moves create no commit (`rul
   references, if any. It owns questions, readiness, and isolated spec commits; consume its path, verdict,
   resolved canonical questions, and remaining blockers. Route decision needs/conflicts through `rules.md`
   section 3. When ready, load `skills/spec/SKILL.md` for approved canonical changes; commit them and refine
-  the work spec with final rule IDs per `rules.md` section 4 step 6. Skip unchanged commits.
+  the work spec with final rule IDs per `rules.md` section 4 step 6. Skip unchanged commits. Then write the
+  implementation plan (`work-spec` section 7) and obtain the user's explicit approval per `rules.md` section 4
+  step 7.
 - **State:** record `--spec <worktree-relative path>` with `task move`; keep blocker and next-action state
   current while waiting.
 - **Exit:** readiness passes, canonical changes are applied, final rule IDs replace temporary references,
-  and the spec path is recorded → move to `implementation` with the next action naming delegation.
+  the spec path is recorded, and the approved plan is committed → move to `implementation` with the next action
+  naming delegation.
 - **Failure:** remain in `specification` until its blockers and readiness gaps are resolved.
 
 ### `implementation`
 - **Entry:** spec ready, a consolidated correction list, or an approved decision to apply. **Delegate:** `implementer`.
-- **Do:** send the implementer or correction-round packet (section 4); the implementer writes its approach before
-  code (`implementer.md` section 5 step 1). Wait for the report; validate its header (section 6, item 1); route per `rules.md` section 2.
+- **Do:** send the implementer or correction-round packet (section 4) with the remaining steps from
+  `task status`; the implementer executes them in order and commits one checkpoint per step
+  (`implementer.md` section 5). Wait for the report; validate its header (section 6, item 1); route per
+  `rules.md` section 2. A reported deviation from the plan is a plan amendment you decide: append or close
+  steps, or change scope with a new approval (`rules.md` section 5 Checkpoints).
 - **State:** maintain delegation state as above. On `READY_FOR_REVIEW`, verify in the assigned worktree that
   `feature/<ID>` is checked out, `git rev-parse HEAD` equals the handoff's full SHA, and
-  `git status --porcelain` is empty. Triage tier, required specialties, and reuse reasons per `rules.md`
+  `git status --porcelain` is empty, and `task status` shows every step committed or closed with no
+  discrepancy. Triage tier, required specialties, and reuse reasons per `rules.md`
   section 6; record `--revision <SHA> --tier <n>` with
   the move to `specialized_review`, or `integration` for tier 0, and update `--next`. Specialties and reasons
   stay in the session and PR Verification section. **Exit:** verified handoff and successful stage update.
@@ -113,7 +123,8 @@ and `done`, including suggested commands. Unchanged moves create no commit (`rul
 - **State:** maintain the full delegation set and next action; record blockers atomically when needed.
 - **Exit:** every required specialist has a current `PASS` or justified reuse of one → move to
   `adversarial_review` for tier 2, `integration` for tier 1; update the next action.
-- **Failure:** `CHANGES_REQUIRED` → correction list → `implementation`. `INCOMPLETE` → close the gap under
+- **Failure:** `CHANGES_REQUIRED` → correction list → `implementation`, appending one plan step per coherent
+  correction commit (`fix(<ID>): …`) and committing the work spec first. `INCOMPLETE` → close the gap under
   the retry rule above. `NEEDS_DECISION` → `rules.md` section 3.
 
 ### `adversarial_review`
@@ -150,6 +161,7 @@ Task: W-001, <title>           Role: implementer; follow docs/solomonar/agents/i
 Worktree: <path> on feature/W-001; modify nothing outside it
 Objective: <outcome to deliver>
 Work spec: <worktree-relative path>    References: <spec sections, AC IDs, W-001/D-n, contracts>
+Plan steps: <remaining S-n IDs, in order>; partial work to inspect: <dirty paths or none>
 Area of responsibility: <packages, files, flows>
 Extensions: <applicable installed extensions; or none>
 Baseline: <full SHA>; known failures: <refs or none>; checks available: <command; result; SHA>
@@ -161,6 +173,7 @@ Output: report per docs/solomonar/report.md; Revision = the committed candidate 
 Task: W-001, <title>           Role: implementer; follow docs/solomonar/agents/implementer.md
 Mode: correction
 Worktree: <path> on feature/W-001. Objective: resolve exactly the list below; nothing else
+Plan steps: <the correction steps S-n appended for this round>
 Work spec / References / Area of responsibility / Extensions: <as in the implementer packet, current for this round>
 Baseline / Known failures / Checks available / Constraints: <as in the implementer packet, current for this round>
 <consolidated correction list per report.md section 7, verbatim>

@@ -1,0 +1,68 @@
+# A new session takes over a running task, inspects it, confirms it, and continues the stage flow.
+exec git init -q -b main ledger
+cd ledger
+exec solomonar init --runtime none --ext none --yes
+exec git add -A
+exec git commit -q -m 'chore: initialize solomonar'
+exec solomonar task register --title Login --owner orchestrator-1
+exec git worktree add -q -b feature/W-001 ../W-001
+exec solomonar task move W-001 --as orchestrator-1 --status running --stage specification
+
+# The user hands the task to a new session; the handoff clears the confirmation.
+exec solomonar task handoff W-001 --owner orchestrator-2
+stdout '^  confirmed  no$'
+stdout '^  Inspect with solomonar task status W-001, then solomonar task confirm W-001 --as orchestrator-2\.$'
+
+# A stage change before the confirmation is rejected and writes nothing.
+cd ../W-001
+mkdir docs/work
+cp ../spec.md docs/work/W-001-login.md
+exec git add docs
+exec git commit -q -m 'spec(W-001): settle login'
+! exec solomonar task move W-001 --as orchestrator-2 --spec docs/work/W-001-login.md --stage implementation
+stderr '^error: task move W-001 rejected \(confirmation_required\)$'
+
+# Inspection reports the missing confirmation and offers task confirm first.
+exec solomonar task status W-001 --no-forge
+stdout '^  status    running / specification   owner orchestrator-2 \(unconfirmed\)   tier none$'
+stdout '^  worktree  \.\./W-001$'
+stdout '^  unconfirmed  W-001 is not confirmed by orchestrator-2; inspect, then task confirm$'
+stdout '^allowed next\n  solomonar task confirm W-001 --as orchestrator-2$'
+
+exec solomonar task confirm W-001 --as orchestrator-2
+stdout '^W-001  running/specification$'
+stdout '^  state\(W-001\): running/specification, confirmed by orchestrator-2$'
+exec solomonar task confirm W-001 --as orchestrator-2
+stdout '^W-001  running/specification \(unchanged\)$'
+
+exec solomonar task move W-001 --as orchestrator-2 --spec docs/work/W-001-login.md --stage implementation
+stdout '^W-001  running/specification → running/implementation$'
+
+# The plan reconciliation names the remaining step; review waits for its checkpoint commit.
+exec solomonar task status W-001 --no-forge
+stdout '^  steps     0 of 1 committed; remaining S-1$'
+exec git rev-parse HEAD
+capture SPEC
+! exec solomonar task move W-001 --as orchestrator-2 --revision $SPEC --tier 0 --stage integration
+stderr '^error: task move W-001 rejected \(plan_incomplete\)$'
+stderr '^  found: S-1 has no checkpoint commit$'
+
+cp ../login.go login.go
+exec git add login.go
+exec git commit -q -m 'feat: login' -m 'Checks: go test ./... passed.' -m 'Step: W-001/S-1'
+exec git rev-parse HEAD
+capture REVISION
+exec solomonar task status W-001 --no-forge
+stdout '^  steps     1 of 1 committed$'
+exec solomonar task move W-001 --as orchestrator-2 --revision $REVISION --tier 0 --stage integration
+stdout '^W-001  running/implementation → running/integration$'
+
+-- spec.md --
+# W-001: Login
+Status: Approved
+
+## Implementation plan
+
+- S-1: feat: login
+-- login.go --
+package login

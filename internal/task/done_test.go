@@ -109,7 +109,7 @@ func TestDoneTaskStoresCompactRecord(t *testing.T) {
 		From: Position{Status: StatusRunning, Stage: StageIntegration},
 		To:   Position{Status: StatusDone, Stage: StageComplete},
 		Changed: []string{
-			"status", "stage", "owner", "branch", "spec", "revision", "tier", "active_agents", "next_action",
+			"status", "stage", "owner", "confirmed", "branch", "spec", "revision", "tier", "active_agents", "next_action",
 			"depends_on", "session_ref", "summary", "spec_ref", "merge_commit",
 		},
 		Subject: "state(W-001): done/complete, merged " + d.merge[:7],
@@ -339,4 +339,37 @@ func TestDoneTaskRejectsSingleParentIntegration(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestDoneTaskKeepsBase(t *testing.T) {
+	t.Parallel()
+
+	d := newDoneRepo(t)
+	before := d.record()
+	before.Base, before.Worktree = d.initial, "../ledger-worktrees/W-001"
+	registry := registryOf(before)
+
+	_, err := doneTask(t, registry, d.repo, "W-001", d.flags())
+
+	require.NoError(t, err)
+	stored := registry.Tasks["W-001"]
+	assert.Equal(t, d.initial, stored.Base)
+	assert.Empty(t, stored.Worktree)
+	assert.False(t, stored.Confirmed)
+	require.NoError(t, validateRecord("W-001", stored))
+}
+
+func TestDoneTaskNeedsConfirmation(t *testing.T) {
+	t.Parallel()
+
+	d := newDoneRepo(t)
+	before := d.record()
+	before.Confirmed = false
+
+	requireDoneRejected(t, before, d.repo, d.flags(), Rejection{
+		Code:  "confirmation_required",
+		Check: "a stage change needs a task its owner confirmed (CLI-D22)",
+		Found: "W-001 is not confirmed by orchestrator-1",
+		Fix:   "inspect with solomonar task status W-001, then solomonar task confirm W-001 --as orchestrator-1",
+	})
 }

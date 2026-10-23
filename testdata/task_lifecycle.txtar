@@ -24,6 +24,8 @@ exec git worktree add -q -b feature/W-001 ../W-001
 env SOLOMONAR_OWNER=orchestrator-1
 exec solomonar task move W-001 --status running --stage specification
 stdout '^W-001  reserved/setup → running/specification$'
+stdout '^  confirmed  yes$'
+stdout '^  worktree   \.\./W-001 \(listed by git worktree list\)$'
 
 # From the linked worktree, the same registry is read and written.
 cd ../W-001
@@ -38,7 +40,7 @@ stdout '^W-001  running/specification → running/implementation$'
 
 cp ../login.go login.go
 exec git add login.go
-exec git commit -q -m 'feat: login'
+exec git commit -q -m 'feat: login' -m 'Step: W-001/S-1'
 exec git rev-parse HEAD
 capture REVISION
 exec solomonar task move W-001 --revision $REVISION --tier 0 --stage integration --pr 42
@@ -65,7 +67,7 @@ stdout -count=7 '^state'
 stdout '^state: initialize registry$'
 stdout '^state\(W-001\): planned, plan "Login"$'
 stdout '^state\(W-001\): reserved/setup, registered by orchestrator-1$'
-stdout '^state\(W-001\): running/specification, status running, stage specification$'
+stdout '^state\(W-001\): running/specification, status running, stage specification, confirmed, base [0-9a-f]{7}, worktree \.\./W-001$'
 stdout '^state\(W-001\): running/implementation, stage implementation, spec docs/work/W-001-login.md$'
 stdout '^state\(W-001\): running/integration, stage integration, revision [0-9a-f]{7}, tier 0, pr 42$'
 stdout '^state\(W-001\): done/complete, merged [0-9a-f]{7}$'
@@ -75,6 +77,11 @@ exec git ls-remote ../remote.git refs/heads/workflow-state
 stdout '^'$TIP'\s+refs/heads/workflow-state$'
 
 -- spec.md --
-# W-001 Login
+# W-001: Login
+Status: Approved
+
+## Implementation plan
+
+- S-1: feat: login
 -- login.go --
 package login

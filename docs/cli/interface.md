@@ -28,8 +28,8 @@ status` · 10 Delivery order · 11 Open decisions
 - **Guard and oracle, never a driver** (J1). The CLI validates and records what the orchestrator or the user
   decided, and reports what Git shows. It never launches agents, calls model providers, stores review verdicts or
   reports, or runs a daemon. The only long-running command is the read-only `dashboard`.
-- **One writer for state.** Only `solomonar task` commands write `refs/heads/workflow-state:state.json`, each
-  write one compare-and-swap commit (rules section 7).
+- **One writer for state.** Only `solomonar task` commands write the registry on `refs/heads/workflow-state`
+  (`state.json` and `tasks/<ID>.json`, 8.6), each write one compare-and-swap commit (rules section 7).
 - **Project files are copied, then owned.** `init` and the commands that add content copy embedded assets into
   the project and record each managed file in a manifest. A repeated operation with identical content is a no-op;
   a differing file is a conflict, never a silent overwrite.
@@ -62,6 +62,8 @@ each command writes and its use cases.
 | `upgrade` | managed files, manifest | UC-9 |
 | `doctor` | nothing | UC-10 |
 | `task plan`, `register`, `move`, `block`, `unblock`, `handoff`, `done` | `workflow-state` | UC-11 to UC-15, UC-18 to UC-21 |
+| `task migrate` | `workflow-state` | UC-25 |
+| `task confirm` | `workflow-state` | UC-26 |
 | `task show`, `task status` | nothing | UC-16, UC-17 |
 | `guard` | nothing | UC-22 |
 | `dashboard` | nothing | UC-23 |
@@ -123,7 +125,7 @@ behavior.
   would write is adopted into the manifest and shown as `unchanged  <path>  adopted` (CLI-D17).
 - A plan line is `  <action padded to 9>  <path>`; when the change has a reason, two spaces and the reason follow,
   with paths padded to the widest path that has a reason. `init`'s registry line is `  registry   create
-  refs/heads/workflow-state with an empty state.json` or `  registry   unchanged refs/heads/workflow-state`; with
+  refs/heads/workflow-state with an empty registry` or `  registry   unchanged refs/heads/workflow-state`; with
   `--git-init` the plan's first line is `  git        init -b <main-branch>` (UC-4).
 - The interactive `init` plan shown before `Proceed?` groups its lines and collapses uniform file sets (UC-1); `init
   --dry-run` and the `file_conflict` plan list every file in this form.
@@ -846,7 +848,7 @@ Plan
     create     .codex/agents/ (5 role stubs)
     create     .codex/hooks.json (state guard hook)
   registry
-    create     refs/heads/workflow-state with an empty state.json
+    create     refs/heads/workflow-state with an empty registry
   manifest
     create     .solomonar/manifest.json
 Proceed? [Y/n] y
@@ -904,7 +906,7 @@ The grouped plan is shown only before `Proceed?`; `--dry-run` (interactive or no
 JSON list every file (3.3). Its groups, in this order with empty groups omitted, are `git` (`init       -b
 <main-branch>`), `framework <fw>` (owners `core`, `core+notes`, `seed`), `extensions` (`ext`, `project-ext`),
 `decisions (approved, selected by you)`, `runtime claude`, `runtime codex`, `runtime copilot`, `registry` (`create     refs/heads/workflow-state
-with an empty state.json` or `unchanged  refs/heads/workflow-state`), and `manifest`. A header is indented two spaces and its lines four; a line is `<action padded to 9>  <path>`, and a note
+with an empty registry` or `unchanged  refs/heads/workflow-state`), and `manifest`. A header is indented two spaces and its lines four; a line is `<action padded to 9>  <path>`, and a note
 follows two spaces after the path padded to the widest noted path in its group. Within a group the plan order is
 kept, and a collapsed line takes its set's first position. A set collapses into one line only when all its lines
 share one action and none has a reason; otherwise each file gets its own line. The sets are
@@ -1017,7 +1019,7 @@ nothing was written
 
 Exit 2. A no-op (UC-3) needs no confirmation; every other run does, including one where every file matches but the
 registry is absent. `--dry-run` prints `Plan`, every file line, the registry line (`  registry   create
-refs/heads/workflow-state with an empty state.json`, or `  registry   unchanged refs/heads/workflow-state` with an
+refs/heads/workflow-state with an empty registry`, or `  registry   unchanged refs/heads/workflow-state` with an
 existing registry), then, with no blank line, `Would initialize solomonar <fw> in <root>` and `  <counts>`, and
 writes nothing; on a terminal it still prompts for the choices (UC-1) but never for the confirmation.
 
@@ -1345,9 +1347,9 @@ Upgraded framework 0.1.0 → 0.2.0: 7 files updated, 1 kept.
 Next: commit on main as "chore: upgrade solomonar framework to 0.2.0"; running tasks pick it up after updating from main.
 ```
 
-An upgrade that changes `state.json`'s `schema_version` also migrates the registry with one compare-and-swap commit
-`state: migrate schema 1 -> 2`, shown in the plan. Downgrade is rejected (`cli_outdated`, fix: install the
-matching CLI). The upgrade never commits on main.
+`upgrade` never touches the registry: a registry schema change is the separate `task migrate` (UC-25, CLI-D26),
+so framework files and registry state are updated by different commands. Downgrade is rejected (`cli_outdated`,
+fix: install the matching CLI). The upgrade never commits on main.
 
 ### UC-10 Check the project
 
@@ -1437,11 +1439,35 @@ done` writes them.
 
 The header is `<ID>  <from status/stage> → <to>`, or `<ID>  <status>/<stage>` when the position does not change.
 A detail line follows for every changed field other than status and stage, in record order, labels aligned two
-spaces past the longest label: `spec <path> (found in <worktree>)`, `revision <sha> (on feature/<ID>)`, `tier <n>:
+spaces past the longest label: `confirmed yes` or `confirmed no`, `base <sha> (on feature/<ID>)`, `worktree <path>
+(listed by git worktree list)`, `spec <path> (found in <worktree>)`, `revision <sha> (on feature/<ID>)`, `tier <n>:
 <meaning>` (0 `no review stages`, 1 `specialists only`, 2 `specialists, then adversarial`), `agents <id> <role>, …`
 or `agents none`, `next <actor>: <action>`, `pr <value>`; then the subject and the registry line. The `spec` line
 reads `(found in <worktree>)` when the spec is in the worktree, and `(found at <short revision>)` when it is found
 only at the recorded revision.
+
+Leaving `setup` (`--status running --stage specification`) also records `confirmed`, `base` (`git merge-base <main>
+feature/<ID>`), and `worktree` (the path Git lists for `feature/<ID>`, relative to the main worktree, the first
+entry of `git worktree list`), so its output lists them before `next`:
+
+```
+$ solomonar task move W-001 --as orchestrator-1 --status running --stage specification --next "orchestrator-1:Run work-spec"
+W-001  reserved/setup → running/specification
+  confirmed  yes
+  base       5e1f0c3a7b9d2e4f6a8c0b1d3e5f7a9c2b4d6e8f (on feature/W-001)
+  worktree   ../ledger-worktrees/W-001 (listed by git worktree list)
+  next       orchestrator-1: Run work-spec
+  state(W-001): running/specification, status running, stage specification, confirmed, base 5e1f0c3, worktree ../ledger-worktrees/W-001, next orchestrator-1
+  registry @ 9b3d5f7a1c2e4a6b8d0f1e3c5a7b9d2f4e6a8c0b
+```
+
+`--base <full-sha>` fills a missing base only (a migrated record, UC-25): the commit must be on `feature/<ID>`
+(`base_not_on_branch`), and a different value than the recorded one is `base_recorded`. `--worktree <path>` records
+a relocation after `git worktree move`: a clean `/`-separated path relative to the main checkout that must resolve
+to the path Git lists for `feature/<ID>` (`worktree_mismatch` otherwise). Both are accepted from `specification` on
+and need no confirmation. Every stage change except leaving `setup`, and `task done`, needs a confirmed task
+(`confirmation_required`, fix `inspect with solomonar task status <ID>, then solomonar task confirm <ID> --as
+<owner>`); status-only moves (block, pause, cancel, resume) do not.
 
 `READY_FOR_REVIEW` at a committed SHA, triage recorded tier 2, specialists launched:
 
@@ -1546,7 +1572,8 @@ required`), and so are `unblock` without the blocker ID (`blocker ID is required
 · <commit time>`, the time in RFC 3339 UTC. `task show <ID>` prints the stored record exactly as JSON, the raw read
 (J3).
 
-`--json` data: `{"registry": <state.json>, "commit": "<sha>"}`; with an ID, `{"id": "W-001", "record": { },
+`--json` data: `{"registry": {"schema_version": 2, "tasks": {"<ID>": <record>, …}}, "commit": "<sha>"}`, the
+registry files (8.6) joined into one document; with an ID, `{"id": "W-001", "record": { },
 "commit": "<sha>"}`.
 
 The oracle (rules section 7, J3):
@@ -1555,7 +1582,9 @@ The oracle (rules section 7, J3):
 $ solomonar task status W-001
 W-001  Login
 record
-  status    running / specialized_review   owner orchestrator-1   tier 2
+  status    running / specialized_review   owner orchestrator-1 (confirmed)   tier 2
+  base      5e1f0c3a7b9d2e4f6a8c0b1d3e5f7a9c2b4d6e8f
+  worktree  ../ledger-worktrees/W-001
   spec      docs/work/W-001-login.md
   revision  7cd18e45bb55c3be9465c9f893683bc05216f529
   agents    sec-1 security-reviewer, cor-1 correctness-reviewer, spec-1 spec-reviewer (last reported, not liveness)
@@ -1584,9 +1613,10 @@ allowed next
   solomonar task move W-001 --as orchestrator-1 --status cancelled --next <actor>:<action>
 ```
 
-The human form has a `<ID>  <title>` header and the sections `record`, `git`, `forge (gh)`, `drift`, and `allowed
-next`, each line indented two spaces with its label padded to the widest label of the section. `status` is `<status>
-/ <stage>   owner <owner>   tier <tier>` (`-` for a missing stage or owner, `tier none` without a tier); `spec`,
+The human form has a `<ID>  <title>` header and the sections `record`, `git`, `plan` (not for a `planned` or `done`
+record), `forge (gh)`, `drift`, and `allowed next`, each line indented two spaces with its label padded to the widest label of the section. `status` is `<status>
+/ <stage>   owner <owner>   tier <tier>` (`-` for a missing stage or owner, `tier none` without a tier); past `setup`
+the owner is followed by ` (confirmed)` or ` (unconfirmed)`. `base`, `worktree` (as recorded), `spec`,
 `revision`, `agents` (`<id> <role>, …` then `(last reported, not liveness)`; plain `none` when empty), `blockers`
 (`B-n <kind>: <summary> (<ref>)`, or `B-n <kind>: <summary>` without a ref, joined by `; `), `next`, and `pr` always
 appear, `none` when empty, then `updated   <updated_at> (registry @ <sha7>)`; a `done` record shows `status` (same
@@ -1597,7 +1627,10 @@ worktree)`; `dirty` `clean`, `1 path: <p> (<state>)`, `<n> paths: <p> (<state>),
 `spec` `present in worktree and at revision`, `present in worktree only`, `present at revision only`, `missing`, or
 `none recorded`; `merged` `yes, by <merge sha> (merge commit on <main>)` whenever the facts have a merge commit,
 `no` otherwise; `spec_ref` `derived <spec_ref> (last spec(<ID>) commit merged)` only when derived and the record is
-not `done` (a `done` record's recorded `spec_ref` is in the record section). `forge (gh)`: `pr` `#<n> <state
+not `done` (a `done` record's recorded `spec_ref` is in the record section). `plan` (8.7): `approval <state> at
+<tip8>`, with `: <problem>` when `invalid`, or `unknown (no spec, base, or branch recorded)`; with steps, `steps <n> of
+<m> committed`, then `; remaining S-a, S-b` when any remain, `closed S-c dropped, S-d verified` when any step has an
+outcome, `other <n> commit(s) without a Step trailer`, and one `<code>  <message>` line per discrepancy. `forge (gh)`: `pr` `#<n> <state
 lowercased>`, `none for feature/<ID>`, `unknown (gh unavailable)`, or `unknown (--no-forge)`; `checks` the check
 state, or `unknown (no PR)` without a PR. `drift` lists `<code>  <message>` with codes padded; `allowed next` one
 command per line, unwrapped; each is `none` when empty.
@@ -1666,16 +1699,19 @@ the registry is read: a missing ID is `invalid_usage` (`task ID is required`), a
 
 Every status except `planned` and `done` accepts a handoff, including `cancelled`. Without `--next`, a
 `next_action` whose actor is the previous owner is retargeted to the new owner with the same action text; any other
-`next_action` is kept. `active_agents` and blockers are kept; `updated_at` is always set.
+`next_action` is kept. `active_agents` and blockers are kept; `updated_at` is always set. The handoff clears
+`confirmed` (CLI-D22): the new owner inspects the task and runs `task confirm` (UC-26) before the next stage change.
 
-A `next <actor>: <action>` detail line follows the header when `next_action` changes; the closing line `The
-previous owner must stop writing this record.` prints only after a real write. The subject is always `handoff <old>
+A `confirmed no` detail line follows the header when the record was confirmed, then a `next <actor>: <action>` line
+when `next_action` changes; the closing lines `The previous owner must stop writing this record.` and `Inspect with
+solomonar task status <ID>, then solomonar task confirm <ID> --as <new owner>.` print only after a real write. The subject is always `handoff <old>
 -> <new>`, also with `--next`. `--dry-run` prints `Would hand off ` before the header, then the detail lines and the
 subject, with no registry line and no closing line.
 
 `--json` data has the `task move` shape: `{"id": "W-002", "from": {"status": "blocked", "stage": "specification"},
 "to": {"status": "blocked", "stage": "specification"}, "changed": ["owner"], "record": { }, "commit": "<sha>",
-"pushed": true}`; `changed` lists `owner` (in record order, after `stage`) and `next_action` when it changes.
+"pushed": true}`; `changed` lists `owner` (in record order, after `stage`), `confirmed` when it was set, and
+`next_action` when it changes.
 `--dry-run --json` data is the same without `commit` and `pushed`, with `"dry_run": true`.
 
 ### UC-20 Complete a task after the merge
@@ -1739,6 +1775,68 @@ When the re-validation fails on the new tip (for example the same planned ID was
 fails with that check's code (exit 3). After 5 lost attempts: `cas_exhausted` (exit 4), fix "retry the command; no
 state was written".
 
+Each task is its own file (8.6), so a write changes only the files of the records it touches; the other files keep
+their blobs. The swap still covers the whole ref, so separate files do not remove contention between writers.
+
+### UC-25 Migrate the registry
+
+`solomonar task migrate [--json]` is the user's command (no `--as`). Every other command that reads the registry
+rejects a schema-1 registry, the single `state.json` of CLI 0.1.5 and earlier, with `registry_outdated` (exit 3),
+found `registry schema 1, this CLI uses 2`, fix `solomonar task migrate`; `init` keeps such a registry
+`unchanged`, and `version` reports it (UC-24).
+
+```
+$ solomonar task migrate
+Migrated registry to schema 2: 4 tasks, one tasks/<ID>.json each
+  unconfirmed  W-001, W-004
+  next         inspect each with solomonar task status <ID>, then solomonar task confirm <ID>
+  registry @ 4f0c2b7d9e1a3c5f7b9d1e3a5c7f9b1d3e5a7c9f
+```
+
+The migration decodes the schema-1 registry strictly (8.6 validation; `registry_invalid` otherwise), writes the
+same records as schema-2 files in one compare-and-swap commit `state: migrate schema 1 -> 2` whose parent is the
+old tip, and pushes as any write. It copies records unchanged: it never infers a `base`, `worktree`, or
+`confirmed`, and a done record without `base` stays valid. `unconfirmed` lists, in ID order, every record with an
+owner that is not `done`, is past `setup`, and is not confirmed; the line is omitted when none. A registry already
+at schema 2 writes nothing and prints `Registry already at schema 2; nothing to migrate.` (exit 0); a newer one is
+`cli_outdated`. A failed migration writes nothing. A schema-1 CLI reading a migrated registry rejects it as
+`cli_outdated`, since `state.json` keeps the version; to return to it, point the ref back at the previous commit:
+`git update-ref refs/heads/workflow-state refs/heads/workflow-state^` (losing writes made after the migration).
+
+`--json` data: `{"migrated": true, "schema": 2, "tasks": 4, "unconfirmed": ["W-001", "W-004"], "commit": "<sha>",
+"pushed": true}`; without a migration `migrated` is `false` and `commit` the current tip.
+
+### UC-26 Confirm a resumed task
+
+`solomonar task confirm <ID> [--as <owner>] [--json] [--dry-run]` records that the owner inspected the task and
+continues it from its actual state (CLI-D22). A new session takes a task with `task handoff` (UC-19), which clears
+`confirmed`; a migrated task starts unconfirmed (UC-25). Leaving `setup` confirms a task, so the normal flow never
+runs this command. Confirmation does not prove plan approval, review success, or that the previous execution stopped.
+
+```
+$ solomonar task status W-001 --no-forge
+…
+drift
+  unconfirmed  W-001 is not confirmed by orchestrator-2; inspect, then task confirm
+allowed next
+  solomonar task confirm W-001 --as orchestrator-2
+  …
+$ solomonar task confirm W-001 --as orchestrator-2
+W-001  running/specification
+  state(W-001): running/specification, confirmed by orchestrator-2
+  registry @ 6c8e0a2b4d6f8a1c3e5b7d9f0a2c4e6b8d1f3a5c
+```
+
+Checks run in order: the lookup (`task_not_found`), `done_final`, `not_registered` (a `planned` task), ownership
+(`owner_required`, `owner_mismatch`), `setup_not_complete` (stage `setup`; fix `solomonar task move <ID> --as
+<owner> --status running --stage specification`), then the preflight: `branch_missing`, `worktree_unrecorded` (fix
+`solomonar task move <ID> --as <owner> --worktree <path relative to the main checkout>`), `worktree_missing` or
+`worktree_mismatch` (8.3), `base_missing` (fix `solomonar task move <ID> --as <owner> --base <full sha>, after
+inspecting the branch history`), `base_not_on_branch`, and, from `implementation` until `integration` (closure deletes
+the work spec there), the approved plan at the branch tip (`plan_not_approved`, `plan_invalid`). An already confirmed task is unchanged: the header ends
+with ` (unchanged)`, no commit is written, and `--json` has `changed: []` and the current tip, as on `task move`.
+`--json` and `--dry-run` follow `task move` (UC-13); `changed` is `["confirmed"]`.
+
 ## 7. Use cases: runtime integration
 
 ### UC-22 The state guard denies a direct registry write
@@ -1796,8 +1894,9 @@ other than absence, a failure opening the worktree, and a registry commit whose 
 unexpected errors (exit 1), not `invalid`. A suffix follows whichever registry part is shown (`registry schema <n>`,
 `registry missing`, or `registry invalid`): a project framework newer than the embedded one adds ` (newer than this
 CLI; install solomonar <project fw> or later)`; otherwise a manifest or registry schema newer than this CLI supports
-adds ` (newer than this CLI; install a newer solomonar release)`. `--json`: `{"cli": "0.1.5", "framework": "0.1.5",
-"project_framework": "0.1.5", "registry_schema": 1}`; a value not shown (not initialized, missing, invalid) is `null`,
+adds ` (newer than this CLI; install a newer solomonar release)`, and a registry schema older than this CLI's adds `
+(older than this CLI; run solomonar task migrate)` (UC-25). `--json`: `{"cli": "0.1.5", "framework": "0.1.5",
+"project_framework": "0.1.5", "registry_schema": 2}`; a value not shown (not initialized, missing, invalid) is `null`,
 so an invalid manifest leaves both project values `null`.
 
 ## 8. Reference: task validation
@@ -1843,7 +1942,13 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `--revision` | full 40-hex SHA | `revision_not_full_sha` |
 | `--revision` | `feature/<ID>` exists locally | `branch_missing` |
 | `--revision` | `git merge-base --is-ancestor <sha> feature/<ID>`; a SHA Git does not know fails too | `revision_not_on_branch` |
-| `--stage specification` from `setup` | `feature/<ID>` exists and a worktree has it checked out (`git worktree list --porcelain`) | `branch_missing`, `worktree_missing` |
+| `--stage specification` from `setup` | `feature/<ID>` exists and a worktree has it checked out (`git worktree list --porcelain`); `git merge-base <main> feature/<ID>` finds the base | `branch_missing`, `worktree_missing`, `base_not_found` |
+| `--base` | full SHA; equal to the recorded base when one exists; `git merge-base --is-ancestor <base> feature/<ID>` | `invalid_value`, `base_recorded`, `base_not_on_branch` |
+| `--worktree` | clean `/`-separated relative path (`..` allowed); resolved against the main worktree, it is the path Git lists for `feature/<ID>` (symbolic links resolved) | `invalid_value`, `worktree_mismatch` |
+| a stage change other than leaving `setup`, `task done` | the record is `confirmed` | `confirmation_required` |
+| `--stage implementation` from `specification` | the spec committed at the tip of `feature/<ID>` (not the worktree file) parses (8.7), reads `Status: Approved`, and lists a step | `plan_not_approved`, `plan_invalid` |
+| a move from `implementation` to `specialized_review` or `integration` | `base` recorded; `--revision` (or the recorded revision) is the tip of `feature/<ID>`; `git status --porcelain` in its worktree is empty; the plan at the revision is approved; reconciliation (8.7) finds no discrepancy and every step committed or closed by an outcome | `base_missing`, `candidate_not_tip`, `candidate_dirty`, `plan_not_approved`, `plan_invalid`, `checkpoint_discrepancy`, `plan_incomplete` |
+| `task confirm` | branch, recorded worktree as for `--worktree`, recorded base as for `--base`; from `implementation` up to, not including, `integration`, the approved plan at the branch tip | `branch_missing`, `worktree_unrecorded`, `worktree_missing`, `worktree_mismatch`, `base_missing`, `base_not_on_branch`, `plan_not_approved`, `plan_invalid` |
 | `--spec` | clean path relative to the worktree: not absolute, no `..` element, not `.`, already in clean form (`./a`, `a//b`, `a/`, `a/../b` are rejected) | `invalid_value` |
 | `--spec` given, or the move enters `implementation` | `spec` is a regular file in the worktree on `feature/<ID>` (located by `git worktree list --porcelain`), or a blob at the recorded `revision` (`git cat-file -t <revision>:<spec>` is `blob`; a directory does not count) | `spec_not_found` |
 | `--agent` | `<id>:<role>` split at the first `:`, id `[a-z]+-[0-9]+`, a core delegated role or an extension agent whose manifest state is `installed`, never a draft or `orchestrator`; without a manifest, the core agents `adversarial-reviewer`, `correctness-reviewer`, `implementer`, `security-reviewer`, `spec-reviewer`; the fix lists the allowed roles | `invalid_value` |
@@ -1870,7 +1975,7 @@ rejection) unless the command was cancelled; any other Git failure is `unexpecte
 |---|---|---|---|
 | `not_a_repository` | 3 | `-C` or the working directory is not in a Git repository | run inside a Git repository or pass `-C <path>` |
 | `not_initialized` | 3 | No `refs/heads/workflow-state` | `solomonar init` |
-| `registry_invalid` | 1 | `state.json` fails the schema | inspect with `git show refs/heads/workflow-state:state.json`; never edit it by hand |
+| `registry_invalid` | 1 | A registry file fails the schema (8.6) | inspect with `git show refs/heads/workflow-state:state.json`; never edit it by hand |
 | `manifest_invalid` | 1 | `.solomonar/manifest.json` fails strict decoding or the 4.7 validation | inspect .solomonar/manifest.json; never edit it by hand |
 | `task_not_found` | 3 | Unknown ID | `solomonar task show` |
 | `not_planned` | 3 | `register <ID>` on a non-planned record | `solomonar task show <ID>; resume the task instead` |
@@ -1885,6 +1990,20 @@ rejection) unless the command was cancelled; any other Git failure is `unexpecte
 | `revision_required` | 3 | Review stage without a revision | pass `--revision` |
 | `revision_not_full_sha` | 3 | Short or malformed SHA | `git rev-parse <short>` |
 | `branch_missing` | 3 | `feature/<ID>` does not exist | create the branch and worktree (rules section 4) |
+| `confirmation_required` | 3 | A stage change or `task done` on an unconfirmed task; found `<ID> is not confirmed by <owner>` | `inspect with solomonar task status <ID>, then solomonar task confirm <ID> --as <owner>` |
+| `plan_not_approved` | 3 | The committed work spec is not `Status: Approved`; found `status is "<value>" at <sha8>`, or `<spec> is not committed at <sha8>` | record the user's approval as `Status: Approved` below the title and commit the work spec |
+| `plan_invalid` | 3 | The work spec's Status line or plan does not parse (8.7), or lists no step | correct the work spec and commit it |
+| `candidate_not_tip` | 3 | The candidate is not the tip of `feature/<ID>`; found `revision <sha8>; feature/<ID> is at <sha8>` | pass `--revision` with the full SHA of the branch tip |
+| `candidate_dirty` | 3 | The `feature/<ID>` worktree has uncommitted changes; found `<n> uncommitted path(s)` | commit the work as a checkpoint, or preserve it outside the candidate (rules section 10) |
+| `plan_incomplete` | 3 | Steps without a checkpoint commit or outcome; found `S-2, S-3 have no checkpoint commit` | delegate the remaining steps, or record an outcome in the plan |
+| `checkpoint_discrepancy` | 3 | A commit claims a step it does not checkpoint; found `<n> discrepancies; first: <message>` | inspect with `solomonar task status <ID>`; correct the commits or the plan |
+| `setup_not_complete` | 3 | `task confirm` at stage `setup` | `solomonar task move <ID> --as <owner> --status running --stage specification` |
+| `base_not_found` | 3 | Leaving `setup` without a common commit of main and `feature/<ID>` | create `feature/<ID>` from the current main (rules section 4) |
+| `base_recorded` | 3 | `--base` differs from the recorded base | omit `--base`; a wrong base needs the user's decision |
+| `base_missing` | 3 | `task confirm` without a recorded base | `solomonar task move <ID> --as <owner> --base <full sha>`, after inspecting the branch history |
+| `base_not_on_branch` | 3 | The base is unknown to Git or not on `feature/<ID>` | inspect the branch history |
+| `worktree_unrecorded` | 3 | `task confirm` without a recorded worktree | `solomonar task move <ID> --as <owner> --worktree <path>` |
+| `worktree_mismatch` | 3 | Git lists the `feature/<ID>` worktree elsewhere; found `recorded <path>; Git lists <path>` | `record the relocation: solomonar task move <ID> --worktree <listed path>` |
 | `worktree_missing` | 3 | `feature/<ID>` exists but no worktree has it checked out | `git worktree add ../<repo>-worktrees/<ID> feature/<ID>`, `<repo>` the main checkout's directory name |
 | `revision_not_on_branch` | 3 | SHA unknown to Git or not reachable from `feature/<ID>` | commit the candidate on `feature/<ID>` and pass its full SHA: `git -C <worktree path> rev-parse HEAD`, or `git rev-parse feature/<ID>` without a worktree |
 | `spec_required` | 3 | `implementation` without `spec` | pass `--spec` |
@@ -1906,6 +2025,7 @@ rejection) unless the command was cancelled; any other Git failure is `unexpecte
 | `invalid_usage` | 2 | Unknown flag, missing required flag, or unexpected argument | run solomonar help |
 | `cas_exhausted` | 4 | Lost the compare-and-swap 5 times | retry |
 | `cli_outdated` | 3 | Registry or manifest written by a newer CLI | install a newer solomonar release |
+| `registry_outdated` | 3 | Registry at schema 1 (UC-25) | `solomonar task migrate` |
 | `git_too_old` | 1 | Git older than 2.40 | install git 2.40 or later |
 | `unexpected_error` | 1 | I/O, Git error, corrupt object (3.5) | - |
 | `interrupted` | 130, 143 | Signal before the compare-and-swap | rerun (the error form already states nothing was written) |
@@ -1923,13 +2043,86 @@ previous tip.
 |---|---|
 | `task plan` | `plan "<title>"` |
 | `task register` | `registered by <owner>` |
-| `task move` | every changed field, comma-separated, in record order (the order of the JSON `changed` list): `status <status>`, `stage <stage>`, `spec <path>`, `revision <short 7>`, `tier <n>`, `agents <id> <id>…` (space-separated) or `agents none` when cleared, `next <actor>`, `pr <value as stored>` |
+| `task move` | every changed field, comma-separated, in record order (the order of the JSON `changed` list): `status <status>`, `stage <stage>`, `spec <path>`, `revision <short 7>`, `tier <n>`, `agents <id> <id>…` (space-separated) or `agents none` when cleared, `next <actor>`, `pr <value as stored>`; `confirmed`, `base <short 7>`, and `worktree <path>` in record order after `stage` |
 | `task block` | `block B-n <kind>` |
 | `task unblock` | `unblock B-n` |
 | `task handoff` | `handoff <old> -> <new>`, also with `--next` |
+| `task confirm` | `confirmed by <owner>` |
 | `task done` | `merged <short merge sha>` |
 | `init` | subject `state: initialize registry` (root commit) |
-| `upgrade` | subject `state: migrate schema <n> -> <m>` |
+| `task migrate` | subject `state: migrate schema 1 -> 2` |
+
+### 8.6 Registry layout
+
+Schema 2 (CLI-D20). The tree at the tip of `refs/heads/workflow-state` holds exactly:
+
+| Path | Content |
+|---|---|
+| `state.json` | `{"schema_version": 2}`, nothing else |
+| `tasks/<ID>.json` | one record (rules section 7), the file name its ID (`W-` and three or more digits) |
+
+An empty registry is `state.json` alone. Every file is written in canonical form: struct field order, two-space
+indent, trailing newline. Reading checks `state.json`'s `schema_version` first (`cli_outdated` above 2,
+`registry_outdated` at 1), then decodes every file strictly: unknown members, duplicate keys, a `tasks` member in
+`state.json`, any other path, a subtree other than `tasks`, or a record failing validation is `registry_invalid`.
+
+Record fields added by schema 2 (CLI-D21):
+
+| Field | Value | Written by |
+|---|---|---|
+| `confirmed` | `true`; omitted when false | the move out of `setup`, `task confirm`; cleared by `task handoff` |
+| `base` | full SHA of the commit the task branched from; never changed once recorded | the move out of `setup`, or `--base` when missing |
+| `worktree` | clean `/`-separated path relative to the main checkout, `..` allowed, never absolute | the move out of `setup`, or `--worktree` after a relocation |
+
+A `planned` record has none of them. A `done` record keeps `base` when it had one and drops the other two.
+
+### 8.7 Work-spec plan and checkpoints
+
+The work spec (`docs/work/<ID>-<slug>.md`, CLI-D23) carries the plan approval on the line below the title and the
+plan as a list of intended commits:
+
+```
+# W-001: Login
+Status: Approved
+Type: feature
+…
+## Implementation plan
+
+- S-1: feat(auth): add the session store
+  Store sessions server-side; AC-1, AC-2.
+- S-2: feat(auth): add remember me
+  Outcome: dropped — the user removed AC-4 (W-001/D-2)
+- S-3: test(auth): cover session expiry
+```
+
+- `Status:` is `In review` or `Approved`; any other value is invalid, and a spec without the line has no approval.
+- A step is a line `- S-<n>: <commit subject>` under `## Implementation plan`, up to the next `##` heading; `<n>` has
+  no leading zero, IDs are unique and never reused. Indented lines are its detail; an indented `Outcome: dropped —
+  <reason>` or `Outcome: verified — <reason>` closes the step without a commit. Any other `- ` line there is invalid.
+- A checkpoint is a commit whose subject equals the step's subject and whose trailers include `Step: <ID>/S-<n>`
+  (CLI-D24), for example `git commit -m "feat(auth): add the session store" -m "Checks: go test ./... passed." -m
+  "Step: W-001/S-1"`. The CLI never creates commits (CLI-D25).
+
+Reconciliation reads the spec committed at the branch tip (or, at the review gate, at the candidate) and the commits
+of `git log --first-parent --no-merges --reverse <base>..<tip>`: only the task branch's own commits count, never a
+merge or the commits a merge from main brought in (other tasks' checkpoints among them). Per commit, oldest first:
+
+| Case | Result |
+|---|---|
+| no `Step` trailer, subject unlike any step | counted in `other_commits` (spec, decisions, closure commits) |
+| no `Step` trailer, subject equal to a step's | `step_untagged` |
+| trailer of another task | `step_foreign` |
+| trailer naming a step the plan does not list | `step_unknown` |
+| subject differs from the claimed step's | `step_subject_mismatch` |
+| no changed file (`--shortstat` empty) | `step_empty` |
+| a step already checkpointed by an earlier commit | `step_duplicate` |
+| otherwise | the step is `committed` by that commit |
+
+A step is `committed`, else `dropped` or `verified` from its outcome, else `remaining`. Approval is `approved` only
+for `Status: Approved` with at least one step, `in_review`, `missing` (no Status line, no step, or no spec at the
+commit), or `invalid` with the parse problem. A commit is never proof of correctness: review and the required checks
+still run. A checkpoint commit and a registry write are separate operations; a checkpoint committed before a failed
+registry update is found again by the next reconciliation, since the registry holds no checkpoint state.
 
 ## 9. Reference: `task status`
 
@@ -1943,6 +2136,7 @@ previous tip.
 | HEAD vs `revision` | `git rev-list --count <revision>..HEAD` in the worktree | null without a worktree or revision |
 | dirty paths | `git status --porcelain=v2` in the worktree | `worktree` null |
 | spec present | the worktree file, and `git cat-file -t <revision>:<spec>` is `blob` | false |
+| plan | the spec at the branch tip and `git log --first-parent --no-merges --reverse --shortstat <base>..<tip>` with `Step` trailers (8.7) | `plan` null without a spec, base, or branch, and for `done` |
 | merged | first merge commit on main whose ancestry contains `revision` (`git rev-list --ancestry-path --merges --reverse <revision>..main`) | `merged` false, also without a revision |
 | derived `spec_ref` | first commit in `git log --topo-order --format="%H %s" <merge>^2` whose subject (never a body line) starts with `spec(<ID>):`, with the recorded `spec` path | null before merge |
 | PR, checks | `gh pr view feature/<ID> --json number,url,state,mergeCommit,statusCheckRollup` | `pr` null, `checks` `unknown`, never passing (J6) |
@@ -1982,10 +2176,15 @@ the forge is available with no PR. A cancelled run (e.g. Ctrl-C) is no warning: 
 |---|---|---|---|
 | `branch_missing` | status `running` past `setup`, no `feature/<ID>` | `feature/<ID> does not exist` | `task block --kind environment` |
 | `worktree_missing` | branch exists, no worktree | `feature/<ID> has no worktree` | `git worktree add ../<repo>-worktrees/<ID> feature/<ID>` |
+| `worktree_mismatch` | recorded `worktree` differs from the listed one, relative to the main worktree | `recorded <path>; Git lists <path>` | `task move --worktree <listed path>` |
+| `base_missing` | past `setup`, no `base` | `<ID> has no recorded base` | `task move --base <full sha>` after inspection |
+| `unconfirmed` | past `setup`, not `confirmed` | `<ID> is not confirmed by <owner>; inspect, then task confirm` | `task confirm` |
 | `head_ahead_of_revision` | HEAD has commits after `revision` | `HEAD is <n> commits past the recorded revision` | record the new candidate with `task move --revision` once reported |
 | `revision_not_on_branch` | `contains_revision` false (history rewritten) | `<revision short 8> is not on feature/<ID>` | `task move --stage implementation`; reviews rerun |
 | `dirty_worktree` | uncommitted changes | `<n> uncommitted paths; preserve them (rules section 10)` | preserve them (rules section 10) |
 | `spec_missing` | recorded `spec` neither in the worktree nor at `revision` | `<spec> is not in the worktree or at the revision` | commit the work spec, or correct `--spec` |
+| `plan_not_approved` | stage `implementation`, `specialized_review`, or `adversarial_review`; plan approval not `approved` | `the work spec at feature/<ID> has no approved plan (<approval>)` | approve and commit the plan, or return to `specification` |
+| `checkpoint_discrepancy` | reconciliation found discrepancies | `<n> commit claim(s) to inspect` | inspect the `plan` section |
 | `blocked_without_blockers` | status `blocked`, no open blocker | `blocked without an open blocker` | `task move --status <prior>` (guidance only; not in `allowed_next`) |
 | `tier_missing` | stage `specialized_review`, `adversarial_review`, or `integration`, no tier | `stage <stage> needs a tier` | `task move --tier` with `--revision` |
 | `merged_not_done` | merge found, status not `done` | `feature/<ID> is merged into <main> but the record is not done` | `task done` with `--merge`; `spec_ref` from the PR (C14 a) |
@@ -2012,9 +2211,15 @@ output; runnable commands appear in `allowed_next` (9.3).
   "facts": {
     "branch": {"name": "feature/W-001", "exists": true, "tip": "992051e56493f5bb8abb4faadcdbc5f271195498",
                "contains_revision": true},
-    "worktree": {"path": "/work/ledger-worktrees/W-001", "head": "992051e56493f5bb8abb4faadcdbc5f271195498",
+    "worktree": {"path": "/work/ledger-worktrees/W-001", "relative": "../ledger-worktrees/W-001",
+                 "head": "992051e56493f5bb8abb4faadcdbc5f271195498",
                  "ahead_of_revision": 1, "dirty": [{"path": "internal/auth/session_test.go", "state": "modified"}]},
     "spec": {"in_worktree": true, "at_revision": true},
+    "plan": {"approval": "approved", "at": "992051e56493f5bb8abb4faadcdbc5f271195498", "other_commits": 2,
+             "steps": [{"id": "S-1", "subject": "feat(auth): add the session store", "state": "committed",
+                        "commit": "7cd18e45bb55c3be9465c9f893683bc05216f529"},
+                       {"id": "S-2", "subject": "test(auth): cover expiry", "state": "remaining", "commit": null}],
+             "discrepancies": []},
     "merge": {"merged": false, "merge_commit": null, "derived_spec_ref": null},
     "forge": {"available": true, "pr": null, "checks": "unknown"}
   },
@@ -2057,6 +2262,14 @@ Facts never omit a key; an unavailable fact is null, `false`, or `unknown` as 9.
 | `paused` | `task move <ID> --as <owner> --status <prior>`, cancel |
 | `cancelled` | `task move <ID> --as <owner> --status <prior> --resume-cancelled` |
 | `done` | none |
+
+With plan facts (8.7), a forward move a managed gate would reject is left out: `specification` → `implementation`
+unless the plan is `approved`, and the forward moves out of `implementation` unless it is `approved` with no
+discrepancy and no remaining step.
+
+An unconfirmed `reserved` or `running` record past `setup` lists `task confirm <ID> --as <owner>` instead of its
+stage moves and `task done`, then block, pause, cancel; an unconfirmed `paused` one lists `task confirm` before its
+resume and cancel lines.
 
 Order: stage moves in stage order, then `task done`, then block, pause, cancel. The forms, each prefixed
 `solomonar`:
@@ -2156,3 +2369,10 @@ and the minimum supported Copilot version. Version 1.0.85 is a discovery baselin
 | CLI-D17 | An unmanaged file whose content equals what the CLI would write | a) conflict, as any unmanaged file; b) adopted into the manifest, shown as `unchanged (adopted)` | b: a re-run after an `init` killed before its manifest write completes instead of failing on the run's own files; nothing is lost, since the recorded base is the file's content | **b**, author, 2026-10-21 |
 | CLI-D18 | Exit code of an interrupted command | a) 1, as an unexpected failure; b) 130 or 143 whenever a signal arrives; c) the exit code reports what was written: 128 + signal with `interrupted` when nothing was written, 0 with `push_interrupted` after the compare-and-swap | c: after a successful write, a failure exit makes a script or agent retry and repeat a non-idempotent write such as `task plan` | **c**, author, 2026-10-21 |
 | CLI-D19 | A project or registry written by a newer CLI | a) `already_initialized` for a downgrade only; b) `cli_outdated` (exit 3) for every command that reads the manifest or the registry, checked before strict decoding; `version` and `doctor` report instead of rejecting | b: with strict decoding, a newer schema would otherwise read as `registry_invalid` with the wrong fix | **b**, author, 2026-10-21 |
+| CLI-D20 | Registry layout | a) one `state.json` holding every task; b) `state.json` with the schema only, plus `tasks/<ID>.json` per task | b: a write changes one task's file, history per task reads with `git log -- tasks/<ID>.json`, and keeping the version in `state.json` makes a schema-1 CLI reject the layout as `cli_outdated` | **b**, author, 2026-10-23 (8.6) |
+| CLI-D21 | Workspace fields | a) derive the worktree from Git and store no base; b) store `base` (immutable) and `worktree` (relative to the main checkout), with Git's listing authoritative | b: recovery needs the base to bound checkpoints; a relative path stays portable across machines with the same layout | **b**, author, 2026-10-23 (8.6) |
+| CLI-D22 | How an execution is identified for confirmation | a) the owner ID: a new session takes the task with `task handoff`, which clears `confirmed`, and runs `task confirm`; b) a separate opaque execution field | a: no second identity beside the owner; the CLI cannot detect a new session, so the handoff is the boundary | **a**, author, 2026-10-23 |
+| CLI-D23 | Work-spec plan contract | a) `Status: In review` / `Status: Approved` below the title, steps `S-<n>: <commit subject>` under `## Implementation plan`, IDs never reused; b) a separate approval section | a: one line to check, one list to reconcile; the path stays `docs/work/<ID>-<slug>.md` | **a**, author, 2026-10-23 |
+| CLI-D24 | Checkpoint commit metadata | a) the planned subject and a `Step: <ID>/S-<n>` trailer; b) a, plus a `Plan: <sha>` trailer | a: step IDs are never reused, so a plan version adds noise without disambiguating | **a**, author, 2026-10-23 |
+| CLI-D25 | Who creates checkpoints | a) the implementer, with Git; the CLI only inspects; b) a CLI commit command | a: the decision to use real Git commits needs no wrapper | **a**, author, 2026-10-23 |
+| CLI-D26 | Registry migration | a) an explicit `task migrate`; b) automatic in `init` or `upgrade` | a: registry migration stays separate from framework updates and never runs implicitly | **a**, author, 2026-10-23 (UC-25) |

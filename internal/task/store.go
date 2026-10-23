@@ -2,9 +2,13 @@ package task
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,27 +45,110 @@ type Warning struct {
 
 // Read returns the registry at the tip of Ref and the tip itself.
 func (s *Store) Read(ctx context.Context) (*Registry, string, error) {
+	snap, err := s.read(ctx)
+	if err != nil {
+		return nil, "", err
+	}
+	return snap.registry, snap.tip, nil
+}
+
+// snapshot is the registry at tip with the blob of each file, so a write reuses the unchanged ones.
+type snapshot struct {
+	registry *Registry
+	tip      string
+	blobs    map[string]blob
+}
+
+type blob struct {
+	sha  string
+	data []byte
+}
+
+func (s *Store) read(ctx context.Context) (snapshot, error) {
 	tip, err := s.tip(ctx)
 	if err != nil {
-		return nil, "", err
+		return snapshot{}, err
 	}
 	if tip == "" {
-		return nil, "", &Rejection{
-			Code:  "not_initialized",
-			Check: "the registry ref " + Ref + " exists",
-			Found: Ref + " is missing",
-			Fix:   "solomonar init",
+		return snapshot{}, notInitialized()
+	}
+	blobs, err := s.treeBlobs(ctx, tip)
+	if err != nil {
+		return snapshot{}, err
+	}
+	files := make(map[string][]byte, len(blobs))
+	for path, b := range blobs {
+		files[path] = b.data
+	}
+	reg, err := DecodeFiles(files)
+	if err != nil {
+		return snapshot{}, err
+	}
+	return snapshot{registry: reg, tip: tip, blobs: blobs}, nil
+}
+
+func notInitialized() *Rejection {
+	return &Rejection{
+		Code:  "not_initialized",
+		Check: "the registry ref " + Ref + " exists",
+		Found: Ref + " is missing",
+		Fix:   "solomonar init",
+	}
+}
+
+// treeBlobs reads every file of the commit's tree with one ls-tree and one cat-file --batch.
+func (s *Store) treeBlobs(ctx context.Context, commit string) (map[string]blob, error) {
+	listing, err := s.Git.RunRaw(ctx, nil, "ls-tree", "-r", "-z", "--full-tree", commit)
+	if err != nil {
+		return nil, fmt.Errorf("read workflow-state: %w", err)
+	}
+	var paths, shas []string
+	for entry := range strings.SplitSeq(strings.TrimSuffix(string(listing), "\x00"), "\x00") {
+		if entry == "" {
+			continue
 		}
+		info, path, _ := strings.Cut(entry, "\t")
+		fields := strings.Fields(info)
+		if len(fields) != 3 || fields[1] != "blob" {
+			return nil, invalidRegistry("unexpected %s entry %s", fields[1], path)
+		}
+		paths = append(paths, path)
+		shas = append(shas, fields[2])
 	}
-	data, err := s.blob(ctx, tip)
+	contents, err := s.catBlobs(ctx, shas)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
-	reg, err := Decode(data)
+	blobs := make(map[string]blob, len(paths))
+	for i, path := range paths {
+		blobs[path] = blob{sha: shas[i], data: contents[i]}
+	}
+	return blobs, nil
+}
+
+func (s *Store) catBlobs(ctx context.Context, shas []string) ([][]byte, error) {
+	if len(shas) == 0 {
+		return nil, nil
+	}
+	out, err := s.Git.RunRaw(ctx, strings.NewReader(strings.Join(shas, "\n")+"\n"), "cat-file", "--batch")
 	if err != nil {
-		return nil, "", err
+		return nil, fmt.Errorf("read workflow-state: %w", err)
 	}
-	return reg, tip, nil
+	contents := make([][]byte, len(shas))
+	for i := range shas {
+		header, rest, ok := bytes.Cut(out, []byte("\n"))
+		fields := strings.Fields(string(header))
+		if !ok || len(fields) != 3 {
+			return nil, fmt.Errorf("read workflow-state: unexpected cat-file output %q", header)
+		}
+		size, err := strconv.Atoi(fields[2])
+		if err != nil || size+1 > len(rest) {
+			return nil, fmt.Errorf("read workflow-state: unexpected cat-file output %q", header)
+		}
+		contents[i] = rest[:size]
+		out = rest[size+1:]
+	}
+	return contents, nil
 }
 
 // ReadSchema returns the schema version at the tip of Ref without decoding the registry strictly.
@@ -70,7 +157,7 @@ func (s *Store) ReadSchema(ctx context.Context) (schema int, present bool, err e
 	if err != nil || tip == "" {
 		return 0, false, err
 	}
-	data, err := s.blob(ctx, tip)
+	data, err := s.header(ctx, tip)
 	if err != nil {
 		return 0, true, err
 	}
@@ -78,8 +165,8 @@ func (s *Store) ReadSchema(ctx context.Context) (schema int, present bool, err e
 	return schema, true, err
 }
 
-func (s *Store) blob(ctx context.Context, tip string) ([]byte, error) {
-	data, err := s.Git.Run(ctx, "cat-file", "blob", tip+":state.json")
+func (s *Store) header(ctx context.Context, tip string) ([]byte, error) {
+	data, err := s.Git.Run(ctx, "cat-file", "blob", tip+":"+headerFile)
 	if err != nil {
 		return nil, fmt.Errorf("read workflow-state: %w", err)
 	}
@@ -95,7 +182,7 @@ func (s *Store) Create(ctx context.Context) (Commit, error) {
 	if tip != "" {
 		return Commit{}, fmt.Errorf("create workflow-state: %s already exists", Ref)
 	}
-	sha, err := s.writeCommit(ctx, NewRegistry(), initSubject, "")
+	sha, err := s.writeCommit(ctx, NewRegistry(), nil, initSubject, "")
 	if err != nil {
 		return Commit{}, err
 	}
@@ -110,18 +197,19 @@ func (s *Store) Create(ctx context.Context) (Commit, error) {
 // An empty subject from fn means no change: Update writes nothing and returns the current tip.
 func (s *Store) Update(ctx context.Context, fn func(*Registry) (subject string, err error)) (Commit, error) {
 	for range maxSwapAttempts {
-		reg, old, err := s.Read(ctx)
+		snap, err := s.read(ctx)
 		if err != nil {
 			return Commit{}, err
 		}
-		subject, err := fn(reg)
+		old := snap.tip
+		subject, err := fn(snap.registry)
 		if err != nil {
 			return Commit{}, err
 		}
 		if subject == "" {
 			return Commit{SHA: old}, nil
 		}
-		sha, err := s.writeCommit(ctx, reg, subject, old)
+		sha, err := s.writeCommit(ctx, snap.registry, snap.blobs, subject, old)
 		if err != nil {
 			return Commit{}, err
 		}
@@ -140,7 +228,11 @@ func (s *Store) Update(ctx context.Context, fn func(*Registry) (subject string, 
 			return Commit{}, fmt.Errorf("update workflow-state: %w", swapErr)
 		}
 	}
-	return Commit{}, &Rejection{
+	return Commit{}, casExhausted()
+}
+
+func casExhausted() *Rejection {
+	return &Rejection{
 		Code:  "cas_exhausted",
 		Check: fmt.Sprintf("the registry compare-and-swap succeeds within %d attempts", maxSwapAttempts),
 		Found: fmt.Sprintf("%s moved during each of %d attempts", Ref, maxSwapAttempts),
@@ -148,7 +240,67 @@ func (s *Store) Update(ctx context.Context, fn func(*Registry) (subject string, 
 	}
 }
 
-// tip returns the commit Ref points to, or "" when Ref does not exist.
+// Migrate rewrites a schema-1 registry as the current schema on top of its history (CLI-D26).
+// It returns migrated false, writing nothing, when the registry already has the current schema.
+func (s *Store) Migrate(ctx context.Context) (reg *Registry, commit Commit, migrated bool, err error) {
+	for range maxSwapAttempts {
+		old, err := s.tip(ctx)
+		if err != nil {
+			return nil, Commit{}, false, err
+		}
+		reg, legacy, err := s.readForMigration(ctx, old)
+		if err != nil || !legacy {
+			return reg, Commit{SHA: old}, false, err
+		}
+		subject := fmt.Sprintf("state: migrate schema %d -> %d", legacySchema, SchemaVersion)
+		sha, err := s.writeCommit(ctx, reg, nil, subject, old)
+		if err != nil {
+			return nil, Commit{}, false, err
+		}
+		swapErr := s.swap(ctx, sha, old)
+		if swapErr == nil {
+			return reg, s.push(ctx, sha), true, nil
+		}
+		if ctx.Err() != nil {
+			return nil, Commit{}, false, fmt.Errorf("migrate workflow-state: %w", swapErr)
+		}
+		if current, err := s.tip(ctx); err != nil || current == old {
+			return nil, Commit{}, false, cmp.Or(err, fmt.Errorf("migrate workflow-state: %w", swapErr))
+		}
+	}
+	return nil, Commit{}, false, casExhausted()
+}
+
+// readForMigration decodes the registry at tip; legacy reports a schema-1 registry, now current.
+func (s *Store) readForMigration(ctx context.Context, tip string) (reg *Registry, legacy bool, err error) {
+	if tip == "" {
+		return nil, false, notInitialized()
+	}
+	data, err := s.header(ctx, tip)
+	if err != nil {
+		return nil, false, err
+	}
+	version, err := SchemaOf(data)
+	if err != nil {
+		return nil, false, err
+	}
+	if version != legacySchema {
+		reg, _, err := s.Read(ctx)
+		return reg, false, err
+	}
+	reg, err = DecodeLegacy(data)
+	if err != nil {
+		return nil, false, err
+	}
+	reg.SchemaVersion = SchemaVersion
+	return reg, true, nil
+}
+
+// Tip returns the commit Ref points to, or "" when Ref does not exist.
+func (s *Store) Tip(ctx context.Context) (string, error) {
+	return s.tip(ctx)
+}
+
 func (s *Store) tip(ctx context.Context) (string, error) {
 	out, err := s.Git.Run(ctx, "rev-parse", "--verify", "--quiet", Ref)
 	// With --quiet, a missing ref exits 1 without output.
@@ -161,18 +313,27 @@ func (s *Store) tip(ctx context.Context) (string, error) {
 	return out, nil
 }
 
-func (s *Store) writeCommit(ctx context.Context, reg *Registry, subject, parent string) (string, error) {
-	data, err := reg.Encode()
+// writeCommit writes the registry's tree, hashing only files whose content differs from previous.
+func (s *Store) writeCommit(ctx context.Context, reg *Registry, previous map[string]blob, subject, parent string) (string, error) {
+	files, err := reg.Files()
 	if err != nil {
 		return "", err
 	}
-	blob, err := s.Git.RunInput(ctx, bytes.NewReader(data), "hash-object", "-w", "--stdin")
-	if err != nil {
-		return "", fmt.Errorf("write state.json: %w", err)
+	shas := make(map[string]string, len(files))
+	for path, data := range files {
+		if old, ok := previous[path]; ok && bytes.Equal(old.data, data) {
+			shas[path] = old.sha
+			continue
+		}
+		sha, err := s.Git.RunInput(ctx, bytes.NewReader(data), "hash-object", "-w", "--stdin")
+		if err != nil {
+			return "", fmt.Errorf("write %s: %w", path, err)
+		}
+		shas[path] = sha
 	}
-	tree, err := s.Git.RunInput(ctx, strings.NewReader("100644 blob "+blob+"\tstate.json\n"), "mktree")
+	tree, err := s.writeTree(ctx, shas)
 	if err != nil {
-		return "", fmt.Errorf("write registry tree: %w", err)
+		return "", err
 	}
 	args := []string{"commit-tree", tree, "-m", subject}
 	if parent != "" {
@@ -183,6 +344,29 @@ func (s *Store) writeCommit(ctx context.Context, reg *Registry, subject, parent 
 		return "", fmt.Errorf("write registry commit: %w", err)
 	}
 	return sha, nil
+}
+
+// writeTree builds the tasks subtree, when there are tasks, and the root tree around it.
+func (s *Store) writeTree(ctx context.Context, shas map[string]string) (string, error) {
+	var tasks strings.Builder
+	for _, path := range slices.Sorted(maps.Keys(shas)) {
+		if name, ok := strings.CutPrefix(path, tasksDir); ok {
+			fmt.Fprintf(&tasks, "100644 blob %s\t%s\n", shas[path], name)
+		}
+	}
+	root := fmt.Sprintf("100644 blob %s\t%s\n", shas[headerFile], headerFile)
+	if tasks.Len() > 0 {
+		subtree, err := s.Git.RunInput(ctx, strings.NewReader(tasks.String()), "mktree")
+		if err != nil {
+			return "", fmt.Errorf("write tasks tree: %w", err)
+		}
+		root += fmt.Sprintf("040000 tree %s\t%s\n", subtree, strings.TrimSuffix(tasksDir, "/"))
+	}
+	tree, err := s.Git.RunInput(ctx, strings.NewReader(root), "mktree")
+	if err != nil {
+		return "", fmt.Errorf("write registry tree: %w", err)
+	}
+	return tree, nil
 }
 
 // swap moves Ref from old to sha unless ctx is already done.

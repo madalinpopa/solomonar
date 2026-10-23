@@ -282,7 +282,11 @@ func TestTaskShowJSON(t *testing.T) {
 	assert.JSONEq(t, `{
 		"ok": true,
 		"command": "task show",
-		"data": {"registry": `+gittest.Git(t, dir, "show", tip+":state.json")+`, "commit": "`+tip+`"},
+		"data": {"registry": {"schema_version": 2, "tasks": {
+			"W-001": `+gittest.Git(t, dir, "show", tip+":tasks/W-001.json")+`,
+			"W-002": `+gittest.Git(t, dir, "show", tip+":tasks/W-002.json")+`,
+			"W-010": `+gittest.Git(t, dir, "show", tip+":tasks/W-010.json")+`
+		}}, "commit": "`+tip+`"},
 		"warnings": []
 	}`, overview.stdout)
 	require.Equal(t, 0, record.exit, record.stderr)
@@ -352,7 +356,7 @@ func TestVerboseTracesGitOnStderr(t *testing.T) {
 
 	require.Equal(t, 0, got.exit, got.stderr)
 	assert.Contains(t, got.stderr, "+ git rev-parse --path-format=absolute --show-toplevel --git-common-dir\n+ git version\n")
-	assert.Contains(t, got.stderr, "+ git cat-file blob ")
+	assert.Contains(t, got.stderr, "+ git cat-file --batch\n")
 }
 
 // putManifest writes a manifest of the given schema naming remote and mainBranch.

@@ -152,7 +152,7 @@ func TestTaskDoneJSON(t *testing.T) {
 			"id": "W-001",
 			"from": {"status": "running", "stage": "integration"},
 			"to": {"status": "done", "stage": "complete"},
-			"changed": ["status", "stage", "owner", "branch", "spec", "revision", "tier", "next_action",
+			"changed": ["status", "stage", "owner", "confirmed", "branch", "spec", "revision", "tier", "next_action",
 				"summary", "spec_ref", "merge_commit"],
 			"record": `+f.recordJSON()+`,
 			"commit": "`+registryTip(t, f.dir)+`",
@@ -185,7 +185,7 @@ func TestTaskDoneDryRunWritesNothing(t *testing.T) {
 			"id": "W-001",
 			"from": {"status": "running", "stage": "integration"},
 			"to": {"status": "done", "stage": "complete"},
-			"changed": ["status", "stage", "owner", "branch", "spec", "revision", "tier", "next_action",
+			"changed": ["status", "stage", "owner", "confirmed", "branch", "spec", "revision", "tier", "next_action",
 				"summary", "spec_ref", "merge_commit"],
 			"record": `+f.recordJSON()+`,
 			"dry_run": true
