@@ -62,10 +62,23 @@ func (r *Repo) RunInput(ctx context.Context, stdin io.Reader, args ...string) (s
 	return run(ctx, "git", r.Dir, r.Trace, stdin, args)
 }
 
+// RunRaw is RunInput returning stdout unchanged, for output whose trailing bytes matter.
+func (r *Repo) RunRaw(ctx context.Context, stdin io.Reader, args ...string) ([]byte, error) {
+	return runRaw(ctx, "git", r.Dir, r.Trace, stdin, args)
+}
+
 func run(ctx context.Context, program, dir string, trace io.Writer, stdin io.Reader, args []string) (string, error) {
+	out, err := runRaw(ctx, program, dir, trace, stdin, args)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimRightFunc(string(out), unicode.IsSpace), nil
+}
+
+func runRaw(ctx context.Context, program, dir string, trace io.Writer, stdin io.Reader, args []string) ([]byte, error) {
 	if trace != nil {
 		if _, err := fmt.Fprintln(trace, "+ "+program+" "+strings.Join(args, " ")); err != nil {
-			return "", fmt.Errorf("write trace: %w", err)
+			return nil, fmt.Errorf("write trace: %w", err)
 		}
 	}
 	var stdout, stderr bytes.Buffer
@@ -75,9 +88,9 @@ func run(ctx context.Context, program, dir string, trace io.Writer, stdin io.Rea
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		return "", commandError(ctx, program, args, &stderr, err)
+		return nil, commandError(ctx, program, args, &stderr, err)
 	}
-	return strings.TrimRightFunc(stdout.String(), unicode.IsSpace), nil
+	return stdout.Bytes(), nil
 }
 
 func commandError(ctx context.Context, program string, args []string, stderr *bytes.Buffer, err error) error {
