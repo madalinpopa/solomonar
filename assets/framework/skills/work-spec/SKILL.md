@@ -9,8 +9,9 @@ Framework version: 0.1.5
 
 ## 1. Purpose and boundaries
 
-- A work spec describes one change: authorized outcome, context, acceptance criteria (ACs), constraints, checks.
-  Registry state (status, stage, owner, blocker records, revisions, verdicts) stays out of this document.
+- A work spec describes one change: authorized outcome, context, acceptance criteria (ACs), constraints, checks,
+  and the implementation plan with its approval status. Registry state (status, stage, owner, blocker records,
+  revisions, verdicts) and execution progress stay out of this document; progress lives in checkpoint commits.
 - Only the owning orchestrator uses this skill, for a registered task in its assigned `feature/<ID>` worktree.
   Registration, lifecycle transitions, and review stability remain its responsibility outside this skill.
 - You may edit only `docs/work/<ID>-<slug>.md` in that worktree. You must not edit `docs/specs/`, `docs/ui.md`,
@@ -65,7 +66,8 @@ assigned worktree on `feature/<ID>`. Stop on mismatch; preserve unrelated edits.
    there. Technical clarifications can stay task-local; product behavior answers enter "Spec changes" (section 4).
    Report resolved canonical question IDs and their answer sources for the orchestrator's `spec` update.
    Once an applicable approved decision exists, cite its ID and remove the question it resolves.
-8. Validate the document (section 6), then evaluate the readiness gate (section 5).
+8. When the readiness gate (section 5) passes, write the implementation plan (section 7) with `Status: In review`.
+   Validate the document (section 6), then evaluate the readiness gate.
 9. Commit only the work spec: `git add -- <path>`, inspect `git diff --cached -- <path>`, then
    `git commit --only -m "spec(<ID>): draft task specification" -- <path>`; later revisions use
    `spec(<ID>): refine task specification`. Preserve unrelated staged changes; skip unchanged commits. Never
@@ -142,8 +144,27 @@ Before the verdict and commit, check:
   and to a named check with any verification limit.
 - Question markers match their impact; unresolved blockers remain visible. Behavior answers appear in "Spec
   changes"; resolved canonical questions are reported for the orchestrator to update.
+- `Status:` is `In review` or `Approved`; plan steps are `- S-<n>: <type>(<ID>): <summary>` with unique,
+  never-reused IDs, and outcomes carry a reason.
 - No copied unchanged canonical rules, execution state, template hints, or unused placeholders remain. Pending
   `<capability>/new` entries remain explicit until the orchestrator replaces them.
 
 Run `git diff --check -- <path>` and inspect `git diff -- <path>` for unintended changes. Report validation gaps;
 apply section 5's gate without editing files outside the work spec.
+
+## 7. Implementation plan and approval
+
+- Under `## Implementation plan`, list the intended commits in order: `- S-<n>: <type>(<ID>): <summary>`, the
+  exact checkpoint commit subject (type ∈ `feat`, `fix`, `refactor`, `test`, `docs`, `build`, `chore`, `perf`).
+  Indented lines below a step delimit its work: files or areas, the ACs it serves, its checks. Each step is one
+  coherent, independently checkable change; no step only records progress.
+- The line below the title is `Status: In review` or `Status: Approved`, exactly. A new or changed plan is
+  `In review`. Only the orchestrator sets `Approved`, after the user explicitly approves the exact plan
+  (`rules.md` section 4 step 7), and commits it as `spec(<ID>): approve implementation plan`. Reuse an existing
+  explicit approval that covers the exact plan; never ask twice.
+- Step IDs are never reused. A change to an approved step's scope takes a new ID and returns `Status` to
+  `In review`. Corrections within the approved scope are appended as new steps without a new approval. Close a
+  step that became unnecessary or was satisfied by verification with an indented
+  `Outcome: dropped — <reason>` or `Outcome: verified — <reason>`; never delete a step that has a checkpoint.
+- The plan is the approved plan, not an execution log: never mark steps done in it. `solomonar task status`
+  reconciles it with the checkpoint commits.
