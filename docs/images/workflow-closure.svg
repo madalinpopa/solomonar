@@ -72,7 +72,7 @@ svg { font-family: var(--sans); }
       <text class="s" x="820" y="210" text-anchor="middle">writes the record</text>
 
       <rect class="box-acc" x="690" y="14" width="250" height="96" rx="4"/>
-      <text class="t-sm" x="704" y="36">Compact record in state.json</text>
+      <text class="t-sm" x="704" y="36">Compact tasks/W-001.json</text>
       <text class="s" x="704" y="56">done · complete</text>
       <text class="s" x="704" y="74">spec_ref = SHA_SPEC:path</text>
       <text class="s" x="704" y="92">merge_commit = SHA_MERGE</text>
