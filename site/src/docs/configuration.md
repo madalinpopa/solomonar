@@ -31,7 +31,7 @@ sources:
 | `.agents/skills/`, `.codex/agents/` | Codex adapter stubs. | Managed runtime files |
 | `.github/skills/<skill>/SKILL.md`, `.github/agents/<role>.agent.md` | Copilot CLI adapter stubs. | Managed runtime files, `runtime:copilot` |
 | `.solomonar/manifest.json` | Your choices and the base hash of every managed file. | CLI only |
-| `refs/heads/workflow-state` | The task registry, `state.json`. | `solomonar task` commands only |
+| `refs/heads/workflow-state` | The task registry: `state.json` with the schema version and one `tasks/<ID>.json` per task. | `solomonar task` commands only |
 
 ## Files your work creates
 
