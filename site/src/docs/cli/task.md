@@ -24,7 +24,7 @@ The examples on this page come from runs of the current build in the fictional `
 
 ## Conventions
 
-Task IDs have the form `W-NNN`. Every writing task command accepts `--json` and `--dry-run`, and a successful write is one commit on the registry branch. When the project has a remote, the CLI pushes that commit and prints `pushed origin/workflow-state`; without one it warns that the registry stays local.
+Task IDs have the form `W-NNN`. Every writing task command accepts `--json`; all except `task migrate` also accept `--dry-run`, and a successful write is one commit on the registry branch. When the project has a remote, the CLI pushes that commit and prints `pushed origin/workflow-state`; without one it warns that the registry stays local.
 
 | Value | Format |
 | --- | --- |
@@ -509,9 +509,9 @@ A rejection names the missing evidence: `worktree_mismatch` when the worktree mo
 
 ## solomonar task migrate
 
-Rewrites a registry written by CLI 0.1.6 or earlier, one `state.json` with every task (schema 1), as one file per task (schema 2). The migration is one commit on top of the registry history. It infers nothing: active tasks stay unconfirmed and keep no base or worktree until their owners record them.
+Rewrites a registry written by CLI 0.1.5 or earlier, one `state.json` with every task (schema 1), as one file per task (schema 2). The migration is one commit on top of the registry history. It infers nothing: active tasks stay unconfirmed and keep no base or worktree until their owners record them.
 
-{% cliUsage "Once per repository, when any command reports `registry_outdated`. Run it after upgrading every machine that writes the registry: CLI 0.1.6 rejects the migrated registry.", "You. It takes no `--as`." %}
+{% cliUsage "Once per repository, when any command reports `registry_outdated`. Run it after upgrading every machine that writes the registry: CLI 0.1.5 rejects the migrated registry.", "You. It takes no `--as`." %}
 
 ```text
 solomonar task migrate [--json]
