@@ -1,8 +1,10 @@
 # <ID>: <Change title>
+Status: In review
 Type: <feature | bug fix | refactor | technical task>
 
 <!-- Framework version: 0.1.5. English. Delete empty optional sections, unused optional bullets, and all hints.
-No execution state or readiness verdicts. -->
+No execution state or readiness verdicts. Status stays "In review" until the user approves the implementation
+plan; the orchestrator then sets "Approved". -->
 
 ## Outcome and scope
 
@@ -32,3 +34,10 @@ Observed rule confirmation: (<rule ID>, confirmed user YYYY-MM-DD). -->
 <!-- Optional. Blocking first. Reuse canonical question IDs; otherwise use <ID>/Q-n. -->
 
 - <question ID> · <question> · <blocking | non-blocking> · needs decision: <yes|no>
+
+## Implementation plan
+<!-- One step per intended checkpoint commit, in order. The subject is the exact commit subject. Never reuse
+a step ID; close an unnecessary step with an indented "Outcome: dropped — <reason>" or "Outcome: verified — <reason>". -->
+
+- S-1: <type>(<ID>): <summary>
+  <What the step changes, its ACs, and its checks.>
