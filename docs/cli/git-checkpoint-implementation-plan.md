@@ -1,6 +1,6 @@
 # Git checkpoint task recovery: implementation plan
 
-Status: contract resolved (see Resolved contract); implementation in progress.
+Status: implemented on `feat/git-checkpoint-recovery`; live runtime acceptance (step 5) is pending.
 It does not describe behavior already delivered by the CLI.
 
 ## Goal
@@ -216,20 +216,20 @@ duplicate progress, or review each checkpoint independently.
 
 Depends on the final user-facing contract.
 
-- [ ] Update [README](../../README.md), [CONTRIBUTING](../../CONTRIBUTING.md), the design contracts, and
+- [x] Update [README](../../README.md), [CONTRIBUTING](../../CONTRIBUTING.md), the design contracts, and
   installed documentation templates.
-- [ ] Update site pages for [task state](../../site/src/docs/task-state.md),
+- [x] Update site pages for [task state](../../site/src/docs/task-state.md),
   [workflow](../../site/src/docs/workflow.md), [the first task](../../site/src/docs/first-task.md), and
   [task commands](../../site/src/docs/cli/task.md).
-- [ ] Update [configuration](../../site/src/docs/configuration.md),
+- [x] Update [configuration](../../site/src/docs/configuration.md),
   [project setup](../../site/src/docs/set-up-a-project.md),
   [troubleshooting](../../site/src/docs/troubleshooting.md), and
   [use cases](../../site/src/docs/use-cases.md) where the old contracts appear.
-- [ ] Revise affected diagrams in `docs/images/` and references elsewhere in the site. Explain the
+- [x] Revise affected diagrams in `docs/images/` and references elsewhere in the site. Explain the
   distinction between base, checkpoint, approved plan, reviewed candidate, and confirmed merge.
-- [ ] Include a complete successful task and a recovery example with committed steps plus unfinished
+- [x] Include a complete successful task and a recovery example with committed steps plus unfinished
   working-tree changes. Document migration and workspace relocation.
-- [ ] Describe commands as available only once implemented. Document managed-gate enforcement limits
+- [x] Describe commands as available only once implemented. Document managed-gate enforcement limits
   and the absence of automatic session-failure detection.
 
 Completion: examples, command reference, framework assets, and implementation agree on one workflow.
