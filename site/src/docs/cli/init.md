@@ -76,7 +76,7 @@ Would initialize solomonar 0.1.4 in /work/ledger
   29 files created
 ```
 
-Then set up the project for both runtimes, in a repository with an `origin` remote:
+Then set up the project for Claude Code and Codex, in a repository with an `origin` remote:
 
 ```sh
 solomonar init --name ledger --objective "Track shared household expenses" \
@@ -124,7 +124,7 @@ Would initialize solomonar 0.1.4 in /work/ledger
   28 files created
 ```
 
-Remove `--dry-run` to install, then follow the printed commit command. It names individual Copilot adapter files rather than the whole `.github` directory, keeping unrelated GitHub configuration out of the suggested commit. Start `copilot` at the repository root and enter `/solomonar Explore the next useful flow.` in the top-level session. The invocation and discovery paths follow GitHub's [official CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference); live runtime acceptance and the minimum supported Copilot version remain pending.
+Remove `--dry-run` to install, then follow the printed commit command. It names individual Copilot adapter files rather than the whole `.github` directory, keeping unrelated GitHub configuration out of the suggested commit. Start `copilot` at the repository root and enter `/solomonar Explore the next useful flow.` in the top-level session. The invocation and discovery paths follow GitHub's [official CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference). Copilot 1.0.85 passed local discovery checks, but account policy rejected a live session; full runtime acceptance and the minimum supported version remain pending. See the [acceptance record]({{ 'docs/cli/plan.md' | source }}#copilot-runtime-acceptance).
 
 You can combine runtimes, for example `--runtime codex,copilot`. JSON reports the sorted selection in `data.choices.runtimes`, each adapter with owner `runtime:copilot` in `data.files`, and the same staging paths in `data.next`. Add `--adversarial-model copilot=<model>` to request an adversarial model; installation does not authenticate or check model access. Copilot may override or fall back from that preference. No Copilot hook is installed.
 
