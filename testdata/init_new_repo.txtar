@@ -11,7 +11,7 @@ stderr '^  fix:   pass --yes to accept the plan, or --dry-run to print it$'
 # --dry-run prints the plan and writes nothing.
 exec solomonar init --runtime none --ext none --dry-run
 stdout '^  create     docs/solomonar/rules.md$'
-stdout '^  registry   create refs/heads/workflow-state with an empty state.json$'
+stdout '^  registry   create refs/heads/workflow-state with an empty registry$'
 stdout '^  19 files created$'
 ! exists .solomonar
 ! exec git rev-parse --verify --quiet refs/heads/workflow-state
@@ -29,6 +29,8 @@ exists AGENTS.md docs/README.md
 grep '"name": "repo"' .solomonar/manifest.json
 exec git show refs/heads/workflow-state:state.json
 cmp stdout ../empty_state.json
+exec git ls-tree -r --name-only refs/heads/workflow-state
+stdout -count=1 '^.'
 
 # The same choices again are a no-op that needs no confirmation.
 exec git rev-parse refs/heads/workflow-state
@@ -47,8 +49,7 @@ cmp docs/solomonar/rules.md ../edited_rules.md
 
 -- empty_state.json --
 {
-  "schema_version": 1,
-  "tasks": {}
+  "schema_version": 2
 }
 -- edited_rules.md --
 project rules
