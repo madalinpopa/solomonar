@@ -15,7 +15,7 @@ sources:
 
 You talk to an agent session; the agents do the work; the CLI records it. This page follows one feature of the `ledger` project from [Set up a project]({{ '/docs/set-up-a-project/' | url }}): adding a shared expense.
 
-Two kinds of input appear below. **Agent prompts** go into a Claude Code or Codex session started in the project directory. **Terminal commands** go into your shell.
+Two kinds of input appear below. **Agent prompts** go into your configured agent session started in the project directory. **Terminal commands** go into your shell. Copilot CLI adapter installation is available, but its live workflow acceptance remains pending; see [configuration]({{ '/docs/configuration/' | url }}).
 
 ## Open a session
 
@@ -25,6 +25,7 @@ Start a new top-level session in the project. The entry point is the `solomonar`
 | --- | --- |
 | Claude Code | `/solomonar` followed by your request |
 | Codex | `$solomonar` followed by your request |
+| GitHub Copilot CLI | `/solomonar` followed by your request (live workflow acceptance pending) |
 | Any runtime | “Use the solomonar skill.” followed by your request |
 
 With no request, the skill reports what is waiting on you and what can start. With a request, it hands over to the skill or role that owns it, in the same session.
