@@ -241,8 +241,8 @@ Verification section (`report.md` section 8).
 | `task show [<ID>]` | anyone | Reads the stored record |
 | `task status <ID> [--json]` | anyone | Reads record, Git and available forge facts, drift, and allowed next commands; writes nothing |
 
-- `planned` records are created by the user with `task plan`; they have no owner. This is the only state write
-  not made by an orchestrator. Otherwise each orchestrator writes only its own task's record.
+- `planned` records are created by the user with `task plan`; they have no owner. The user also runs the
+  administrative `task migrate` command. Otherwise each orchestrator writes only its own task's record.
 - Owner commands accept `SOLOMONAR_OWNER` as the terminal default for `--as`. Agents pass `--as <owner>` on
   every `move`, `block`, `unblock`, and `done` call; shells need not preserve environment variables.
 - Discover field flags with `solomonar help task move`. Combine related changes in one validated update.
