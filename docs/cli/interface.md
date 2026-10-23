@@ -1613,8 +1613,8 @@ allowed next
   solomonar task move W-001 --as orchestrator-1 --status cancelled --next <actor>:<action>
 ```
 
-The human form has a `<ID>  <title>` header and the sections `record`, `git`, `forge (gh)`, `drift`, and `allowed
-next`, each line indented two spaces with its label padded to the widest label of the section. `status` is `<status>
+The human form has a `<ID>  <title>` header and the sections `record`, `git`, `plan` (not for a `planned` or `done`
+record), `forge (gh)`, `drift`, and `allowed next`, each line indented two spaces with its label padded to the widest label of the section. `status` is `<status>
 / <stage>   owner <owner>   tier <tier>` (`-` for a missing stage or owner, `tier none` without a tier); past `setup`
 the owner is followed by ` (confirmed)` or ` (unconfirmed)`. `base`, `worktree` (as recorded), `spec`,
 `revision`, `agents` (`<id> <role>, …` then `(last reported, not liveness)`; plain `none` when empty), `blockers`
@@ -1627,7 +1627,10 @@ worktree)`; `dirty` `clean`, `1 path: <p> (<state>)`, `<n> paths: <p> (<state>),
 `spec` `present in worktree and at revision`, `present in worktree only`, `present at revision only`, `missing`, or
 `none recorded`; `merged` `yes, by <merge sha> (merge commit on <main>)` whenever the facts have a merge commit,
 `no` otherwise; `spec_ref` `derived <spec_ref> (last spec(<ID>) commit merged)` only when derived and the record is
-not `done` (a `done` record's recorded `spec_ref` is in the record section). `forge (gh)`: `pr` `#<n> <state
+not `done` (a `done` record's recorded `spec_ref` is in the record section). `plan` (8.7): `approval <state> at
+<tip8>`, with `: <problem>` when `invalid`, or `unknown (no spec, base, or branch recorded)`; with steps, `steps <n> of
+<m> committed`, then `; remaining S-a, S-b` when any remain, `closed S-c dropped, S-d verified` when any step has an
+outcome, `other <n> commit(s) without a Step trailer`, and one `<code>  <message>` line per discrepancy. `forge (gh)`: `pr` `#<n> <state
 lowercased>`, `none for feature/<ID>`, `unknown (gh unavailable)`, or `unknown (--no-forge)`; `checks` the check
 state, or `unknown (no PR)` without a PR. `drift` lists `<code>  <message>` with codes padded; `allowed next` one
 command per line, unwrapped; each is `none` when empty.
@@ -1829,7 +1832,8 @@ Checks run in order: the lookup (`task_not_found`), `done_final`, `not_registere
 <owner> --status running --stage specification`), then the preflight: `branch_missing`, `worktree_unrecorded` (fix
 `solomonar task move <ID> --as <owner> --worktree <path relative to the main checkout>`), `worktree_missing` or
 `worktree_mismatch` (8.3), `base_missing` (fix `solomonar task move <ID> --as <owner> --base <full sha>, after
-inspecting the branch history`), and `base_not_on_branch`. An already confirmed task is unchanged: the header ends
+inspecting the branch history`), `base_not_on_branch`, and, from `implementation` until `integration` (closure deletes
+the work spec there), the approved plan at the branch tip (`plan_not_approved`, `plan_invalid`). An already confirmed task is unchanged: the header ends
 with ` (unchanged)`, no commit is written, and `--json` has `changed: []` and the current tip, as on `task move`.
 `--json` and `--dry-run` follow `task move` (UC-13); `changed` is `["confirmed"]`.
 
@@ -1942,7 +1946,9 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `--base` | full SHA; equal to the recorded base when one exists; `git merge-base --is-ancestor <base> feature/<ID>` | `invalid_value`, `base_recorded`, `base_not_on_branch` |
 | `--worktree` | clean `/`-separated relative path (`..` allowed); resolved against the main worktree, it is the path Git lists for `feature/<ID>` (symbolic links resolved) | `invalid_value`, `worktree_mismatch` |
 | a stage change other than leaving `setup`, `task done` | the record is `confirmed` | `confirmation_required` |
-| `task confirm` | branch, recorded worktree as for `--worktree`, recorded base as for `--base` | `branch_missing`, `worktree_unrecorded`, `worktree_missing`, `worktree_mismatch`, `base_missing`, `base_not_on_branch` |
+| `--stage implementation` from `specification` | the spec committed at the tip of `feature/<ID>` (not the worktree file) parses (8.7), reads `Status: Approved`, and lists a step | `plan_not_approved`, `plan_invalid` |
+| a move from `implementation` to `specialized_review` or `integration` | `base` recorded; `--revision` (or the recorded revision) is the tip of `feature/<ID>`; `git status --porcelain` in its worktree is empty; the plan at the revision is approved; reconciliation (8.7) finds no discrepancy and every step committed or closed by an outcome | `base_missing`, `candidate_not_tip`, `candidate_dirty`, `plan_not_approved`, `plan_invalid`, `checkpoint_discrepancy`, `plan_incomplete` |
+| `task confirm` | branch, recorded worktree as for `--worktree`, recorded base as for `--base`; from `implementation` up to, not including, `integration`, the approved plan at the branch tip | `branch_missing`, `worktree_unrecorded`, `worktree_missing`, `worktree_mismatch`, `base_missing`, `base_not_on_branch`, `plan_not_approved`, `plan_invalid` |
 | `--spec` | clean path relative to the worktree: not absolute, no `..` element, not `.`, already in clean form (`./a`, `a//b`, `a/`, `a/../b` are rejected) | `invalid_value` |
 | `--spec` given, or the move enters `implementation` | `spec` is a regular file in the worktree on `feature/<ID>` (located by `git worktree list --porcelain`), or a blob at the recorded `revision` (`git cat-file -t <revision>:<spec>` is `blob`; a directory does not count) | `spec_not_found` |
 | `--agent` | `<id>:<role>` split at the first `:`, id `[a-z]+-[0-9]+`, a core delegated role or an extension agent whose manifest state is `installed`, never a draft or `orchestrator`; without a manifest, the core agents `adversarial-reviewer`, `correctness-reviewer`, `implementer`, `security-reviewer`, `spec-reviewer`; the fix lists the allowed roles | `invalid_value` |
@@ -1985,6 +1991,12 @@ rejection) unless the command was cancelled; any other Git failure is `unexpecte
 | `revision_not_full_sha` | 3 | Short or malformed SHA | `git rev-parse <short>` |
 | `branch_missing` | 3 | `feature/<ID>` does not exist | create the branch and worktree (rules section 4) |
 | `confirmation_required` | 3 | A stage change or `task done` on an unconfirmed task; found `<ID> is not confirmed by <owner>` | `inspect with solomonar task status <ID>, then solomonar task confirm <ID> --as <owner>` |
+| `plan_not_approved` | 3 | The committed work spec is not `Status: Approved`; found `status is "<value>" at <sha8>`, or `<spec> is not committed at <sha8>` | record the user's approval as `Status: Approved` below the title and commit the work spec |
+| `plan_invalid` | 3 | The work spec's Status line or plan does not parse (8.7), or lists no step | correct the work spec and commit it |
+| `candidate_not_tip` | 3 | The candidate is not the tip of `feature/<ID>`; found `revision <sha8>; feature/<ID> is at <sha8>` | pass `--revision` with the full SHA of the branch tip |
+| `candidate_dirty` | 3 | The `feature/<ID>` worktree has uncommitted changes; found `<n> uncommitted path(s)` | commit the work as a checkpoint, or preserve it outside the candidate (rules section 10) |
+| `plan_incomplete` | 3 | Steps without a checkpoint commit or outcome; found `S-2, S-3 have no checkpoint commit` | delegate the remaining steps, or record an outcome in the plan |
+| `checkpoint_discrepancy` | 3 | A commit claims a step it does not checkpoint; found `<n> discrepancies; first: <message>` | inspect with `solomonar task status <ID>`; correct the commits or the plan |
 | `setup_not_complete` | 3 | `task confirm` at stage `setup` | `solomonar task move <ID> --as <owner> --status running --stage specification` |
 | `base_not_found` | 3 | Leaving `setup` without a common commit of main and `feature/<ID>` | create `feature/<ID>` from the current main (rules section 4) |
 | `base_recorded` | 3 | `--base` differs from the recorded base | omit `--base`; a wrong base needs the user's decision |
@@ -2064,6 +2076,53 @@ Record fields added by schema 2 (CLI-D21):
 
 A `planned` record has none of them. A `done` record keeps `base` when it had one and drops the other two.
 
+### 8.7 Work-spec plan and checkpoints
+
+The work spec (`docs/work/<ID>-<slug>.md`, CLI-D23) carries the plan approval on the line below the title and the
+plan as a list of intended commits:
+
+```
+# W-001: Login
+Status: Approved
+Type: feature
+…
+## Implementation plan
+
+- S-1: feat(auth): add the session store
+  Store sessions server-side; AC-1, AC-2.
+- S-2: feat(auth): add remember me
+  Outcome: dropped — the user removed AC-4 (W-001/D-2)
+- S-3: test(auth): cover session expiry
+```
+
+- `Status:` is `In review` or `Approved`; any other value is invalid, and a spec without the line has no approval.
+- A step is a line `- S-<n>: <commit subject>` under `## Implementation plan`, up to the next `##` heading; `<n>` has
+  no leading zero, IDs are unique and never reused. Indented lines are its detail; an indented `Outcome: dropped —
+  <reason>` or `Outcome: verified — <reason>` closes the step without a commit. Any other `- ` line there is invalid.
+- A checkpoint is a commit whose subject equals the step's subject and whose trailers include `Step: <ID>/S-<n>`
+  (CLI-D24), for example `git commit -m "feat(auth): add the session store" -m "Checks: go test ./... passed." -m
+  "Step: W-001/S-1"`. The CLI never creates commits (CLI-D25).
+
+Reconciliation reads the spec committed at the branch tip (or, at the review gate, at the candidate) and the commits
+of `git log --no-merges --reverse <base>..<tip>`, so merges from main never count. Per commit, oldest first:
+
+| Case | Result |
+|---|---|
+| no `Step` trailer, subject unlike any step | counted in `other_commits` (spec, decisions, closure commits) |
+| no `Step` trailer, subject equal to a step's | `step_untagged` |
+| trailer of another task | `step_foreign` |
+| trailer naming a step the plan does not list | `step_unknown` |
+| subject differs from the claimed step's | `step_subject_mismatch` |
+| no changed file (`--shortstat` empty) | `step_empty` |
+| a step already checkpointed by an earlier commit | `step_duplicate` |
+| otherwise | the step is `committed` by that commit |
+
+A step is `committed`, else `dropped` or `verified` from its outcome, else `remaining`. Approval is `approved` only
+for `Status: Approved` with at least one step, `in_review`, `missing` (no Status line, no step, or no spec at the
+commit), or `invalid` with the parse problem. A commit is never proof of correctness: review and the required checks
+still run. A checkpoint commit and a registry write are separate operations; a checkpoint committed before a failed
+registry update is found again by the next reconciliation, since the registry holds no checkpoint state.
+
 ## 9. Reference: `task status`
 
 ### 9.1 Facts
@@ -2076,6 +2135,7 @@ A `planned` record has none of them. A `done` record keeps `base` when it had on
 | HEAD vs `revision` | `git rev-list --count <revision>..HEAD` in the worktree | null without a worktree or revision |
 | dirty paths | `git status --porcelain=v2` in the worktree | `worktree` null |
 | spec present | the worktree file, and `git cat-file -t <revision>:<spec>` is `blob` | false |
+| plan | the spec at the branch tip and `git log --no-merges --reverse --shortstat <base>..<tip>` with `Step` trailers (8.7) | `plan` null without a spec, base, or branch, and for `done` |
 | merged | first merge commit on main whose ancestry contains `revision` (`git rev-list --ancestry-path --merges --reverse <revision>..main`) | `merged` false, also without a revision |
 | derived `spec_ref` | first commit in `git log --topo-order --format="%H %s" <merge>^2` whose subject (never a body line) starts with `spec(<ID>):`, with the recorded `spec` path | null before merge |
 | PR, checks | `gh pr view feature/<ID> --json number,url,state,mergeCommit,statusCheckRollup` | `pr` null, `checks` `unknown`, never passing (J6) |
@@ -2122,6 +2182,8 @@ the forge is available with no PR. A cancelled run (e.g. Ctrl-C) is no warning: 
 | `revision_not_on_branch` | `contains_revision` false (history rewritten) | `<revision short 8> is not on feature/<ID>` | `task move --stage implementation`; reviews rerun |
 | `dirty_worktree` | uncommitted changes | `<n> uncommitted paths; preserve them (rules section 10)` | preserve them (rules section 10) |
 | `spec_missing` | recorded `spec` neither in the worktree nor at `revision` | `<spec> is not in the worktree or at the revision` | commit the work spec, or correct `--spec` |
+| `plan_not_approved` | stage `implementation`, `specialized_review`, or `adversarial_review`; plan approval not `approved` | `the work spec at feature/<ID> has no approved plan (<approval>)` | approve and commit the plan, or return to `specification` |
+| `checkpoint_discrepancy` | reconciliation found discrepancies | `<n> commit claim(s) to inspect` | inspect the `plan` section |
 | `blocked_without_blockers` | status `blocked`, no open blocker | `blocked without an open blocker` | `task move --status <prior>` (guidance only; not in `allowed_next`) |
 | `tier_missing` | stage `specialized_review`, `adversarial_review`, or `integration`, no tier | `stage <stage> needs a tier` | `task move --tier` with `--revision` |
 | `merged_not_done` | merge found, status not `done` | `feature/<ID> is merged into <main> but the record is not done` | `task done` with `--merge`; `spec_ref` from the PR (C14 a) |
@@ -2152,6 +2214,11 @@ output; runnable commands appear in `allowed_next` (9.3).
                  "head": "992051e56493f5bb8abb4faadcdbc5f271195498",
                  "ahead_of_revision": 1, "dirty": [{"path": "internal/auth/session_test.go", "state": "modified"}]},
     "spec": {"in_worktree": true, "at_revision": true},
+    "plan": {"approval": "approved", "at": "992051e56493f5bb8abb4faadcdbc5f271195498", "other_commits": 2,
+             "steps": [{"id": "S-1", "subject": "feat(auth): add the session store", "state": "committed",
+                        "commit": "7cd18e45bb55c3be9465c9f893683bc05216f529"},
+                       {"id": "S-2", "subject": "test(auth): cover expiry", "state": "remaining", "commit": null}],
+             "discrepancies": []},
     "merge": {"merged": false, "merge_commit": null, "derived_spec_ref": null},
     "forge": {"available": true, "pr": null, "checks": "unknown"}
   },
@@ -2194,6 +2261,10 @@ Facts never omit a key; an unavailable fact is null, `false`, or `unknown` as 9.
 | `paused` | `task move <ID> --as <owner> --status <prior>`, cancel |
 | `cancelled` | `task move <ID> --as <owner> --status <prior> --resume-cancelled` |
 | `done` | none |
+
+With plan facts (8.7), a forward move a managed gate would reject is left out: `specification` → `implementation`
+unless the plan is `approved`, and the forward moves out of `implementation` unless it is `approved` with no
+discrepancy and no remaining step.
 
 An unconfirmed `reserved` or `running` record past `setup` lists `task confirm <ID> --as <owner>` instead of its
 stage moves and `task done`, then block, pause, cancel; an unconfirmed `paused` one lists `task confirm` before its
