@@ -117,8 +117,7 @@ func TestInterruptExitsWithSignalCode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.signal.String(), func(t *testing.T) {
-			t.Parallel()
-
+			// Signals are process-wide; parallel cases can observe each other's signal.
 			ctx, stop := signal.NotifyContext(t.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
 			require.NoError(t, syscall.Kill(os.Getpid(), tt.signal))
