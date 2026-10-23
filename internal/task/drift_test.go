@@ -9,14 +9,16 @@ import (
 const prURL = "https://github.com/acme/ledger/pull/42"
 
 func reviewing() *Record {
-	return moving(StatusRunning, StageSpecializedReview, new(2))
+	r := moving(StatusRunning, StageSpecializedReview, new(2))
+	r.Base, r.Worktree = sha, "../W-001"
+	return r
 }
 
 // cleanFacts are the facts of a record without drift.
 func cleanFacts() StatusFacts {
 	return StatusFacts{
 		Branch:   BranchFacts{Name: "feature/W-001", Exists: true, Tip: new(sha), ContainsRevision: new(true)},
-		Worktree: &WorktreeFacts{Path: "/work/W-001", Head: sha, AheadOfRevision: new(0), Dirty: []DirtyPath{}},
+		Worktree: &WorktreeFacts{Path: "/work/W-001", Relative: "../W-001", Head: sha, AheadOfRevision: new(0), Dirty: []DirtyPath{}},
 		Spec:     SpecFacts{InWorktree: true, AtRevision: true},
 		Forge:    ForgeFacts{Available: true, Checks: "unknown"},
 	}
@@ -125,7 +127,7 @@ func TestDriftOf(t *testing.T) {
 		},
 		{
 			name:   "no spec recorded",
-			record: func(r *Record) { *r = *moving(StatusRunning, StageSpecification, nil) },
+			record: func(r *Record) { *r = *moving(StatusRunning, StageSpecification, nil); r.Base = sha },
 			facts:  func(f *StatusFacts) { f.Spec = SpecFacts{} },
 			want:   []Drift{},
 		},
@@ -146,7 +148,7 @@ func TestDriftOf(t *testing.T) {
 		},
 		{
 			name:   "no tier at implementation",
-			record: func(r *Record) { *r = *withRevision(moving(StatusRunning, StageImplementation, nil)) },
+			record: func(r *Record) { *r = *withRevision(moving(StatusRunning, StageImplementation, nil)); r.Base = sha },
 			want:   []Drift{},
 		},
 		{
@@ -218,6 +220,21 @@ func TestDriftOf(t *testing.T) {
 			facts:    func(f *StatusFacts) { *f = StatusFacts{Branch: BranchFacts{Name: "feature/W-001"}} },
 			envOwner: "orchestrator-2",
 			want:     []Drift{},
+		},
+		{
+			name:   "recovery fields",
+			record: func(r *Record) { r.Base, r.Confirmed = "", false },
+			facts:  func(f *StatusFacts) { f.Worktree.Relative = "../moved/W-001" },
+			want: []Drift{
+				{Code: "worktree_mismatch", Message: "recorded ../W-001; Git lists ../moved/W-001"},
+				{Code: "base_missing", Message: "W-001 has no recorded base"},
+				{Code: "unconfirmed", Message: "W-001 is not confirmed by orchestrator-1; inspect, then task confirm"},
+			},
+		},
+		{
+			name:   "migrated record without workspace fields",
+			record: func(r *Record) { r.Worktree = "" },
+			want:   []Drift{},
 		},
 		{
 			name:     "table order",
