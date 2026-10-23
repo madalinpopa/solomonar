@@ -46,6 +46,31 @@ solomonar init --overwrite .claude/agents/implementer.md --yes
 
 `not_a_repository` from `init` means the directory is not inside a Git repository. Run `git init -b main` first, or pass `--git-init`.
 
+To add Copilot to a project that already records different Solomonar runtimes, wait for the planned `runtime add` command. Do not hand-edit `.solomonar/manifest.json`, lower its version, or rerun `init` with different runtime choices.
+
+## Copilot does not discover the framework
+
+Check `solomonar init --help` for `copilot`; an older build may not include the adapter. Initialize an eligible project with `--runtime copilot`, then start `copilot` at its worktree root. The adapter uses `.github/skills/<skill>/SKILL.md` and `.github/agents/<role>.agent.md`, while root instructions come from `AGENTS.md`.
+
+On Copilot CLI 1.0.85, these read-only commands report instruction and skill discovery:
+
+```sh
+copilot instruction list --json
+copilot skill list --json
+```
+
+The Solomonar skills should point into the selected worktree's `.github/skills/`. Copilot also reads compatible `.agents` and `.claude` skill directories, so inspect the resolved paths. Custom-agent discovery requires a live session: use `/agent` there. A personal agent in `~/.copilot/agents/` takes precedence over a project agent with the same ID. Check the filename-derived ID, not just its display name. These rules follow GitHub's [CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference) and [custom-agent documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/create-custom-agents-for-cli).
+
+Invoke `/solomonar` yourself in the top-level session. The entry skill disables automatic model invocation. Delegated roles opt into repository instructions with `include-custom-instructions: true`; a session using `--no-custom-instructions` disables that loading. Do not edit generated stubs to work around discovery; inspect the portable source and use only commands your Solomonar build provides.
+
+## Copilot rejects a session or uses another model
+
+`Access denied by policy settings` means Copilot rejected the session under account, subscription, or organization policy. Follow the error's settings link or contact the account administrator. Regenerating Solomonar adapters does not resolve that rejection. The 1.0.85 acceptance attempt reached this error, so live workflow compatibility remains unverified; see [the acceptance record]({{ 'docs/cli/plan.md' | source }}#copilot-runtime-acceptance).
+
+`--adversarial-model copilot=<model>` writes a model preference, not proof of which model ran. Session settings, per-agent overrides, automatic selection, and account model access can change the effective model. Inspect the running session and its subagent settings before recording a model in review evidence. Installation performs no account/model access check.
+
+No Copilot guard hook is installed. Reviewer shell access still follows the portable read-only contract; generated tool lists do not establish a filesystem security boundary.
+
 ## The command cannot find the repository
 
 `not_a_repository` means the current directory, or the directory selected with `-C`, is outside a Git repository. Run from the intended repository or pass its path with `-C`.
