@@ -24,8 +24,8 @@ func (m *Manifest) validate() error {
 		return err
 	}
 	for _, name := range slices.Sorted(maps.Keys(m.Runtimes)) {
-		if name != "claude" && name != "codex" {
-			return invalidManifest("runtimes.%s is not claude or codex", name)
+		if name != "claude" && name != "codex" && name != "copilot" {
+			return invalidManifest("runtimes.%s is not claude, codex, or copilot", name)
 		}
 	}
 	for _, name := range slices.Sorted(maps.Keys(m.Extensions)) {
