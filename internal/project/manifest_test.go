@@ -165,6 +165,43 @@ func TestDecodeManifestRoundTripsTheInterfaceExample(t *testing.T) {
 	assert.Equal(t, want, string(data))
 }
 
+func TestDecodeManifestRoundTripsCopilotAdapters(t *testing.T) {
+	t.Parallel()
+
+	for _, model := range []string{"", "gpt-5"} {
+		t.Run("model="+model, func(t *testing.T) {
+			t.Parallel()
+
+			root, _ := openTree(t, nil)
+			wants, err := RuntimeWants(runtimeAssets(), []string{"copilot", "codex", "claude"},
+				map[string]string{"copilot": model}, framework, nil)
+			require.NoError(t, err)
+			runtimes := map[string]Runtime{
+				"claude": {}, "codex": {}, "copilot": {AdversarialModel: model},
+			}
+
+			plan, manifest, err := InitPlan(root, nil, wants, nil, nil, ledger(), runtimes, nil, Decisions{}, framework)
+			require.NoError(t, err)
+			require.Len(t, plan.Changes, len(wants)+1)
+			assert.Equal(t, 1, manifest.SchemaVersion)
+			assert.Equal(t, runtimes, manifest.Runtimes)
+			assert.Len(t, manifest.Files, len(wants)+1, "each runtime owns distinct adapter paths")
+			for _, w := range wants {
+				assert.Equal(t, File{Owner: w.Owner, SHA256: Hash(w.Content)}, manifest.Files[w.Path], w.Path)
+			}
+
+			last := plan.Changes[len(plan.Changes)-1]
+			assert.Equal(t, ManifestPath, last.Path)
+			decoded, err := DecodeManifest(last.Content, framework)
+			require.NoError(t, err)
+			assert.Equal(t, manifest, decoded)
+			data, err := decoded.Encode()
+			require.NoError(t, err)
+			assert.Equal(t, last.Content, data)
+		})
+	}
+}
+
 func TestDecodeManifestKeepsDraftEmptyLists(t *testing.T) {
 	t.Parallel()
 
@@ -248,7 +285,7 @@ func TestDecodeManifestRejectsEveryValidationRule(t *testing.T) {
 		{"missing project name", `"name": "ledger"`, `"name": ""`, "project.name is missing"},
 		{"missing main branch", `"main_branch": "main"`, `"main_branch": ""`, "project.main_branch is missing"},
 		{"missing remote", `"remote": "origin"`, `"remote": ""`, "project.remote is missing"},
-		{"unknown runtime", `"codex": {}`, `"cursor": {}`, `runtimes.cursor is not claude or codex`},
+		{"unknown runtime", `"codex": {}`, `"cursor": {}`, `runtimes.cursor is not claude, codex, or copilot`},
 		{"bad extension name", `"go": {`, `"Go": {`, `extensions."Go" is not a name of [a-z][a-z0-9-]*`},
 		{"unknown state", `"state": "installed", "kind": "skill", "group": "language"`, `"state": "active", "kind": "skill", "group": "language"`, `extensions.go.state "active" is not installed or draft`},
 		{"unknown kind", `"kind": "skill", "group": "language"`, `"kind": "rule", "group": "language"`, `extensions.go.kind "rule" is not skill or agent`},
