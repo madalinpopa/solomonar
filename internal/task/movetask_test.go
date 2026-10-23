@@ -18,7 +18,7 @@ func registryOf(before *Record) *Registry {
 
 func moveTask(t *testing.T, registry *Registry, repo *git.Repo, as string, m Move) (MoveResult, error) {
 	t.Helper()
-	return registry.MoveTask(t.Context(), repo, "W-001", as, m, installedRoles(), clock())
+	return registry.MoveTask(t.Context(), repo, "W-001", as, "main", m, installedRoles(), clock())
 }
 
 func TestMoveTaskStoresMovedRecord(t *testing.T) {
@@ -75,7 +75,7 @@ func TestMoveTaskRejects(t *testing.T) {
 func TestMoveTaskUnknownIDIsTaskNotFound(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewRegistry().MoveTask(t.Context(), nil, "W-404", "orchestrator-1", Move{Next: "user:Review"}, installedRoles(), clock())
+	_, err := NewRegistry().MoveTask(t.Context(), nil, "W-404", "orchestrator-1", "main", Move{Next: "user:Review"}, installedRoles(), clock())
 
 	requireRejection(t, err, "task_not_found")
 }
