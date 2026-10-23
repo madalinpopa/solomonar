@@ -25,7 +25,7 @@ Do not write registry files by hand or create a registry branch to bypass initia
 
 ## The registry is outdated
 
-`registry_outdated` means the registry was written by CLI 0.1.6 or earlier, with every task in one `state.json`. Upgrade every machine that writes the registry, then run [`solomonar task migrate`]({{ '/docs/cli/task/#solomonar-task-migrate' | url }}) once. The migration keeps the old registry as the parent commit. An older CLI reading the migrated registry reports `cli_outdated`: install the current release there instead of undoing the migration.
+`registry_outdated` means the registry was written by CLI 0.1.5 or earlier, with every task in one `state.json`. Upgrade every machine that writes the registry, then run [`solomonar task migrate`]({{ '/docs/cli/task/#solomonar-task-migrate' | url }}) once. The migration keeps the old registry as the parent commit. An older CLI reading the migrated registry reports `cli_outdated`: install the current release there instead of undoing the migration.
 
 ## init asks for a confirmation
 
