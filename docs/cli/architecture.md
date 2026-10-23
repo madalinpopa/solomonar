@@ -77,7 +77,7 @@ Section 10 enforces these with lint rules.
 | AD-4 | Commands return data or a typed error; one renderer writes human or JSON form; `main` alone calls `os.Exit`. | One place enforces the envelope (I section 3.4) and the exit table (I section 3.5); packages stay testable. | Printing inside domain code: the two output forms would drift. |
 | AD-5 | Registry writes as `Update(ctx, fn)`: read tip, run `fn` on a copy, build the tree, swap; on a lost swap re-read and re-run `fn`, up to 5 attempts. | Re-running the whole validation on the new tip is exactly UC-21; callers cannot forget it. | Validate once, retry only the swap: wrong after a concurrent claim of the same ID. |
 | AD-6 | Every file-writing command computes a `Plan` before writing; `Apply` writes temp + rename inside `os.Root`, journals the previous content, and restores it on handled failure. Include the manifest in that file plan and finalize it before any registry CAS. Keep rollback available until the CAS succeeds. | `--dry-run`, conflict detection, and rollback share one structure; no fallible project-file write remains after the registry commit point (audit F-09). | Writing while deciding, or a manifest write after CAS: no truthful "nothing written" guarantee on failure. |
-| AD-7 | `state.json` and the manifest are decoded strictly and validated after decoding; written with stable key order and a trailing newline. Their version fields are read first, and a newer version is `cli_outdated` (CLI-D19) before strict decoding runs. | The registry is the authority; a hand edit or a newer schema fails loudly (`registry_invalid`, `manifest_invalid`) instead of losing fields on the next write. | Lenient decoding: unknown fields vanish on rewrite. |
+| AD-7 | The registry files (`state.json`, `tasks/<ID>.json`) and the manifest are decoded strictly and validated after decoding; written with stable key order and a trailing newline. Their version fields are read first, and a newer version is `cli_outdated` (CLI-D19) before strict decoding runs. | The registry is the authority; a hand edit or a newer schema fails loudly (`registry_invalid`, `manifest_invalid`) instead of losing fields on the next write. | Lenient decoding: unknown fields vanish on rewrite. |
 | AD-8 | Task rules are pure functions over the record; fact checks are a separate step that takes the repository. | The I section 8.1 and section 8.2 tables are tested without Git; `allowed_next` (I section 9.3) comes from the same tables, so validation and the oracle cannot disagree. | Rules and Git calls interleaved: every rule test needs a repository. |
 | AD-9 | Process inputs (args, standard streams, environment lookup, clock, terminal detection, embedded assets) reach `cli.Run` as one `Env` value. | In-process tests of every use case, without building the binary or touching `os` globals. | Reading `os.Args`, `os.Getenv`, `time.Now` inside commands. |
 | AD-10 | One version, read from the embedded `rules.md` header: it is both the CLI and the framework version, since the framework, docs, and site ship inside the CLI. A build between releases reports the last release; `go version -m` shows its build information. `task release:*` sets it in `assets`, `docs/cli`, `site/src`, and the README (`task version:set`), commits that to `main`, then tags. | No version constant and no `-ldflags -X` to forget; one version for the CLI and everything it embeds. | A hand-maintained `const Version`. |
@@ -181,7 +181,10 @@ type Record struct {
 	Status       Status      `json:"status"`
 	Stage        Stage       `json:"stage,omitempty"`
 	Owner        string      `json:"owner,omitempty"`
+	Confirmed    bool        `json:"confirmed,omitzero"`
 	Branch       string      `json:"branch,omitempty"`
+	Base         string      `json:"base,omitempty"`
+	Worktree     string      `json:"worktree,omitempty"`
 	Spec         string      `json:"spec,omitempty"`
 	Revision     string      `json:"revision,omitempty"`
 	Tier         *int        `json:"tier,omitempty"`
@@ -202,10 +205,17 @@ type Store struct {
 }
 
 func (s *Store) Update(ctx context.Context, fn func(*Registry) (subject string, err error)) (Commit, error)
+func (s *Store) Migrate(ctx context.Context) (*Registry, Commit, bool, error) // schema 1 -> 2 (UC-25)
+
+func DecodeFiles(files map[string][]byte) (*Registry, error) // schema 2: state.json + tasks/<ID>.json
+func DecodeLegacy(data []byte) (*Registry, error)              // schema 1, read only by Migrate
+func (r *Registry) Files() (map[string][]byte, error)
 ```
 
 `SchemaOf` reads the registry's `schema_version` with the header validation and no newer-than check; the strict
-decoder builds on it, and `version` calls it alone (UC-24).
+decoders build on it, and `version` calls it alone (UC-24). `Registry` stays one in-memory map: the per-task files
+are a storage form (I 8.6), so validation, ID allocation, and `task show --json` keep working on the whole registry.
+A write hashes only the files whose bytes changed and reuses the other blobs.
 `Tier` is a pointer because tier 0 is valid and "no tier yet" must stay distinguishable. `task` and `project` each
 define their own `Rejection{Code, Check, Found, Fix}`; a shared package for one struct would be a `common` package
 in disguise. `cli` recognizes both with `errors.As` and maps codes to exit classes with one table.
@@ -345,11 +355,12 @@ succeeds (AD-6, F-09).
 2. `cli` locates the repository (`git rev-parse --git-common-dir` from `-C` or the working directory), reads the
    manifest for `main_branch` and `remote` (`main` and `origin` when absent; newer or invalid rejects before the
    registry, nothing written), and resolves `--as` from the flag or `SOLOMONAR_OWNER`.
-3. `store.Update(ctx, fn)`: read the tip and `state.json`; `fn` looks up the record, rejects a done record
+3. `store.Update(ctx, fn)`: read the tip and the registry files (`ls-tree` and one `cat-file --batch`); `fn` looks up the record, rejects a done record
    (`done_final`), checks ownership, applies `Record.Move`, then runs the fact checks (`git merge-base
    --is-ancestor`, worktree spec lookup). A rejection returns at once: exit 3, nothing written. A move that changes
    nothing skips steps 4–5.
-4. The store writes `hash-object` → `mktree` → `commit-tree -p <old>` → `update-ref <new> <old>`. A lost swap
+4. The store writes `hash-object` for each changed file only → `mktree` for `tasks/` and the root →
+   `commit-tree -p <old>` → `update-ref <new> <old>`. A lost swap
    re-reads the tip and re-runs `fn`; five losses give `cas_exhausted` (exit 4).
 5. With a remote, `git push <remote> workflow-state` under a time limit; failure is the warning `push_failed`,
    exit stays 0.
