@@ -86,7 +86,7 @@ const uc1Plan = "  framework 0.1.0\n" +
 	"    create     .agents/skills/ (5 skill stubs: 2 core, 3 extensions; solomonar/agents/openai.yaml)\n" +
 	"    create     .codex/agents/ (3 role stubs)\n" +
 	"  registry\n" +
-	"    create     refs/heads/workflow-state with an empty state.json\n" +
+	"    create     refs/heads/workflow-state with an empty registry\n" +
 	"  manifest\n" +
 	"    create     .solomonar/manifest.json\n"
 
@@ -173,7 +173,7 @@ func TestGroupedPlanOmitsEmptyGroups(t *testing.T) {
 				planned(project.ActionCreate, "manifest", ".solomonar/manifest.json"),
 			)}},
 			want: "  framework 0.1.0\n    create     AGENTS.md\n" +
-				"  registry\n    create     refs/heads/workflow-state with an empty state.json\n" +
+				"  registry\n    create     refs/heads/workflow-state with an empty registry\n" +
 				"  manifest\n    create     .solomonar/manifest.json\n",
 		},
 		{
@@ -182,7 +182,7 @@ func TestGroupedPlanOmitsEmptyGroups(t *testing.T) {
 				Changes: planned(project.ActionCreate, "manifest", ".solomonar/manifest.json"),
 			}},
 			want: "  git\n    init       -b trunk\n" +
-				"  registry\n    create     refs/heads/workflow-state with an empty state.json\n" +
+				"  registry\n    create     refs/heads/workflow-state with an empty registry\n" +
 				"  manifest\n    create     .solomonar/manifest.json\n",
 		},
 	}
@@ -241,7 +241,7 @@ func TestInteractiveInitShowsTheGroupedPlan(t *testing.T) {
 			"    create     .agents/skills/ (7 skill stubs: 4 core, 3 extensions; solomonar/agents/openai.yaml)\n"+
 			"    create     .codex/agents/ (5 role stubs)\n"+
 			"  registry\n"+
-			"    create     refs/heads/workflow-state with an empty state.json\n"+
+			"    create     refs/heads/workflow-state with an empty registry\n"+
 			"  manifest\n"+
 			"    create     .solomonar/manifest.json\n", plan)
 	assert.Contains(t, got.stdout, "Proceed? [Y/n] \nInitialized solomonar "+shipped+" in "+dir+"\n")
