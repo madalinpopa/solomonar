@@ -38,12 +38,18 @@ func TestGitFactsJSONOfWorktreeAheadAndDirty(t *testing.T) {
 	require.NoError(t, err)
 	assert.JSONEq(t, fmt.Sprintf(`{
 		"branch": {"name": "feature/W-001", "exists": true, "tip": %[1]q, "contains_revision": true},
-		"worktree": {"path": %[2]q, "head": %[1]q, "ahead_of_revision": 1,
+		"worktree": {"path": %[2]q, "relative": %[3]q, "head": %[1]q, "ahead_of_revision": 1,
 		             "dirty": [{"path": "notes.txt", "state": "untracked"}]},
 		"spec": {"in_worktree": true, "at_revision": true},
 		"merge": {"merged": false, "merge_commit": null, "derived_spec_ref": null},
 		"forge": {"available": false, "pr": null, "checks": "unknown"}
-	}`, worktreeHead, f.worktree), string(out))
+	}`, worktreeHead, f.worktree, relativeOf(t, f)), string(out))
+}
+
+func relativeOf(t *testing.T, f factsRepo) string {
+	t.Helper()
+	_, relative := f.workspace(t)
+	return relative
 }
 
 func TestGitFactsWithoutBranch(t *testing.T) {
@@ -107,7 +113,8 @@ func TestGitFactsWorktreeWithoutRevision(t *testing.T) {
 
 	facts := gitFacts(t, f.repo, withSpec(moving(StatusRunning, StageSpecification, nil)))
 
-	assert.Equal(t, &WorktreeFacts{Path: f.worktree, Head: f.onBranch, Dirty: []DirtyPath{}}, facts.Worktree)
+	_, relative := f.workspace(t)
+	assert.Equal(t, &WorktreeFacts{Path: f.worktree, Relative: relative, Head: f.onBranch, Dirty: []DirtyPath{}}, facts.Worktree)
 	assert.Nil(t, facts.Branch.ContainsRevision)
 	assert.Equal(t, SpecFacts{InWorktree: true}, facts.Spec)
 }
