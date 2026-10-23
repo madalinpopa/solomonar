@@ -12,18 +12,18 @@ func TestParseWorkPlan(t *testing.T) {
 
 	content := "# W-001: Login\nStatus: Approved\nType: feature\n\n## Outcome and scope\n\n- not a step\n\n" +
 		"## Implementation plan\n<!-- One step per checkpoint commit. -->\n\n" +
-		"- S-1: feat(auth): add the session store\n  Store sessions server-side.\n" +
-		"- S-2: feat(auth): add remember me\n  Outcome: dropped — the user removed AC-4\n" +
-		"- S-3: test(auth): cover expiry\n  Outcome: verified - covered by S-1's tests\n" +
+		"- S-1: feat(W-001): add the session store\n  Store sessions server-side.\n" +
+		"- S-2: feat(W-001): add remember me\n  Outcome: dropped — the user removed AC-4\n" +
+		"- S-3: test(W-001): cover expiry\n  Outcome: verified - covered by S-1's tests\n" +
 		"- S-10: docs(auth): note the cookie name\n\n## Open questions\n\n- Q-1 · none\n"
 
 	plan, err := ParseWorkPlan(content)
 
 	require.NoError(t, err)
 	assert.Equal(t, WorkPlan{Approval: ApprovalApproved, Steps: []Step{
-		{ID: "S-1", Subject: "feat(auth): add the session store"},
-		{ID: "S-2", Subject: "feat(auth): add remember me", Outcome: OutcomeDropped},
-		{ID: "S-3", Subject: "test(auth): cover expiry", Outcome: OutcomeVerified},
+		{ID: "S-1", Subject: "feat(W-001): add the session store"},
+		{ID: "S-2", Subject: "feat(W-001): add remember me", Outcome: OutcomeDropped},
+		{ID: "S-3", Subject: "test(W-001): cover expiry", Outcome: OutcomeVerified},
 		{ID: "S-10", Subject: "docs(auth): note the cookie name"},
 	}}, plan)
 }
