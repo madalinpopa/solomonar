@@ -37,11 +37,13 @@ The user starts tasks one at a time. Once registered, independent tasks can run 
 
 In the task worktree, `work-spec` prepares the selected outcome, scope, acceptance criteria, relevant references, constraints, and checks. User-confirmed changes to canonical behavior go into the relevant specifications before code is written.
 
-Implementation can start when the outcome is authorized, the scope is understandable, the criteria can be verified, and no unresolved decision blocks the chosen approach. Existing approvals apply within their recorded scope.
+The work spec ends with an implementation plan: each step is the commit it will become, such as `S-1: feat(W-001): store expenses`. The orchestrator shows you the plan; implementation starts only after you approve it explicitly, the orchestrator records `Status: Approved`, and commits it. An approval you already gave for the exact plan is reused, never asked twice.
+
+Implementation can start when the outcome is authorized, the scope is understandable, the criteria can be verified, no unresolved decision blocks the chosen approach, and the plan is approved. Existing approvals apply within their recorded scope.
 
 ## Implement and review one candidate
 
-The implementer returns `READY_FOR_REVIEW` with a committed revision. The orchestrator records the candidate and triages its risk.
+The implementer follows the approved plan and commits each step as a checkpoint with its planned subject and a `Step:` trailer. It returns `READY_FOR_REVIEW` once every step is committed, with the branch tip as the candidate. The orchestrator records the candidate and triages its risk. Reviews cover the whole change on that candidate, never one checkpoint at a time.
 
 | Tier | Change | Required review path |
 | --- | --- | --- |
@@ -51,7 +53,7 @@ The implementer returns `READY_FOR_REVIEW` with a committed revision. The orches
 
 Required specialists inspect the same stable revision in parallel. The orchestrator deduplicates findings and orders corrections by Security, Correctness, then Spec priority. An inapplicable specialty is marked not required with a reason; it does not receive a fabricated pass.
 
-A code change creates a new candidate. An earlier review covers it only when its original revision and a specific reason for reusing unaffected evidence are recorded.
+Corrections are appended to the plan as new steps, so the plan stays complete without a new approval while they stay within the approved scope. A code change creates a new candidate. An earlier review covers it only when its original revision and a specific reason for reusing unaffected evidence are recorded.
 
 ## Handle a decision or a failed check
 
@@ -79,6 +81,6 @@ After the merge is confirmed, `task done` verifies the merge and the final `spec
 
 ## Resume from evidence
 
-On restart, inspect the stored record and actual Git, worktree, PR, and check state before repeating an action. Preserve uncommitted changes. Continue the same task rather than creating another worktree or PR.
+On restart, inspect the stored record and actual Git, worktree, PR, and check state before repeating an action. Preserve uncommitted changes. Continue the same task rather than creating another worktree or PR. A new session takes the task with `task handoff` on your instruction, confirms it with `task confirm` after inspection, and continues with the remaining plan steps; completed steps are never repeated.
 
-`solomonar task status <ID>` shows those facts, any drift from the record, and the commands valid next. It does not infer whether an agent is alive from its last reported assignment. See [task state]({{ '/docs/task-state/' | url }}).
+`solomonar task status <ID>` shows those facts, the plan's committed and remaining steps, any drift from the record, and the commands valid next. It does not infer whether an agent is alive from its last reported assignment. See [task state]({{ '/docs/task-state/' | url }}).
