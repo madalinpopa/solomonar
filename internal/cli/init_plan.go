@@ -30,7 +30,7 @@ func (r initRun) groupedPlan() string {
 	writeGroup(&b, "framework "+r.framework, collapse(byGroup["framework"], frameworkSet, frameworkLabel))
 	writeGroup(&b, "extensions", r.extensionLines(byGroup["extensions"]))
 	writeGroup(&b, "decisions (approved, selected by you)", r.decisionLines(byGroup["decision"]))
-	for _, runtime := range []string{"claude", "codex"} {
+	for _, runtime := range []string{"claude", "codex", "copilot"} {
 		writeGroup(&b, "runtime "+runtime, collapse(byGroup["runtime "+runtime], stubSet, r.stubLabel))
 	}
 	writeGroup(&b, "registry", []planLine{registry})
@@ -128,7 +128,9 @@ func frameworkLabel(dir string, set []project.Change) string {
 
 // stubSet names the runtime skills or agents directory a stub is in.
 func stubSet(p string) string {
-	for _, dir := range []string{".claude/skills/", ".claude/agents/", ".agents/skills/", ".codex/agents/"} {
+	for _, dir := range []string{
+		".claude/skills/", ".claude/agents/", ".agents/skills/", ".codex/agents/", ".github/skills/", ".github/agents/",
+	} {
 		if strings.HasPrefix(p, dir) {
 			return dir
 		}
@@ -149,6 +151,9 @@ func (r initRun) stubLabel(dir string, set []project.Change) string {
 		id, file, _ := strings.Cut(rel, "/")
 		if kind == "role" {
 			id = strings.TrimSuffix(id, path.Ext(id))
+			if dir == ".github/agents/" {
+				id = strings.TrimSuffix(id, ".agent")
+			}
 		} else if file != "SKILL.md" {
 			extra = append(extra, rel)
 			continue
@@ -168,6 +173,8 @@ func (r initRun) stubLabel(dir string, set []project.Change) string {
 	runtime := "codex"
 	if strings.HasPrefix(dir, ".claude/") {
 		runtime = "claude"
+	} else if strings.HasPrefix(dir, ".github/") {
+		runtime = "copilot"
 	}
 	if model := r.models[runtime]; kind == "role" && model != "" {
 		extra = append(extra, "adversarial-reviewer model "+model)
