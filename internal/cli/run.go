@@ -55,6 +55,7 @@ func commands() []command {
 		taskBlockCommand(),
 		taskDoneCommand(),
 		taskHandoffCommand(),
+		taskMigrateCommand(),
 		taskMoveCommand(),
 		taskPlanCommand(),
 		taskRegisterCommand(),
