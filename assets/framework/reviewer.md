@@ -15,7 +15,8 @@ Every core reviewer is language-agnostic.
 
 - Use the packet's exact work-spec path or `spec_ref` (`git show "<spec_ref>"`); never search for a replacement.
   Read referenced spec sections, scoped decisions (`P/D-n`, `W-001/D-n`), contracts, the packet's diff
-  (`<base>..<revision>`), and affected code/tests. Read referenced prototype flows/assets at their cited SHA.
+  (`<base>..<revision>`), and affected code/tests. Review the cumulative change of that one candidate, not
+  each checkpoint commit; the implementation plan and its `Step` trailers locate work, they prove nothing. Read referenced prototype flows/assets at their cited SHA.
 - Load every extension skill the packet names (`docs/solomonar/skills/<name>/SKILL.md`). Cite its rules as
   `<name>/C-n`.
 - Expand only for a discovered dependency, shared contract, or security rule that may affect correctness. Name
