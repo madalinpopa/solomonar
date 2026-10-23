@@ -46,7 +46,8 @@ Result: <result value>
 - `Revision` is a full SHA:
   - Implementer handoff: committed candidate at worktree `HEAD`; an unchanged outcome may use existing `HEAD`.
   - Implementer with no candidate: verified starting commit. State "no candidate" in `Summary`; list any
-    checkpoint SHA and preserved dirty/merge state separately. A checkpoint is not a reviewed candidate.
+    checkpoint SHA (step checkpoints or a `wip` commit) and preserved dirty/merge state separately. A checkpoint
+    is not a reviewed candidate.
   - Reviewer: delegated SHA. If preflight fails, report that SHA, the observed `HEAD` when available, and
     that review did not run; never substitute the unexpected `HEAD` as the reviewed revision.
   Uncommitted work is never a candidate. An unestablished task SHA is an input failure: report the missing
