@@ -131,7 +131,7 @@ func TestTaskStatusJSON(t *testing.T) {
 					"dirty": [{"path": "`+moveSpec+`", "state": "modified"}]},
 				"spec": {"in_worktree": true, "at_revision": true},
 				"plan": {"approval": "approved", "at": "`+head+`", "other_commits": 2, "discrepancies": [],
-					"steps": [{"id": "S-1", "subject": "feat(auth): add login", "state": "remaining", "commit": null}]},
+					"steps": [{"id": "S-1", "subject": "feat(W-001): add login", "state": "remaining", "commit": null}]},
 				"merge": {"merged": false, "merge_commit": null, "derived_spec_ref": null},
 				"forge": {"available": true, "pr": null, "checks": "unknown"}
 			},
