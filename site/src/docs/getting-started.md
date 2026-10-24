@@ -56,7 +56,7 @@ The CLI is built in increments. This table describes the source tree; check `sol
 | Runtime adapters after `init`: `runtime list`, `add`, and `remove`, without hooks | Available |
 | Task commands: `plan`, `register`, `show`, `status`, `move`, `block`, `unblock`, `handoff`, `confirm`, `migrate`, `done` | Available |
 | More catalog extensions | Planned |
-| `doctor`, `sync`, `guard`, `upgrade --diff`, `dashboard` | Planned |
+| `doctor`, `guard`, `upgrade --diff`, `dashboard` | Planned |
 
 The [CLI reference]({{ '/docs/cli/#planned-commands' | url }}) keeps the full list of planned commands.
 
