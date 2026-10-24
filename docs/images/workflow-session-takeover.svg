@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="dg" width="1000" height="560" viewBox="0 0 1000 560" role="img" aria-label="The new orchestrator runs task handoff, checks that the previous session stopped, reads task status, which reconciles the plan with the commits, inspects the dirty files, runs task confirm, and delegates only the remaining step. Until confirm, the CLI rejects stage changes.">
+<style>
+svg {
+  --bg: #F2F4F1; --surface: #FFFFFF; --ink: #18211E; --muted: #56625D; --line: #9AA7A1; --grid: #DDE3DF;
+  --acc: #1D6B86; --acc-soft: #DCEBF0; --warn: #A85A12; --warn-soft: #F6E7D6;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { svg {
+  --bg: #121816; --surface: #1B2320; --ink: #E4EBE7; --muted: #9BA9A3; --line: #5C6B64; --grid: #26302C;
+  --acc: #6CB8D3; --acc-soft: #173440; --warn: #E09A55; --warn-soft: #3A2A1A; color-scheme: dark; } }
+
+
+
+svg { font-family: var(--sans); }
+.bg { fill: var(--surface); }
+/* diagram vocabulary */
+.dg text { font-family: var(--sans); }
+.dg .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+.dg .box-acc { fill: var(--acc-soft); stroke: var(--acc); stroke-width: 1.25; }
+.dg .box-warn { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.25; }
+.dg .frame { fill: var(--bg); stroke: var(--line); stroke-width: 1; stroke-dasharray: 4 4; }
+.dg .t { font-size: 14px; font-weight: 600; fill: var(--ink); }
+.dg .t-sm { font-size: 12px; font-weight: 500; fill: var(--ink); }
+.dg .s { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.dg .s-acc { font-family: var(--mono); font-size: 11px; fill: var(--acc); font-weight: 500; }
+.dg .s-warn { font-family: var(--mono); font-size: 11px; fill: var(--warn); font-weight: 500; }
+.dg .lbl { font-size: 11.5px; fill: var(--muted); }
+.dg .lbl-warn { font-size: 11.5px; fill: var(--warn); font-weight: 500; }
+.dg .ph { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; fill: var(--muted); }
+.dg .rule { stroke: var(--line); stroke-width: 1; }
+.dg .lane { stroke: var(--grid); stroke-width: 2; }
+.dg .lane-strong { stroke: var(--line); stroke-width: 2.5; fill: none; }
+.dg .e { stroke: var(--ink); stroke-width: 1.4; fill: none; }
+.dg .e-acc { stroke: var(--acc); stroke-width: 1.4; fill: none; }
+.dg .e-warn { stroke: var(--warn); stroke-width: 1.4; fill: none; }
+.dg .dash { stroke-dasharray: 5 4; }
+.dg .mk { fill: var(--ink); }
+.dg .mk-acc { fill: var(--acc); }
+.dg .mk-warn { fill: var(--warn); }
+.dg .dot { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+.dg .dot-acc { fill: var(--acc); stroke: var(--acc); stroke-width: 1.5; }
+.dg .dot-warn { fill: var(--warn); stroke: var(--warn); stroke-width: 1.5; }
+.dg .bar { fill: var(--acc-soft); stroke: var(--acc); stroke-width: 1; }
+.dg .bar-warn { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1; }
+.dg .bar-t { font-size: 11px; fill: var(--ink); }
+.dg .ink { fill: var(--ink); }
+.dg .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 5px; stroke-linejoin: round; }
+</style>
+<rect class="bg" width="1000" height="560"/>
+      <defs>
+        <marker id="tk-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="mk"/></marker>
+        <marker id="tk-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="mk-acc"/></marker>
+      </defs>
+
+      <rect class="box" x="30" y="16" width="160" height="44" rx="6"/>
+      <text class="t-sm" x="110" y="35" text-anchor="middle">orchestrator-2</text>
+      <text class="lbl" x="110" y="51" text-anchor="middle">new session</text>
+      <rect class="box" x="350" y="16" width="160" height="44" rx="6"/>
+      <text class="s ink" x="430" y="35" text-anchor="middle">solomonar task</text>
+      <text class="lbl" x="430" y="51" text-anchor="middle">CLI · guard</text>
+      <rect class="box-acc" x="580" y="16" width="160" height="44" rx="6"/>
+      <text class="s-acc" x="660" y="35" text-anchor="middle">workflow-state</text>
+      <text class="lbl" x="660" y="51" text-anchor="middle">registry</text>
+      <rect class="box" x="800" y="16" width="160" height="44" rx="6"/>
+      <text class="s ink" x="880" y="35" text-anchor="middle">feature/W-001</text>
+      <text class="lbl" x="880" y="51" text-anchor="middle">commits + worktree</text>
+
+      <line class="rule dash" x1="110" y1="60" x2="110" y2="545"/>
+      <line class="rule dash" x1="430" y1="60" x2="430" y2="545"/>
+      <line class="rule dash" x1="660" y1="60" x2="660" y2="545"/>
+      <line class="rule dash" x1="880" y1="60" x2="880" y2="545"/>
+
+      <rect class="bar-warn" x="426" y="112" width="8" height="350"/>
+      <text class="lbl-warn halo" x="446" y="190">stage changes are rejected</text>
+
+      <text class="s ink halo" x="270" y="92" text-anchor="middle">task handoff W-001 --owner orchestrator-2</text>
+      <line class="e" x1="110" y1="100" x2="422" y2="100" marker-end="url(#tk-a)"/>
+      <text class="lbl halo" x="545" y="120" text-anchor="middle">new owner · confirmation cleared</text>
+      <line class="e" x1="434" y1="128" x2="654" y2="128" marker-end="url(#tk-a)"/>
+
+      <rect class="box-warn dash" x="20" y="152" width="320" height="34" rx="6"/>
+      <text class="t-sm" x="180" y="174" text-anchor="middle">rule: check that orchestrator-1 has stopped</text>
+
+      <text class="s ink halo" x="270" y="222" text-anchor="middle">task status W-001</text>
+      <line class="e" x1="110" y1="230" x2="422" y2="230" marker-end="url(#tk-a)"/>
+      <text class="lbl halo" x="545" y="250" text-anchor="middle">reads the record</text>
+      <line class="e" x1="434" y1="258" x2="654" y2="258" marker-end="url(#tk-a)"/>
+      <text class="lbl halo" x="770" y="278" text-anchor="middle">reads plan, Step: trailers, dirty files</text>
+      <line class="e" x1="434" y1="286" x2="874" y2="286" marker-end="url(#tk-a)"/>
+      <text class="s ink halo" x="270" y="312" text-anchor="middle">plan: S-1 ✓  S-2 ✓  S-3 remaining</text>
+      <text class="s halo" x="270" y="328" text-anchor="middle">dirty: 2 files</text>
+      <line class="e dash" x1="422" y1="338" x2="116" y2="338" marker-end="url(#tk-a)"/>
+
+      <text class="lbl halo" x="650" y="368" text-anchor="middle">inspect the dirty files, keep justified partial work</text>
+      <line class="e" x1="110" y1="376" x2="874" y2="376" marker-end="url(#tk-a)"/>
+
+      <text class="s ink halo" x="270" y="414" text-anchor="middle">task confirm W-001 --as orchestrator-2</text>
+      <line class="e" x1="110" y1="422" x2="422" y2="422" marker-end="url(#tk-a)"/>
+      <text class="lbl halo" x="655" y="442" text-anchor="middle">checks branch · worktree · base · approved plan</text>
+      <line class="e" x1="434" y1="450" x2="874" y2="450" marker-end="url(#tk-a)"/>
+      <text class="lbl halo" x="545" y="478" text-anchor="middle">confirmation recorded</text>
+      <line class="e" x1="434" y1="486" x2="654" y2="486" marker-end="url(#tk-a)"/>
+
+      <text class="s-acc halo" x="490" y="520" text-anchor="middle">delegate only S-3 → new implementer → commit S-3</text>
+      <line class="e-acc" x1="110" y1="530" x2="874" y2="530" stroke-width="2" marker-end="url(#tk-c)"/>
+    </svg>
