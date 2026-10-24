@@ -36,9 +36,9 @@ Load packet-named extension skills; without a packet, use Extensions below.
 
 ## Extensions
 
-Installed with `solomonar`; draft project extensions are not active. Load every installed extension skill whose
-"applies when" matches your change, before writing or reviewing code, and cite its rules as `<name>/C-n`.
-The orchestrator names the matching extensions in each packet.
+Installed with `solomonar`. Load every installed extension skill whose "applies when" matches your change, before
+writing or reviewing code, and cite its rules as `<name>/C-n`. The orchestrator names the matching extensions in
+each packet.
 
 {{ .Extensions }}
 
