@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="dg" width="1000" height="370" viewBox="0 0 1000 370" role="img" aria-label="The workflow-state registry gets one commit on every state change and none per implementation step; implementation progress exists only as one commit per step on feature/W-001, which starts from the base commit on main. The CLI rejects implementation until the approved plan is committed.">
+<style>
+svg {
+  --bg: #F2F4F1; --surface: #FFFFFF; --ink: #18211E; --muted: #56625D; --line: #9AA7A1; --grid: #DDE3DF;
+  --acc: #1D6B86; --acc-soft: #DCEBF0; --warn: #A85A12; --warn-soft: #F6E7D6;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { svg {
+  --bg: #121816; --surface: #1B2320; --ink: #E4EBE7; --muted: #9BA9A3; --line: #5C6B64; --grid: #26302C;
+  --acc: #6CB8D3; --acc-soft: #173440; --warn: #E09A55; --warn-soft: #3A2A1A; color-scheme: dark; } }
+
+
+
+svg { font-family: var(--sans); }
+.bg { fill: var(--surface); }
+/* diagram vocabulary */
+.dg text { font-family: var(--sans); }
+.dg .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+.dg .box-acc { fill: var(--acc-soft); stroke: var(--acc); stroke-width: 1.25; }
+.dg .box-warn { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.25; }
+.dg .frame { fill: var(--bg); stroke: var(--line); stroke-width: 1; stroke-dasharray: 4 4; }
+.dg .t { font-size: 14px; font-weight: 600; fill: var(--ink); }
+.dg .t-sm { font-size: 12px; font-weight: 500; fill: var(--ink); }
+.dg .s { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.dg .s-acc { font-family: var(--mono); font-size: 11px; fill: var(--acc); font-weight: 500; }
+.dg .s-warn { font-family: var(--mono); font-size: 11px; fill: var(--warn); font-weight: 500; }
+.dg .lbl { font-size: 11.5px; fill: var(--muted); }
+.dg .lbl-warn { font-size: 11.5px; fill: var(--warn); font-weight: 500; }
+.dg .ph { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; fill: var(--muted); }
+.dg .rule { stroke: var(--line); stroke-width: 1; }
+.dg .lane { stroke: var(--grid); stroke-width: 2; }
+.dg .lane-strong { stroke: var(--line); stroke-width: 2.5; fill: none; }
+.dg .e { stroke: var(--ink); stroke-width: 1.4; fill: none; }
+.dg .e-acc { stroke: var(--acc); stroke-width: 1.4; fill: none; }
+.dg .e-warn { stroke: var(--warn); stroke-width: 1.4; fill: none; }
+.dg .dash { stroke-dasharray: 5 4; }
+.dg .mk { fill: var(--ink); }
+.dg .mk-acc { fill: var(--acc); }
+.dg .mk-warn { fill: var(--warn); }
+.dg .dot { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+.dg .dot-acc { fill: var(--acc); stroke: var(--acc); stroke-width: 1.5; }
+.dg .dot-warn { fill: var(--warn); stroke: var(--warn); stroke-width: 1.5; }
+.dg .bar { fill: var(--acc-soft); stroke: var(--acc); stroke-width: 1; }
+.dg .bar-warn { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1; }
+.dg .bar-t { font-size: 11px; fill: var(--ink); }
+.dg .ink { fill: var(--ink); }
+.dg .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 5px; stroke-linejoin: round; }
+</style>
+<rect class="bg" width="1000" height="370"/>
+      <defs>
+        <marker id="tr-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="mk-warn"/></marker>
+      </defs>
+
+      <text class="ph" x="240" y="24" text-anchor="middle">1 · RESERVE</text>
+      <line class="rule" x1="200" y1="34" x2="280" y2="34"/>
+      <text class="ph" x="460" y="24" text-anchor="middle">2 · WORKTREE, SPECIFICATION, PLAN</text>
+      <line class="rule" x1="300" y1="34" x2="620" y2="34"/>
+      <text class="ph" x="810" y="24" text-anchor="middle">3 · IMPLEMENTATION</text>
+      <line class="rule" x1="640" y1="34" x2="980" y2="34"/>
+
+      <text class="s-acc" x="20" y="116">workflow-state</text>
+      <text class="lbl" x="20" y="132">written only by the CLI</text>
+      <text class="s ink" x="20" y="226">feature/W-001</text>
+      <text class="lbl" x="20" y="242">its own worktree</text>
+      <text class="s ink" x="20" y="316">main</text>
+      <text class="lbl" x="20" y="332">no task state</text>
+
+      <line class="e-acc" x1="190" y1="120" x2="680" y2="120"/>
+      <line class="e-acc dash" x1="680" y1="120" x2="980" y2="120"/>
+      <circle class="dot-acc" cx="230" cy="120" r="6"/>
+      <text class="s ink" x="230" y="92" text-anchor="middle">task register</text>
+      <text class="lbl" x="230" y="106" text-anchor="middle">reserved · setup</text>
+      <circle class="dot-acc" cx="380" cy="120" r="6"/>
+      <text class="s ink" x="380" y="78" text-anchor="middle">task move</text>
+      <text class="lbl" x="380" y="92" text-anchor="middle">running · specification</text>
+      <text class="lbl" x="380" y="106" text-anchor="middle">+ base, worktree</text>
+      <circle class="dot-acc" cx="520" cy="120" r="6"/>
+      <text class="s ink" x="520" y="92" text-anchor="middle">task move --spec</text>
+      <text class="lbl" x="520" y="106" text-anchor="middle">spec recorded</text>
+      <circle class="dot-acc" cx="660" cy="120" r="6"/>
+      <text class="s ink" x="660" y="92" text-anchor="middle">task move</text>
+      <text class="lbl" x="660" y="106" text-anchor="middle">stage implementation</text>
+      <text class="s-acc" x="830" y="106" text-anchor="middle">no registry writes per step</text>
+
+      <line class="lane-strong" x1="190" y1="320" x2="980" y2="320"/>
+      <circle class="dot" cx="320" cy="320" r="6"/>
+      <text class="s ink" x="320" y="344" text-anchor="middle">base</text>
+      <text class="lbl" x="320" y="358" text-anchor="middle">git worktree add</text>
+
+      <path class="e" d="M320 314 C 345 314, 335 230, 360 230"/>
+      <line class="e" x1="360" y1="230" x2="980" y2="230"/>
+      <circle class="dot" cx="460" cy="230" r="6"/>
+      <text class="s ink" x="460" y="254" text-anchor="middle">spec(W-001)</text>
+      <text class="lbl" x="460" y="268" text-anchor="middle">work spec</text>
+      <circle class="dot" cx="580" cy="230" r="6"/>
+      <text class="s ink" x="580" y="254" text-anchor="middle">spec(W-001)</text>
+      <text class="lbl" x="580" y="268" text-anchor="middle">Status: Approved</text>
+      <circle class="dot" cx="740" cy="230" r="6"/>
+      <circle class="dot" cx="840" cy="230" r="6"/>
+      <circle class="dot" cx="940" cy="230" r="6"/>
+      <text class="s ink" x="740" y="254" text-anchor="middle">S-1</text>
+      <text class="s ink" x="840" y="254" text-anchor="middle">S-2</text>
+      <text class="s ink" x="940" y="254" text-anchor="middle">S-3</text>
+      <path class="rule" d="M725 264 V270 H955 V264" fill="none"/>
+      <text class="lbl" x="840" y="288" text-anchor="middle">one commit per step · trailer Step: W-001/S-n</text>
+
+      <line class="e-warn dash" x1="654" y1="127" x2="588" y2="220" marker-end="url(#tr-a)"/>
+      <text class="lbl-warn halo" x="634" y="182">requires the approved plan</text>
+    </svg>
