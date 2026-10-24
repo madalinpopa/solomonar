@@ -30,7 +30,7 @@ solomonar doctor [--json]
 | registry | A missing or invalid registry, or a schema or framework newer than this CLI | No remote, or an unpublished local registry |
 | files | An invalid manifest, missing managed files, or managed files not committed on main | Managed files modified since installation |
 | extensions | A stack extension without an approved decision for its group's full selection, unmet `requires` or `conflicts`, an installed project extension that fails the extension checks or whose directory is gone, an incomplete core | - |
-| runtimes | Adapter files out of sync, as `sync --check` reports | `CLAUDE.md` not loading `AGENTS.md`, or a missing Claude/Codex guard hook |
+| runtimes | Adapter files that differ from what `upgrade` would write; `upgrade` at the project's version fixes them | `CLAUDE.md` not loading `AGENTS.md`, or a missing Claude/Codex guard hook |
 | forge | A repository that does not allow merge commits | `gh` missing or not authenticated, squash or rebase merges also allowed |
 | project | - | Commands in `docs/README.md` not established |
 
