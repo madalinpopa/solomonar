@@ -73,8 +73,9 @@ type initRun struct {
 	runtimes     []string
 	models       map[string]string
 	extensions   []project.CatalogExtension
-	renderedWith map[string][]string
+	removed      []project.CatalogExtension
 	decisions    []project.Decision
+	decider      project.Decider
 	warnings     []warning
 }
 
@@ -279,17 +280,19 @@ func requestedExtensions(catalog project.Catalog, values []string) ([]string, er
 	return []string{}, nil
 }
 
-// selectExtensions returns the requested extensions, else the manifest's, else go for a go.mod (UC-2).
-func selectExtensions(catalog project.Catalog, requested []string, existing *project.Manifest, root *os.Root,
+// selectExtensions returns the requested extensions, else the manifest's, else the default and
+// detected ones among files (UC-2); a manifest entry of source path resolves in the store.
+func selectExtensions(catalog project.Catalog, store map[string]project.ProjectExtension, requested []string,
+	existing *project.Manifest, files []string,
 ) ([]project.CatalogExtension, error) {
-	names := requested
-	if names == nil && existing != nil {
-		names = slices.Sorted(maps.Keys(existing.Extensions))
+	if requested == nil && existing != nil {
+		return installedExtensions(catalog, store, existing, nil)
 	}
+	names := requested
 	if names == nil {
-		info, err := root.Lstat("go.mod")
-		if _, ok := catalog["go"]; ok && err == nil && info.Mode().IsRegular() {
-			names = []string{"go"}
+		var err error
+		if names, err = catalog.Resolve(slices.Collect(maps.Keys(catalog.Suggested(files)))); err != nil {
+			return nil, err
 		}
 	}
 	selected := make([]project.CatalogExtension, 0, len(names))
@@ -301,6 +304,46 @@ func selectExtensions(catalog project.Catalog, requested []string, existing *pro
 		selected = append(selected, e)
 	}
 	return selected, nil
+}
+
+// installedExtensions resolves the manifest's extensions and the added ones, sorted by name; an
+// invalid project extension is invalid_value (UC-7).
+func installedExtensions(catalog project.Catalog, store map[string]project.ProjectExtension,
+	existing *project.Manifest, added []project.CatalogExtension,
+) ([]project.CatalogExtension, error) {
+	byName := map[string]project.CatalogExtension{}
+	for name, entry := range existing.Extensions {
+		e, ok := catalog[name]
+		if entry.Source == "path" {
+			p, inStore := store[name]
+			if inStore && p.Err != nil {
+				return nil, invalidExtension(name, p.Err)
+			}
+			e, ok = p.CatalogExtension, inStore
+		}
+		if !ok {
+			return nil, fmt.Errorf("read extension %s: not in the catalog", name)
+		}
+		byName[name] = e
+	}
+	for _, e := range added {
+		byName[e.Name] = e
+	}
+	selected := make([]project.CatalogExtension, 0, len(byName))
+	for _, name := range slices.Sorted(maps.Keys(byName)) {
+		selected = append(selected, byName[name])
+	}
+	return selected, nil
+}
+
+func invalidExtension(name string, reason error) *project.Rejection {
+	dir := project.StoreDir + "/" + name
+	return &project.Rejection{
+		Code:  "invalid_value",
+		Check: dir + " is a valid extension",
+		Found: reason.Error(),
+		Fix:   "fix " + dir + "/ and rerun; the extension-authoring skill validates it",
+	}
 }
 
 // selectRuntimes returns the requested runtimes, else the manifest's, else those found on PATH (UC-2).
@@ -345,6 +388,26 @@ func selectModels(requested map[string]string, runtimes []string, existing *proj
 	return models, nil
 }
 
+// firstChoices lists the files that suggest extensions, then asks a first init's missing choices.
+func (f *initFlags) firstChoices(ctx context.Context, repo *git.Repo, gitInit bool, existing *project.Manifest,
+	catalog project.Catalog, ask *initPrompts,
+) ([]string, error) {
+	if existing != nil {
+		return nil, nil
+	}
+	var files []string
+	if !gitInit && f.requested.Extensions == nil {
+		var err error
+		if files, err = repo.Files(ctx); err != nil {
+			return nil, err
+		}
+	}
+	if ask == nil {
+		return files, nil
+	}
+	return files, ask.choices(f, files, filepath.Base(repo.Dir), catalog)
+}
+
 // initialize plans against repo; with gitInit, repo is the directory git init turns into one (UC-4).
 // A non-nil ask asks for the missing choices of a first init and confirms the plan.
 func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, gitInit bool, root *os.Root,
@@ -354,10 +417,9 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 	if err != nil {
 		return output{}, err
 	}
-	if ask != nil && existing == nil {
-		if err := ask.choices(f, root, filepath.Base(repo.Dir), catalog); err != nil {
-			return output{}, err
-		}
+	files, err := f.firstChoices(ctx, repo, gitInit, existing, catalog, ask)
+	if err != nil {
+		return output{}, err
 	}
 	runtimes := selectRuntimes(f.requested.Runtimes, existing)
 	models, err := selectModels(f.requested.AdversarialModels, runtimes, existing)
@@ -371,7 +433,11 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 		}
 		recorded = existing.Project
 	}
-	extensions, err := selectExtensions(catalog, f.requested.Extensions, existing, root)
+	stored, err := project.LoadStore(root.FS(), env.Assets, catalog, existing)
+	if err != nil {
+		return output{}, err
+	}
+	extensions, err := selectExtensions(catalog, stored, f.requested.Extensions, existing, files)
 	if err != nil {
 		return output{}, err
 	}
@@ -384,6 +450,7 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 	r := initRun{
 		root: repo.Dir, framework: framework, mainBranch: p.MainBranch, gitInit: gitInit, firstCommit: gitInit,
 		runtimes: runtimes, models: models, extensions: extensions, warnings: jujutsuWarnings(root),
+		decider: project.Decider{Command: "init"},
 	}
 	if !gitInit {
 		if r.tip, err = existingRegistry(ctx, store); err != nil {
@@ -400,7 +467,8 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 		return ask.cancelOn(err, r.warnings)
 	}
 	if conflicts := r.plan.Conflicts(); len(conflicts) > 0 {
-		return output{text: "Plan\n" + planLines(conflicts)}, fileConflict(conflicts)
+		return output{text: "Plan\n" + planLines(conflicts)},
+			fileConflict("init", "--overwrite <path> to replace it", conflicts)
 	}
 	switch {
 	case f.dryRun:
@@ -418,38 +486,45 @@ func (f *initFlags) initialize(ctx context.Context, env Env, repo *git.Repo, git
 	return r.apply(ctx, root, store)
 }
 
-// plan wants the core, extension, and adapter files, then decision documents and the manifest.
 func (f *initFlags) plan(env Env, root *os.Root, existing *project.Manifest, p project.Project, r *initRun) error {
-	decisions, err := project.PlanDecisions(root, existing, r.extensions, env.Now().Format(time.DateOnly))
+	var err error
+	r.plan, r.decisions, err = r.planFiles(env, root, existing, p, f.objective,
+		project.Resolutions{Keep: f.keep, Overwrite: f.overwrite})
+	return err
+}
+
+// planFiles wants the core, extension, and adapter files, then decision documents and the manifest.
+func (r initRun) planFiles(env Env, root *os.Root, existing *project.Manifest, p project.Project, objective string,
+	resolve project.Resolutions,
+) (project.Plan, []project.Decision, error) {
+	by := r.decider
+	by.Date = env.Now().Format(time.DateOnly)
+	decisions, err := project.PlanDecisions(root, existing, r.extensions, by)
 	if err != nil {
-		return err
+		return project.Plan{}, nil, err
 	}
 	core, err := project.CoreWants(env.Assets, project.Choices{
-		Name: p.Name, Objective: f.objective, FrameworkVersion: r.framework,
-		Extensions: r.extensions, Documents: decisions.Index,
+		Name: p.Name, Objective: objective, FrameworkVersion: r.framework,
+		Extensions: r.extensions, Decisions: decisions.ByGroup, Documents: decisions.Index,
 	})
 	if err != nil {
-		return err
+		return project.Plan{}, nil, err
 	}
-	extensions, entries, err := project.ExtensionWants(env.Assets, r.extensions, decisions.ByGroup)
+	extensions, entries, err := project.ExtensionWants(r.extensions, decisions.ByGroup)
 	if err != nil {
-		return err
+		return project.Plan{}, nil, err
 	}
 	adapters, err := project.RuntimeWants(env.Assets, r.runtimes, r.models, r.framework, r.extensions)
 	if err != nil {
-		return err
+		return project.Plan{}, nil, err
 	}
 	runtimes := map[string]project.Runtime{}
 	for _, runtime := range r.runtimes {
 		runtimes[runtime] = project.Runtime{AdversarialModel: r.models[runtime]}
 	}
-	r.plan, _, err = project.InitPlan(root, existing, slices.Concat(core, extensions, adapters), f.keep, f.overwrite,
+	plan, _, err := project.InitPlan(root, existing, slices.Concat(core, extensions, adapters), resolve,
 		p, runtimes, entries, decisions, r.framework)
-	r.decisions, r.renderedWith = decisions.Records, map[string][]string{}
-	for name, e := range entries {
-		r.renderedWith[name] = e.RenderedWith
-	}
-	return err
+	return plan, decisions.Records, err
 }
 
 // unbornMain reports whether the main branch has no commit and HEAD points elsewhere (UC-4).
@@ -676,10 +751,7 @@ func (r initRun) planText() string {
 }
 
 func (r initRun) data(registry registryState) initData {
-	files := make([]initFile, 0, len(r.plan.Changes))
-	for _, c := range r.plan.Changes {
-		files = append(files, initFile{Path: c.Path, Action: string(c.Action), Owner: c.Owner, Reason: c.Reason})
-	}
+	files := fileEntries(r.plan.Changes)
 	extensions := map[string][]string{}
 	for _, e := range r.extensions {
 		extensions[e.Group] = append(extensions[e.Group], e.Name)
@@ -689,6 +761,14 @@ func (r initRun) data(registry registryState) initData {
 		Choices: initChoices{Runtimes: r.runtimes, Extensions: extensions, AdversarialModel: r.models},
 		GitInit: r.gitInit, FirstCommit: r.firstCommit,
 	}
+}
+
+func fileEntries(changes []project.Change) []initFile {
+	files := make([]initFile, 0, len(changes))
+	for _, c := range changes {
+		files = append(files, initFile{Path: c.Path, Action: string(c.Action), Owner: c.Owner, Reason: c.Reason})
+	}
+	return files
 }
 
 func (r initRun) commitCommand() string {
@@ -722,6 +802,7 @@ func counts(changes []project.Change) string {
 	}{
 		{[]project.Action{project.ActionCreate}, "created"},
 		{[]project.Action{project.ActionUpdate, project.ActionAppend}, "updated"},
+		{[]project.Action{project.ActionRemove}, "removed"},
 		{[]project.Action{project.ActionKeep}, "kept"},
 		{[]project.Action{project.ActionUnchanged}, "unchanged"},
 		{[]project.Action{project.ActionSkip}, "skipped"},
@@ -745,16 +826,17 @@ func counts(changes []project.Change) string {
 	return strings.Join(parts, ", ")
 }
 
-func fileConflict(conflicts []project.Change) *Error {
+// fileConflict rejects a plan's conflicts; resolve names the flag that takes the CLI's version.
+func fileConflict(command, resolve string, conflicts []project.Change) *Error {
 	paths := make([]string, 0, len(conflicts))
 	for _, c := range conflicts {
 		paths = append(paths, c.Path)
 	}
 	n := fmt.Sprintf("%d %s", len(conflicts), plural(len(conflicts), "conflict", "conflicts"))
 	return &Error{
-		Code: "file_conflict", Exit: 4, Message: "init found " + n,
+		Code: "file_conflict", Exit: 4, Message: command + " found " + n,
 		Check: "no planned file conflicts with the project's files",
 		Found: n + ": " + strings.Join(paths, ", "),
-		Fix:   "rerun with --keep <path> to keep the project's file, or --overwrite <path> to replace it",
+		Fix:   "rerun with --keep <path> to keep the project's file, or " + resolve,
 	}
 }
