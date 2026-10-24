@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="dg" width="1000" height="392" viewBox="0 0 1000 392" role="img" aria-label="When a session stops suddenly, only its memory is lost. Uncommitted files stay in the worktree but must be inspected. The committed steps, the approved plan, and the registry record remain; the record still names the stopped session as the confirmed owner.">
+<style>
+svg {
+  --bg: #F2F4F1; --surface: #FFFFFF; --ink: #18211E; --muted: #56625D; --line: #9AA7A1; --grid: #DDE3DF;
+  --acc: #1D6B86; --acc-soft: #DCEBF0; --warn: #A85A12; --warn-soft: #F6E7D6;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { svg {
+  --bg: #121816; --surface: #1B2320; --ink: #E4EBE7; --muted: #9BA9A3; --line: #5C6B64; --grid: #26302C;
+  --acc: #6CB8D3; --acc-soft: #173440; --warn: #E09A55; --warn-soft: #3A2A1A; color-scheme: dark; } }
+
+
+
+svg { font-family: var(--sans); }
+.bg { fill: var(--surface); }
+/* diagram vocabulary */
+.dg text { font-family: var(--sans); }
+.dg .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+.dg .box-acc { fill: var(--acc-soft); stroke: var(--acc); stroke-width: 1.25; }
+.dg .box-warn { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.25; }
+.dg .frame { fill: var(--bg); stroke: var(--line); stroke-width: 1; stroke-dasharray: 4 4; }
+.dg .t { font-size: 14px; font-weight: 600; fill: var(--ink); }
+.dg .t-sm { font-size: 12px; font-weight: 500; fill: var(--ink); }
+.dg .s { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.dg .s-acc { font-family: var(--mono); font-size: 11px; fill: var(--acc); font-weight: 500; }
+.dg .s-warn { font-family: var(--mono); font-size: 11px; fill: var(--warn); font-weight: 500; }
+.dg .lbl { font-size: 11.5px; fill: var(--muted); }
+.dg .lbl-warn { font-size: 11.5px; fill: var(--warn); font-weight: 500; }
+.dg .ph { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; fill: var(--muted); }
+.dg .rule { stroke: var(--line); stroke-width: 1; }
+.dg .lane { stroke: var(--grid); stroke-width: 2; }
+.dg .lane-strong { stroke: var(--line); stroke-width: 2.5; fill: none; }
+.dg .e { stroke: var(--ink); stroke-width: 1.4; fill: none; }
+.dg .e-acc { stroke: var(--acc); stroke-width: 1.4; fill: none; }
+.dg .e-warn { stroke: var(--warn); stroke-width: 1.4; fill: none; }
+.dg .dash { stroke-dasharray: 5 4; }
+.dg .mk { fill: var(--ink); }
+.dg .mk-acc { fill: var(--acc); }
+.dg .mk-warn { fill: var(--warn); }
+.dg .dot { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+.dg .dot-acc { fill: var(--acc); stroke: var(--acc); stroke-width: 1.5; }
+.dg .dot-warn { fill: var(--warn); stroke: var(--warn); stroke-width: 1.5; }
+.dg .bar { fill: var(--acc-soft); stroke: var(--acc); stroke-width: 1; }
+.dg .bar-warn { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1; }
+.dg .bar-t { font-size: 11px; fill: var(--ink); }
+.dg .ink { fill: var(--ink); }
+.dg .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 5px; stroke-linejoin: round; }
+</style>
+<rect class="bg" width="1000" height="392"/>
+      <defs>
+        <marker id="ss-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="mk"/></marker>
+      </defs>
+
+      <text class="t" x="20" y="60">Agent session</text>
+      <text class="lbl" x="20" y="76">memory</text>
+      <rect class="box-warn dash" x="230" y="30" width="480" height="66" rx="6"/>
+      <text class="t-sm" x="250" y="58">orchestrator-1 and its implementer</text>
+      <text class="lbl" x="250" y="80">conversation · reasoning · unsaved reports and checks</text>
+      <text class="lbl-warn" x="980" y="68" text-anchor="end">lost</text>
+
+      <line class="e-warn" x1="20" y1="118" x2="980" y2="118" stroke-dasharray="10 6"/>
+      <text class="s-warn" x="980" y="106" text-anchor="end">sudden stop</text>
+
+      <text class="t" x="20" y="178">Worktree</text>
+      <text class="lbl" x="20" y="194">files on disk</text>
+      <rect class="box" x="230" y="140" width="480" height="80" rx="6"/>
+      <text class="s-warn" x="250" y="166">M</text><text class="s ink" x="272" y="166">internal/expense/split.go</text>
+      <text class="s-warn" x="250" y="184">??</text><text class="s ink" x="272" y="184">internal/expense/split_test.go</text>
+      <text class="s" x="250" y="202">!!</text><text class="s" x="272" y="202">.env.local (ignored)</text>
+      <text class="lbl-warn" x="980" y="172" text-anchor="end">stays, must be inspected</text>
+      <text class="lbl" x="980" y="190" text-anchor="end">ignored files are not guaranteed</text>
+
+      <text class="t" x="20" y="298">Git</text>
+      <text class="lbl" x="20" y="314">durable</text>
+      <text class="s ink" x="230" y="262">feature/W-001</text>
+      <line class="e" x1="230" y1="280" x2="600" y2="280"/>
+      <line class="e dash" x1="600" y1="280" x2="654" y2="280"/>
+      <circle class="dot" cx="290" cy="280" r="6"/>
+      <circle class="dot" cx="380" cy="280" r="6"/>
+      <circle class="dot" cx="480" cy="280" r="6"/>
+      <circle class="dot" cx="570" cy="280" r="6"/>
+      <circle class="dot dash" cx="660" cy="280" r="6"/>
+      <text class="s ink" x="290" y="302" text-anchor="middle">spec</text>
+      <text class="s ink" x="380" y="302" text-anchor="middle">Approved</text>
+      <text class="s ink" x="480" y="302" text-anchor="middle">S-1</text>
+      <text class="s ink" x="570" y="302" text-anchor="middle">S-2 · HEAD</text>
+      <text class="s" x="660" y="302" text-anchor="middle">S-3 missing</text>
+      <line class="e dash" x1="660" y1="222" x2="660" y2="270" marker-end="url(#ss-a)"/>
+      <text class="lbl halo" x="672" y="250">never committed</text>
+
+      <text class="s-acc" x="230" y="336">workflow-state</text>
+      <line class="e-acc" x1="230" y1="354" x2="290" y2="354"/>
+      <circle class="dot-acc" cx="290" cy="354" r="6"/>
+      <text class="s ink" x="306" y="358">tasks/W-001.json → running · implementation · orchestrator-1 · confirmed</text>
+
+      <text class="s-acc" x="980" y="294" text-anchor="end">stays</text>
+      <text class="lbl" x="980" y="312" text-anchor="end">the registry does not know the session stopped</text>
+    </svg>
