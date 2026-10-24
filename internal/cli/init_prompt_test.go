@@ -81,8 +81,8 @@ func TestInteractiveInitUC1(t *testing.T) {
 	require.True(t, ok, transcript)
 	assert.Equal(t, repoHeader(dir)+"Project name ["+filepath.Base(dir)+"]: Current objective, one line (optional): \n"+
 		"Runtimes that will run this project's sessions:\n"+
-		"    [x] claude   Claude Code: CLAUDE.md import, .claude/skills, .claude/agents, state guard hook\n"+
-		"    [x] codex    Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook\n"+
+		"    [x] claude   Claude Code: CLAUDE.md import, .claude/skills, .claude/agents\n"+
+		"    [x] codex    Codex: AGENTS.md (native), .agents/skills, .codex/agents\n"+
 		"    [ ] copilot  GitHub Copilot CLI: AGENTS.md (native), .github/skills, .github/agents\n"+
 		"\nModel for the adversarial reviewer in Claude Code, different from your main session model\n"+
 		"(blank = runtime default): "+
@@ -227,8 +227,8 @@ func TestInteractiveInitDryRunAsksChoicesWithoutConfirmation(t *testing.T) {
 	assert.True(t, strings.HasPrefix(transcript, repoHeader(dir)+
 		"Project name ["+filepath.Base(dir)+"]: Current objective, one line (optional): \n"+
 		"Runtimes that will run this project's sessions:\n"+
-		"    [ ] claude   Claude Code: CLAUDE.md import, .claude/skills, .claude/agents, state guard hook\n"+
-		"    [ ] codex    Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook\n"+
+		"    [ ] claude   Claude Code: CLAUDE.md import, .claude/skills, .claude/agents\n"+
+		"    [ ] codex    Codex: AGENTS.md (native), .agents/skills, .codex/agents\n"+
 		"    [ ] copilot  GitHub Copilot CLI: AGENTS.md (native), .github/skills, .github/agents\n"+
 		extensionsIntro+
 		"\nLanguage:\n    [ ] go  Go language rules\n"+

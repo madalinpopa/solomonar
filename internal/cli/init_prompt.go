@@ -26,8 +26,8 @@ type initPrompts struct {
 
 func runtimeItems() []choice {
 	return []choice{
-		{name: "claude", description: "Claude Code: CLAUDE.md import, .claude/skills, .claude/agents, state guard hook"},
-		{name: "codex", description: "Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook"},
+		{name: "claude", description: "Claude Code: CLAUDE.md import, .claude/skills, .claude/agents"},
+		{name: "codex", description: "Codex: AGENTS.md (native), .agents/skills, .codex/agents"},
 		{name: "copilot", description: "GitHub Copilot CLI: AGENTS.md (native), .github/skills, .github/agents"},
 	}
 }
