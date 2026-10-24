@@ -1,0 +1,94 @@
+# Add and remove a runtime on a project initialized without one; the registry stays unchanged.
+exec git init -q -b main repo
+cd repo
+exec solomonar init --runtime none --ext none --yes
+exec git add -A
+exec git commit -q -m install
+exec git rev-parse refs/heads/workflow-state
+cp stdout ../tip.txt
+
+# The list reports every runtime as available and writes nothing.
+exec solomonar runtime list
+stdout '^RUNTIME +STATUS +ON PATH +ADAPTER$'
+stdout '^claude +available +(yes|no) +CLAUDE\.md, \.claude/skills, \.claude/agents$'
+stdout '^codex +available +(yes|no) +AGENTS\.md \(native\), \.agents/skills, \.codex/agents$'
+stdout '^copilot +available +(yes|no) +AGENTS\.md \(native\), \.github/skills, \.github/agents$'
+! stderr .
+exec solomonar runtime list --json
+stdout '"command": "runtime list"'
+stdout '"name": "copilot"'
+stdout '"status": "available"'
+stdout '"on_path": (true|false)'
+! stdout 'installed'
+
+# The dry run prints the adapter files and writes nothing.
+exec solomonar runtime add copilot --dry-run
+stdout '^Plan$'
+stdout '^  create     \.github/skills/solomonar/SKILL\.md$'
+stdout '^  create     \.github/agents/implementer\.agent\.md$'
+stdout '^  update     \.solomonar/manifest\.json$'
+stdout '^Would add runtime copilot in .+/repo$'
+stdout '^  9 files created, 1 updated, 17 unchanged, 1 skipped$'
+! exists .github
+! grep copilot .solomonar/manifest.json
+
+# Without a terminal the change needs --yes.
+exitcode 2 solomonar runtime add copilot
+! stdout .
+stderr '^error: runtime add needs a confirmation \(interactive_required\)$'
+! exists .github
+
+# The runtime gets its adapters and manifest entry, with commit guidance naming individual Copilot files.
+exec solomonar runtime add copilot --yes
+stdout '^Added runtime copilot in .+/repo$'
+stdout '^  9 files created, 1 updated, 17 unchanged, 1 skipped$'
+stdout '^  1\. git add \.github/skills/prototype/SKILL\.md .+ \.github/agents/spec-reviewer\.agent\.md \.solomonar && git commit -m "chore: add solomonar runtime copilot"$'
+stdout '^       /solomonar Explore the next useful flow\.$'
+exists .github/skills/solomonar/SKILL.md .github/agents/implementer.agent.md
+grep '"copilot":' .solomonar/manifest.json
+grep '"owner": "runtime:copilot"' .solomonar/manifest.json
+exec git add -A
+exec git commit -q -m 'add copilot'
+
+# A repeated add is a no-op.
+cp .solomonar/manifest.json ../manifest-added.json
+exec solomonar runtime add copilot
+stdout '^Already installed: copilot; nothing to do\.$'
+stdout '^  27 files unchanged, 1 skipped$'
+cmp .solomonar/manifest.json ../manifest-added.json
+exec solomonar runtime list
+stdout '^copilot +installed '
+
+# The removal dry run lists every adapter file and writes nothing.
+exec solomonar runtime remove copilot --dry-run
+stdout '^  remove     \.github/agents/implementer\.agent\.md$'
+stdout '^  remove     \.github/skills/solomonar/SKILL\.md$'
+stdout '^Would remove runtime copilot in .+/repo$'
+stdout '^  1 file updated, 9 removed, 17 unchanged, 1 skipped$'
+exists .github/skills/solomonar/SKILL.md
+
+# The JSON removal reports each removed file, and its commit guidance stages the deleted paths.
+exec solomonar runtime remove copilot --yes --json
+stdout '"command": "runtime remove"'
+stdout '"runtime": "copilot"'
+stdout -count=9 '"action": "remove"'
+stdout '"git add \.github/agents/adversarial-reviewer\.agent\.md .+ \.github/skills/work-spec/SKILL\.md \.solomonar && git commit -m \\"chore: remove solomonar runtime copilot\\""'
+! stderr .
+! exists .github/skills .github/agents
+exists .github
+! grep copilot .solomonar/manifest.json
+exec git add .github/agents/adversarial-reviewer.agent.md .github/agents/correctness-reviewer.agent.md .github/agents/implementer.agent.md .github/agents/security-reviewer.agent.md .github/agents/spec-reviewer.agent.md .github/skills/prototype/SKILL.md .github/skills/solomonar/SKILL.md .github/skills/spec/SKILL.md .github/skills/work-spec/SKILL.md .solomonar
+exec git commit -q -m 'chore: remove solomonar runtime copilot'
+exec git status --porcelain --untracked-files=all
+! stdout .
+exec git show --name-status --format= HEAD
+stdout -count=9 '^D\t\.github/'
+stdout '^M\t\.solomonar/manifest\.json$'
+
+# Removing it again is a no-op, and the registry never moved.
+exec solomonar runtime remove copilot
+stdout '^Not installed: copilot; nothing to do\.$'
+exec solomonar runtime list
+stdout '^copilot +available '
+exec git rev-parse refs/heads/workflow-state
+cmp stdout ../tip.txt
