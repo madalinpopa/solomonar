@@ -647,8 +647,7 @@ The planned CLI form is `varnu init`. The name is a proposal, not an accepted pr
 
 This amendment supersedes the statements above that the registry is one `state.json`, that the worktree path is
 never stored, and that the work spec holds no plan. The contract is in
-[the implementation plan](../cli/git-checkpoint-implementation-plan.md#resolved-contract) and the interface
-(sections 8.6 and 8.7, UC-25 and UC-26).
+the interface (sections 8.6 and 8.7, UC-25 and UC-26).
 
 - The registry stores one file per task (`tasks/<ID>.json`) beside `state.json`, which keeps only the schema
   version. A record past setup holds its immutable `base`, its worktree path relative to the main checkout, and
