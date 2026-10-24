@@ -95,7 +95,11 @@ Agents pass `--as` on each owner command because a runtime may start a new shell
 
 Extensions add skills and specialist reviewers. Stack extensions record an approved technology decision; workflow and review extensions configure the process without a stack decision.
 
-In v0.1.7, `init --ext` installs extensions from the embedded catalog, which holds the `go` language extension. The `extension` commands that add or remove an extension later, and project extensions from a local directory, are planned.
+In this source tree, `init --ext` installs the `go` language extension and the optional `extension-authoring` workflow skill from the embedded catalog. The `extension` commands that add or remove an extension later, and project extensions from a local directory, are planned.
+
+`extension-authoring` researches, writes, and validates skills, rules, or specialist reviewers. It supports catalog source in Solomonar and project-owned source in adopting repositories. Its runtime stubs point to `docs/solomonar/skills/extension-authoring/SKILL.md`; conditional stage references and one authoring-evidence source map live beside that file. Each authored extension keeps its own sources, decisions, and results in a single research record.
+
+The skill creates content; the CLI installs it, records ownership and metadata, and generates adapters. Until project-extension adoption is supported, project mode leaves an unregistered source directory. It does not edit the manifest or adapters to activate the draft.
 
 The v0.1.7 catalog holds no specialist-reviewer extension; those arrive as project extensions. `task move --agent` already accepts the role of any agent extension the manifest lists as installed, alongside the core roles.
 
