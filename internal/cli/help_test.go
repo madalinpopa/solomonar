@@ -13,6 +13,7 @@ Commands:
   help               Print help for a command
   init               Install the framework core and create the registry
   upgrade            Move the project to this CLI's framework version
+  uninstall          Remove the framework installation from the project
   version            Print the CLI and project framework versions
   extension list     List catalog and project extensions
   extension add      Install catalog or project extensions

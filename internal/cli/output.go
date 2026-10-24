@@ -81,6 +81,10 @@ func writeHumanError(w io.Writer, cliErr *Error) {
 	writeDetail(w, "check: ", cliErr.Check)
 	writeDetail(w, "found: ", cliErr.Found)
 	writeDetail(w, "fix:   ", cliErr.Fix)
+	if len(cliErr.Unrestored) > 0 {
+		_, _ = io.WriteString(w, "rollback incomplete; recover the paths named above\n")
+		return
+	}
 	_, _ = io.WriteString(w, "nothing was written\n")
 }
 

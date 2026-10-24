@@ -19,6 +19,9 @@ type Error struct {
 	Found   string
 	Fix     string
 	Err     error
+	// Unrestored lists the paths a failed rollback left changed; the footer names them instead of
+	// "nothing was written".
+	Unrestored []string
 }
 
 func (e *Error) Error() string { return e.Message }
@@ -89,7 +92,7 @@ func rejectionExit(code string) int {
 		return exitUsage
 	case "registry_invalid", "manifest_invalid":
 		return 1
-	case "cas_exhausted":
+	case "cas_exhausted", "file_conflict":
 		return 4
 	default:
 		return 3

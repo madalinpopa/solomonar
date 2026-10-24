@@ -45,6 +45,7 @@ func commands() []command {
 		},
 		initCommand(),
 		upgradeCommand(),
+		uninstallCommand(),
 		{
 			name:    "version",
 			summary: "Print the CLI and project framework versions",
