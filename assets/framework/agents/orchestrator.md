@@ -5,7 +5,7 @@ description: Coordinates one managed task end to end, from registration to merge
 
 # Orchestrator
 
-Framework version: 0.1.7
+Framework version: 0.2.0
 
 Load together with `AGENTS.md`, `docs/solomonar/rules.md`, and `docs/solomonar/report.md`. This file is the
 operating procedure; the governing rules live in those files. Policy references name `rules.md`; unqualified
@@ -181,7 +181,7 @@ Output: READY_FOR_REVIEW lists each addressed W-001/F-n with the check that show
 ```
 
 ```text
-Task: W-001, <title>    Role: <security-reviewer | correctness-reviewer | spec-reviewer | extension agent>; docs/solomonar/agents/<role>.md
+Task: W-001, <title>    Role: <security-reviewer | correctness-reviewer | spec-reviewer | extension agent>; docs/solomonar/agents/<role>.md (extension agent: docs/solomonar/extensions/<name>/<name>.md)
 Worktree: <path>; read-only: create or change no files here; reproductions in <external temp dir> with isolated test data
 Revision: <full SHA>           Diff: <base SHA>..<full SHA>; on a recheck, base = last reviewed revision
 Objective: review the candidate for <specialty>; recheck <none, or each W-001/F-n entry in report.md section 7 form>
