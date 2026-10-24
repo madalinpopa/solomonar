@@ -21,10 +21,10 @@ type Requested struct {
 }
 
 // InitPlan plans init's files and builds the manifest, whose change comes last (I section 4.7).
-func InitPlan(root *os.Root, existing *Manifest, wants []Want, keep, overwrite []string, p Project,
+func InitPlan(root *os.Root, existing *Manifest, wants []Want, resolve Resolutions, p Project,
 	runtimes map[string]Runtime, extensions map[string]Extension, decisions Decisions, framework string,
 ) (Plan, *Manifest, error) {
-	plan, files, err := Classify(root, existing, wants, keep, overwrite)
+	plan, files, err := Classify(root, existing, wants, resolve)
 	if err != nil {
 		return Plan{}, nil, err
 	}
