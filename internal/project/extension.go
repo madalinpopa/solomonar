@@ -9,17 +9,13 @@ import (
 	"strings"
 )
 
-// ExtensionWants returns the installed extensions' rendered files and manifest entries
-// (I section 4.3).
-func ExtensionWants(assets fs.FS, installed []CatalogExtension, decisions map[string]string,
+// ExtensionWants returns the installed catalog extensions' store files, copied verbatim, and every
+// installed extension's manifest entry (I section 4.3).
+func ExtensionWants(installed []CatalogExtension, decisions map[string]string,
 ) ([]Want, map[string]Extension, error) {
 	sorted := slices.SortedFunc(slices.Values(installed), func(a, b CatalogExtension) int {
 		return cmp.Compare(a.Name, b.Name)
 	})
-	var names []string
-	for _, e := range sorted {
-		names = append(names, e.Name)
-	}
 	var wants []Want
 	entries := map[string]Extension{}
 	for _, e := range sorted {
@@ -27,26 +23,26 @@ func ExtensionWants(assets fs.FS, installed []CatalogExtension, decisions map[st
 		if !stackGroup(e.Group) {
 			decision = ""
 		} else if decision == "" {
-			return nil, nil, fmt.Errorf("render %s: no decision for group %s", e.Name, e.Group)
+			return nil, nil, fmt.Errorf("install %s: no decision for group %s", e.Name, e.Group)
 		}
-		files, err := extensionFiles(assets, e)
+		entry := Extension{State: "installed", Kind: e.Kind, Group: e.Group, Source: e.Source, Decision: decision}
+		if e.Source == "path" {
+			entry.Path = e.Dir
+			entries[e.Name] = entry
+			continue
+		}
+		files, err := extensionFiles(e)
 		if err != nil {
 			return nil, nil, fmt.Errorf("read extension %s: %w", e.Name, err)
 		}
-		var with []string
 		for _, file := range files {
-			content, err := fs.ReadFile(assets, path.Join(e.Dir, file))
+			content, err := fs.ReadFile(e.FS, path.Join(e.Dir, file))
 			if err != nil {
 				return nil, nil, fmt.Errorf("read extension %s: %w", e.Name, err)
 			}
-			if file == extensionMain(e) {
-				content, with = Render(content, e.Name, names, decision)
-			}
-			wants = append(wants, Want{Path: installedPath(e, file), Owner: "ext:" + e.Name, Content: content})
+			wants = append(wants, Want{Path: storePath(e, file), Owner: "ext:" + e.Name, Content: content})
 		}
-		entries[e.Name] = Extension{
-			State: "installed", Kind: e.Kind, Group: e.Group, Source: "catalog", Decision: decision, RenderedWith: with,
-		}
+		entries[e.Name] = entry
 	}
 	return wants, entries, nil
 }
@@ -55,7 +51,7 @@ func stackGroup(group string) bool {
 	return group != "workflow" && group != "review"
 }
 
-// extensionMain is the file Render processes and runtime stubs point at.
+// extensionMain is the file runtime stubs and decisions point at.
 func extensionMain(e CatalogExtension) string {
 	if e.Kind == "agent" {
 		return e.Name + ".md"
@@ -63,35 +59,28 @@ func extensionMain(e CatalogExtension) string {
 	return "SKILL.md"
 }
 
-// installedPath is where an extension's catalog file is installed.
-func installedPath(e CatalogExtension, file string) string {
-	if e.Kind == "agent" {
-		return path.Join("docs/solomonar/agents", file)
-	}
-	return path.Join("docs/solomonar/skills", e.Name, file)
+// storePath is where an extension's catalog file is installed.
+func storePath(e CatalogExtension, file string) string {
+	return path.Join(StoreDir, e.Name, file)
 }
 
-// extensionFiles lists the files an extension installs, relative to its catalog directory, sorted.
-func extensionFiles(assets fs.FS, e CatalogExtension) ([]string, error) {
-	if e.Kind == "agent" {
-		return []string{extensionMain(e)}, nil
-	}
+// extensionFiles lists every file of an extension's catalog directory, relative to it, sorted.
+func extensionFiles(e CatalogExtension) ([]string, error) {
 	var files []string
-	err := fs.WalkDir(assets, e.Dir, func(name string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(e.FS, e.Dir, func(name string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return err
 		}
-		if rel := strings.TrimPrefix(name, e.Dir+"/"); rel != "extension.json" {
-			files = append(files, rel)
-		}
+		files = append(files, strings.TrimPrefix(name, e.Dir+"/"))
 		return nil
 	})
 	slices.Sort(files)
 	return files, err
 }
 
-// extensionsBlock renders the AGENTS.md skill and agent lists, by group then name (I section 4.6).
-func extensionsBlock(installed []CatalogExtension) string {
+// extensionsBlock renders the AGENTS.md skill, agent, and user-invoked skill lists, by group then name
+// (I section 4.6).
+func extensionsBlock(installed []CatalogExtension, decisions map[string]string) string {
 	sorted := slices.SortedFunc(slices.Values(installed), func(a, b CatalogExtension) int {
 		return cmp.Or(cmp.Compare(slices.Index(groups(), a.Group), slices.Index(groups(), b.Group)),
 			cmp.Compare(a.Name, b.Name))
@@ -99,14 +88,22 @@ func extensionsBlock(installed []CatalogExtension) string {
 	skills := []string{"- Skills"}
 	agents := []string{"- Agents: an installed agent is a specialist reviewer, required by triage when its " +
 		"\"applies when\" matches."}
+	users := []string{"- User-invoked skills: load one only when the user starts it, never because it applies."}
 	for _, e := range sorted {
-		line := fmt.Sprintf("  - `%s` (%s): %s", e.Name, e.Group, e.AppliesWhen)
+		label := e.Group
+		if stackGroup(e.Group) {
+			label += ", " + decisions[e.Group]
+		}
+		line := fmt.Sprintf("  - `%s` (%s): %s", e.Name, label, e.AppliesWhen)
 		if len(e.Paths) > 0 {
 			line += "; paths: `" + strings.Join(e.Paths, "`, `") + "`"
 		}
-		if e.Kind == "agent" {
+		switch {
+		case e.Kind == "agent":
 			agents = append(agents, line)
-		} else {
+		case e.Invocation == "user":
+			users = append(users, line)
+		default:
 			skills = append(skills, line)
 		}
 	}
@@ -117,5 +114,8 @@ func extensionsBlock(installed []CatalogExtension) string {
 		agents = []string{"- Agents: none. An installed agent is a specialist reviewer, required by triage when its " +
 			"\"applies when\" matches."}
 	}
-	return strings.Join(slices.Concat(skills, agents), "\n")
+	if len(users) == 1 {
+		users = nil
+	}
+	return strings.Join(slices.Concat(skills, agents, users), "\n")
 }
