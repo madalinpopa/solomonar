@@ -5,7 +5,7 @@ description: User-invoked entry point to Solomonar. Routes requests to the ownin
 
 # Solomonar skill
 
-Framework version: 0.1.7
+Framework version: 0.2.0
 
 ## 1. Purpose and boundaries
 
@@ -30,7 +30,7 @@ task/session context to resolve overlapping routes. Ask one question only if the
 | Prototype handoff references, flows ready for spec, or a product behavior the user decided outside a task | Load `docs/solomonar/skills/spec/SKILL.md`, discovery mode, in the main checkout |
 | A new task, starting `planned` work, or resume, pause, or cancel a task | Take the orchestrator role (section 4) |
 | Task requirements, an answer to `W-NNN/D-n`, or a scope or AC change | Continue in this session if it owns the task; otherwise direct the user to the owning session. An explicit request to resume here follows section 4 |
-| Adopt or drop a language, library, or practice | In-task: owning orchestrator. Otherwise check `solomonar help`; if it lists the extension commands, show `solomonar extension list` and propose `solomonar extension add\|remove <name>` for the user to run. Otherwise report that extension management is unsupported by this CLI and stop |
+| Adopt or drop a language, library, or practice | In-task: owning orchestrator. Otherwise check `solomonar help`; if it lists `extension`, show `solomonar extension list` and propose `solomonar extension add\|remove <name>` for the user to run. Otherwise report that extension management is unsupported by this CLI and stop |
 | A product code change outside any task | Propose a managed task: `solomonar task plan --title <t>` for later, or take the orchestrator role now. Work outside the process only if the user says so |
 | A question about the project or the process | Answer it from `AGENTS.md` context routes; no route needed |
 
