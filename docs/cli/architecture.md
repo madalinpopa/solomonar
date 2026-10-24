@@ -409,7 +409,7 @@ With `--dry-run`, step 3 reads the registry and applies the change to it without
 only without `--no-forge` and when installed; compute drift and `allowed_next` from the rule tables; render.
 Exit 0 whatever the drift.
 
-**Project write** (`init`, `extension add`, `sync`, `upgrade`, and `runtime add|remove`): load the
+**Project write** (`init`, `extension add`, `upgrade`, and `runtime add|remove`): load the
 manifest (absent for `init`); take choices from flags, then prompts when interactive; build the `Plan` from the
 embedded assets and the files on disk; show it; stop on conflicts (exit 4) or after `--dry-run`; confirm, only when the plan creates or
 updates a file or, for `init`, creates the registry (`interactive_required` without `--yes` and without a terminal);
@@ -651,7 +651,7 @@ payloads) are verified.
 
 Increment 2 is partial in its first delivery, planned as 0.2.0 (I section 10, CLI-D31): the extension store
 (I section 4.3), the minimal `upgrade` (I UC-9, no `--diff`), and `extension list|add|remove` (I UC-6, UC-7).
-The rest of increment 2 (`doctor`, `sync`, `guard` with hook installation and removal) and increment 3 follow
+The rest of increment 2 (`doctor`, `guard` with hook installation and removal; `sync` was withdrawn, I CLI-D37) and increment 3 follow
 unchanged. The structure stays within section 5: two command files in `cli`, the planner, loader, and matcher in
 `project`, no new package or dependency.
 
