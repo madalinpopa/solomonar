@@ -50,10 +50,12 @@ The CLI is built in increments. This table describes the source tree; check `sol
 | Area | Status |
 | --- | --- |
 | `init`, interactive or with flags, with the core framework and Claude Code, Codex, or Copilot CLI adapters | Available; live Copilot workflow acceptance pending |
-| Extensions at `init`: the `go` extension | Available |
+| Extensions: `go` and `extension-authoring` at `init`, then `extension list`, `add`, and `remove` | Available |
+| Project extensions in `docs/solomonar/extensions/`, written with the `extension-authoring` skill | Available |
+| `upgrade` to the CLI's framework version | Available |
 | Task commands: `plan`, `register`, `show`, `status`, `move`, `block`, `unblock`, `handoff`, `confirm`, `migrate`, `done` | Available |
-| `extension` commands, project extensions, and more catalog extensions | Planned |
-| `doctor`, `sync`, `runtime`, `guard`, `upgrade`, `dashboard` | Planned |
+| More catalog extensions | Planned |
+| `doctor`, `sync`, `runtime`, `guard`, `upgrade --diff`, `dashboard` | Planned |
 
 The [CLI reference]({{ '/docs/cli/#planned-commands' | url }}) keeps the full list of planned commands.
 
