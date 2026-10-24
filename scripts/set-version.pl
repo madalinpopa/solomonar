@@ -11,7 +11,8 @@ close $rules or die "close rules: $!\n";
 die "framework version missing\n" unless defined $current;
 
 # Update only current-release contexts. Compatibility boundaries, delivered-in versions,
-# runtime versions, and historical design/implementation records must remain unchanged.
+# runtime versions, and historical design/implementation records must remain unchanged,
+# and so does the old version in upgrade examples ("0.1.7 → 0.2.0", "framework 0.1.7, this CLI ships").
 my $context = qr/
     Framework\ version:\s+
     | (?:solomonar|framework)\s+
@@ -32,7 +33,7 @@ for my $path (@files) {
     open my $input, '<', $path or die "read $path: $!\n";
     my $content = do { local $/; <$input> };
     close $input or die "close $path: $!\n";
-    next unless $content =~ s/($context)\Q$current\E(?!\d|\.\d)/$1$next/g;
+    next unless $content =~ s/($context)\Q$current\E(?!\d|\.\d)(?!\s*\x{e2}\x{86}\x{92}|,\ this\ CLI\ ships)/$1$next/g;
     open my $output, '>', $path or die "write $path: $!\n";
     print {$output} $content or die "write $path: $!\n";
     close $output or die "close $path: $!\n";
