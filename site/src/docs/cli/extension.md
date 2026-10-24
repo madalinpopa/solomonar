@@ -16,6 +16,21 @@ An extension is one skill or one agent: the rules of a language, library, or pra
 
 The examples use the specification's `ledger` project, initialized with the `go` extension only (`P/D-1`).
 
+The source catalog also includes the optional `extension-authoring` workflow
+skill. Select it with `init --ext extension-authoring` in a project without
+recorded choices, then ask: “Use the extension-authoring skill to create a
+project-specific skill for <topic>.” It also supports catalog contributions in
+Solomonar's source checkout. Research, authoring, and validation are separate
+stages that share one evidence record and one portable instruction body.
+
+Content authoring and extension management have different owners. The skill
+writes and checks the content; the planned CLI commands below own installation,
+manifest tracking, activation, and runtime stubs. `extension new` remains a
+deterministic tracked-draft scaffold, not a source of engineering guidance.
+Without those commands, project source stays unregistered until adoption is
+available. An existing initialized project cannot add this skill by rerunning
+`init` with different choices.
+
 ## Groups
 
 | Group | Selects | Records a decision |
