@@ -5,7 +5,7 @@ description: Builds and updates the static HTML, CSS, and JavaScript prototype i
 
 # Prototype skill
 
-Framework version: 0.1.6
+Framework version: 0.1.7
 
 ## 1. Purpose and boundaries
 

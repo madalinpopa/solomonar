@@ -5,7 +5,7 @@ description: Maintains capability specifications and shared UI rules in `docs/sp
 
 # Spec skill
 
-Framework version: 0.1.6
+Framework version: 0.1.7
 
 ## 1. Purpose and boundaries
 

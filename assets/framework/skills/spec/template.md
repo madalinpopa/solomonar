@@ -1,6 +1,6 @@
 # <Capability name>
 
-<!-- Framework version: 0.1.6. English. File name = capability ID (kebab-case). Delete empty optional sections
+<!-- Framework version: 0.1.7. English. File name = capability ID (kebab-case). Delete empty optional sections
 and all hints; no placeholders. -->
 
 <One or two lines: who uses this area and for what.>
