@@ -97,6 +97,8 @@ func TestHelpForUpgrade(t *testing.T) {
 		"Update the managed files to the framework embedded in this CLI, with the choices the manifest\n"+
 		"records, and remove the managed files no longer offered. --keep keeps the project's version of a\n"+
 		"conflicting file, --take-new takes the new one; --dry-run prints the plan and writes nothing.\n"+
+		"At the project's version, it regenerates adapter stubs, as after a project extension's metadata\n"+
+		"change, and restores missing managed files.\n"+
 		"Decision documents, project extensions, and the registry are never touched.\n\n"+
 		"Global flags: see 'solomonar help'.\n", got.stdout)
 }
