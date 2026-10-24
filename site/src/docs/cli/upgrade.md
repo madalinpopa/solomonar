@@ -63,7 +63,7 @@ solomonar upgrade
 
 ```text
 Upgrade framework 0.1.7 → 0.2.0
-  framework 0.3.0
+  framework 0.3.1
     update     docs/solomonar/agents/ (6 roles)
     update     docs/solomonar/report.md
     update     docs/solomonar/reviewer.md
@@ -99,7 +99,7 @@ Commit the files as shown. `--dry-run` prints the same header and every file lin
 A project already at the CLI's version is a no-op and needs no confirmation:
 
 ```text
-Already at solomonar 0.3.0; nothing to do.
+Already at solomonar 0.3.1; nothing to do.
   48 files unchanged, 1 skipped
 ```
 
