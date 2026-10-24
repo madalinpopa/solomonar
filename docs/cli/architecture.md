@@ -584,10 +584,8 @@ Increments 2 and 3 are planned in detail before they start, once their inputs (C
 payloads) are verified.
 
 Increment 2 is partial in its first delivery, planned as 0.2.0 (I section 10, CLI-D31): the extension store
-(I section 4.3), the minimal `upgrade` (I UC-9, no `--diff`), and `extension list|add|remove` (I UC-6, UC-7). The
-work order is [the extension implementation plan](extension-implementation-plan.md); `upgrade` can ship before the
-`extension` commands. The rest of increment 2 (`doctor`, `sync`, `runtime`, `guard`) and increment 3 follow
-unchanged. The structure stays within section 5: two command files in `cli`, the planner, loader, and matcher in
+(I section 4.3), the minimal `upgrade` (I UC-9, no `--diff`), and `extension list|add|remove` (I UC-6, UC-7).
+The rest of increment 2 (`doctor`, `sync`, `runtime`, `guard`) and increment 3 follow unchanged. The structure stays within section 5: two command files in `cli`, the planner, loader, and matcher in
 `project`, no new package or dependency.
 
 The additional Copilot delivery is recorded in [interface section 10](interface.md#copilot-runtime-acceptance). It extends adapter generation and `init`
