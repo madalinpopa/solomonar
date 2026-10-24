@@ -251,3 +251,33 @@ func TestApplyAppendWritesTheNewContentAndRollsBack(t *testing.T) {
 	require.NoError(t, journal.Rollback())
 	assert.Equal(t, before, snapshot(t, dir))
 }
+
+func TestApplyRemoveDeletesEmptiedDirectoriesAndRollsBack(t *testing.T) {
+	t.Parallel()
+
+	root, dir := openTree(t, map[string]entry{
+		"docs/solomonar/skills/go/SKILL.md":        {content: "go\n", mode: 0o644},
+		"docs/solomonar/extensions/money/SKILL.md": {content: "money\n", mode: 0o644},
+		".claude/skills/go/SKILL.md":               {content: "stub\n", mode: 0o644},
+		"docs/solomonar/rules.md":                  {content: "rules\n", mode: 0o644},
+	})
+	before := snapshot(t, dir)
+	plan := Plan{Changes: []Change{
+		{Path: "docs/solomonar/skills/go/SKILL.md", Action: ActionRemove},
+		{Path: "docs/solomonar/extensions/money/SKILL.md", Action: ActionRemove},
+		{Path: ".claude/skills/go/SKILL.md", Action: ActionRemove},
+	}}
+
+	journal, err := Apply(t.Context(), root, plan)
+
+	require.NoError(t, err)
+	assert.Equal(t, map[string]entry{
+		".claude":                   {mode: 0o755, dir: true},
+		"docs":                      {mode: 0o755, dir: true},
+		"docs/solomonar":            {mode: 0o755, dir: true},
+		"docs/solomonar/extensions": {mode: 0o755, dir: true},
+		"docs/solomonar/rules.md":   {content: "rules\n", mode: 0o644},
+	}, snapshot(t, dir))
+	require.NoError(t, journal.Rollback())
+	assert.Equal(t, before, snapshot(t, dir))
+}
