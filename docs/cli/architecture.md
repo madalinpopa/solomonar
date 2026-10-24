@@ -38,7 +38,7 @@ Requirements come from the interface spec and `assets/framework/rules.md` sectio
 
 The findings F1 to F10 are applied: F1, F4, F8, and F10 became CLI-D16 to CLI-D19, F2 is AD-2, F3 is AD-6, F6 is the
 guard scope of I UC-22, and F9 is AD-13. F5: `upgrade --diff` runs `git diff --no-index --no-color <tmp-embedded>
-<path>`. F7: `--runtime` keeps the `PATH` default with `--yes`; the plan and the JSON `choices` show it. One
+<path>`; it is deferred, since the minimal `upgrade` of I UC-9 has no `--diff` (CLI-D31). F7: `--runtime` keeps the `PATH` default with `--yes`; the plan and the JSON `choices` show it. One
 clarification remains: a plan followed by a prompt goes to stderr, so stdout carries only results; `--dry-run` plans
 go to stdout.
 
@@ -97,9 +97,10 @@ main_test.go             transcript test harness (AD-15)
 testdata/                transcript scripts, one .txtar per scenario
 assets/                  framework/, extensions/, templates/ (existing content)
 internal/
-  cli/                   command table, flag parsing, help, prompts, rendering, error envelope, exit codes
+  cli/                   command table, flag parsing, help, prompts, rendering, error envelope, exit codes;
+                         one file per command group (init.go, task.go, upgrade.go, extension.go, …)
   task/                  registry model, transition and field rules, fact checks, status and drift, CAS store
-  project/               manifest, file plans and apply, catalog and rendering, adapters, decisions
+  project/               manifest, desired-state plans and apply, catalog and store, detection, adapters, decisions
   git/                   git and gh process runner, typed helpers, -v tracing
   dashboard/             HTTP server and embedded page (increment 3 only)
 Taskfile.yml  .golangci.yml  .goreleaser.yaml  go.mod
@@ -109,9 +110,9 @@ Taskfile.yml  .golangci.yml  .goreleaser.yaml  go.mod
 | Package | Owns | Why it is a separate package |
 |---|---|---|
 | `main` (root) | Process boundary: `signal.NotifyContext`, the embedded `assets` tree, building `cli.Env` from `os` (`RawMode` from `term.MakeRaw`/`term.Restore`), `os.Exit(code)`. | `go install github.com/madalinpopa/solomonar` yields the binary `solomonar`. |
-| `internal/cli` | Everything the user sees: argument parsing, help, prompts, human tables, JSON envelope, mapping errors to exit codes, `doctor` and `guard` assembly. One file per command group (`task.go`, `init.go`, `extension.go`, …). | The only package that knows about terminals and output forms; `task` and `project` never print. |
+| `internal/cli` | Everything the user sees: argument parsing, help, prompts, human tables, JSON envelope, mapping errors to exit codes, `doctor` and `guard` assembly. One file per command group (`task.go`, `init.go`, `upgrade.go` for `upgrade`, `extension.go` for `extension list\|add\|remove` and the `ext` alias, …). It runs `git ls-files --cached --others --exclude-standard` through `git` and passes the file list to `project` as a `[]string`. | The only package that knows about terminals and output forms; `task` and `project` never print. |
 | `internal/task` | The registry's meaning: `Registry`, `Record`, statuses, stages, tiers, blockers; the rules of I section 8; fact checks of I section 8.3; `Status` facts and drift of I section 9; the swap loop. | The core domain with real invariants; most rule tests live here. |
-| `internal/project` | The project's files: manifest, ownership classes, plan/apply, catalog loading, extension rendering, adapter stubs, `AGENTS.md` sections, decision entries. | Different data (files, not records), different failures (conflicts, not rejections), different tests (file trees). |
+| `internal/project` | The project's files: manifest, ownership classes, the desired-state planner with removals (I section 4.5), apply, one strict `extension.json` loader for the catalog and the store `docs/solomonar/extensions/`, the `detect` glob matcher, adapter stubs, `AGENTS.md` sections, decision entries and supersession. No rendering of extension files: `render.go` is removed (CLI-D30). | Different data (files, not records), different failures (conflicts, not rejections), different tests (file trees). |
 | `internal/git` | Running `git` and `gh`: context, working directory, stdin, trimmed output, errors with stderr, `-v` trace. Typed helpers only where used twice. `OnPath(program string) bool` is the `PATH` lookup for runtime detection (only `git` may import `os/exec`, AD-3). | Both `task` and `project` need it; `exec` details and tracing stay in one place. |
 | `internal/dashboard` | `net/http` handlers for `/`, `/api/state`, `/api/status/<ID>`, and the embedded page. | HTTP is a distinct boundary; deferred to increment 3. |
 
@@ -124,9 +125,10 @@ main → cli → task      → git
            → dashboard → task
 ```
 
-`task` does not import `project`: `cli` passes the core delegated roles plus extension agents whose manifest
-state is `installed` for `--agent` validation (I section 8.3) as a `[]string`; draft agent files are excluded.
-`project` receives the embedded tree as an `fs.FS`, so its tests use `testing/fstest.MapFS`.
+`task` does not import `project`: `cli` passes the core delegated roles plus the extension agents installed in the
+manifest for `--agent` validation (I section 8.3) as a `[]string`. `project` receives the embedded tree as an
+`fs.FS`, and project extensions through `root.FS()`, so its tests use `testing/fstest.MapFS`; it never runs Git for
+detection, which takes the file list from `cli`.
 
 Not created, and why: no `pkg/` (no public API); no `config` package (settings are three manifest fields read by
 `project`); no `output` or `ui` package (rendering is `cli`); no package per command; no `doctor` or `guard`
@@ -242,7 +244,13 @@ type Want struct {
 	CreateOnly  bool
 }
 
-func Classify(root *os.Root, m *Manifest, wants []Want, keep, overwrite []string) (Plan, map[string]File, error)
+// Resolutions are the --keep and --overwrite paths; OverwriteFlag names --overwrite in rejections (--take-new for upgrade).
+type Resolutions struct {
+	Keep, Overwrite []string
+	OverwriteFlag   string
+}
+
+func Classify(root *os.Root, m *Manifest, wants []Want, r Resolutions) (Plan, map[string]File, error)
 
 type Choices struct {
 	Name, Objective, FrameworkVersion string
@@ -260,7 +268,9 @@ type CatalogExtension struct {
 	Name, Kind, Group, Title string
 	Requires, Conflicts      []string
 	AppliesWhen              string
-	Paths                    []string
+	Paths, Detect            []string
+	Default                  bool
+	Invocation               string // "model" (also when empty) or "user"
 	Dir                      string
 }
 
@@ -268,8 +278,9 @@ type Catalog map[string]CatalogExtension
 
 func Groups() []string
 func LoadCatalog(assets fs.FS) (Catalog, error)
+func LoadStore(root, assets fs.FS, catalog Catalog, manifest *Manifest) (map[string]ProjectExtension, error)
+func CoreItem(assets fs.FS, name string) string // "skill", "role", or ""
 func (c Catalog) Resolve(names []string) ([]string, error)
-func Render(content []byte, self string, installed []string, decision string) ([]byte, []string)
 func ExtensionWants(assets fs.FS, installed []CatalogExtension, decisions map[string]string) ([]Want,
 	map[string]Extension, error)
 
@@ -295,7 +306,7 @@ type Requested struct {
 }
 
 func (m *Manifest) CheckChoices(r Requested) error
-func InitPlan(root *os.Root, existing *Manifest, wants []Want, keep, overwrite []string, p Project,
+func InitPlan(root *os.Root, existing *Manifest, wants []Want, resolve Resolutions, p Project,
 	runtimes map[string]Runtime, extensions map[string]Extension, decisions Decisions,
 	framework string) (Plan, *Manifest, error)
 
@@ -305,7 +316,8 @@ func Apply(ctx context.Context, root *os.Root, p Plan) (*Journal, error)
 func (j *Journal) Rollback() error
 ```
 
-`Classify` applies I section 4.5's rules and returns the plan with the manifest `files` entries for the wanted paths.
+`Classify` applies I section 4.5's rules and returns the plan with the manifest `files` entries for the wanted paths;
+a path wanted twice is an error (`plan <path>: wanted twice`).
 `CoreWants` returns the core files from `framework/` as `docs/solomonar/`, then `AGENTS.md` and `docs/README.md`
 from `templates/`, rendered with `text/template`, with the `AGENTS.md` extension lists of I section 4.6 from
 `Choices.Extensions`.
@@ -330,13 +342,13 @@ feeds the JSON `decisions` (I section 5 UC-1), `ByGroup` the `ExtensionWants` de
 documents it creates (`Choices.Documents`).
 `Groups` lists the extension groups in I section 4.3 order.
 `LoadCatalog` decodes and checks every `extensions/<group>/<name>/extension.json` (I section 4.3, a defect is `read catalog
-<dir>: …`), `Resolve` returns the sorted unique selection or the first of its three rejections, and `Render` keeps
-the satisfied `## With` sections, adds the provenance line, and returns the kept names (`rendered_with`).
-`ExtensionWants` returns the installed files of each extension (I section 4.3), rendered for the installed set and ordered
-by extension name, then file path, and their manifest entries; only a skill directory's top-level `extension.json` is
-excluded. `decisions` maps a stack group to its decision ID: a stack-group extension without a non-empty one is
-`render <name>: no decision for group <group>`, and `workflow` and `review` ignore any given one (`Installed by
-solomonar`, no manifest `decision`); an unreadable file is `read extension <name>: <err>`, and an extension's
+<dir>: …`), `Resolve` returns the sorted unique selection or the first of its three rejections.
+`ExtensionWants` returns every file of each installed catalog extension, `extension.json` included, copied verbatim
+to `docs/solomonar/extensions/<name>/` (I section 4.3) and ordered by extension name, then file path, and their
+manifest entries; a project extension contributes a manifest entry and no file. `decisions` maps a stack group to its
+decision ID: a stack-group extension without a non-empty one is an error naming the extension and group, and
+`workflow` and `review` ignore any given one (no manifest `decision`); an unreadable file is `read extension <name>:
+<err>`, and an extension's
 frontmatter error in `RuntimeWants` is `read frontmatter <dir>/<file>: <reason>`.
 `ManifestVersions` reads the manifest's `schema_version` and `framework_version` with the header validation and no
 newer-than check; the strict decoder builds on it, and `version` calls it alone (UC-24).
@@ -381,8 +393,9 @@ writes succeed. Keep the file journal until that CAS succeeds, rolling back this
 failure. Registry migration runs separately through `task migrate` (CLI-D26); `upgrade` never writes the registry.
 With an existing valid init registry, reuse it unchanged; successful file apply is then the local commit point. Publish only after local success; print `Next:`.
 
-For init, the selection is the requested `--ext` names, else the manifest's, else `go` for a root `go.mod`, after
-`Resolve`; `PlanDecisions` feeds `ByGroup` to `ExtensionWants` and `Index` to `CoreWants`, and the core, extension,
+For init, the selection is the requested `--ext` names, else the manifest's (an empty set included; installed
+`path` extensions resolve through `LoadStore`), else the catalog extensions marked `default` or detected in the
+worktree's files (I section 4.3, UC-2), after `Resolve`; `PlanDecisions` feeds `ByGroup` to `ExtensionWants` and `Index` to `CoreWants`, and the core, extension,
 and `RuntimeWants` wants go with the decisions to `InitPlan`. Validate an existing registry and its version before
 any file apply. A valid registry is reused; an invalid one is rejected without touching either the registry or
 project files (I UC-3). On `file_conflict`, `render` still prints the plan text (`Plan` and the conflict lines) on
@@ -412,7 +425,9 @@ stdout before the error on stderr; JSON keeps `data` absent.
     `Lstat`).
   - Each write is a temp file `.<name>.solomonar-tmp` in the target's directory, chmodded to its exact mode
     (permission bits only, independent of the umask), then renamed over the target; updates keep their mode, new
-    files get `0o644`. Missing parent directories are created `0o755` one level at a time, each journaled.
+    files get `0o644`. Missing parent directories are created `0o755` one level at a time, each journaled. A
+    `remove` then deletes each parent directory it leaves empty, never a top-level one, `docs/solomonar`, or
+    `docs/solomonar/extensions` (I section 4.5), journaling each with its mode so a rollback recreates it.
   - The journal keeps each touched path's previous content and mode, or its absence. Errors are wrapped
     `apply <path>: %w` (cancellation wraps the context error); a failed or cancelled `Apply` rolls back
     automatically, joins any rollback failure into the error, and returns no journal.
@@ -534,12 +549,12 @@ contract walkthrough and the runtime smoke results distinct in the audit report.
 | Audit | Scenario | Required result |
 |---|---|---|
 | F-01, F-03 | README-only correction in an empty product repository; maintenance in an existing application with unknown run commands | Assigned documentation is permitted; no new application baseline is added. The first authorized executable outcome still establishes only its needed baseline. |
-| F-02 | Offered A, local B, `init --keep`, upgrade C, keep B, repeat C, then upgrade D | Base hashes follow A → C; B is preserved, repeated C keeps B, and D conflicts rather than overwriting B. Cover rendered assets and the managed part of AGENTS. |
+| F-02 | Offered A, local B, `init --keep`, upgrade C, keep B, repeat C, then upgrade D | Base hashes follow A → C; B is preserved, repeated C keeps B, and D conflicts rather than overwriting B. Cover extension store files and the managed part of AGENTS. |
 | F-04 | Main changes a contract used by a feature in a different file; separate control changes only an unrelated logo | CI reruns in both; affected or uncertain reviews rerun for the contract, while unrelated changes permit justified reuse. Use the audit's exporter/policy counterexample. |
 | F-05 | Real Claude Code and Codex sessions after init/runtime add; Copilot CLI after its init delivery; each including a feature worktree | The documented invocation discovers the skill, loads the portable source, takes the orchestrator role in the same top-level session, and delegates with the assigned worktree/revision. Record runtime versions; file-tree assertions alone do not pass this check. |
 | F-06 | Real hook payloads for product state.json, read-only registry inspection, task move, and direct protected-ref writes | Product writes and authorized CLI/read calls are allowed; direct registry mutations are denied. Include linked-worktree Git paths and packed refs. |
-| F-07 | `new → list/show → sync/doctor → add → repeated add`, for a skill and an agent | Draft is visible but inactive and needs no decision; adoption validates metadata and installs once; a repeated identical adoption is a no-op. Test local-directory flags with no terminal. |
-| F-08 | Add htmx, add templ, remove templ | Every remaining installed frontend extension points to the approved decision for the full new selection; old decisions remain in history; doctor does not fail on the valid transition. |
+| F-07 | A project skill and a project agent in `docs/solomonar/extensions/`: `list → add → repeated add → remove → list` | An available project extension is listed but inactive and needs no decision; `add` validates it with the store loader and writes stubs, `AGENTS.md`, and the manifest, never a file in its directory; a repeated add is a no-op; `remove` leaves the directory intact and `list` shows it `available` again. |
+| F-08 | Add htmx, add templ, remove templ (the illustrative test catalog, I section 4.4) | Every remaining installed frontend extension points to the approved decision for the full new selection; old decisions remain in history; doctor does not fail on the valid transition. |
 | F-09 | Inject errors writing the manifest and at registry CAS; separately fail push after CAS | Manifest failure creates no new ref; CAS failure restores the manifest and other files; successful CAS plus failed push returns local success with warning. Existing valid init registry is preserved, and invalid registry is rejected before file apply. |
 | F-10 | Review an io.Reader implementation and a new project-owned cancellable API | The imposed Read signature is accepted; the new API still propagates context. A signature exception is not a blanket exemption from cancellation discipline. |
 
@@ -562,11 +577,18 @@ Copilot hook enforcement or IDE/cloud compatibility is claimed.
 Transcripts do not repeat what the in-process tests already cover (rules, every usage error, help text, every
 rejection code); prompts stay in-process because the binary prompts only when both stdin and stdout are terminals.
 
-## 12. Implementation plan (increment 1)
+## 12. Implementation plan
 
-Delivered in ten steps, each ending with `task check` green, and released as v0.1.0 (I section 10). Increments 2 and 3
-are planned in detail before they start, once their inputs (CLI-D9 for Codex, the guard's real hook payloads) are
-verified.
+Increment 1 was delivered in ten steps, each ending with `task check` green, and released as v0.1.0 (I section 10).
+Increments 2 and 3 are planned in detail before they start, once their inputs (CLI-D9 for Codex, the guard's real hook
+payloads) are verified.
+
+Increment 2 is partial in its first delivery, planned as 0.2.0 (I section 10, CLI-D31): the extension store
+(I section 4.3), the minimal `upgrade` (I UC-9, no `--diff`), and `extension list|add|remove` (I UC-6, UC-7). The
+work order is [the extension implementation plan](extension-implementation-plan.md); `upgrade` can ship before the
+`extension` commands. The rest of increment 2 (`doctor`, `sync`, `runtime`, `guard`) and increment 3 follow
+unchanged. The structure stays within section 5: two command files in `cli`, the planner, loader, and matcher in
+`project`, no new package or dependency.
 
 The additional Copilot delivery is recorded in [interface section 10](interface.md#copilot-runtime-acceptance). It extends adapter generation and `init`
 before increment 2 without implementing runtime management. `init` continues rejecting changed recorded
