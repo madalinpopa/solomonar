@@ -15,7 +15,7 @@ the minimum supported runtime version remain pending. Runtime management and hoo
 defines no Copilot guard hook. Existing Claude and Codex contracts are unchanged.
 
 The extension store, the minimal `upgrade`, and `extension list|add|remove` were specified on 2026-10-24 (CLI-D27
-to CLI-D31; work order: [the extension implementation plan](extension-implementation-plan.md)) and are
+to CLI-D31) and are
 implemented. They replace the earlier extension design: no rendered combinations, no project-extension metadata
 in the manifest, and only the `list`, `add`, and `remove` subcommands.
 
