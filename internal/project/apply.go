@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"slices"
+	"strings"
 )
 
 const (
@@ -28,6 +29,7 @@ type journalEntry struct {
 	content    []byte
 	mode       fs.FileMode
 	createdDir bool
+	removedDir bool
 }
 
 // Apply writes the plan's acting changes in order, rolling back on failure.
@@ -98,6 +100,26 @@ func (j *Journal) remove(name string) error {
 		return err
 	}
 	j.entries = append(j.entries, previous)
+	return j.removeEmptyParents(path.Dir(name))
+}
+
+// removeEmptyParents deletes each directory a removal left empty, below the top level and the store.
+func (j *Journal) removeEmptyParents(dir string) error {
+	for strings.Contains(dir, "/") && dir != "docs/solomonar" && dir != "docs/solomonar/extensions" {
+		info, err := j.root.Lstat(dir)
+		if err != nil {
+			return err
+		}
+		empty, err := j.isEmpty(dir)
+		if err != nil || !empty {
+			return err
+		}
+		if err := j.root.Remove(dir); err != nil {
+			return err
+		}
+		j.entries = append(j.entries, journalEntry{path: dir, mode: info.Mode().Perm(), removedDir: true})
+		dir = path.Dir(dir)
+	}
 	return nil
 }
 
@@ -153,6 +175,8 @@ func (j *Journal) undo(e journalEntry) error {
 	switch {
 	case e.createdDir:
 		return j.removeIfEmpty(e.path)
+	case e.removedDir:
+		return j.restoreDir(e)
 	case e.existed:
 		return writeFile(j.root, e.path, e.content, e.mode)
 	}
@@ -164,22 +188,37 @@ func (j *Journal) undo(e journalEntry) error {
 }
 
 func (j *Journal) removeIfEmpty(dir string) error {
-	d, err := j.root.Open(dir)
-	if errors.Is(err, fs.ErrNotExist) {
+	empty, err := j.isEmpty(dir)
+	if errors.Is(err, fs.ErrNotExist) || err == nil && !empty {
 		return nil
 	}
 	if err != nil {
 		return err
 	}
+	return j.root.Remove(dir)
+}
+
+func (j *Journal) isEmpty(dir string) (bool, error) {
+	d, err := j.root.Open(dir)
+	if err != nil {
+		return false, err
+	}
 	names, err := d.Readdirnames(1)
 	_ = d.Close()
 	if len(names) > 0 {
-		return nil
+		return false, nil
 	}
 	if err != nil && !errors.Is(err, io.EOF) {
+		return false, err
+	}
+	return true, nil
+}
+
+func (j *Journal) restoreDir(e journalEntry) error {
+	if err := j.root.Mkdir(e.path, e.mode); err != nil {
 		return err
 	}
-	return j.root.Remove(dir)
+	return j.root.Chmod(e.path, e.mode)
 }
 
 // writeFile replaces name through a temp file in its directory so a reader never sees a partial file.
