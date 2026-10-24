@@ -29,7 +29,7 @@ solomonar doctor [--json]
 | git | Git older than 2.40, no repository, no commit on main, unusable worktrees | A `.jj/` directory |
 | registry | A missing or invalid registry, or a schema or framework newer than this CLI | No remote, or an unpublished local registry |
 | files | An invalid manifest, missing managed files, or managed files not committed on main | Managed files modified since installation |
-| extensions | A stack extension without an approved decision for its group's full selection, unmet `requires` or `conflicts`, stale rendering, an incomplete core; drafts are not checked | - |
+| extensions | A stack extension without an approved decision for its group's full selection, unmet `requires` or `conflicts`, an installed project extension that fails the extension checks or whose directory is gone, an incomplete core | - |
 | runtimes | Adapter files out of sync, as `sync --check` reports | `CLAUDE.md` not loading `AGENTS.md`, or a missing Claude/Codex guard hook |
 | forge | A repository that does not allow merge commits | `gh` missing or not authenticated, squash or rebase merges also allowed |
 | project | - | Commands in `docs/README.md` not established |
@@ -38,7 +38,7 @@ Copilot has no expected guard hook in this delivery. Its absence is not a warnin
 
 ## Example
 
-The specification's `ledger` project, with four extensions installed:
+The specification's `ledger` project, with three extensions installed:
 
 ```sh
 solomonar doctor
@@ -53,13 +53,13 @@ registry
   ok    refs/heads/workflow-state @ 3a5c0d7, schema_version 2, 4 tasks valid
   ok    origin/workflow-state matches local
 files
-  ok    framework 0.1.7, manifest valid
+  ok    framework 0.2.0, manifest valid
   fail  4 framework paths not committed on main: AGENTS.md, CLAUDE.md, .claude/, .solomonar/
   warn  docs/solomonar/skills/spec/template.md modified since installation (kept by upgrades)
 extensions
-  ok    4 installed: go (P/D-1), htmx, templ (P/D-2), tdd (P/D-3); requirements met; rendering current
+  ok    3 installed: go (P/D-1), extension-authoring, money-reviewer (project); requirements met; project extensions valid
 runtimes
-  ok    claude: CLAUDE.md imports AGENTS.md; 8 skill stubs, 5 role stubs in sync; guard hook present
+  ok    claude: CLAUDE.md imports AGENTS.md; 6 skill stubs, 6 role stubs in sync; guard hook present
   warn  codex: state guard hook not trusted yet; review it with /hooks
 forge
   ok    gh 2.62.0 authenticated for github.com/acme/ledger
