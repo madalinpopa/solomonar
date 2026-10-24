@@ -1,0 +1,26 @@
+# One portable workflow package is copied; all runtimes get pointers to it.
+exec git init -q -b main repo
+cd repo
+exec solomonar init --runtime claude,codex,copilot --ext extension-authoring --yes
+stdout '^Initialized solomonar '
+exists docs/solomonar/skills/extension-authoring/SKILL.md
+cmp docs/solomonar/skills/extension-authoring/references/research.md $ASSETS/extensions/workflow/extension-authoring/references/research.md
+cmp docs/solomonar/skills/extension-authoring/references/author.md $ASSETS/extensions/workflow/extension-authoring/references/author.md
+cmp docs/solomonar/skills/extension-authoring/references/validate.md $ASSETS/extensions/workflow/extension-authoring/references/validate.md
+cmp docs/solomonar/skills/extension-authoring/references/evidence.md $ASSETS/extensions/workflow/extension-authoring/references/evidence.md
+! exists docs/solomonar/skills/extension-authoring/extension.json
+grep 'docs/solomonar/skills/extension-authoring/SKILL.md' .claude/skills/extension-authoring/SKILL.md
+grep 'docs/solomonar/skills/extension-authoring/SKILL.md' .agents/skills/extension-authoring/SKILL.md
+grep 'docs/solomonar/skills/extension-authoring/SKILL.md' .github/skills/extension-authoring/SKILL.md
+grep '"owner": "ext:extension-authoring"' .solomonar/manifest.json
+grep '"owner": "runtime:claude"' .solomonar/manifest.json
+grep '"owner": "runtime:codex"' .solomonar/manifest.json
+grep '"owner": "runtime:copilot"' .solomonar/manifest.json
+grep 'extension-authoring.*workflow' AGENTS.md
+! exists docs/decisions.md docs/stack.md
+
+# Repeated initialization preserves the same metadata and adapters.
+cp .solomonar/manifest.json ../manifest.json
+exec solomonar init
+stdout '^Already initialized with solomonar .+; nothing to do\.$'
+cmp .solomonar/manifest.json ../manifest.json
