@@ -12,7 +12,7 @@ Use the target mode and research record selected by `SKILL.md`.
    `assets/templates/AGENTS.md`, and active `assets/framework/` contracts. Use the
    Go extension as a loading/packaging example, not as a mandatory topic layout.
    Inspect `docs/cli/interface.md` sections 4.1–4.3 and `internal/project/` only
-   for unresolved schema, rendering, installation, or discovery questions.
+   for unresolved schema, installation, or discovery questions.
    `docs/design/framework-v0.1.md` is historical.
 3. In project mode, read the applicable installed extension entrypoints and the
    relevant `docs/solomonar/` contracts. For a reviewer, inspect `report.md`,
@@ -27,8 +27,10 @@ Use the target mode and research record selected by `SKILL.md`.
 Record kind, group, activation condition, governed paths, required/conflicting
 extensions, and overlaps. Supporting procedures normally use `workflow`, extra
 reviewers `review`; technology choices belong to the relevant stack group.
-Confirm catalog metadata against the current schema in catalog mode. Project
-metadata is CLI/manifest-owned; keep proposed values in the research record.
+Also record suggestion and invocation: the `detect` globs (often none), whether
+the extension is a `default`, and whether only the user starts it. Catalog and
+project extensions share one `extension.json` schema, defined in the authoring
+stage; an installed extension's `extension.json` in the store is an example.
 
 ## Validate the topic and the instruction design
 
@@ -65,7 +67,7 @@ Specify discovery metadata, common entrypoint rules, conditional topic triggers,
 and the files each task actually needs. Include indirect callers/contracts and
 missing-input handling. Important trigger information must remain visible even
 when detail is conditional; neither an index nor a link automatically loads it.
-Skill support files ship; a catalog agent currently installs only its main file.
+Support files ship with the main file of a skill or an agent.
 
 Treat the U-shaped lost-in-the-middle effect as a model/task-dependent risk.
 Propose positional testing when relevant; Markdown headings alone do not control
