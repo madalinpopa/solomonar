@@ -140,14 +140,14 @@ func TestUpgradeMovesLegacyProjectToTheStore(t *testing.T) {
 	decisions := readTestFile(t, dir, "docs/decisions.md")
 	tip := refTip(t, dir)
 
-	got := upgradeIn(t, assetsAt(t, "0.3.0"), dir, "--yes")
+	got := upgradeIn(t, assetsAt(t, "99.0.0"), dir, "--yes")
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Equal(t, "Upgraded solomonar 0.1.7 → 0.3.0 in "+dir+"\n"+
+	assert.Equal(t, "Upgraded solomonar 0.1.7 → 99.0.0 in "+dir+"\n"+
 		"  6 files created, 26 updated, 5 removed, 16 unchanged, 1 skipped\n\n"+
 		"Next:\n"+
 		"  1. git add AGENTS.md .claude .agents .codex .solomonar docs && "+
-		"git commit -m \"chore: upgrade solomonar to 0.3.0\"\n"+
+		"git commit -m \"chore: upgrade solomonar to 99.0.0\"\n"+
 		"  2. Running tasks pick up the new framework after they update from main.\n", got.stdout)
 	assert.Empty(t, got.stderr)
 	assets := repoAssets(t)
@@ -165,7 +165,7 @@ func TestUpgradeMovesLegacyProjectToTheStore(t *testing.T) {
 	assert.Equal(t, decisions, readTestFile(t, dir, "docs/decisions.md"))
 	assert.Equal(t, tip, refTip(t, dir))
 	m := readTestManifest(t, dir)
-	assert.Equal(t, "0.3.0", m.FrameworkVersion)
+	assert.Equal(t, "99.0.0", m.FrameworkVersion)
 	assert.Equal(t, "P/D-1", m.Extensions["go"].Decision)
 	assert.NotContains(t, m.Files, legacySkill)
 	assert.Equal(t, project.File{Owner: "ext:go", SHA256: project.Hash([]byte(readTestFile(t, dir, upgradedStore+"SKILL.md")))},
