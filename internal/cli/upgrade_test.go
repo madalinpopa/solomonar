@@ -187,6 +187,24 @@ func TestUpgradeRerunIsNoOp(t *testing.T) {
 	assert.Equal(t, before, tree(t, dir))
 }
 
+func TestUpgradeAtTheSameVersionRestoresADeletedStub(t *testing.T) {
+	t.Parallel()
+	dir := legacyRepo(t)
+	first := upgradeIn(t, repoAssets(t), dir, "--yes")
+	require.Equal(t, 0, first.exit, first.stderr)
+	const stub = ".claude/skills/spec/SKILL.md"
+	want := readTestFile(t, dir, stub)
+	require.NoError(t, os.Remove(filepath.Join(dir, stub)))
+
+	got := upgradeIn(t, repoAssets(t), dir, "--yes")
+
+	require.Equal(t, 0, got.exit, got.stderr)
+	assert.True(t, strings.HasPrefix(got.stdout, "Refreshed solomonar "+shipped+" in "), got.stdout)
+	assert.Contains(t, got.stdout, "1 file created")
+	assert.Contains(t, got.stdout, "git commit -m \"chore: refresh solomonar "+shipped+" files\"")
+	assert.Equal(t, want, readTestFile(t, dir, stub))
+}
+
 func TestUpgradeEditedLegacySkillIsConflict(t *testing.T) {
 	t.Parallel()
 	dir := legacyRepo(t)
