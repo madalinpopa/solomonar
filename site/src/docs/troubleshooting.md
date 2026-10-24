@@ -13,7 +13,7 @@ sources:
 
 ## A command is unknown
 
-First run `solomonar help` to see the command table in your binary. The interface specification includes future commands; the current build does not yet implement `doctor`, `sync`, `guard`, `dashboard`, or `upgrade --diff`. An older build may also lack `upgrade`, `extension`, `uninstall`, and `runtime`.
+First run `solomonar help` to see the command table in your binary. The interface specification includes future commands; the current build does not yet implement `doctor`, `guard`, `dashboard`, or `upgrade --diff`. An older build may also lack `upgrade`, `extension`, `uninstall`, and `runtime`.
 
 Use the [availability table]({{ '/docs/cli/#current-commands' | url }}) before following an example from the full design contract. An unknown command exits 2; it does not mean your application needs to be scaffolded again.
 
