@@ -1,0 +1,138 @@
+# Uninstall removes a core-only installation and a v0.1.7 layout (reduced to the files that matter here)
+# without a prior upgrade.
+exec git init -q -b main core
+cd core
+exec solomonar init --runtime none --ext none --yes
+exec git rev-parse refs/heads/workflow-state
+cp stdout ../core-tip.txt
+exec solomonar uninstall --yes
+stdout '^Uninstalled solomonar from .+/core$'
+stdout '^  1 file updated, 18 removed$'
+stdout '^  kept: docs/README\.md$'
+! exists .solomonar docs/solomonar AGENTS.md
+exists docs/README.md
+! grep 'docs/solomonar/' docs/README.md
+exec git rev-parse refs/heads/workflow-state
+cmp stdout ../core-tip.txt
+
+cd ../legacy
+exec git init -q -b main
+exec solomonar uninstall --dry-run
+stdout '^  remove     docs/solomonar/skills/go/SKILL\.md$'
+stdout '^  remove     \.claude/skills/go/SKILL\.md$'
+stdout '^  remove     AGENTS\.md$'
+stdout '^  update     docs/README\.md  framework index line removed$'
+stdout '^Would uninstall solomonar from .+/legacy$'
+exists docs/solomonar/skills/go/SKILL.md
+exec solomonar uninstall --yes
+stdout '^Uninstalled solomonar from .+/legacy$'
+stdout '^  1 file updated, 6 removed$'
+! exists .solomonar docs/solomonar .claude/skills CLAUDE.md AGENTS.md
+cmp docs/README.md ../README-after.md
+cmp docs/decisions.md ../decisions.md
+exec solomonar uninstall
+stdout '^No Solomonar manifest; nothing to uninstall automatically\.$'
+
+-- README-after.md --
+# ledger
+
+## Documents
+
+- `docs/decisions.md`: decision entries and their status
+-- decisions.md --
+# Decisions
+
+## P/D-1: Programming languages
+
+- Status: approved
+- Selected option: go
+- References: `docs/solomonar/skills/go/SKILL.md`
+-- legacy/docs/decisions.md --
+# Decisions
+
+## P/D-1: Programming languages
+
+- Status: approved
+- Selected option: go
+- References: `docs/solomonar/skills/go/SKILL.md`
+-- legacy/docs/README.md --
+# ledger
+
+## Documents
+
+- `docs/solomonar/`: framework rules, roles, and skills
+- `docs/decisions.md`: decision entries and their status
+-- legacy/docs/solomonar/rules.md --
+# Rules
+-- legacy/docs/solomonar/skills/go/SKILL.md --
+# Go language rules
+
+Installed by P/D-1.
+-- legacy/.claude/skills/go/SKILL.md --
+Load `docs/solomonar/skills/go/SKILL.md`.
+-- legacy/CLAUDE.md --
+@AGENTS.md
+-- legacy/AGENTS.md --
+# Project instructions
+
+Framework version: 0.1.7. Framework files: `docs/solomonar/`.
+
+## Project notes
+
+<!-- Project-owned instructions; preserved by framework upgrades. Keep this heading unchanged. -->
+-- legacy/.solomonar/manifest.json --
+{
+  "schema_version": 1,
+  "framework_version": "0.1.7",
+  "project": {
+    "name": "ledger",
+    "main_branch": "main",
+    "remote": "origin"
+  },
+  "runtimes": {
+    "claude": {}
+  },
+  "extensions": {
+    "go": {
+      "state": "installed",
+      "kind": "skill",
+      "group": "language",
+      "source": "catalog",
+      "decision": "P/D-1"
+    }
+  },
+  "files": {
+    ".claude/skills/go/SKILL.md": {
+      "owner": "runtime:claude",
+      "sha256": "60234fa8bd99ba8c346268c42cb1be541cd3096a9846499ccd159494fb9696df"
+    },
+    ".solomonar/manifest.json": {
+      "owner": "manifest"
+    },
+    "AGENTS.md": {
+      "owner": "core+notes",
+      "sha256": "8f618462cc1c7e103b846454c1241104b3d497ec94e3877706a1a2df67ea3473"
+    },
+    "CLAUDE.md": {
+      "owner": "runtime:claude",
+      "sha256": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49"
+    },
+    "docs/README.md": {
+      "owner": "seed"
+    },
+    "docs/decisions.md": {
+      "owner": "decision",
+      "entries": [
+        "P/D-1"
+      ]
+    },
+    "docs/solomonar/rules.md": {
+      "owner": "core",
+      "sha256": "a3af2177809b3c009bfec4d1c507c6ee32757385e856bce9ae5ac3aec41a791b"
+    },
+    "docs/solomonar/skills/go/SKILL.md": {
+      "owner": "ext:go",
+      "sha256": "62b56a5f4fee6552affef6353019a1192d9b45a55de4e17c7a7d5034042fcee1"
+    }
+  }
+}

@@ -1,0 +1,129 @@
+# Uninstall removes a current installation with every runtime and keeps project content and the registry.
+exec git init -q -b main repo
+cd repo
+cp ../ours.md AGENTS.md
+mkdir .claude/skills/mine .codex .github/workflows docs/specs docs/solomonar/extensions/money
+cp ../settings.json .claude/settings.json
+cp ../mine.md .claude/skills/mine/SKILL.md
+cp ../config.toml .codex/config.toml
+cp ../ci.yml .github/workflows/ci.yml
+cp ../ledger.md docs/specs/ledger.md
+cp ../money/extension.json docs/solomonar/extensions/money/extension.json
+cp ../money/money.md docs/solomonar/extensions/money/money.md
+exec solomonar init --runtime claude,codex,copilot --ext go,extension-authoring --yes
+exec solomonar extension add money --yes
+exec git add -A
+exec git commit -q -m install
+exec git rev-parse refs/heads/workflow-state
+cp stdout ../tip.txt
+
+# The dry run prints the plan and writes nothing.
+exec solomonar uninstall --dry-run
+stdout '^  remove     \.github/agents/money\.agent\.md$'
+stdout '^  update     AGENTS\.md +managed part removed; project notes kept$'
+stdout '^  update     docs/README\.md +framework index line removed$'
+stdout '^  skip       docs/solomonar/extensions/money  project extension; source kept$'
+stdout '^  remove     \.solomonar/manifest\.json$'
+stdout '^Would uninstall solomonar from .+/repo$'
+stdout '^  2 files updated, 68 removed, 1 skipped$'
+exec git status --porcelain --untracked-files=all
+! stdout .
+
+# An edited managed file is a conflict and nothing is written.
+cp ../edited.md docs/solomonar/rules.md
+exitcode 4 solomonar uninstall --yes
+stdout '^  conflict   docs/solomonar/rules\.md +modified since installation \(manifest sha256 differs\)$'
+stderr '^error: uninstall found 1 conflict \(file_conflict\)$'
+stderr '^nothing was written$'
+exec git status --porcelain --untracked-files=all
+cmp stdout ../edited-status.txt
+
+# --overwrite removes the edited file; every unkept managed artifact goes, project content stays.
+exec solomonar uninstall --yes --overwrite docs/solomonar/rules.md
+stdout '^Uninstalled solomonar from .+/repo$'
+stdout '^  2 files updated, 68 removed, 1 skipped$'
+stdout '^  kept: AGENTS\.md, docs/README\.md, docs/solomonar/extensions/money$'
+stdout '^  The registry \(refs/heads/workflow-state\) and other worktrees are unchanged\.$'
+stdout '^  1\. Review the removal with git status, then commit it\.$'
+! exists .solomonar CLAUDE.md docs/solomonar/rules.md docs/solomonar/skills docs/solomonar/agents
+! exists docs/solomonar/extensions/go docs/solomonar/extensions/extension-authoring
+! exists .claude/agents .claude/skills/go .codex/agents .agents/skills .github/skills .github/agents
+cmp AGENTS.md ../notes.md
+exec git diff --numstat -- docs/README.md
+stdout '^0\t1\tdocs/README\.md$'
+! grep 'docs/solomonar/' docs/README.md
+exec git status --porcelain --untracked-files=all
+stdout -count=68 '^ D '
+stdout -count=2 '^ M '
+stdout -count=70 '^.'
+exec git diff --exit-code HEAD -- docs/decisions.md docs/stack.md docs/specs docs/solomonar/extensions/money .claude/settings.json .claude/skills/mine .codex/config.toml .github/workflows
+exec git rev-parse refs/heads/workflow-state
+cmp stdout ../tip.txt
+
+# The next run is the absent-manifest no-op.
+exec solomonar uninstall
+stdout '^No Solomonar manifest; nothing to uninstall automatically\.$'
+! stderr .
+
+# Reinitialization reuses the retained registry and project notes; the project-owned README is left as is.
+exec solomonar init --runtime claude --ext go --yes
+stdout '^  registry  refs/heads/workflow-state @ [0-9a-f]{40} unchanged$'
+exec git rev-parse refs/heads/workflow-state
+cmp stdout ../tip.txt
+grep '^## Project notes$' AGENTS.md
+grep '^Use tabs\.$' AGENTS.md
+exec git diff --numstat -- docs/README.md
+stdout '^0\t1\tdocs/README\.md$'
+exec git diff --exit-code HEAD -- docs/solomonar/extensions/money
+exec solomonar extension list --group review
+stdout '^review +money +agent +project +available '
+
+# Uninstall in a linked worktree changes no other checkout and no shared ref.
+exec git add -A
+exec git commit -q -m reinstall
+exec git worktree add -q ../wt -b side
+exec git for-each-ref
+cp stdout ../refs.txt
+cd ../wt
+exec solomonar uninstall --yes
+stdout '^Uninstalled solomonar from .+/wt$'
+! exists .solomonar docs/solomonar/rules.md CLAUDE.md
+cd ../repo
+exec git status --porcelain --untracked-files=all
+! stdout .
+exists .solomonar/manifest.json docs/solomonar/rules.md CLAUDE.md
+exec git for-each-ref
+cmp stdout ../refs.txt
+
+-- ours.md --
+# Our rules
+
+Use tabs.
+-- notes.md --
+## Project notes
+
+# Our rules
+
+Use tabs.
+-- edited.md --
+project rules
+-- edited-status.txt --
+ M docs/solomonar/rules.md
+-- settings.json --
+{"permissions": {}}
+-- mine.md --
+# Our own skill
+-- config.toml --
+model = "local"
+-- ci.yml --
+name: ci
+-- ledger.md --
+# Ledger
+-- money/extension.json --
+{"name": "money", "kind": "agent", "group": "review", "title": "Money reviewer", "applies_when": "A change handles monetary amounts"}
+-- money/money.md --
+---
+name: money
+description: Reviews monetary amounts.
+---
+# Money reviewer
