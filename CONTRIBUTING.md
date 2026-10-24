@@ -100,10 +100,24 @@ accessibility reviewer) is an extension. When you are unsure, it is an extension
 For evidence-based authoring, use the optional
 [`extension-authoring` skill](assets/extensions/workflow/extension-authoring/SKILL.md).
 It supports catalog contributions here and project-specific source in adopting
-repositories, through research, authoring, and validation. The
-[three prompts](docs/prompts/add-extension/01-research.md) select individual stages;
-their instructions live in the skill rather than being maintained twice.
+repositories, through research, authoring, and validation. Its stage references
+own the detailed procedures.
 The skill writes content; the CLI owns adoption, manifests, and runtime stubs.
+
+Use these requests with the installed skill. In this source checkout, if it is
+not installed, ask the agent to load
+`assets/extensions/workflow/extension-authoring/SKILL.md` first.
+
+| Intent | Example request |
+| --- | --- |
+| Complete workflow | `Use the extension-authoring skill to create a catalog skill for <topic>.` |
+| Research only | `Use the extension-authoring skill to research a catalog extension for <topic> only.` |
+| Author only | `Use the extension-authoring skill to author the extension described in <research-record>; authoring only.` |
+| Validate only | `Use the extension-authoring skill to validate and refine <candidate-paths>, using <research-record>.` |
+
+Specify project-specific source instead of catalog when working in an adopting
+project. Include scope and supported versions when known. Stage-only requests
+reuse the same research record; a complete creation request runs all three stages.
 
 - Write in English, in the imperative, one instruction per bullet. Prefer `must` and `never` only where they
   are meant literally.
