@@ -1,6 +1,7 @@
 # Extension store, minimal upgrade, and extension commands: implementation plan
 
-Status: approved plan, 2026-10-24; not started. TASK-01 moves the agreed design into the
+Status: approved plan, 2026-10-24; implemented 2026-10-24 (TASK-01 to TASK-13, release candidate 0.2.0; the live
+Claude Code smoke test of TASK-13 is not yet run). TASK-01 moves the agreed design into the
 [interface spec](interface.md) and the [architecture](architecture.md); after that, those documents own the
 normative detail and this plan only orders the work.
 
