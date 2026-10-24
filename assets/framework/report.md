@@ -1,6 +1,6 @@
 # Report contract
 
-Framework version: 0.1.7
+Framework version: 0.2.0
 
 Delegated agent reports, the consolidated correction list, and the PR Verification section follow this file.
 `rules.md` below means `docs/solomonar/rules.md`, which owns orchestration, routing, arbitration, and state.
@@ -41,7 +41,7 @@ Result: <result value>
 - Header: exactly these three lines, in this order. Use the packet's task ID and one result from section 3.
   The header routes the report; acceptance also requires its evidence and the governing gates.
 - `<Role>`: one of `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`,
-  `adversarial-reviewer`, or an installed extension agent. `<Role>` is a role file in `docs/solomonar/agents/`; `docs/solomonar/reviewer.md` is
+  `adversarial-reviewer`, or an installed extension agent. `<Role>` is a role file in `docs/solomonar/agents/` (an extension agent's is `docs/solomonar/extensions/<name>/<name>.md`); `docs/solomonar/reviewer.md` is
   a shared contract, not a role.
 - `Revision` is a full SHA:
   - Implementer handoff: committed candidate at worktree `HEAD`; an unchanged outcome may use existing `HEAD`.
