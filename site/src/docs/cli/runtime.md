@@ -70,12 +70,13 @@ solomonar runtime add codex --yes
 
 ```text
 Plan
-  create  .agents/skills/ (8 skill stubs: solomonar, prototype, spec, work-spec, go, htmx, templ, tdd)
+  create  .agents/skills/ (6 skill stubs: solomonar, prototype, spec, work-spec, go, extension-authoring)
+  create  .agents/skills/extension-authoring/agents/openai.yaml
   create  .agents/skills/solomonar/agents/openai.yaml
   create  .codex/agents/ (5 role stubs)
   create  .codex/hooks.json (state guard hook)
   update  .solomonar/manifest.json
-Added runtime codex: 16 files.
+Added runtime codex: 15 files.
   warning: Codex state guard hook not trusted yet; review it with /hooks in Codex.
 Next: commit the files on main.
 ```
