@@ -514,12 +514,12 @@ func TestInitRejections(t *testing.T) {
 			name: "unknown extension", args: []string{"init", "--runtime", "none", "--ext", "go,rust", "--yes"}, exit: 2,
 			stderr: "error: init rejected (unknown_extension)\n" +
 				"  check: --ext names a catalog extension\n" +
-				"  found: \"rust\" is not in the catalog; known: go\n" +
+				"  found: \"rust\" is not in the catalog; known: extension-authoring, go\n" +
 				"  fix:   pass --ext with a known name, or none\n",
 		},
 		{
 			name: "extension path", args: []string{"init", "--runtime", "none", "--ext", "./extensions/go", "--yes"},
-			exit: 2, stderr: "  found: \"./extensions/go\" is not in the catalog; known: go\n",
+			exit: 2, stderr: "  found: \"./extensions/go\" is not in the catalog; known: extension-authoring, go\n",
 		},
 		{
 			name: "extension checked before the model's runtime",
