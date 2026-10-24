@@ -41,7 +41,8 @@ func testCatalog(t *testing.T) Catalog {
 func TestLoadCatalogReadsTheEmbeddedGoExtension(t *testing.T) {
 	t.Parallel()
 
-	catalog, err := LoadCatalog(os.DirFS("../../assets"))
+	assets := os.DirFS("../../assets")
+	catalog, err := LoadCatalog(assets)
 
 	require.NoError(t, err)
 	assert.Equal(t, CatalogExtension{
@@ -53,8 +54,15 @@ func TestLoadCatalogReadsTheEmbeddedGoExtension(t *testing.T) {
 		Conflicts:   []string{},
 		AppliesWhen: "A change touches Go code (*.go, go.mod, go.sum)",
 		Paths:       []string{"**/*.go", "**/go.mod", "**/go.sum"},
+		Detect:      []string{"**/go.mod"},
+		Invocation:  "model",
 		Dir:         "extensions/language/go",
+		Source:      "catalog",
+		FS:          assets,
 	}, catalog["go"])
+	assert.True(t, catalog["extension-authoring"].Default)
+	assert.Equal(t, "user", catalog["extension-authoring"].Invocation)
+	assert.Empty(t, catalog["extension-authoring"].Detect)
 }
 
 func TestLoadCatalogReadsSkillsAndAgents(t *testing.T) {
@@ -161,6 +169,46 @@ func TestLoadCatalogRejectsADefectiveExtension(t *testing.T) {
 				"extensions/backend/go/SKILL.md":        skill,
 			},
 			err: `read catalog extensions/language/go: name "go" is also in extensions/backend/go`,
+		},
+		{
+			name: "detect glob is invalid",
+			files: fstest.MapFS{
+				"extensions/language/go/extension.json": extensionJSON("go", "skill", "language", `, "detect": ["a**"]`),
+				"extensions/language/go/SKILL.md":       skill,
+			},
+			err: `read catalog extensions/language/go: detect "a**" is not a valid glob`,
+		},
+		{
+			name: "invocation is unknown",
+			files: fstest.MapFS{
+				"extensions/language/go/extension.json": extensionJSON("go", "skill", "language", `, "invocation": "auto"`),
+				"extensions/language/go/SKILL.md":       skill,
+			},
+			err: `read catalog extensions/language/go: invocation "auto" is not model or user`,
+		},
+		{
+			name: "agent is user-invoked",
+			files: fstest.MapFS{
+				"extensions/review/a11y/extension.json": extensionJSON("a11y", "agent", "review", `, "invocation": "user"`),
+				"extensions/review/a11y/a11y.md":        skill,
+			},
+			err: "read catalog extensions/review/a11y: invocation user is only for a skill",
+		},
+		{
+			name: "default is not a bool",
+			files: fstest.MapFS{
+				"extensions/language/go/extension.json": extensionJSON("go", "skill", "language", `, "default": "yes"`),
+			},
+			err:  decodeFailure,
+			part: decodeFailure,
+		},
+		{
+			name: "member is duplicated",
+			files: fstest.MapFS{
+				"extensions/language/go/extension.json": extensionJSON("go", "skill", "language", `, "title": "U"`),
+			},
+			err:  decodeFailure,
+			part: "duplicate",
 		},
 		{
 			name:  "JSON is malformed",
