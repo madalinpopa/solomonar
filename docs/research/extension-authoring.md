@@ -27,8 +27,10 @@ It is a supporting procedure, not a new required core role or step.
   request. Stage-only requests stop at that stage. Scoped approvals persist;
   stage transitions introduce no new confirmation gate.
 - Each authored extension keeps sources, decisions, expected cases, results,
-  and the next action in one research record. The three prompt files now select
-  stages from the skill rather than copying its instructions.
+  and the next action in one research record. The standalone prompt wrappers
+  were removed after consolidation into the skill. Short stage invocation
+  examples live in [CONTRIBUTING.md](../../CONTRIBUTING.md#writing-framework-text);
+  the skill's stage references own the procedures.
 - Runtime adapters remain generated pointers to one installed portable body.
   No new CLI command or runtime-adapter implementation is introduced.
 
