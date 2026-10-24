@@ -71,7 +71,7 @@ func TestInteractiveInitUC1(t *testing.T) {
 	dir := committedRepo(t)
 	writeFile(t, dir, "go.mod", "module example.com/ledger\n")
 	gittest.PathWith(t, "claude")
-	input := "\n" + "Track shared household expenses\n" + "j \r" + "opus\n" + "\n" + "\r" + " jj \r" + "y\n"
+	input := "\n" + "Track shared household expenses\n" + "j \r" + "opus\n" + "\n" + "\r" + " jj \r" + "\r" + "y\n"
 
 	got := runInteractive(t, catalogAssets(t), dir, input, "init")
 
@@ -90,7 +90,8 @@ func TestInteractiveInitUC1(t *testing.T) {
 		"(blank = runtime default): "+
 		extensionsIntro+
 		"\nLanguage:\n    [x] go  Go language rules\n"+
-		"\nFrontend:\n    [x] htmx   T\n    [ ] react  T\n    [x] templ  T (requires htmx)\n\n", prompts)
+		"\nFrontend:\n    [x] htmx   T\n    [ ] react  T\n    [x] templ  T (requires htmx)\n"+
+		"\nWorkflow:\n    [ ] extension-authoring  Evidence-based extension authoring\n\n", prompts)
 	assert.Contains(t, rest, "  registry\n    create     refs/heads/workflow-state with an empty registry\n"+
 		"  manifest\n    create     .solomonar/manifest.json\n"+
 		"Proceed? [Y/n] \nInitialized solomonar "+shipped+" in "+dir+"\n")
@@ -219,7 +220,7 @@ func TestInteractiveInitDryRunAsksChoicesWithoutConfirmation(t *testing.T) {
 	gittest.NoGH(t)
 	before, tip := tree(t, dir), refTip(t, dir)
 
-	got := runInteractive(t, repoAssets(t), dir, "\n\n\r\r", "init", "--dry-run")
+	got := runInteractive(t, repoAssets(t), dir, "\n\n\r\r\r", "init", "--dry-run")
 
 	require.Equal(t, 0, got.exit, got.stderr)
 	transcript := screen(t, got.stdout)
@@ -230,7 +231,8 @@ func TestInteractiveInitDryRunAsksChoicesWithoutConfirmation(t *testing.T) {
 		"    [ ] codex    Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook\n"+
 		"    [ ] copilot  GitHub Copilot CLI: AGENTS.md (native), .github/skills, .github/agents\n"+
 		extensionsIntro+
-		"\nLanguage:\n    [ ] go  Go language rules\n\nPlan\n"), transcript)
+		"\nLanguage:\n    [ ] go  Go language rules\n"+
+		"\nWorkflow:\n    [ ] extension-authoring  Evidence-based extension authoring\n\nPlan\n"), transcript)
 	assert.Contains(t, transcript, "\nWould initialize solomonar "+shipped+" in "+dir+"\n")
 	assert.NotContains(t, transcript, "Proceed?")
 	assertNothingWritten(t, dir, before, tip)
@@ -239,7 +241,7 @@ func TestInteractiveInitDryRunAsksChoicesWithoutConfirmation(t *testing.T) {
 func TestInteractiveInitAsksExtensionsAgainAfterRejection(t *testing.T) {
 	dir := committedRepo(t)
 	gittest.NoGH(t)
-	input := "\r" + "jj \r" + "\r" + " \r" + "y\n"
+	input := "\r" + "jj \r" + "\r" + "\r" + " \r" + "\r" + "y\n"
 
 	got := runInteractive(t, catalogAssets(t), dir, input,
 		"init", "--name", "ledger", "--objective", "Track", "--runtime", "none")
@@ -247,9 +249,11 @@ func TestInteractiveInitAsksExtensionsAgainAfterRejection(t *testing.T) {
 	require.Equal(t, 0, got.exit, got.stderr)
 	assert.Contains(t, screen(t, got.stdout),
 		"\nFrontend:\n    [ ] htmx   T\n    [ ] react  T\n    [x] templ  T (requires htmx)\n"+
+			"\nWorkflow:\n    [ ] extension-authoring  Evidence-based extension authoring\n"+
 			"  templ requires htmx; add --ext htmx\n"+
 			"\nLanguage:\n    [ ] go  Go language rules\n"+
-			"\nFrontend:\n    [x] htmx   T\n    [ ] react  T\n    [x] templ  T (requires htmx)\n\nPlan\n")
+			"\nFrontend:\n    [x] htmx   T\n    [ ] react  T\n    [x] templ  T (requires htmx)\n"+
+			"\nWorkflow:\n    [ ] extension-authoring  Evidence-based extension authoring\n\nPlan\n")
 	assert.ElementsMatch(t, []string{"htmx", "templ"}, slices.Collect(maps.Keys(manifestOf(t, dir).Extensions)))
 }
 
