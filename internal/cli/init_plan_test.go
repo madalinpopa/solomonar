@@ -4,7 +4,6 @@ import (
 	"slices"
 	"strings"
 	"testing"
-	"testing/fstest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,9 +34,10 @@ func uc1Run() initRun {
 			"docs/solomonar/skills/spec/SKILL.md", "docs/solomonar/skills/spec/template.md"),
 		planned(c, "core+notes", "AGENTS.md"),
 		planned(c, "seed", "docs/README.md"),
-		planned(c, "ext:go", "docs/solomonar/skills/go/SKILL.md"),
-		planned(c, "ext:htmx", "docs/solomonar/skills/htmx/SKILL.md"),
-		planned(c, "ext:templ", "docs/solomonar/skills/templ/SKILL.md"),
+		planned(c, "ext:go", "docs/solomonar/extensions/go/SKILL.md", "docs/solomonar/extensions/go/extension.json"),
+		planned(c, "ext:htmx", "docs/solomonar/extensions/htmx/SKILL.md"),
+		planned(c, "ext:templ", "docs/solomonar/extensions/templ/SKILL.md",
+			"docs/solomonar/extensions/templ/extension.json"),
 		planned(c, "runtime:claude", "CLAUDE.md", ".claude/skills/go/SKILL.md", ".claude/skills/htmx/SKILL.md",
 			".claude/skills/solomonar/SKILL.md", ".claude/skills/spec/SKILL.md", ".claude/skills/templ/SKILL.md",
 			".claude/agents/adversarial-reviewer.md", ".claude/agents/implementer.md", ".claude/agents/orchestrator.md"),
@@ -56,7 +56,6 @@ func uc1Run() initRun {
 		extensions: []project.CatalogExtension{
 			extension("go", "language"), extension("htmx", "frontend"), extension("templ", "frontend"),
 		},
-		renderedWith: map[string][]string{"htmx": {"templ"}, "templ": {"htmx"}},
 		decisions: []project.Decision{
 			{ID: "P/D-1", Group: "language", Selected: []string{"go"}},
 			{ID: "P/D-2", Group: "frontend", Selected: []string{"htmx", "templ"}},
@@ -72,9 +71,9 @@ const uc1Plan = "  framework 0.1.0\n" +
 	"    create     AGENTS.md\n" +
 	"    create     docs/README.md\n" +
 	"  extensions\n" +
-	"    create     docs/solomonar/skills/go/SKILL.md\n" +
-	"    create     docs/solomonar/skills/htmx/SKILL.md   rendered with: templ\n" +
-	"    create     docs/solomonar/skills/templ/SKILL.md  rendered with: htmx\n" +
+	"    create     docs/solomonar/extensions/go/ (2 files)\n" +
+	"    create     docs/solomonar/extensions/htmx/ (1 file)\n" +
+	"    create     docs/solomonar/extensions/templ/ (2 files)\n" +
 	"  decisions (approved, selected by you)\n" +
 	"    create     docs/decisions.md  P/D-1 language: go · P/D-2 frontend: htmx, templ\n" +
 	"    create     docs/stack.md      language: go (P/D-1) · frontend: htmx, templ (P/D-2)\n" +
@@ -198,11 +197,7 @@ func TestGroupedPlanOmitsEmptyGroups(t *testing.T) {
 func TestInteractiveInitShowsTheGroupedPlan(t *testing.T) {
 	dir := committedRepo(t)
 	gittest.NoGH(t)
-	assets := catalogAssets(t)
-	assets["extensions/frontend/templ/SKILL.md"] = &fstest.MapFile{Data: []byte(
-		"---\nname: templ\ndescription: D\n---\n\n# templ\n\n## With htmx\n<!-- solomonar:with htmx -->\nSwap.\n")}
-
-	got := runInteractive(t, assets, dir, "\ny\n", "init", "--name", "ledger", "--objective", "o",
+	got := runInteractive(t, catalogAssets(t), dir, "\ny\n", "init", "--name", "ledger", "--objective", "o",
 		"--runtime", "claude,codex", "--adversarial-model", "claude=opus", "--ext", "go,htmx,templ")
 
 	require.Equal(t, 0, got.exit, got.stderr)
@@ -223,13 +218,9 @@ func TestInteractiveInitShowsTheGroupedPlan(t *testing.T) {
 			"    create     AGENTS.md\n"+
 			"    create     docs/README.md\n"+
 			"  extensions\n"+
-			"    create     docs/solomonar/skills/go/SKILL.md\n"+
-			"    create     docs/solomonar/skills/go/rules/go/concurrency.md\n"+
-			"    create     docs/solomonar/skills/go/rules/go/design.md\n"+
-			"    create     docs/solomonar/skills/go/rules/go/io.md\n"+
-			"    create     docs/solomonar/skills/go/rules/go/testing.md\n"+
-			"    create     docs/solomonar/skills/htmx/SKILL.md\n"+
-			"    create     docs/solomonar/skills/templ/SKILL.md  rendered with: htmx\n"+
+			"    create     docs/solomonar/extensions/go/ (6 files)\n"+
+			"    create     docs/solomonar/extensions/htmx/ (2 files)\n"+
+			"    create     docs/solomonar/extensions/templ/ (2 files)\n"+
 			"  decisions (approved, selected by you)\n"+
 			"    create     docs/decisions.md  P/D-1 language: go · P/D-2 frontend: htmx, templ\n"+
 			"    create     docs/stack.md      language: go (P/D-1) · frontend: htmx, templ (P/D-2)\n"+
@@ -245,4 +236,28 @@ func TestInteractiveInitShowsTheGroupedPlan(t *testing.T) {
 			"  manifest\n"+
 			"    create     .solomonar/manifest.json\n", plan)
 	assert.Contains(t, got.stdout, "Proceed? [Y/n] \nInitialized solomonar "+shipped+" in "+dir+"\n")
+}
+
+func TestCountsFollowTheActionOrder(t *testing.T) {
+	t.Parallel()
+	changes := slices.Concat(
+		planned(project.ActionSkip, "seed", "a"),
+		planned(project.ActionUnchanged, "core", "b", "c"),
+		planned(project.ActionKeep, "core", "d"),
+		planned(project.ActionRemove, "ext:go", "e", "f"),
+		planned(project.ActionAppend, "decision", "g"),
+		planned(project.ActionUpdate, "core", "h"),
+		planned(project.ActionCreate, "core", "i"),
+	)
+
+	assert.Equal(t, "1 file created, 2 updated, 2 removed, 1 kept, 2 unchanged, 1 skipped", counts(changes))
+	assert.Equal(t, "2 files removed", counts(planned(project.ActionRemove, "ext:go", "e", "f")))
+}
+
+func TestGroupedPlanCollapsesTheLegacyExtensionDirectory(t *testing.T) {
+	t.Parallel()
+	lines := collapse(planned(project.ActionRemove, "ext:go",
+		"docs/solomonar/skills/go/SKILL.md", "docs/solomonar/skills/go/rules/go/io.md"), extensionSet, extensionLabel)
+
+	assert.Equal(t, []planLine{{action: "remove", path: "docs/solomonar/skills/go/ (2 files)"}}, lines)
 }
