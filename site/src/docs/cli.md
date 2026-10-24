@@ -54,7 +54,6 @@ These commands are specified and scheduled for delivery. They are **not in the c
 | Command | Purpose | Who runs it |
 | --- | --- | --- |
 | [`doctor`]({{ '/docs/cli/doctor/' | url }}) | Check the repository, registry, files, extensions, adapters, and forge settings. | You, or CI |
-| [`sync`]({{ '/docs/cli/sync/' | url }}) | Regenerate runtime adapter files from the portable source. | You, or CI with `--check` |
 | [`guard`]({{ '/docs/cli/guard/' | url }}) | Deny direct registry writes from an agent session. | The runtime's hook |
 
 ## Global flags
@@ -114,7 +113,7 @@ Unknown forge or check facts never count as passing.
 | 2 | Usage error: unknown command or flag, missing or malformed argument. |
 | 3 | Rejected: a validation, ownership, transition, or fact check failed. |
 | 4 | Conflict: a managed file differs from what the CLI would write, or the registry update kept losing to concurrent writes. |
-| 5 | Checks failed: `doctor` found a `fail`, or `sync --check` found stale files. <span class="cli-label">In development</span> |
+| 5 | Checks failed: `doctor` found a `fail`, such as a stale adapter file. <span class="cli-label">In development</span> |
 | 130, 143 | Interrupted by SIGINT or SIGTERM before anything was written. Nothing is written. |
 
 An interruption after a registry update has succeeded exits 0 with the warning `push_interrupted`, so a script never repeats a write that already happened.
@@ -125,7 +124,7 @@ These are interface contracts, not commands available in the current build.
 
 | Delivery increment | Planned |
 | --- | --- |
-| Increment 2, [in development](#commands-in-development) | `doctor`, `sync`, `guard` and its runtime hooks |
+| Increment 2, [in development](#commands-in-development) | `doctor`, `guard` and its runtime hooks |
 | Increment 3 | `upgrade --diff`, `dashboard` |
 
 The catalog holds `go` and `extension-authoring`; further catalog extensions are added once their framework content is written and reviewed. A project's own rules and reviewers are [project extensions]({{ '/docs/cli/extension/#write-a-project-extension' | url }}).
