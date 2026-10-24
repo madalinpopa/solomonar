@@ -26,10 +26,10 @@ const example = `{
     "codex": {}
   },
   "extensions": {
-    "go": {"state": "installed", "kind": "skill", "group": "language", "source": "catalog", "decision": "P/D-1", "rendered_with": ["tdd"]},
-    "htmx": {"state": "installed", "kind": "skill", "group": "frontend", "source": "catalog", "decision": "P/D-2", "rendered_with": ["templ"]},
-    "templ": {"state": "installed", "kind": "skill", "group": "frontend", "source": "catalog", "decision": "P/D-2", "rendered_with": ["htmx"]},
-    "tdd": {"state": "installed", "kind": "skill", "group": "testing", "source": "catalog", "decision": "P/D-3", "rendered_with": ["go"]}
+    "go": {"state": "installed", "kind": "skill", "group": "language", "source": "catalog", "decision": "P/D-1"},
+    "htmx": {"state": "installed", "kind": "skill", "group": "frontend", "source": "catalog", "decision": "P/D-2"},
+    "templ": {"state": "installed", "kind": "skill", "group": "frontend", "source": "catalog", "decision": "P/D-2"},
+    "tdd": {"state": "installed", "kind": "skill", "group": "testing", "source": "catalog", "decision": "P/D-3"}
   },
   "files": {
     "AGENTS.md": {"owner": "core+notes", "sha256": "` + emptyHash + `"},
@@ -62,40 +62,28 @@ const canonicalExample = `{
       "kind": "skill",
       "group": "language",
       "source": "catalog",
-      "decision": "P/D-1",
-      "rendered_with": [
-        "tdd"
-      ]
+      "decision": "P/D-1"
     },
     "htmx": {
       "state": "installed",
       "kind": "skill",
       "group": "frontend",
       "source": "catalog",
-      "decision": "P/D-2",
-      "rendered_with": [
-        "templ"
-      ]
+      "decision": "P/D-2"
     },
     "tdd": {
       "state": "installed",
       "kind": "skill",
       "group": "testing",
       "source": "catalog",
-      "decision": "P/D-3",
-      "rendered_with": [
-        "go"
-      ]
+      "decision": "P/D-3"
     },
     "templ": {
       "state": "installed",
       "kind": "skill",
       "group": "frontend",
       "source": "catalog",
-      "decision": "P/D-2",
-      "rendered_with": [
-        "htmx"
-      ]
+      "decision": "P/D-2"
     }
   },
   "files": {
@@ -165,6 +153,18 @@ func TestDecodeManifestRoundTripsTheInterfaceExample(t *testing.T) {
 	assert.Equal(t, want, string(data))
 }
 
+func TestDecodeManifestAcceptsTaskDecisions(t *testing.T) {
+	t.Parallel()
+
+	data := strings.ReplaceAll(example, `"P/D-2"`, `"W-002/D-1"`)
+
+	manifest, err := DecodeManifest([]byte(data), framework)
+
+	require.NoError(t, err)
+	assert.Equal(t, "W-002/D-1", manifest.Extensions["htmx"].Decision)
+	assert.Equal(t, []string{"P/D-1", "W-002/D-1", "P/D-3"}, manifest.Files["docs/decisions.md"].Entries)
+}
+
 func TestDecodeManifestRoundTripsCopilotAdapters(t *testing.T) {
 	t.Parallel()
 
@@ -180,7 +180,7 @@ func TestDecodeManifestRoundTripsCopilotAdapters(t *testing.T) {
 				"claude": {}, "codex": {}, "copilot": {AdversarialModel: model},
 			}
 
-			plan, manifest, err := InitPlan(root, nil, wants, nil, nil, ledger(), runtimes, nil, Decisions{}, framework)
+			plan, manifest, err := InitPlan(root, nil, wants, Resolutions{}, ledger(), runtimes, nil, Decisions{}, framework)
 			require.NoError(t, err)
 			require.Len(t, plan.Changes, len(wants)+1)
 			assert.Equal(t, 1, manifest.SchemaVersion)
@@ -260,6 +260,11 @@ func TestDecodeManifestRejectsUnknownMembersAndDuplicateKeys(t *testing.T) {
 		found string
 	}{
 		{name: "unknown member", data: strings.Replace(example, `"owner": "seed"`, `"owner": "seed", "mode": 1`, 1), found: "mode"},
+		{
+			name:  "rendered_with",
+			data:  strings.Replace(example, `"decision": "P/D-1"`, `"decision": "P/D-1", "rendered_with": ["tdd"]`, 1),
+			found: "rendered_with",
+		},
 		{name: "duplicate key", data: strings.Replace(example, `"owner": "seed"`, `"owner": "seed", "owner": "seed"`, 1), found: "owner"},
 	}
 	for _, tt := range tests {
@@ -294,12 +299,12 @@ func TestDecodeManifestRejectsEveryValidationRule(t *testing.T) {
 		{"catalog with path", `"group": "language", "source": "catalog"`, `"group": "language", "source": "catalog", "path": "x"`, "extensions.go.path is only for source path"},
 		{"path source without path", `"path": "docs/solomonar/skills/money"`, `"path": ""`, "extensions.money.path is missing"},
 		{"unclean path", `"path": "docs/solomonar/skills/money"`, `"path": "../money"`, `extensions.money.path "../money" is not a clean repo-relative path`},
-		{"stack group without decision", `"decision": "P/D-1", `, ``, "extensions.go.decision is missing"},
-		{"malformed decision", `"decision": "P/D-1"`, `"decision": "D-1"`, `extensions.go.decision "D-1" is not P/D-<n>`},
+		{"stack group without decision", `, "decision": "P/D-1"}`, `}`, "extensions.go.decision is missing"},
+		{"malformed decision", `"decision": "P/D-1"`, `"decision": "D-1"`, `extensions.go.decision "D-1" is not P/D-<n> or <task-ID>/D-<n>`},
+		{"decision without a number", `"decision": "P/D-1"`, `"decision": "P/D-"`, `extensions.go.decision "P/D-" is not P/D-<n> or <task-ID>/D-<n>`},
+		{"decision with a short task ID", `"decision": "P/D-1"`, `"decision": "W-02/D-1"`, `extensions.go.decision "W-02/D-1" is not P/D-<n> or <task-ID>/D-<n>`},
 		{"workflow with decision", `"group": "language"`, `"group": "workflow"`, `extensions.go.decision is not allowed for group workflow`},
 		{"draft with decision", `"title": "Money handling"`, `"decision": "P/D-4", "title": "Money handling"`, "extensions.money.decision is not allowed for a draft"},
-		{"draft with rendered_with", `"title": "Money handling"`, `"rendered_with": ["go"], "title": "Money handling"`, "extensions.money.rendered_with is not allowed for a draft"},
-		{"rendered_with unknown", `"rendered_with": ["tdd"]`, `"rendered_with": ["rust"]`, `extensions.go.rendered_with "rust" is not a known extension`},
 		{"unclean file path", `"docs/README.md": {`, `"docs/../README.md": {`, `files."docs/../README.md" is not a clean repo-relative path`},
 		{"missing owner", `"owner": "seed"`, `"owner": ""`, "files.docs/README.md.owner is missing"},
 		{"unknown owner", `"owner": "seed"`, `"owner": "foo"`, `files.docs/README.md.owner "foo" is not an ownership class`},
@@ -311,7 +316,7 @@ func TestDecodeManifestRejectsEveryValidationRule(t *testing.T) {
 		{"core with entry", `"owner": "core", "sha256": "` + emptyHash + `"`, `"owner": "core", "sha256": "` + emptyHash + `", "entry": "x"`, `files.docs/solomonar/rules.md.entry is not allowed for owner "core"`},
 		{"decision without entries", `"owner": "decision", "entries": ["P/D-1", "P/D-2", "P/D-3"]`, `"owner": "decision"`, "files.docs/decisions.md.entries is missing"},
 		{"decision with hash", `"owner": "decision",`, `"owner": "decision", "sha256": "` + emptyHash + `",`, `files.docs/decisions.md.sha256 is not allowed for owner "decision"`},
-		{"malformed entry", `"P/D-3"]`, `"W-001/D-3"]`, `files.docs/decisions.md.entries "W-001/D-3" is not P/D-<n>`},
+		{"malformed entry", `"P/D-3"]`, `"D-3"]`, `files.docs/decisions.md.entries "D-3" is not P/D-<n> or <task-ID>/D-<n>`},
 		{"seed with hash", `"owner": "seed"`, `"owner": "seed", "sha256": "` + emptyHash + `"`, `files.docs/README.md.sha256 is not allowed for owner "seed"`},
 		{"manifest with entries", `"owner": "seed"`, `"owner": "manifest", "entries": ["P/D-1"]`, `files.docs/README.md.entries is not allowed for owner "manifest"`},
 	}
