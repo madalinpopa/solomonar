@@ -14,6 +14,11 @@ adapter generation, manifest tracking, and `init --runtime copilot` are implemen
 the minimum supported runtime version remain pending. Runtime management and hooks remain increment 2; this addition
 defines no Copilot guard hook. Existing Claude and Codex contracts are unchanged.
 
+The extension store, the minimal `upgrade`, and `extension list|add|remove` were specified on 2026-10-24 (CLI-D27
+to CLI-D31; work order: [the extension implementation plan](extension-implementation-plan.md)) and are
+implemented. They replace the earlier extension design: no rendered combinations, no project-extension metadata
+in the manifest, and only the `list`, `add`, and `remove` subcommands.
+
 The command pages in `site/src/docs/cli/` are the reference for each command's synopsis, flags, when to use it, who
 runs it, and its typical output; this spec does not repeat them. It holds the contract beneath those pages: check
 order, exact texts, file planning, the manifest, JSON data, and the task rules. A use case cites its command page and
@@ -58,9 +63,9 @@ each command writes and its use cases.
 |---|---|---|
 | `init` | project files, manifest, `workflow-state` | UC-1 to UC-4 |
 | `runtime list\|add\|remove` | adapter files, manifest, `AGENTS.md` | UC-5 |
-| `extension list\|show\|add\|remove\|new` (alias `ext`) | `docs/solomonar/skills/`, `docs/solomonar/agents/`, `docs/decisions.md`, `docs/stack.md`, `docs/architecture.md`, adapter files, manifest, `AGENTS.md` | UC-6, UC-7 |
+| `extension list\|add\|remove` (alias `ext`) | `list` nothing; `add` and `remove`: catalog extension files in `docs/solomonar/extensions/<name>/` (never a project extension's directory), `docs/decisions.md`, `docs/stack.md`, `docs/architecture.md`, adapter files, manifest, `AGENTS.md` | UC-6, UC-7 |
 | `sync` | adapter files, manifest | UC-8 |
-| `upgrade` | managed files, manifest | UC-9 |
+| `upgrade` | managed files (create, update, remove), manifest | UC-9 |
 | `doctor` | nothing | UC-10 |
 | `task plan`, `register`, `move`, `block`, `unblock`, `handoff`, `done` | `workflow-state` | UC-11 to UC-15, UC-18 to UC-21 |
 | `task migrate` | `workflow-state` | UC-25 |
@@ -84,7 +89,8 @@ solomonar [global flags] <command> [<subcommand>] [flags] [args]
 No command, a command group alone (`task`), and an unknown command or subcommand are `unknown_command`; an
 unknown flag, a missing required flag, or an unexpected argument is `invalid_usage`. Both exit 2 with the fix "run
 solomonar help". `solomonar help <command>` prints the same text as `<command> -h`: the usage line, the
-description, and a pointer to `solomonar help` for the global flags.
+description, and a pointer to `solomonar help` for the global flags. `ext` is an alias for `extension`:
+`solomonar ext list` runs `solomonar extension list`, and help and JSON `command` name the full form.
 
 Global flags: [CLI overview, Global flags](../../site/src/docs/cli.md#global-flags). Command flags shared by several
 commands:
@@ -93,7 +99,8 @@ commands:
 |---|---|---|
 | `-y`, `--yes` | `init`, `runtime`, `extension`, `upgrade` | Accept the plan without the confirmation prompt; with `init`, take defaults for every unanswered choice. |
 | `--dry-run` | writing commands except `task migrate` | Run every check and print the plan or the record that would be written; write nothing; exit as the real run would. |
-| `--keep <path>`, `--overwrite <path>` | `init`, `runtime add\|remove`, `extension add\|remove`; `upgrade` uses `--take-new` instead of `--overwrite` | Resolve a managed-file conflict explicitly; `--keep` preserves local content without making it the distributed base (4.5). On removal, keep untracks the file; overwrite deletes it. |
+| `--keep <path>`, `--overwrite <path>` | `init`, `runtime add\|remove`, `extension add\|remove`; `upgrade` uses `--take-new` instead of `--overwrite` | Resolve a managed-file conflict explicitly; `--keep` preserves local content without making it the distributed base (4.5). On a removal conflict, keep untracks the file and leaves it on disk; overwrite (`--take-new`) deletes it. |
+| `--decision <ID>`, `--rationale <text>` | `extension add\|remove` | Record the change of a stack group under an approved decision, or give the rationale of the `P/D-n` the CLI writes (4.3); on a call that changes no stack group, either is `invalid_usage`. |
 | `--overwrite <path>` | `sync` | Replace a conflicting generated stub explicitly. |
 | `--as <owner>` | `task move`, `block`, `unblock`, `done` | Acting orchestrator, checked against the record's `owner` (CLI-D2). Defaults to `SOLOMONAR_OWNER`; neither is `owner_required`. Agents pass `--as` on every command, because a runtime may start a new shell per command and lose the variable; the variable is a convenience for the user's terminal. The check guards against mistakes (wrong task, a stale session after a handoff), not against impersonation. |
 
@@ -131,7 +138,7 @@ behavior.
 - The interactive `init` plan shown before `Proceed?` groups its lines and collapses uniform file sets (UC-1); `init
   --dry-run` and the `file_conflict` plan list every file in this form.
 - A counts line is `<n> file(s) <first action>, <n> <action>, …` over the non-zero actions in the order created,
-  updated (`append` included), kept, unchanged, skipped; the manifest counts. Only the first count carries `file`
+  updated (`append` included), removed, kept, unchanged, skipped; the manifest counts. Only the first count carries `file`
   (one) or `files` (`1 file created, 17 unchanged, 1 skipped`); a conflict count is `1 conflict` or `<n> conflicts`.
 - Every writing command ends with what was written (commit, files) and, when useful, a `Next:` block.
 
@@ -177,13 +184,24 @@ in 8.4; project commands use `not_a_repository`, `not_initialized`,
 `already_initialized`, `file_conflict`, `unknown_runtime`, `unknown_extension`, `core_item`,
 `name_collision`, `invalid_value`, `unknown_group`, `extension_requires`, `extension_conflict`, `decision_not_found`,
 `decision_not_approved`, `registry_exists_invalid`, `manifest_invalid`, `interactive_required`,
-`checks_failed`, `cli_outdated`, `interrupted`.
+`checks_failed`, `cli_outdated`, `framework_outdated`, `interrupted`.
+
+`not_initialized` (exit 3) for a project command: `upgrade` and `extension add|remove` need
+`.solomonar/manifest.json`; without it they reject with check `the project is initialized`, found `no
+.solomonar/manifest.json in <root>`, and the fix "run solomonar init". (The task commands' `not_initialized`, 8.4,
+names the missing registry instead.) `extension list` works without a manifest.
 
 `cli_outdated` (exit 3, CLI-D19): the manifest's `framework_version` or `schema_version`, or the registry's
 `schema_version`, is newer than this CLI supports. The CLI checks the versions before decoding either file
 strictly, so a newer project is never reported as `manifest_invalid` or `registry_invalid`. Every command that reads
 the manifest or the registry rejects with it and writes nothing, with the fix "install a newer solomonar release".
 `version` prints the project's versions and exits 0 (UC-24), and `doctor` reports it as a `fail`.
+
+`framework_outdated` (exit 3, CLI-D31): the manifest's `framework_version` is older than this CLI's embedded
+framework. `extension add` and `extension remove` reject with it after the manifest validates and before any
+extension is resolved, and write nothing: check `the project's framework matches this CLI`, found `manifest
+framework <v>, this CLI ships <v>`, fix "run solomonar upgrade". `extension list` and `upgrade` accept an older
+project; `init` keeps its own rules (UC-3).
 
 `manifest_invalid` (exit 1, like `registry_invalid`): `.solomonar/manifest.json` fails strict decoding or the 4.7
 validation. The message names the field, and the fix is "inspect .solomonar/manifest.json; never edit it by hand".
@@ -217,14 +235,14 @@ validation. The message names the field, and the fix is "inspect .solomonar/mani
 ### 4.1 Core and extensions
 
 The framework core holds only the process. Every other capability is an extension, a skill or an agent, that the
-user chooses at `init` or adds later. The CLI installs, renders, and removes extensions; the core never depends on
-one being present.
+user chooses at `init` or adds later. The CLI installs and removes extensions; the core never depends on one being
+present.
 
 | Part | Contains | Installed |
 |---|---|---|
 | Core: the process | `docs/solomonar/rules.md`, `report.md`, `reviewer.md`; the process roles `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`; the process skills `solomonar` (user entry point, CLI-D15), `prototype`, `spec`, `work-spec`; `AGENTS.md`; `docs/README.md`; the empty registry on `refs/heads/workflow-state`; `.solomonar/manifest.json` | always; cannot be removed |
 | Runtimes | Adapter files for `claude`, `codex`, `copilot` (4.2) | zero or more; default: those found on `PATH` |
-| Extensions | Skills (knowledge of a language, library, or practice; or a supporting procedure) and agents (extra specialist reviewers), grouped by decision type (4.3) | zero or more; default: `go` when `go.mod` exists |
+| Extensions | Skills (knowledge of a language, library, or practice; or a supporting procedure) and agents (extra specialist reviewers), grouped by decision type (4.3) | zero or more; default at `init`: the catalog extensions marked `default` or detected in the repository (4.3) |
 
 Core boundary (CLI-D14, decided): the core is the current framework in `assets/framework/`, the items `rules.md`
 names as a step or a required role of the process. The core carries no technology-specific content: Go rules live in the `go`
@@ -258,7 +276,7 @@ These are documentation checks; live Copilot acceptance and the minimum supporte
 | Concern | `copilot` (GitHub Copilot CLI; live acceptance pending) |
 |---|---|
 | Root instructions | `AGENTS.md`, read natively; no additional root instruction file generated |
-| Skills | `.github/skills/<skill>/SKILL.md` stub per installed skill; `solomonar` adds `disable-model-invocation: true` |
+| Skills | `.github/skills/<skill>/SKILL.md` stub per installed skill; `solomonar` and every `invocation: user` extension skill add `disable-model-invocation: true` |
 | Roles | `.github/agents/<role>.agent.md` per delegated role; `name`, `description`, and `include-custom-instructions: true`; reviewers add `tools: [read, search, execute]` |
 | Orchestrator | no native agent file: it remains the top-level session (G13) |
 | State guard | none in this delivery; no hook file or manifest hook entry generated |
@@ -273,10 +291,12 @@ Copilot's `model` is a preference: runtime overrides, unavailable models, and se
 the actual model. Solomonar does not authenticate, check model availability, or enforce a different model;
 record actual runtime behavior during acceptance. No additional model-policy fields are generated.
 
-Delegated roles are every `docs/solomonar/agents/` role except `orchestrator`, installed extension agents included;
-skills are the core skills and the installed extension skills (4.3). Each stub preserves the `name` and `description`
-values from the portable file's frontmatter, for an extension the installed file under `docs/solomonar/`; its path
-uses the skill directory or role file name instead (the two match for every shipped file).
+Delegated roles are every core role in `docs/solomonar/agents/` except `orchestrator`, plus the installed extension
+agents; skills are the core skills and the installed extension skills (4.3). Each stub preserves the `name` and
+`description` values from the portable file's frontmatter: for a catalog extension the embedded catalog file
+(byte-identical to its store copy), for a project extension its file in the store; its path uses the skill directory
+or role file name instead (the two match for every shipped file). An extension stub loads its main file in the store:
+`docs/solomonar/extensions/<name>/SKILL.md` for a skill, `docs/solomonar/extensions/<name>/<name>.md` for an agent.
 
 Body-only edits apply when the runtime next loads the portable source; metadata changes require adapter
 regeneration. `sync` is planned, so check `solomonar help` before using it and leave metadata changes pending
@@ -285,12 +305,13 @@ the reviewer form: claude `tools: Read, Grep, Glob, Bash`; codex the role TOML w
 copilot `tools: [read, search, execute]` without `model`.
 
 Plan order: runtimes always in the order `claude`, `codex`, `copilot`, whatever the flag order. `claude`: `CLAUDE.md`, skill
-stubs, role stubs; `codex`: skill stubs, `.agents/skills/solomonar/agents/openai.yaml`, role TOMLs;
-`copilot`: skill stubs, role stubs. Skills and roles,
+stubs, role stubs; `codex`: skill stubs, the `.agents/skills/<skill>/agents/openai.yaml` policy of each user-invoked
+skill sorted by skill, role TOMLs; `copilot`: skill stubs, role stubs. Skills and roles,
 core and extension together, are sorted by directory or file name.
 
-Skill stub (the same portable-source body for every runtime; the claude and copilot `solomonar` stubs add
-`disable-model-invocation: true`; Copilot YAML strings preserve the same metadata values):
+Skill stub (the same portable-source body for every runtime; the claude and copilot stubs of a user-invoked skill
+add `disable-model-invocation: true`; Copilot YAML strings preserve the same metadata values; an extension stub names
+its store path, such as `docs/solomonar/extensions/go/SKILL.md`):
 
 ```markdown
 ---
@@ -298,7 +319,7 @@ name: work-spec
 description: Prepares or refines one registered task's work specification in `docs/work/`, before implementation or when its scope or acceptance criteria change. Use from the orchestrator in the task worktree; use `spec` for application-wide behavior and `prototype` for discovery.
 ---
 
-Generated by solomonar 0.1.7 from `docs/solomonar/skills/work-spec/SKILL.md`; edit that file.
+Generated by solomonar 0.2.0 from `docs/solomonar/skills/work-spec/SKILL.md`; edit that file.
 Body edits apply directly; metadata changes need adapter regeneration. Check `solomonar help` for `sync` availability.
 Load `docs/solomonar/skills/work-spec/SKILL.md` and follow it.
 ```
@@ -313,7 +334,7 @@ description: Reviews one candidate revision for security defects in authorizatio
 tools: Read, Grep, Glob, Bash
 ---
 
-Generated by solomonar 0.1.7 from `docs/solomonar/agents/security-reviewer.md`; edit that file.
+Generated by solomonar 0.2.0 from `docs/solomonar/agents/security-reviewer.md`; edit that file.
 Body edits apply directly; metadata changes need adapter regeneration. Check `solomonar help` for `sync` availability.
 Load `AGENTS.md`, then `docs/solomonar/agents/security-reviewer.md` and every file its first lines require.
 ```
@@ -322,17 +343,18 @@ Role stub (Codex; `adversarial-reviewer` adds `model = "<model>"` when configure
 only; a control character in a value, tab included, is an error: `render <path>: control character in "<value>"`):
 
 ```toml
-# Generated by solomonar 0.1.7 from docs/solomonar/agents/security-reviewer.md; edit that file.
+# Generated by solomonar 0.2.0 from docs/solomonar/agents/security-reviewer.md; edit that file.
 # Body edits apply directly; metadata changes need adapter regeneration. Check solomonar help for sync availability.
 name = "security-reviewer"
 description = "Reviews one candidate revision for security defects in authorization, data isolation, external input, files, secrets, trust boundaries, and security-relevant dependency or configuration changes."
 developer_instructions = "Load AGENTS.md, then docs/solomonar/agents/security-reviewer.md and every file its first lines require."
 ```
 
-`.agents/skills/solomonar/agents/openai.yaml` (Codex):
+`.agents/skills/solomonar/agents/openai.yaml` (Codex; a user-invoked extension skill gets the same file at
+`.agents/skills/<name>/agents/openai.yaml`, whose first line names `docs/solomonar/extensions/<name>/SKILL.md`):
 
 ```yaml
-# Generated by solomonar 0.1.7; edit docs/solomonar/skills/solomonar/SKILL.md.
+# Generated by solomonar 0.2.0; edit docs/solomonar/skills/solomonar/SKILL.md.
 # Body edits apply directly; metadata changes need adapter regeneration. Check solomonar help for sync availability.
 policy:
   allow_implicit_invocation: false
@@ -345,11 +367,19 @@ it. The `codex` stub is accompanied by `.agents/skills/solomonar/agents/openai.y
 allow_implicit_invocation: false`; Codex's documentation does not say whether the description then stays out of
 the context, so the skill's own boundary (invoked only by the user) remains a behavioral contract.
 
+User-invoked skills (CLI-D29): `solomonar` and every installed extension skill whose `extension.json` sets
+`invocation: user` (4.3) get the same treatment: `disable-model-invocation: true` in the claude and copilot stubs, and
+one codex `.agents/skills/<id>/agents/openai.yaml` per user-invoked skill with `allow_implicit_invocation: false`.
+The core `solomonar` skill has no `extension.json`; it is user-invoked by CLI-D15. They are listed in their own `AGENTS.md`
+line, not in the skills the model loads when they apply (4.6). No other skill is user-invoked; the CLI never decides
+it by an extension's name.
+
 The `copilot` entry stub sets `disable-model-invocation: true` and retains the default user invocation through
 `/solomonar`; other Copilot skills remain eligible for normal skill discovery. No Codex policy file is generated
 under `.github/skills/`. Copilot CLI 1.0.103 does not expand `/solomonar` in prompt mode (`-p`), and the flag
 blocks the model's skill tool, so prompt-mode sessions cannot invoke the entry skill; the flag is retained and
-interactive sessions remain the supported entry.
+interactive sessions remain the supported entry. The same known limitation applies to every user-invoked extension
+skill, such as `extension-authoring`: invoke it in an interactive Copilot session.
 
 `CLAUDE.md` is create-only (CLI-D3, G10): absent, it is created and managed from then on; present and unmanaged, it
 is `skip`, never a conflict, and is not recorded in the manifest, even when it is not a regular file. The reason is
@@ -375,15 +405,15 @@ definitions win discovery. Copilot IDE and cloud-agent compatibility are outside
 
 ### 4.3 Extensions
 
-An extension is one skill or one agent, plus catalog metadata the CLI uses to install and render it. Extensions are
-grouped by the type of decision that selects them, so the project's capabilities follow its approved architecture
-and stack: choosing htmx and templ for the frontend installs the htmx and templ skills, the templ rules that only
-apply together with htmx, and nothing about React.
+An extension is one skill or one agent, plus the metadata in its `extension.json` that the CLI uses to install,
+activate, and suggest it. Extensions are grouped by the type of decision that selects them, so the project's
+capabilities follow its approved architecture and stack: choosing Go installs the Go rules and nothing about another
+language.
 
-| Kind | Adds | Installed to | Runtime adapter |
+| Kind | Adds | Lives in | Runtime adapter |
 |---|---|---|---|
-| `skill` | Knowledge (the rules of a language, library, or practice) or a supporting procedure | `docs/solomonar/skills/<name>/` | a skill stub per runtime (4.2) |
-| `agent` | An extra specialist reviewer, with the condition that makes it required | `docs/solomonar/agents/<name>.md` | a role stub per runtime, read-only tools |
+| `skill` | Knowledge (the rules of a language, library, or practice) or a supporting procedure | `docs/solomonar/extensions/<name>/`: `extension.json`, `SKILL.md`, support files | a skill stub per runtime (4.2) |
+| `agent` | An extra specialist reviewer, with the condition that makes it required | `docs/solomonar/extensions/<name>/`: `extension.json`, `<name>.md`, support files | a role stub per runtime, read-only tools |
 
 | Group | Decision type | Records a decision | Entry title | Document the CLI updates |
 |---|---|---|---|---|
@@ -394,76 +424,111 @@ apply together with htmx, and nothing about React.
 | `persistence` | Data store and data access | yes | Persistence technologies | `docs/stack.md` |
 | `testing` | Test practice and tools beyond the language | yes | Testing practice | `docs/stack.md` |
 | `operations` | Build, packaging, deployment | yes | Build and deployment | `docs/stack.md` |
-| `workflow` | Procedures that support the process (for example recording a baseline) | no | - | - |
+| `workflow` | Procedures that support the process (for example authoring an extension) | no | - | - |
 | `review` | Extra specialist reviewers (for example accessibility) | no | - | - |
 
 The groups are fixed. The first seven are stack groups: adopting or dropping one of their extensions is an
 architecture or dependency decision. `workflow` and `review` configure how the process runs and record no decision.
-A group without catalog extensions takes project extensions (UC-7); prompts and `extension list` show only groups
-that have at least one extension.
+A group without catalog extensions takes project extensions (UC-7); the `init` prompt shows only groups that have
+at least one catalog extension, and `extension list` only groups with at least one listed extension.
 
-**Catalog source.** Each catalog extension is a directory embedded in the CLI,
-`assets/extensions/<group>/<name>/`, holding `extension.json` and the skill or agent files:
+**The store** (CLI-D27). `docs/solomonar/extensions/<name>/` is the one local home of extensions, one flat directory
+per name, whatever the group or kind. It holds **only** the installed catalog extensions and the project's own
+extensions; a repository never carries the whole catalog.
+
+- An installed **catalog extension** has every file of its catalog directory in the store, `extension.json`
+  included, copied verbatim with owner `ext:<name>` and a hash (4.5). Removing it deletes those files.
+- A **project extension** is a store directory whose name the catalog does not use and that the manifest does not
+  record as a catalog extension. It is project-owned: the CLI reads it but never writes, hashes, or tracks a file in
+  its directory. The `extension-authoring` skill or the user writes it; `extension add <name>` activates it, and
+  `extension remove <name>` deactivates it, leaving the directory as it was.
+
+Both kinds use the same format and go through one strict loader. An extension is **installed** when the manifest has
+an entry for it (4.7), and **available** otherwise.
+
+**`extension.json`.** The catalog's copy lives in the CLI, `assets/extensions/<group>/<name>/extension.json`; a project
+extension's in its store directory. The real `go` entry:
 
 ```json
 {
-  "name": "templ",
+  "name": "go",
   "kind": "skill",
-  "group": "frontend",
-  "title": "templ components",
-  "requires": ["go"],
+  "group": "language",
+  "title": "Go language rules",
+  "requires": [],
   "conflicts": [],
-  "applies_when": "A change touches *.templ files or the handlers that render them",
-  "paths": ["**/*.templ"]
+  "applies_when": "A change touches Go code (*.go, go.mod, go.sum)",
+  "paths": ["**/*.go", "**/go.mod", "**/go.sum"],
+  "detect": ["**/go.mod"]
 }
-```
-
-```markdown
----
-name: templ
-description: Rules for templ components in this project. Use when a change touches `*.templ` files or the handlers that render them.
----
-
-# templ components
-
-## Rules
-
-- templ/C-1 (must): `*_templ.go` files are generated by `templ generate` and never edited by hand; CI fails when
-  they are stale.
-- templ/C-2 (must): User data is never rendered through `templ.Raw` or any other unescaped output.
-- templ/C-3 (should): Components take view models built for the page, not domain entities or database rows.
-
-## With htmx
-<!-- solomonar:with htmx -->
-
-- templ/C-4 (must): A handler that serves both full navigation and htmx requests renders the fragment component
-  when the `HX-Request` header is set and the page component otherwise, from the same component tree.
 ```
 
 | Field | Meaning | CLI behavior |
 |---|---|---|
 | `name`, `group` | Extension ID and its group; `name` matches the directory and the skill or agent `name` | `unknown_extension`, `unknown_group` |
-| `kind` | `skill` or `agent` | decides the install path and the adapter stub |
-| `title` | One-line name | shown by `extension list` and `extension show` |
+| `kind` | `skill` or `agent` | decides the main file and the adapter stub |
+| `title` | One-line name | shown by the `init` prompt and `extension list --json` |
 | `requires` | Extensions that must be installed with it | `extension_requires` (exit 3) naming the missing ones; never added silently |
 | `conflicts` | Extensions that cannot be installed with it | `extension_conflict` (exit 3) |
-| `applies_when` | Skill: when an agent loads it. Agent: when triage requires it | rendered into `AGENTS.md` (4.6); the skill or agent `description` is authored in the catalog file and copied as is, never generated from it |
-| `paths` | Globs of files the extension governs | rendered into `AGENTS.md`; the orchestrator uses them to name extensions in a packet; the CLI never inspects a change |
+| `applies_when` | Skill: when an agent loads it. Agent: when triage requires it | written into `AGENTS.md` (4.6); the skill or agent `description` is authored in its main file and copied as is, never generated from it |
+| `paths` | Globs of files the extension governs | written into `AGENTS.md`; the orchestrator uses them to name extensions in a packet; the CLI never inspects a change |
+| `detect` | Globs of repository files that suggest the extension; optional, default `[]` | `init` preselects a detected extension; `extension list` marks it `suggested`; never installs it (CLI-D28) |
+| `default` | `true` suggests the extension in every project; optional, default `false` | `init` preselects it; `extension list` marks it `suggested` |
+| `invocation` | `model` (the model loads the skill when it applies) or `user` (only the user starts it); optional, default `model` | user-invoked stub fields (4.2) and a separate `AGENTS.md` line (4.6) (CLI-D29) |
 
-Catalog entries are the files `extensions/*/*/extension.json`; a directory without `extension.json` is ignored and
-a missing `extensions` directory is an empty catalog. Each entry is checked in this order, the first failure being the
-reason: `extension.json` decodes strictly (`decode extension.json: <err>`, unknown members rejected); `name` equals
-its directory (`name "<n>" does not match the directory`) and matches `[a-z][a-z0-9-]*` (`name "<n>" is not a name
-of [a-z][a-z0-9-]*`); `group` equals its directory (`group "<g>" does not match the directory`) and is one of the
-nine groups (`group "<g>" is not one of <groups>`); `kind` is `skill` or `agent` (`kind "<k>" is not skill or
-agent`); the directory holds the regular file `SKILL.md` for a skill or `<name>.md` for an agent (`kind <k> has no
-<file>`); `title`, then `applies_when`, is not empty or whitespace-only (`title is missing`, `applies_when is
-missing`); the name is in no earlier entry (`name "<n>" is also in <dir>`). After all entries load, each one in
-sorted name order has every `requires` entry (`requires "<n>" is not a catalog extension`), then every `conflicts`
-entry (`conflicts "<n>" is not a catalog extension`), naming a catalog extension. A defect is an embedded-asset bug,
-so it is an unexpected error (exit 1) `read catalog <dir>: <reason>`.
+`detect` and `default` only change what is offered; nothing is installed without the user's choice at `init` or an
+`extension add`.
 
-Selection checks run on the sorted unique names, in this order, each over the sorted names; the first failure wins:
+**Detection.** The CLI lists the worktree's files with `git ls-files --cached --others --exclude-standard`, run at
+the worktree root (repo-relative, slash-separated paths; ignored files excluded, untracked ones included); outside a
+repository, as before `init --git-init` runs `git init`, the list is empty. A glob matches a path segment by segment:
+`**` matches zero or more whole segments, and every other segment matches one segment as `path.Match` does (`*`,
+`?`, `[...]`, never across `/`). So `go.mod` matches only the root file, and `**/go.mod` matches it at the root and in
+any directory. An extension is detected when one of its `detect` globs matches a listed file; its reason is the first
+matching path in sorted order. An extension with `default: true` that is not detected has the reason `default`.
+
+**Loading and checks.** Catalog entries are the files `extensions/*/*/extension.json` of the embedded tree; a
+directory without `extension.json` is ignored and a missing `extensions` directory is an empty catalog. One loader
+reads catalog and project extensions alike, the first failure being the reason:
+
+1. `extension.json` decodes strictly: unknown members, duplicate keys, and wrong types are rejected (`decode
+   extension.json: <err>`).
+2. `name` equals its directory (`name "<n>" does not match the directory`) and matches `[a-z][a-z0-9-]*` (`name
+   "<n>" is not a name of [a-z][a-z0-9-]*`).
+3. Catalog only: `group` equals its directory (`group "<g>" does not match the directory`). Both: `group` is one of
+   the nine groups (`group "<g>" is not one of <groups>`).
+4. `kind` is `skill` or `agent` (`kind "<k>" is not skill or agent`); the directory holds the regular file
+   `SKILL.md` for a skill or `<name>.md` for an agent (`kind <k> has no <file>`).
+5. `title`, then `applies_when`, is not empty or whitespace-only (`title is missing`, `applies_when is missing`).
+6. Every `detect` entry is a valid glob: not empty, not starting with `/`, no empty, `.`, or `..` segment, `**` only
+   as a whole segment, every other segment a valid `path.Match` pattern (`detect "<g>" is not a valid glob`).
+7. `invocation` is absent, empty, `model`, or `user` (`invocation "<v>" is not model or user`); an agent is never
+   user-invoked (`invocation user is only for a skill`).
+8. Project only: the main file's frontmatter has `name` equal to the directory and a non-empty `description`
+   (`frontmatter name "<n>" does not match the directory`, `frontmatter description is missing`).
+
+Catalog only, after all entries load: the name is in no earlier entry (`name "<n>" is also in <dir>`); then each entry
+in sorted name order has every `requires` entry (`requires "<n>" is not a catalog extension`), then every `conflicts`
+entry (`conflicts "<n>" is not a catalog extension`), naming a catalog extension. A catalog defect is an
+embedded-asset bug, so it is an unexpected error (exit 1) `read catalog <dir>: <reason>`. A project extension's
+`requires` and `conflicts` may name catalog or project extensions (`requires "<n>" is not a known extension`,
+`conflicts "<n>" is not a known extension`), checked after every store directory loads, in sorted name order. A
+project failure never stops `extension list`, which shows it as `invalid: <reason>`; `extension add` of it is
+`invalid_value` (UC-7). The project extensions are every store directory that the manifest does not record as a
+catalog extension and that is not a catalog extension's leftover, plus every manifest entry with `source: path`: a
+store directory without `extension.json`, and an installed `path` entry whose directory is gone, both fail with
+`extension.json is missing`. A leftover is a directory named like a catalog extension and without `extension.json`
+(what a kept or untracked removal leaves): it is ignored, has no `extension list` row, and `extension add <n>`
+installs the catalog extension over it, its files classified as usual (4.5: identical is `unchanged (adopted)`,
+different a conflict `exists and is not managed by solomonar`, resolved with `--keep`/`--overwrite`). A store
+directory named like a catalog extension and holding `extension.json`, while the manifest does not record it as
+that catalog extension, lists as `invalid: name "<n>" is also a catalog extension` whatever its other failures, and
+`extension add <n>` is `name_collision`. A store directory named like a core skill or role (4.1) lists as
+`invalid: name "<n>" is a core skill` (or `core role`), winning over every other failure, and `extension add <n>`
+is `invalid_value`.
+
+Selection checks run on the sorted unique names of the resulting installed set, in this order, each over the sorted
+names; the first failure wins. `init` reports them in the flag form:
 
 | Code | Exit | check | found | fix |
 |---|---|---|---|---|
@@ -472,42 +537,23 @@ Selection checks run on the sorted unique names, in this order, each over the so
 | `extension_conflict` | 3 | `no selected extensions conflict` | `<a> conflicts with <b>` | `drop --ext <a> or --ext <b>` |
 
 With an empty catalog the `unknown_extension` found ends `known: none`. `extension_requires` joins the missing
-names with `, ` in found and with `,` in fix, so the fix is a valid flag value (`go requires sql, templ`, `add --ext
-sql,templ`). A conflict declared on one side only is still found: the check walks each selected name, then its
-sorted `conflicts`, and reports the first pair from the side that declares it (`<a>` declares `<b>`).
+names with `, ` in found and with `,` in fix, so the fix is a valid flag value (`templ requires go, sql`, `add --ext
+go,sql`). A conflict declared on one side only is still found: the check walks each selected name, then its
+sorted `conflicts`, and reports the first pair from the side that declares it (`<a>` declares `<b>`). The `extension`
+commands use the same checks with their own texts (UC-6, UC-7).
 
-**Installing a catalog extension.** A skill installs every file of its catalog directory except `extension.json`
-to `docs/solomonar/skills/<name>/`, keeping relative paths; an agent installs only `<name>.md`, to
-`docs/solomonar/agents/<name>.md`. `SKILL.md` and the agent file are rendered (Generation), other files are copied
-verbatim; every installed file has owner `ext:<name>` (4.5). Files are planned by extension name, then path.
-
-**Project extension lifecycle.** The manifest records `state: draft|installed` for every extension. `extension
-new` creates a project-owned `draft`; `extension add <name>` adopts that draft, while adding a catalog name or
-local directory installs it directly. Drafts appear in `extension list` and `show`, but not in `--installed`,
-runtime adapters, rendered combinations, `AGENTS.md`, rule authority, or triage. They require no decision until
-adoption. `requires` and `conflicts` are checked against the resulting installed set at adoption, not against
-incomplete drafts. An already installed name with unchanged choices is a no-op, never a second decision.
-Removing a draft untracks it and leaves its project-owned source in place; it has no adapters or decision to
-remove. Upgrades preserve draft and installed project-extension content alike.
-
-**Generation.** The CLI renders each skill or agent file for the installed set. A section starts at a line
-`## With <...>` followed by the marker line `<!-- solomonar:with <name>[,<name>...] -->` and runs to the next line
-starting `## `, or the end. A `## With` heading without a valid marker line right after it is ordinary text. Marker
-names are split on `,` and trimmed. A section is kept, without its marker line, when every named extension is
-installed, and dropped otherwise; a dropped section takes its trailing blank lines with it, and one at the end of the
-file also trims the blank lines before it, so the file ends with one newline. `rendered_with` is the sorted unique
-union of the names in kept sections, without the extension itself; it is empty when no other name is kept. Adding or
-removing an extension re-renders every installed one that refers to it. Rendering is deterministic templating from
-embedded files; it never calls a model (J1). One provenance line goes under the first `# ` title line with exactly
-one blank line on each side: blank lines after the title collapse into one, and no blank line follows when the
-title is the last line. It reads `Installed by <decision>; rendered with: <a>, <b>.`, or `Installed by <decision>.`
-when `rendered_with` is empty; `<decision>` is `solomonar` for `workflow` and `review`, which record no decision
-(`Installed by P/D-2; rendered with: htmx.`). Content without a `# ` title gets no line.
+**Installing.** A catalog extension installs every file of its catalog directory, `extension.json` included, to
+`docs/solomonar/extensions/<name>/`, keeping relative paths and bytes; every installed file has owner `ext:<name>`
+(4.5). Files are planned by extension name, then path. A project extension installs no file: its activation is the
+manifest entry, the adapter stubs, the `AGENTS.md` line, and the decision. The decision appears in the `AGENTS.md`
+line and the manifest, never inside an extension's files (CLI-D30). Installing an extension that is already
+installed refreshes its stubs and `AGENTS.md` line; an identical result is a no-op, never a second decision.
 
 **Loading.** Runtimes trigger extension skills by their `description`, but the process does not rely on that: the
 orchestrator names the installed extensions whose `applies_when` or `paths` match the change in every packet, the
 implementer loads them before writing code, and `spec-reviewer` checks their `must` rules. Triage lists installed extension
-agents beside the core specialists, required when their `applies_when` matches (rules section 6).
+agents beside the core specialists, required when their `applies_when` matches (rules section 6). A user-invoked skill
+is loaded only when the user starts it.
 
 **Rule IDs and force** (CLI-D12). Extension rules have stable IDs `<name>/C-n`, never reused across versions. `must`
 rules are approved global rules (rules section 1 authority 2) once the decision that installed the extension is approved; a
@@ -523,45 +569,77 @@ entry:
 
 - With `--decision <ID>`, the CLI checks that `docs/decisions.md` contains that entry with status `approved`
   (`decision_not_found`, `decision_not_approved`, exit 3), and records the ID with the extensions. This is the path
-  for an orchestrator applying a task decision such as `W-002/D-1`.
+  for an orchestrator applying a task decision such as `W-002/D-1`; the CLI edits no entry, and the named decision
+  records any supersession itself (rules section 3).
 - Without it, the user's command is the decision: the CLI appends a project-scoped entry `P/D-n` per affected group
   with status `approved`, in table order, `<n>` counting on from the highest `<n>` of a line starting exactly
-  `## P/D-`, digits, `:` in `docs/decisions.md` (0 when absent); the file is read only when some group needs a new
-  decision. When the group already has an approved `P/D-n`, the new entry lists the full new
-  selection and sets the old one to `superseded`, naming its replacement (rules section 3).
+  `## P/D-`, digits, `:` in `docs/decisions.md` and of a `P/D-<n>` the manifest records (an extension `decision` or a
+  decision file's `entries`), 0 when there is none, so an ID is never reused; the numbering reads the file only when some group
+  needs a new decision. When the group already has a recorded decision (for an emptied group, its `none` entry,
+  4.5), the new entry lists the full new selection
+  and sets the old one to `superseded`, naming its replacement (rules section 3); a recorded task decision such as
+  `W-002/D-1` is superseded the same way. When two groups recording the same old ID both change in one call, the old
+  entry names only the later group's new ID.
 - In both cases the CLI appends one line per group to the group's document (table above), `- <group>: <a>, <b>
-  (P/D-<n>)` in table order, creating the document with a title and an index line in `docs/README.md` when absent.
-  It never edits other entries or lines.
+  (<ID>)` in table order (`- <group>: none (<ID>)` for an emptied group), creating the document with a title and an
+  index line in `docs/README.md` when absent. It never edits other entries or lines.
 - The decision covers the complete resulting installed selection in its group. In the same plan, rebind
   **every remaining installed extension in that group** to the new approved decision, including ones not named
-  in this add/remove call. Refresh their CLI-managed rendered provenance without overwriting project-owned
-  extension content. Superseding an old decision must not leave any installed extension referring to it.
+  in this add/remove call: their manifest `decision` and their `AGENTS.md` line change; their files do not.
+  Superseding an old decision must not leave any installed extension referring to it.
   A no-op does not supersede or append a decision.
 
 Entry written by the CLI, in the fixed format from rules section 3 that it also reads for `--decision`:
 
 ```markdown
-## P/D-2: Frontend technologies
+## P/D-1: Programming languages
 
 - Status: approved
-- Selected option: htmx, templ
+- Selected option: go
 - Rejected options: none
-- Scope: project; frontend extensions `htmx`, `templ`
+- Scope: project; language extensions `go`
 - Rationale: selected by the user with `solomonar init`
 - Date: 2026-10-20
-- References: `docs/solomonar/skills/htmx/SKILL.md`, `docs/solomonar/skills/templ/SKILL.md`
+- References: `docs/solomonar/extensions/go/SKILL.md`
 ```
 
-The title is the group's entry title (table above). `init` writes Rejected options `none`, Scope ``project; <group>
-extensions `<a>`, `<b>` ``, Rationale ``selected by the user with `solomonar init` ``, Date `YYYY-MM-DD`, and References
-the installed main files (each extension's `SKILL.md` or agent file), sorted by name; selected names are sorted too.
+The title is the group's entry title (table above). The CLI writes Rejected options `none`, Scope ``project; <group>
+extensions `<a>`, `<b>` `` (`project; <group> extensions none` for an emptied group), Date `YYYY-MM-DD`, and
+References the installed main files (each extension's `SKILL.md` or `<name>.md` in the store), sorted by name;
+selected names are sorted too, and an emptied group selects `none`. Rationale is ``selected by the user with
+`solomonar init` `` (or `` `solomonar extension add` ``, `` `solomonar extension remove` ``), or the `--rationale`
+text. A superseding entry's References start with `supersedes <old ID>; ` (just `supersedes <old ID>` for an
+emptied group, which has no main files). The superseded entry is edited on one line only: its `- Status: ` line
+becomes `- Status: superseded by <new ID>` (the status the CLI reads is the first word); when `docs/decisions.md` has
+no `## <old ID>:` heading, or the entry has no Status line, only the Status edit is skipped: the new entry keeps its
+`supersedes <old ID>` reference. With `--decision`, nothing in `docs/decisions.md` is edited. The entry status the
+CLI reads for `--decision` is the first word after `- Status: ` in the `## <ID>:` entry, `none` when the entry has
+no Status line before the next `## ` heading.
+
+An emptied group's entry, as `extension remove go` writes it after `P/D-1`:
+
+```markdown
+## P/D-2: Programming languages
+
+- Status: approved
+- Selected option: none
+- Rejected options: none
+- Scope: project; language extensions none
+- Rationale: selected by the user with `solomonar extension remove`
+- Date: 2026-10-24
+- References: supersedes P/D-1
+```
+
+Its stack line is `- language: none (P/D-2)`, its plan note `P/D-2 language: none · P/D-1 superseded`, and its JSON
+decision `{"id": "P/D-2", "group": "language", "selected": []}`.
 
 A created document starts with its title and a blank line (`# Decisions`, `# Stack`, `# Architecture`) and is
 `create`. An existing regular file is `append`, and the full new content is written: a missing final newline is added
 first; in `docs/decisions.md` one more blank line follows unless the file already ends with a blank line, so each
-entry is preceded by one blank line; stack and architecture lines follow directly. An empty existing file gets no
-separator. A document with nothing to add gets no change unless the manifest records it (4.5). A present document
-that is not a regular file is an unexpected error, `read <path>: not a regular file`.
+entry is preceded by one blank line; stack and architecture lines follow directly. A `docs/decisions.md` whose plan
+also edits a superseded entry's Status line is `update`. An empty existing file gets no separator. A document with nothing to add gets no
+change unless the manifest records it (4.5). A present document that is not a regular file is an unexpected error,
+`read <path>: not a regular file`.
 
 The index lines for the documents a plan creates, in the order decisions, stack, architecture, are
 ``- `docs/decisions.md`: decision entries and their status``, ``- `docs/stack.md`: technologies and practices, with
@@ -574,36 +652,38 @@ them when anything follows in the file. Without the section it stays `skip` with
 `exists; add under "## Documents": <line>; <line>`. A non-regular `docs/README.md` is the unexpected error `read docs/README.md: not a
 regular file` when index lines are to be added, and `skip` otherwise.
 
-**Commands in extensions.** Extensions list typical checks (`go test ./...`, `go vet ./...`, `templ generate`,
-`govulncheck ./...`) as suggestions only. No extension writes commands into `docs/README.md`; they stay "not
-established" until the implementer records the real ones (rules section 11).
+**Commands in extensions.** Extensions list typical checks (`go test ./...`, `go vet ./...`, `govulncheck ./...`) as
+suggestions only. No extension writes commands into `docs/README.md`; they stay "not established" until the
+implementer records the real ones (rules section 11).
 
 Installing an extension installs its instructions and adapters, not application packages, tooling binaries, or
 manifest/lockfile dependencies. Print this distinction in stack-extension plans; approved package/version changes
 are applied by the implementer within their recorded scope.
 
-### 4.4 Extension catalog v0.1
+### 4.4 Extension catalog
 
-Decided in CLI-D13. The rule summaries show intent; each extension's content is written and reviewed as framework
-content before release.
+Decided in CLI-D13 and CLI-D10. Each extension's content is written and reviewed as framework content before release.
 
-| Extension | Kind | Group | Requires | Applies when | Main rules | Renders with |
-|---|---|---|---|---|---|---|
-| `go` | skill | `language` | - | A change touches Go code (*.go, go.mod, go.sum) | Common version/error rules in `SKILL.md`; design, I/O, concurrency, and testing rules in `rules/go/`, loaded by impact on code and contracts; reviewers account for applicable `must` rules and skipped topic triggers; project checks precede portable fallbacks | - |
-| `extension-authoring` | skill | `workflow` | - | A request creates, changes, or validates an extension skill, its rules, or a specialist reviewer | Research, authoring, and validation stages loaded separately; catalog and project-source routes; evidence in one record; CLI retains adoption and runtime registration | - |
-| `htmx` | skill | `frontend` | - | A change touches `hx-*` attributes or endpoints that return fragments | Endpoints targeted by `hx-*` return HTML fragments, never JSON; state changes use `hx-post`, `hx-put`, `hx-patch`, `hx-delete`, never `hx-get`, and carry the CSRF token; a URL reached by full navigation or `hx-push-url` renders the whole page without htmx; error responses render a fragment the page can show | `templ` |
-| `templ` | skill | `frontend` | `go` | A change touches `*.templ` files or the handlers that render them | Generated `*_templ.go` files never edited by hand and checked current in CI; no `templ.Raw` with user data; components take page view models, not domain entities | `htmx`: one handler renders the fragment on `HX-Request`, the page otherwise |
-| `tdd` | skill | `testing` | - | A change adds or changes behavior | A failing test for each behavior AC before the production code, its failing run recorded in "Checks and evidence"; red, green, refactor, with refactoring only on green; a test that weakens or deletes an assertion needs an AC or a decision; tests cite rule IDs (`AGENTS.md` rule 13). Turns "where practical" (G9) into `must`, unless the work spec states why a test first is impossible | - |
+| Extension | Kind | Group | Requires | Applies when | `detect` | `default` | `invocation` | Main rules |
+|---|---|---|---|---|---|---|---|---|
+| `go` | skill | `language` | - | A change touches Go code (*.go, go.mod, go.sum) | `**/go.mod` | `false` | `model` | Common version/error rules in `SKILL.md`; design, I/O, concurrency, and testing rules in `rules/go/`, loaded by impact on code and contracts; reviewers account for applicable `must` rules and skipped topic triggers; project checks precede portable fallbacks |
+| `extension-authoring` | skill | `workflow` | - | A request creates, changes, or validates a Solomonar extension skill, its rules, or a specialist reviewer | - | `true` | `user` | Research, authoring, and validation stages loaded separately; catalog contributions and project extensions written to the store in catalog format; evidence in one record; activation through `solomonar extension add <name>` |
 
-No `workflow` or `review` extension is in the v0.1 catalog (CLI-D10); both groups accept project extensions.
+So `init --yes` in a repository with a `go.mod` selects `go` and `extension-authoring`, and without one only
+`extension-authoring`. No `review` extension is in the catalog; `review` and every group without a catalog extension
+accept project extensions.
+
+Illustrative test catalog: some examples (UC-6) use `htmx` and `templ` (`frontend` skills, `templ` requiring `go`).
+They are not shipped; tests build them as a `fstest.MapFS` catalog to exercise multi-extension groups and
+supersession.
 
 ### 4.5 File ownership
 
 | Class | Files | `init` | `upgrade` | `sync` |
 |---|---|---|---|---|
-| `core` | `docs/solomonar/**` except extensions | create | update if unmodified, else conflict | - |
-| `ext:<name>` | a catalog extension's skill directory or agent file | create, rendered | as `core`, rendered for the installed set | re-render when the installed set changes |
-| `project-ext:<name>` | extensions added from a local directory or created with `extension new` | create | never | never |
+| `core` | `docs/solomonar/**` except `docs/solomonar/extensions/` | create | update if unmodified, else conflict; remove when no longer offered | - |
+| `ext:<name>` | every file of an installed catalog extension's store directory, `docs/solomonar/extensions/<name>/` | create, verbatim | as `core` | - |
+| project extension (no class) | `docs/solomonar/extensions/<name>/` of a project extension | never planned, written, or recorded | never | never |
 | `decision` entries | `P/D-n` entries in `docs/decisions.md`; one line per group in `docs/stack.md` or `docs/architecture.md` | `append`; `create` the file when absent (4.3); a re-run plans recorded files `unchanged` | never | never |
 | `core+notes` | `AGENTS.md` | create, or adopt an existing file (UC-4) | the part above `## Project notes` as `core`; the section from that heading on is project-owned | rendered lists (4.6) |
 | `runtime:<name>` | adapter stubs, `CLAUDE.md` when created | create | regenerate | regenerate |
@@ -611,17 +691,23 @@ No `workflow` or `review` extension is in the v0.1 catalog (CLI-D10); both group
 | `seed` | `docs/README.md` | create when absent, else `skip`; when the CLI creates a document, a present file with `## Documents` gets the index lines (`append`), else `skip` with the reason (4.3) | never | never |
 | `manifest` | `.solomonar/manifest.json` | create | update | update |
 
+`extension add|remove` follow the `init` column for the paths they plan: `add` creates a catalog extension's files,
+`remove` removes them, and both regenerate stubs and `AGENTS.md`.
+
 "Unmodified" means the file's SHA-256 equals the manifest's `sha256`: the hash of the last distributed or
-generated base offered by the CLI, **not the hash of a kept project edit**. For rendered assets, hash the rendered
-base; for `core+notes`, hash only the managed part. A kept differing file stays different from that base.
+generated base offered by the CLI, **not the hash of a kept project edit**. For `core+notes`, hash only the managed
+part. A kept differing file stays different from that base.
 `init --keep` records the offered embedded base while leaving local bytes untouched. At upgrade, even when
 `--keep` resolves a conflict, advance the base to the offered upstream version, never to the kept local content.
 The next upgrade can therefore preserve the edit or report a conflict instead of overwriting it as unmodified.
 
-Each wanted path is classified from `disk` (the current file), `base` (the manifest `sha256`), and `offer` (the
-content the CLI would write); the recorded base is always the hash of `offer`. A path is managed when the manifest
-records a `sha256` for it; every owner except `seed` is hashed. The first matching row applies, so a present `seed`
-path is `skip` even when it is not a regular file, and a managed file whose `disk` = `offer` is `unchanged`:
+**Desired-state planning** (CLI-D27). `init`, `upgrade`, and `extension add|remove` share one
+planner. From the choices (runtimes, models, installed extensions, each stack group's decision) it computes every
+wanted path: core files, catalog extension files, stubs, `AGENTS.md`, decision documents, the manifest. Each wanted
+path is classified from `disk` (the current file), `base` (the manifest `sha256`), and `offer` (the content the CLI
+would write); the recorded base is always the hash of `offer`. A path is managed when the manifest records a `sha256`
+for it; every owner except `seed` is hashed. The first matching row applies, so a present `seed` path is `skip` even
+when it is not a regular file, and a managed file whose `disk` = `offer` is `unchanged`:
 
 | Path | Condition | Action |
 |---|---|---|
@@ -636,16 +722,38 @@ path is `skip` even when it is not a regular file, and a managed file whose `dis
 | unmanaged | `disk` = `offer` | `unchanged (adopted)` (CLI-D17) |
 | unmanaged | otherwise | `conflict`, `exists and is not managed by solomonar` |
 
+A managed path that no wanted path names, such as a removed extension's file or a v0.1.7 path under
+`docs/solomonar/skills/<extension>/`, is classified after the wanted paths, in sorted path order, from `disk` and
+`base` alone. `decision`, `seed`, and `manifest` files and runtime `entry` files are never in this set:
+
+| Path | Condition | Action |
+|---|---|---|
+| managed, no longer wanted | absent | no plan line; dropped from the manifest |
+| managed, no longer wanted | `disk` = `base` | `remove`; dropped from the manifest |
+| managed, no longer wanted | otherwise (edited, or not a regular file) | `conflict`, `modified since installation (manifest sha256 differs)` or `exists and is not a regular file` |
+
+A removal deletes the file and then every parent directory it leaves empty, never a top-level directory (`docs`,
+`.claude`, `.codex`, `.github`, `.agents`), `docs/solomonar`, or `docs/solomonar/extensions`: removing `go` deletes
+`docs/solomonar/extensions/go/` and `.claude/skills/go/`, and `.claude/skills/` too when it is left empty. A rollback
+recreates the removed directories with their modes. Nothing under a project extension's directory is ever wanted or
+managed, so it is never in either table.
+
 A path that cannot be inspected for a reason other than absence (for example, a parent that is a file) is an
 unexpected error, not `absent`. Only conflicts carry a reason, `adopted` aside.
 
-`--keep <path>` turns a conflict into a plain `keep`, `--overwrite <path>` into a plain `update`; both record the
-offered base. A path in both flags is checked first; then each `--keep` path, then each `--overwrite` path, in the
-given order, must be a conflict of this plan (a path the plan does not list is also not a conflict). The first
-offending path is `invalid_value` (exit 2): check `--keep and --overwrite resolve conflicts`, found `<path> is in both
---keep and --overwrite` or `<path> is not a conflict`, fix `pass --keep or --overwrite once per conflicting path`. The
-plan lists the wanted paths in the given order. The manifest entries returned for unresolved conflicts already carry
-the offered base; nothing is written while the plan has a conflict.
+`--keep <path>` turns a conflict into a plain `keep`, `--overwrite <path>` (`--take-new` for `upgrade`) into a plain
+`update`; both record the offered base. On a removal conflict, `--keep` is `keep` with the reason `untracked; left in
+place` and drops the path from the manifest, and `--overwrite` (`--take-new`) is `remove`. A path in both flags is
+checked first; then each `--keep` path, then each `--overwrite` path, in the given order, must be a conflict of this
+plan (a path the plan does not list is also not a conflict). The first offending path is `invalid_value` (exit 2):
+check `--keep and --overwrite resolve conflicts`, found `<path> is in both --keep and --overwrite` or `<path> is not a
+conflict`, fix `pass --keep or --overwrite once per conflicting path` (with `--take-new` in place of `--overwrite`
+for `upgrade`). The plan lists the wanted paths in the given order, then the removals. The manifest entries returned
+for unresolved conflicts already carry the offered base, and an unresolved removal conflict keeps its recorded entry;
+nothing is written while the plan has a conflict. `--overwrite` (`--take-new`) on a removal conflict whose path is
+not a regular file is `invalid_value` (exit 2): check `--keep and --overwrite resolve conflicts` (`--take-new` for
+`upgrade`), found `<path> is not a regular file`, fix `remove it by hand or pass --keep <path>`; it is checked while
+the removals are planned, after the in-both check and before the `is not a conflict` check.
 
 `AGENTS.md` is split at the first line exactly equal to `## Project notes`: the managed part is everything before
 it, the notes part is that line onward (none without such a line). Only the managed part is hashed and classified by
@@ -657,49 +765,59 @@ file is the offered managed part followed by the file's own notes part (the temp
 moved under "## Project notes"`, written as the offered managed part, `## Project notes`, a blank line, and the old
 content unchanged. An adoption counts as a conflict for the flags: `--overwrite AGENTS.md` writes the full template
 and discards the old content, and `--keep AGENTS.md` is `invalid_value` (exit 2): check `--keep and --overwrite
-resolve conflicts`, found `AGENTS.md cannot be kept`, fix `adopt it (default) or pass --overwrite AGENTS.md`.
+resolve conflicts`, found `AGENTS.md cannot be kept`, fix `adopt it (default) or pass --overwrite AGENTS.md`
+(for `upgrade`, `--take-new` replaces `--overwrite` in the check and fix: `adopt it (default) or pass --take-new
+AGENTS.md`).
 
 The manifest is planned last, as one change for `.solomonar/manifest.json` with owner `manifest`, and is never
-classified by the table above (it has no hash): `create` when absent, `unchanged` when its bytes equal the canonical
+classified by the tables above (it has no hash): `create` when absent, `unchanged` when its bytes equal the canonical
 encoding of the new manifest, `update` otherwise. When it exists but cannot be read as a file (for example a
-directory), `init` stops with an unexpected error (`read manifest: …`, exit 1) instead of planning a conflict. The new
-manifest records `files` for every wanted path, each `decision` file as `{"owner": "decision", "entries": [...]}`
-listing the IDs the CLI wrote to it in this and earlier runs (below), and `.solomonar/manifest.json` `{"owner": "manifest"}`,
-with empty `runtimes` and `extensions` for a core-only `init`. It is built even when the plan has conflicts, but
-nothing is written then.
+directory), the command stops with an unexpected error (`read manifest: …`, exit 1) instead of planning a conflict.
+The new manifest records `files` for every wanted path, each `decision` file as `{"owner": "decision", "entries":
+[...]}` listing the IDs the CLI wrote to it in this and earlier runs (below), and `.solomonar/manifest.json`
+`{"owner": "manifest"}`, with empty `runtimes` and `extensions` for a core-only `init`; a removed or untracked path
+has no entry. It is built even when the plan has conflicts, but nothing is written then.
 
-Decision files are planned by 4.3, before the manifest, not by the table above. On a re-run (UC-3) the existing
-manifest's `decision` files are carried over and planned `unchanged` without being read, and a group whose decision
-the manifest records keeps that ID and adds nothing: the ID of the group's first installed extension, by name, whose
-manifest entry has a `decision`, of any form (a task decision such as `W-002/D-1` too). A document's `entries` are the
-carried entries followed by the new IDs.
+Decision files are planned by 4.3, before the manifest, not by the tables above. A plan that records no new decision
+(an `init` re-run, UC-3; every `upgrade`) carries the existing manifest's `decision` files over and plans them
+`unchanged` without changing them, and a group whose decision the manifest records keeps that ID and adds nothing: the
+ID of the group's first installed extension, by name, whose manifest entry has a `decision`, of any form (a task
+decision such as `W-002/D-1` too). An emptied group has no installed extension; its recorded decision is the ID of
+its last line in its group document when that line is `- <group>: none (<ID>)` and the manifest records the
+document with owner `decision`, so the documents the manifest records are read to find it. `extension add|remove` record a new decision only for a group whose selection
+differs from the recorded one. A document's `entries` are the carried entries followed by the new IDs.
 
 ### 4.6 Rendered `AGENTS.md`
 
 The managed part of `AGENTS.md` is rendered from the choices: the framework version, the core "Skills" list, and an
-"Extensions" section grouped like `extension list`:
+"Extensions" section grouped like `extension list`. For a project with `go` (`P/D-1`), the project skill `money`
+(`W-002/D-1`), and `extension-authoring`:
 
 ```markdown
 ## Extensions
 
-Installed with `solomonar`; draft project extensions are not active. Load every installed extension skill whose
-"applies when" matches your change, before writing or reviewing code, and cite its rules as `<name>/C-n`.
-The orchestrator names the matching extensions in each packet.
+Installed with `solomonar`. Load every installed extension skill whose "applies when" matches your change, before
+writing or reviewing code, and cite its rules as `<name>/C-n`. The orchestrator names the matching extensions in
+each packet.
 
 - Skills
-  - `go` (language): A change touches Go code (*.go, go.mod, go.sum); paths: `**/*.go`, `**/go.mod`, `**/go.sum`
-  - `htmx` (frontend): A change touches `hx-*` attributes or endpoints that return fragments
-  - `templ` (frontend): A change touches *.templ files or the handlers that render them; paths: `**/*.templ`
-  - `tdd` (testing): A change adds or changes behavior
+  - `go` (language, P/D-1): A change touches Go code (*.go, go.mod, go.sum); paths: `**/*.go`, `**/go.mod`, `**/go.sum`
+  - `money` (backend, W-002/D-1): A change handles monetary amounts; paths: `internal/money/**`
 - Agents: none. An installed agent is a specialist reviewer, required by triage when its "applies when" matches.
+- User-invoked skills: load one only when the user starts it, never because it applies.
+  - `extension-authoring` (workflow): A request creates, changes, or validates a Solomonar extension skill, its rules, or a specialist reviewer
 ```
 
-An extension line is `` - `<name>` (<group>): <applies_when> ``, with `applies_when` verbatim, followed by
-`` ; paths: `<glob>`, `<glob>` `` when `paths` is not empty. Installed skills render a line `- Skills`, then one
-nested line each; installed agents render a line `- Agents: an installed agent is a specialist reviewer, required by
-triage when its "applies when" matches.`, then one nested line each. Each list is ordered by group (4.3 table order),
-then name. An empty list renders `- Skills: none.` or `- Agents: none. An installed agent is a specialist reviewer,
-required by triage when its "applies when" matches.`
+An extension line is `` - `<name>` (<group>, <decision>): <applies_when> `` for a stack group and
+`` - `<name>` (<group>): <applies_when> `` for `workflow` and `review` (CLI-D30), with `applies_when` verbatim,
+followed by `` ; paths: `<glob>`, `<glob>` `` when `paths` is not empty; `<decision>` is the extension's manifest
+`decision`. Catalog and project extensions are listed alike. Installed model-invoked skills render a line
+`- Skills`, then one nested line each; installed agents render a line `- Agents: an installed agent is a specialist
+reviewer, required by triage when its "applies when" matches.`, then one nested line each. Each list is ordered by
+group (4.3 table order), then name. An empty list renders `- Skills: none.` or `- Agents: none. An installed agent is
+a specialist reviewer, required by triage when its "applies when" matches.` Installed skills with `invocation: user`
+render, after the agents, the line `- User-invoked skills: load one only when the user starts it, never because it
+applies.` and one nested line each, in the same order and form (CLI-D29); with none, the line is omitted.
 
 ### 4.7 Manifest
 
@@ -708,53 +826,47 @@ framework version increase. Older binaries reject a newer framework before stric
 given an otherwise readable manifest with `copilot` rejects the unknown runtime. Do not lower the version or
 hand-edit runtime choices to make an old binary accept it. Existing Claude/Codex manifests need no migration.
 
+The store layout also keeps `schema_version` at 1 (CLI-D27): `state` is always `installed`, an installed project
+extension adds `source: path` and `path`, and a manifest written by 0.1.7 or earlier already decodes under these
+rules. Its framework version moves only through `upgrade` (UC-9), which also moves the files to the store.
+
 `.solomonar/manifest.json` is committed on main, written only by the CLI, and records the choices and every managed
-file. `extensions` maps a name to its state, kind, group, source (`catalog`, or `path` with the repo-relative source
-directory), the decision for its current installed group selection (stack groups only), and the extensions it was
-rendered with. A catalog extension entry holds `state` `installed`, `kind`, `group`, `source` `catalog`,
-`decision` (stack groups only), and `rendered_with` (omitted when empty). Project-extension metadata also includes
-`title`, `requires`, `conflicts`, `applies_when`, and `paths`. Drafts have no `decision` or `rendered_with`; `files`
-keys are repo-relative paths:
+file. `extensions` maps each installed extension's name to an entry holding exactly `state` (`installed`), `kind`,
+`group`, `source` (`catalog`, or `path` for a project extension), `path` (a `path` source only: its store directory,
+`docs/solomonar/extensions/<name>`), and `decision` (stack groups only: the decision for its group's current
+selection, `P/D-<n>` or `<task-ID>/D-<n>`). An available extension has no entry; a project extension's metadata
+lives only in its `extension.json`. `files` keys are repo-relative paths, and a project extension has none:
 
 ```json
 {
   "schema_version": 1,
-  "framework_version": "0.1.7",
+  "framework_version": "0.2.0",
   "project": {"name": "ledger", "main_branch": "main", "remote": "origin"},
   "runtimes": {
     "claude": {"adversarial_model": "opus"},
     "codex": {}
   },
   "extensions": {
-    "go": {"state": "installed", "kind": "skill", "group": "language", "source": "catalog", "decision": "P/D-1", "rendered_with": ["tdd"]},
-    "htmx": {"state": "installed", "kind": "skill", "group": "frontend", "source": "catalog", "decision": "P/D-2", "rendered_with": ["templ"]},
-    "templ": {"state": "installed", "kind": "skill", "group": "frontend", "source": "catalog", "decision": "P/D-2", "rendered_with": ["htmx"]},
-    "tdd": {"state": "installed", "kind": "skill", "group": "testing", "source": "catalog", "decision": "P/D-3", "rendered_with": ["go"]}
+    "extension-authoring": {"state": "installed", "kind": "skill", "group": "workflow", "source": "catalog"},
+    "go": {"state": "installed", "kind": "skill", "group": "language", "source": "catalog", "decision": "P/D-1"},
+    "money": {"state": "installed", "kind": "skill", "group": "backend", "source": "path", "path": "docs/solomonar/extensions/money", "decision": "W-002/D-1"}
   },
   "files": {
     "AGENTS.md": {"owner": "core+notes", "sha256": "<64 hex, managed part only>"},
     "docs/solomonar/rules.md": {"owner": "core", "sha256": "<64 hex>"},
-    "docs/solomonar/skills/templ/SKILL.md": {"owner": "ext:templ", "sha256": "<64 hex>"},
-    "docs/decisions.md": {"owner": "decision", "entries": ["P/D-1", "P/D-2", "P/D-3"]},
-    ".claude/skills/templ/SKILL.md": {"owner": "runtime:claude", "sha256": "<64 hex>"},
+    "docs/solomonar/extensions/go/SKILL.md": {"owner": "ext:go", "sha256": "<64 hex>"},
+    "docs/solomonar/extensions/go/extension.json": {"owner": "ext:go", "sha256": "<64 hex>"},
+    "docs/decisions.md": {"owner": "decision", "entries": ["P/D-1"]},
+    ".claude/skills/money/SKILL.md": {"owner": "runtime:claude", "sha256": "<64 hex>"},
     ".claude/settings.json": {"owner": "runtime:claude", "entry": "hooks.PreToolUse/solomonar-guard"},
-    "docs/README.md": {"owner": "seed"}
+    "docs/README.md": {"owner": "seed"},
+    ".solomonar/manifest.json": {"owner": "manifest"}
   }
 }
 ```
 
-A project draft entry, before adoption, looks like:
-
-```json
-{
-  "state": "draft", "kind": "skill", "group": "backend", "source": "path",
-  "path": "docs/solomonar/skills/money", "title": "Money handling",
-  "requires": [], "conflicts": [], "paths": []
-}
-```
-
-Here `applies_when` is not set yet; `extension add money --applies-when "A change handles monetary amounts"`
-must supply it or prompt before adoption. Draft authoring does not create a decision or active rules.
+`files` is abridged: a real manifest lists every managed path, such as the other `docs/solomonar/extensions/go/`
+files and every stub.
 
 Validation, in order, reporting the first failure:
 
@@ -763,31 +875,35 @@ Validation, in order, reporting the first failure:
   it must be `major.minor.patch`, and newer than the CLI's embedded framework it is `cli_outdated`, found
   `manifest framework <v>, this CLI ships <v>`. Versions compare numerically per part (`0.10.0` is newer than
   `0.2.0`). So a newer schema wins over a malformed `framework_version` or unknown members; a malformed version is
-  `manifest_invalid`.
+  `manifest_invalid`. An older `framework_version` is valid; `extension add|remove` reject it afterwards with
+  `framework_outdated` (3.6).
 - Strict decoding: unknown members and duplicate keys are rejected.
 - `project.name`, `main_branch`, and `remote` are non-empty; `runtimes`, `extensions`, and `files` are present
   (`{}` is allowed, `null` or missing is rejected).
 - `runtimes` keys are `claude`, `codex`, or `copilot`, each value `{}` or `{"adversarial_model": ...}`.
   Copilot adapters use `owner: "runtime:copilot"` and `sha256`; they have no hook `entry`.
-- Extension names match `[a-z][a-z0-9-]*`; `state` is `installed` or `draft`, `kind` `skill` or `agent`, `group`
-  one of the nine 4.3 groups, `source` `catalog` or `path`; only a `path` source has `path`, a clean repo-relative
-  directory. An installed stack-group extension has `decision` `P/D-<n>`; a `workflow` or `review` extension and a
-  draft have none. Drafts have no `rendered_with`; `rendered_with` names known extensions.
-- `files` keys are clean repo-relative paths. `owner` is `core`, `ext:<name>`, `project-ext:<name>`, `decision`,
-  `core+notes`, `runtime:<name>`, `seed`, or `manifest`, with `<name>` a known extension or runtime. `core`, `ext:`,
-  `project-ext:`, `core+notes`, and `runtime:` files have `sha256` (64 lowercase hex), except a runtime entry file,
-  which has `entry` instead; `decision` files have `entries` (`P/D-<n>`); `seed` and `manifest` files have neither.
+- Extension names match `[a-z][a-z0-9-]*`; `state` is `installed` (`extensions.<n>.state "<v>" is not installed`),
+  `kind` `skill` or `agent`, `group` one of the nine 4.3 groups, `source` `catalog` or `path`; only a `path` source
+  has `path`, and it is `docs/solomonar/extensions/<name>` (`extensions.<n>.path "<v>" is not
+  docs/solomonar/extensions/<n>`). A stack-group extension has `decision` `P/D-<n>` or `<task-ID>/D-<n>`, with a task
+  ID `W-` and three or more digits (`extensions.<n>.decision "<v>" is not P/D-<n> or <task-ID>/D-<n>`); a `workflow` or `review`
+  extension has none.
+- `files` keys are clean repo-relative paths. `owner` is `core`, `ext:<name>`, `decision`, `core+notes`,
+  `runtime:<name>`, `seed`, or `manifest`, with `<name>` a known extension or runtime. `core`, `ext:`, `core+notes`,
+  and `runtime:` files have `sha256` (64 lowercase hex), except a runtime entry file, which has `entry` instead;
+  `decision` files have `entries`, each `P/D-<n>` or `<task-ID>/D-<n>` (`docs/stack.md` records `W-002/D-1` after
+  `--decision W-002/D-1`; `files.<path>.entries "<v>" is not P/D-<n> or <task-ID>/D-<n>`); `seed` and `manifest`
+  files have neither.
 
 Runtimes, extensions, and files are each checked in sorted key order. "Known" means a key in this manifest. Not
-validated: whether an `ext:` or `project-ext:` owner matches a `catalog` or `path` source, whether `requires` and
-`conflicts` name known extensions, duplicate `entries`, and an empty `adversarial_model`.
+validated: whether an `ext:` owner names a `catalog` source, whether a project extension's directory still exists or
+validates (`extension list` reports it, 4.3), duplicate `entries`, and an empty `adversarial_model`.
 
 Any other failure is `manifest_invalid` (exit 1) with check `manifest schema`, a found text naming the field (e.g.
 `project.remote is missing`, `extensions.go.decision is missing`, `extensions.go.group "web" is not one of
 language, ...`, `files.<path>.owner "<v>" is not an ownership class`, `files.<path>.sha256 is missing`), and the fix
 "inspect .solomonar/manifest.json; never edit it by hand". The CLI writes the manifest canonically: struct field
-order, sorted map keys, two-space indent, trailing newline. A project extension's `requires`, `conflicts`, and
-`paths` keep an empty `[]` when present, as a draft encodes them, and are omitted when absent.
+order, sorted map keys, two-space indent, trailing newline.
 
 ## 5. Use cases: project setup
 
@@ -799,7 +915,7 @@ Actor: user. Preconditions: a Git repository with at least one commit on `main`;
 ```
 $ cd /work/ledger
 $ solomonar init
-solomonar 0.1.7 · /work/ledger (git, branch main)
+solomonar 0.2.0 · /work/ledger (git, branch main)
 
 Project name [ledger]:
 Current objective, one line (optional): Track shared household expenses
@@ -819,17 +935,13 @@ docs/decisions.md. Enter with nothing selected skips a group; add more later wit
 `solomonar extension add`.
 
 Language:
-    [x] go  Go code
+    [x] go  Go language rules
 
-Frontend:
-    [x] htmx   Server-rendered HTML fragments driven by hx-* attributes
-    [x] templ  Type-checked Go HTML components (requires go)
-
-Testing:
-    [x] tdd  A failing test first for each behavior, then the code
+Workflow:
+    [x] extension-authoring  Evidence-based extension authoring
 
 Plan
-  framework 0.1.7
+  framework 0.2.0
     create     docs/solomonar/agents/ (6 roles)
     create     docs/solomonar/report.md
     create     docs/solomonar/reviewer.md
@@ -841,20 +953,18 @@ Plan
     create     AGENTS.md
     create     docs/README.md
   extensions
-    create     docs/solomonar/skills/go/SKILL.md     rendered with: tdd
-    create     docs/solomonar/skills/htmx/SKILL.md   rendered with: templ
-    create     docs/solomonar/skills/tdd/SKILL.md    rendered with: go
-    create     docs/solomonar/skills/templ/SKILL.md  rendered with: htmx
+    create     docs/solomonar/extensions/extension-authoring/ (6 files)
+    create     docs/solomonar/extensions/go/ (6 files)
   decisions (approved, selected by you)
-    create     docs/decisions.md  P/D-1 language: go · P/D-2 frontend: htmx, templ · P/D-3 testing: tdd
-    create     docs/stack.md      language: go (P/D-1) · frontend: htmx, templ (P/D-2) · testing: tdd (P/D-3)
+    create     docs/decisions.md  P/D-1 language: go
+    create     docs/stack.md      language: go (P/D-1)
   runtime claude
     create     CLAUDE.md
-    create     .claude/skills/ (8 skill stubs: 4 core, 4 extensions)
+    create     .claude/skills/ (6 skill stubs: 4 core, 2 extensions)
     create     .claude/agents/ (5 role stubs; adversarial-reviewer model opus)
     create     .claude/settings.json (state guard hook)
   runtime codex
-    create     .agents/skills/ (8 skill stubs: 4 core, 4 extensions; solomonar/agents/openai.yaml)
+    create     .agents/skills/ (6 skill stubs: 4 core, 2 extensions; extension-authoring/agents/openai.yaml; solomonar/agents/openai.yaml)
     create     .codex/agents/ (5 role stubs)
     create     .codex/hooks.json (state guard hook)
   registry
@@ -863,15 +973,15 @@ Plan
     create     .solomonar/manifest.json
 Proceed? [Y/n] y
 
-Initialized solomonar 0.1.7 in /work/ledger
-  55 files created
+Initialized solomonar 0.2.0 in /work/ledger
+  60 files created
   registry  refs/heads/workflow-state @ 3a5c0d7e9f1b2a4c6d8e0f1a3b5c7d9e1f2a4b6c
   pushed    origin/workflow-state
 
 Next:
   1. Review and commit the framework files on main:
        git add AGENTS.md CLAUDE.md .claude .agents .codex .solomonar docs
-       git commit -m "chore: initialize solomonar 0.1.7"
+       git commit -m "chore: initialize solomonar 0.2.0"
   2. Start a top-level session in /work/ledger with your selected outcome:
        Claude Code: /solomonar Explore the next useful flow.
        Codex:       $solomonar Explore the next useful flow.
@@ -898,9 +1008,9 @@ each group.
   blank records no model; all selected runtime model prompts form one block, with no blank line between them;
 - when the catalog is not empty and `--ext` was not given: the extensions paragraph, then per group that has catalog
   extensions, in 4.3 order, `<Group>:` (first letter capitalized) and a multi-select over its extensions sorted by
-  name, each described by its title plus ` (requires <a>, <b>)`, in catalog order, when it requires others; `go` is
-  marked when `go.mod` gives the default. An empty selection means no extension, not the `go.mod` default. A
-  selection that fails the 4.3 checks prints `  <found>; <fix>` (the flag form, such as `add --ext htmx`) right after
+  name, each described by its title plus ` (requires <a>, <b>)`, in catalog order, when it requires others; the
+  extensions of the UC-2 default (`default` or detected, 4.3) are marked. An empty selection means no extension, not
+  the default. A selection that fails the 4.3 checks prints `  <found>; <fix>` (the flag form, such as `add --ext go`) right after
   the last list, then asks every group again, each with its blank line and the previous selection marked, without
   repeating the extensions paragraph.
 
@@ -914,20 +1024,24 @@ terminal, and stays `interactive_required`.
 
 The grouped plan is shown only before `Proceed?`; `--dry-run` (interactive or not), the `file_conflict` plan, and
 JSON list every file (3.3). Its groups, in this order with empty groups omitted, are `git` (`init       -b
-<main-branch>`), `framework <fw>` (owners `core`, `core+notes`, `seed`), `extensions` (`ext`, `project-ext`),
+<main-branch>`), `framework <fw>` (owners `core`, `core+notes`, `seed`), `extensions` (`ext`),
 `decisions (approved, selected by you)`, `runtime claude`, `runtime codex`, `runtime copilot`, `registry` (`create     refs/heads/workflow-state
 with an empty registry` or `unchanged  refs/heads/workflow-state`), and `manifest`. A header is indented two spaces and its lines four; a line is `<action padded to 9>  <path>`, and a note
 follows two spaces after the path padded to the widest noted path in its group. Within a group the plan order is
 kept, and a collapsed line takes its set's first position. A set collapses into one line only when all its lines
 share one action and none has a reason; otherwise each file gets its own line. The sets are
 `docs/solomonar/agents/ (<n> roles)`; `docs/solomonar/skills/<s>/ (<files, comma-joined, sorted>)` per core skill;
+`docs/solomonar/extensions/<name>/ (<n> files)` per extension store directory, and likewise any other extension
+directory whose files share one action (a v0.1.7 `docs/solomonar/skills/<name>/` that `upgrade` removes, UC-9);
 `.claude/skills/`, `.agents/skills/`, and `.github/skills/` as `(<n> skill stubs: <c> core, <e> extensions)`, `: <c> core` always shown,
-the codex one adding `; solomonar/agents/openai.yaml`; and `.claude/agents/`, `.codex/agents/`, and `.github/agents/` as `(<n> role
+the codex one adding `; <skill>/agents/openai.yaml` per user-invoked skill, sorted; and `.claude/agents/`, `.codex/agents/`, and `.github/agents/` as `(<n> role
 stubs[: <c> core, <e> extensions][; adversarial-reviewer model <m>])`, the split only when an extension role exists
-and the model when the runtime has one. A count of 1 is singular (`1 role`, `1 role stub`, `1 extension`). Notes join
-with `; `, the reason first: an extension's main file is noted `rendered with: <names>` when not empty;
-`docs/decisions.md` is noted `<ID> <group>: <names> · …` and each group document `<group>: <names> (<ID>) · …` for the
-entries this run records; an `unchanged` document gets no note.
+(the stubs of an extension that `extension remove` deactivates count as extension stubs) and the model only when the
+set includes the `adversarial-reviewer` stub and the runtime has a model. A count of 1 is singular (`1 role`, `1 role stub`, `1 extension`). Notes join
+with `; `, the reason first;
+`docs/decisions.md` is noted `<ID> <group>: <names> · …`, each followed by ` · <old ID> superseded` when the entry
+supersedes one, and each group document `<group>: <names> (<ID>) · …` for the entries this run records (`none` for
+an emptied group); an `unchanged` document gets no note.
 Copilot role identifiers strip the full `.agent.md` suffix when counting core versus extension roles.
 
 Postconditions: the files exist uncommitted on main; each chosen group has an approved `P/D-n` entry; `workflow-state` exists as a root commit
@@ -939,14 +1053,14 @@ Postconditions: the files exist uncommitted on main; each chosen group has an ap
 ```json
 {
   "project": "/work/ledger",
-  "framework_version": "0.1.7",
-  "choices": {"runtimes": ["claude", "codex"], "extensions": {"language": ["go"], "frontend": ["htmx", "templ"], "testing": ["tdd"]}, "adversarial_model": {"claude": "opus"}},
-  "decisions": [{"id": "P/D-1", "group": "language", "selected": ["go"]}, {"id": "P/D-2", "group": "frontend", "selected": ["htmx", "templ"]}, {"id": "P/D-3", "group": "testing", "selected": ["tdd"]}],
+  "framework_version": "0.2.0",
+  "choices": {"runtimes": ["claude", "codex"], "extensions": {"language": ["go"], "workflow": ["extension-authoring"]}, "adversarial_model": {"claude": "opus"}},
+  "decisions": [{"id": "P/D-1", "group": "language", "selected": ["go"]}],
   "files": [{"path": "AGENTS.md", "action": "create", "owner": "core+notes"}],
   "registry": {"ref": "refs/heads/workflow-state", "commit": "3a5c0d7e9f1b2a4c6d8e0f1a3b5c7d9e1f2a4b6c", "action": "create", "pushed": true},
   "git_init": false,
   "first_commit_required": false,
-  "next": ["git add AGENTS.md CLAUDE.md .claude .agents .codex .solomonar docs", "git commit -m \"chore: initialize solomonar 0.1.7\""]
+  "next": ["git add AGENTS.md CLAUDE.md .claude .agents .codex .solomonar docs", "git commit -m \"chore: initialize solomonar 0.2.0\""]
 }
 ```
 
@@ -962,8 +1076,8 @@ data adds `"dry_run": true`, `registry` is `{"ref", "action"}`, and `next` is ab
 ### UC-2 Initialize non-interactively
 
 Actor: user or script. Synopsis, flags, defaults, and examples: [`solomonar init`](../../site/src/docs/cli/init.md).
-An omitted `--objective` writes "Not set" in `docs/README.md`. From increment 2, `--ext` also takes a local directory
-(UC-7), and each stack group gets one `P/D-n`.
+An omitted `--objective` writes "Not set" in `docs/README.md`. Each stack group gets one `P/D-n`. `--ext` takes
+catalog names only; a project extension is activated after `init` with `extension add` (UC-7).
 
 `--runtime` and `--ext` split their values on commas; `--keep` and `--overwrite` take one path per flag, so a path
 may contain commas. A relative `<dir>` is joined to `-C`, an absolute one is used as is; the files are written at the
@@ -981,8 +1095,9 @@ Explicit selection does not require the runtime executable. No Copilot process o
 `--ext` takes extension names or `none`, which requests no extension. `none` beside another value is
 `invalid_value`, check `--ext names extensions or none`, found `none cannot be combined with <v>`, fix `pass --ext
 none alone`; the names then go through the 4.3 selection checks (`unknown_extension`, `extension_requires`,
-`extension_conflict`, `init rejected`). Without `--ext`, a project with a manifest keeps its extensions; otherwise the
-default is `go` when the worktree root holds a regular file `go.mod` and the catalog has `go`, else none. The plan
+`extension_conflict`, `init rejected`). Without `--ext`, a project with a manifest keeps its extensions, an empty
+set included: nothing is detected again on a re-run; otherwise the default is every catalog extension with `default: true` or a `detect` glob that matches a listed file (4.3
+Detection), else none; `--ext none` excludes them all. The default goes through the same selection checks. The plan
 lists core files, extension files, runtime stubs, decision documents, then the manifest.
 
 `--adversarial-model <runtime>=<model>` takes one value per flag (no comma splitting) and is recorded as
@@ -1050,22 +1165,24 @@ Same choices, identical files: a no-op.
 
 ```
 $ solomonar init --yes
-Already initialized with solomonar 0.1.7; nothing to do.
-  48 files unchanged · registry refs/heads/workflow-state unchanged
+Already initialized with solomonar 0.2.0; nothing to do.
+  59 files unchanged, 1 skipped · registry refs/heads/workflow-state unchanged
   Change choices with `solomonar runtime|extension add|remove`; move versions with `solomonar upgrade`.
 ```
 
 Exit 0. The no-op form applies only when the registry exists and the plan creates, updates, appends, or removes nothing;
 when every file matches but the registry is absent, `init` takes the normal path (UC-2) and needs the confirmation.
 The second line is `  <counts> · registry refs/heads/workflow-state unchanged` (3.3). The CLI fills the
-choices not given from the manifest; a manifest extension missing from the catalog is an unexpected error (exit 1)
-`read extension <name>: not in the catalog`. A given choice that differs from the manifest is rejected, so that
+choices not given from the manifest; a manifest `catalog` extension missing from the catalog is an unexpected error
+(exit 1) `read extension <name>: not in the catalog`, and a `path` extension is read from its store directory (4.3),
+one that fails the loader (its directory gone included) being `invalid_value` (UC-7); a manifest that records no
+extensions keeps that empty choice. A given choice that differs from the manifest is rejected, so that
 `init` never becomes a second way to change choices:
 
 ```
 $ solomonar init --ext go --yes
 error: init rejected (already_initialized)
-  found: manifest extensions [go, htmx, tdd, templ]; requested [go]
+  found: manifest extensions [extension-authoring, go]; requested [go]
   fix:   change extensions with `solomonar extension add|remove`; init never changes choices
 nothing was written
 ```
@@ -1073,7 +1190,7 @@ nothing was written
 Exit 3. The first differing choice is reported, in the order name, main branch, remote, runtimes, extensions,
 adversarial models, with no check line. Found is `manifest <field> <value>; requested <value>` with the field `name`,
 `main_branch`, `remote`, `runtimes`, or `extensions`; strings are quoted (`manifest name "ledger"; requested
-"billing"`), lists are sorted (`[go, tdd]`), and an empty list is `none`. Runtimes and extensions are compared as
+"billing"`), lists are sorted (`[extension-authoring, go]`), and an empty list is `none`. Runtimes and extensions are compared as
 sets, sorted with duplicates dropped; a list given as `none` counts as given and is compared (`manifest extensions
 [go]; requested none`); only a choice not given is filled from the manifest. A given adversarial model that differs
 from the manifest's is found as `manifest adversarial_model <r> "<v>"; requested "<v>"`, with `none` for an absent
@@ -1174,7 +1291,7 @@ only the generated paths on the main branch (`"first_commit_required": true`; `n
 Next:
   1. First commit required before task worktrees:
        git switch --orphan main
-       git add AGENTS.md .solomonar docs && git commit -m "chore: initialize solomonar 0.1.7"
+       git add AGENTS.md .solomonar docs && git commit -m "chore: initialize solomonar 0.2.0"
 ```
 
 `git switch --orphan <main-branch>` comes first only when HEAD is not on `<main-branch>`; a detached HEAD counts as
@@ -1197,50 +1314,181 @@ Until `runtime add` exists, `init` cannot add Copilot to a project with differen
 ### UC-6 Choose extensions for an architecture or stack decision
 
 Typical triggers: the user decides part of the stack after the prototype, or an orchestrator applies an approved
-task decision that adopts a technology or practice. Synopsis, flags, and the `list`, `show`, `add`, and `remove`
-examples: [`solomonar extension`](../../site/src/docs/cli/extension.md). The examples below continue from that
-page, after `htmx` was adopted as `P/D-2`.
-
-`ext` is an alias for `extension`. `--decision` and `--rationale` apply to stack groups only.
-
-Metadata flags on `add` apply only to a local directory or a project draft, not catalog content. When adding
-several local extensions with different metadata, use separate calls. `kind` is inferred from a single skill or
-agent entry unless supplied; ambiguous inputs require `--kind`. `group` defaults to `workflow` for skills and
-`review` for agents; `title` defaults to `name`; `requires`, `conflicts`, and `paths` default to empty lists.
-Draft metadata is reused unless explicitly replaced by a flag. `applies_when` is required at adoption: prompt
-when interactive, otherwise reject with `interactive_required` naming `--applies-when`. It may be absent in a
-draft. `--yes` accepts the plan but does not invent this required value.
-
-For `init --ext <local-directory>`, collect the same metadata interactively. Non-interactive initialization
-cannot supply local-extension metadata through `--ext` alone: reject a missing required value with
-`interactive_required`, and suggest `init --ext none` followed by `extension add <path>` with these flags.
-Catalog choices continue to work without extra metadata.
-
-Adding templ to the same group supersedes P/D-2 with the full new selection and generates the rules that apply to
-the combination:
+task decision that adopts a technology or practice. Command page: [`solomonar
+extension`](../../site/src/docs/cli/extension.md). The store, the loader, and the decision rules are 4.3; this use
+case adds the command contract.
 
 ```
-$ solomonar extension add templ --rationale "Type-checked components for the htmx fragments" --yes
+solomonar extension list [--group <group>] [--kind <skill|agent>] [--installed] [--json]
+solomonar extension add <name>... [--decision <ID>] [--rationale <text>] [--keep <path>]... [--overwrite <path>]... [-y|--yes] [--dry-run] [--json]
+solomonar extension remove <name>... [--decision <ID>] [--rationale <text>] [--keep <path>]... [--overwrite <path>]... [-y|--yes] [--dry-run] [--json]
+```
+
+`ext` is an alias for `extension` (3.1); `ext` alone, with no subcommand, is `unknown_command` naming `"extension"`.
+The commands take names, never paths, and have no metadata flags: an extension's metadata is its `extension.json`.
+`--decision` and `--rationale` apply to stack groups only.
+
+**`extension list`** is read-only and never prompts. It merges the embedded catalog, the store, and the manifest:
+one row per catalog extension and per project extension (4.3 Loading), ordered by group (4.3 order, an unknown or
+unreadable group last), then name, then source. A catalog name that is also a store directory with `extension.json`, not recorded as
+that catalog extension, gives two rows: the catalog one, then the project one, `invalid: name "<n>" is also a catalog
+extension`. Columns, two spaces apart and padded to the widest cell, the last unpadded:
+
+| Column | Value |
+|---|---|
+| `GROUP`, `NAME`, `KIND` | from `extension.json`; for an invalid entry whose metadata cannot be read, `-` for group and kind |
+| `SOURCE` | `catalog` or `project` |
+| `STATUS` | `installed` (a manifest entry), `available`, or, for a project extension only, `invalid: <reason>` (the 4.3 loader's first failure; an installed project extension that no longer validates too) |
+| `DECISION` | the manifest `decision`, else `-` |
+| `SUGGESTED` | for a catalog or valid project extension that is not installed, its bare detection reason (the first matching path, such as `go.mod`, or `default`, 4.3); else `-` (an invalid row is never suggested) |
+| `APPLIES WHEN` | `applies_when` verbatim, `-` when it cannot be read |
+
+`--group` keeps one group (another value is `unknown_group`, exit 2: check `--group names a group`, found `"<v>" is
+not a group; known: <groups>`, fix `pass --group with a known group`); `--kind` keeps one kind (`invalid_value`,
+check `--kind is skill or agent`, found `"<v>" is not skill or agent`, fix `pass --kind skill or --kind agent`);
+`--installed` keeps installed rows. Flag values are checked before the repository. A filter that matches nothing
+prints only the header line. An invalid entry never stops the listing. Without a manifest every row is `available`
+(`list` needs no `init`); outside a repository the command is `not_a_repository`; a newer manifest is
+`cli_outdated`.
+
+```
+$ solomonar extension list
+GROUP     NAME                 KIND   SOURCE   STATUS                            DECISION  SUGGESTED  APPLIES WHEN
+language  go                   skill  catalog  installed                         P/D-1     -          A change touches Go code (*.go, go.mod, go.sum)
+backend   money                skill  project  available                         -         -          A change handles monetary amounts
+workflow  extension-authoring  skill  catalog  available                         -         default    A request creates, changes, or validates a Solomonar extension skill, its rules, or a specialist reviewer
+review    a11y-reviewer        agent  project  invalid: applies_when is missing  -         -          -
+```
+
+`--json` data is
+`{"extensions": [...]}`, one item per row: `name`, `group`, `kind`, `source`, `status` (`installed`, `available`,
+`invalid`), `reason` (only when invalid), `decision` (only when installed in a stack group), `suggested` (only when
+suggested), `title`, `applies_when`, `paths`, `requires`, `conflicts`, `invocation`, and `path` (the store directory
+of a project extension, and of an installed catalog extension). An invalid row keeps the fields its `extension.json`
+yields; a field it cannot read is an empty string (`-` in the table).
+
+**`extension add`** activates extensions. Each sorted unique name resolves in the catalog, then in the store:
+
+| Code | Exit | When | check | found | fix |
+|---|---|---|---|---|---|
+| `name_collision` | 3 | the name is a catalog extension and a store directory with `extension.json` that the manifest does not record as that catalog extension | `the name is not both a catalog and a project extension` | `<n> is in the catalog and in docs/solomonar/extensions/<n>` | `rename or remove docs/solomonar/extensions/<n>/` |
+| `unknown_extension` | 2 | neither | `extension add names a catalog or project extension` | `"<v>" is not in the catalog or docs/solomonar/extensions/; known: <sorted available names: catalog and valid project extensions not installed, or none>` | `pass a name from solomonar extension list` |
+| `invalid_value` | 2 | a project extension fails the 4.3 loader | `docs/solomonar/extensions/<n> is a valid extension` | the loader's reason | `fix docs/solomonar/extensions/<n>/ and rerun; the extension-authoring skill validates it` |
+
+Checks run in this order: usage (no name is `invalid_usage`, `extension name is required`); the repository and the
+Git version; the manifest (`not_initialized`, `cli_outdated`, `manifest_invalid`); `framework_outdated` (3.6); name
+resolution, per sorted name; `--decision` or `--rationale` when no named extension is in a stack group
+(`invalid_usage`, `--decision and --rationale apply to stack groups only`); the 4.3 selection checks over the
+resulting installed set, with the texts below; a malformed `--decision` (`invalid_value`: check `--decision is
+P/D-<n> or <task-ID>/D-<n>`, found `"<v>" is not P/D-<n> or <task-ID>/D-<n>`, fix `pass the ID of an approved entry in
+docs/decisions.md`; a task ID is `W-` and three or more digits); `decision_not_found`, then `decision_not_approved`
+(an entry without a Status line has status `none`). `--decision` is checked whenever it is given with a stack-group
+name, even when the plan turns out a no-op. Then the plan
+(`invalid_value` from `--keep`/`--overwrite`) and its conflicts (`file_conflict`, exit 4); `--dry-run`; the
+confirmation; the apply. Any apply error rolls back through the journal (architecture section 8).
+
+| Code | check | found | fix |
+|---|---|---|---|
+| `extension_requires` | `every required extension is installed` | `<name> requires <missing, comma-joined>` | `add them in the same call: solomonar extension add <names> <missing>` |
+| `extension_conflict` | `no installed extensions conflict` | `<a> conflicts with <b>` | `remove <b> first, or drop <a>` |
+
+A catalog extension's files are created in the store; a project extension gets no file (4.3). Both get their stubs
+(4.2), their `AGENTS.md` line (4.6), their manifest entry, and, in a stack group, the decision (4.3). An already
+installed name is valid: its stubs and line are refreshed. When the plan creates, updates, or removes nothing, the
+command is a no-op that needs no confirmation and exits 0:
+
+```
+$ solomonar extension add go
+Already installed: go; nothing to do.
+  57 files unchanged, 1 skipped
+```
+
+**`extension remove`** deactivates installed extensions. Checks, in order after the manifest and
+`framework_outdated`: per sorted name, a core skill or role (`solomonar`, `prototype`, `spec`, `work-spec`,
+`orchestrator`, `implementer`, and the four core reviewers) is `core_item` (exit 3): check `extension remove names
+an extension`, found `<n> is part of the core`, fix `the core cannot be removed (4.1)`; a name that is not installed
+is `unknown_extension` (exit 2): check `extension remove names an installed extension`, found `"<v>" is not installed;
+installed: <sorted names, or none>`, fix `pass a name from solomonar extension list --installed`; each name is checked
+for both before the next. Then `--decision`/`--rationale` as for `add`; the remaining installed extensions resolve as
+in UC-3, so another installed project extension that fails the loader is `invalid_value` (UC-7), while a removed one
+need not load; then `extension_requires` on the resulting set: check `every required extension is installed`, found
+`<other> requires <missing, comma-joined>`, fix `remove both: solomonar extension remove <names> <other>` (the
+removed names, then `<other>`). The decision checks, the plan, conflicts (the `file_conflict` fix also reads
+`--overwrite <path> to replace it`), `--dry-run`, the confirmation, and the apply follow as for `add`.
+
+A catalog extension's store files become no longer wanted, so they are `remove`, or `conflict` when edited (4.5); a
+project extension's directory is never touched, and `extension list` shows it `available` again. Stubs, the
+`AGENTS.md` line, and the manifest entry go in both cases. A group left empty records the selection `none` (4.3).
+Only after a successful apply (never for `--dry-run` or a rejection), each removed name prints `warning: code governed
+by <name> loses its rules` on stderr (`{"code": "rules_removed", ...}` in JSON); the CLI never checks whether code
+still uses a technology. Removing `go` from the UC-1 project:
+
+```
+$ solomonar extension remove go --yes
+Removed extension go (language skill, catalog, under P/D-2) in /work/ledger
+  4 files updated, 8 removed, 45 unchanged, 1 skipped
+
+Next:
+  1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: remove solomonar extension go"
+warning: code governed by go loses its rules
+```
+
+`P/D-2` is the emptied group's entry of 4.3; `extension list` shows `go` `available` again, suggested by `go.mod`.
+
+**Writing commands' output.** `add` and `remove` follow `init`: on a terminal without `--yes` they print `Plan`, the
+grouped plan of UC-1 (with the `decisions (approved, selected by you)` group; `unchanged` lines and `skip` lines
+without a reason are left out before sets collapse, and the counts still include them), and `Proceed? [Y/n] `, the plan going
+to stderr because a prompt follows (architecture section 2); without a terminal and without `--yes` they are
+`interactive_required` (fix `pass --yes to accept the plan, or --dry-run to print it`); `--yes` prints no plan;
+`--dry-run` prints `Plan` and every file line to stdout, then `Would add extension <names> in <root>` (or `Would
+remove`) and the counts; the `file_conflict` plan lists every file. The success form is `Added extension <names>
+(<group> <kind>, <source>[, under <ID>]) in <root>` (one name; with several, `Added extensions <a>, <b> in <root>`;
+`<ID>` is the decision this run records for the group, else the manifest's recorded one, as when an installed name
+is refreshed),
+`  <counts>`, a blank line, and `Next:` with `  1. git add <paths> && git commit -m "chore: add solomonar extension
+<names>"` (`remove`: `Removed …`, `"chore: remove solomonar extension <names>"`); the paths follow the UC-2 rule,
+including `CLAUDE.md` only when created. `--json` data: `{"project", "added"` (or `"removed"`) `: [names],
+"decisions": [{"id", "group", "selected"}], "files": [...], "next": [...]}`, with `"dry_run": true` and no `next` for
+`--dry-run`, and `"next": []` for a no-op.
+
+Adding `templ` to a frontend group that holds `htmx` under `P/D-2` (the illustrative test catalog of 4.4) supersedes
+`P/D-2` with the full new selection and rebinds `htmx`:
+
+```
+$ solomonar extension add templ --rationale "Type-checked components for the htmx fragments"
 Plan
+  framework 0.2.0
+    update     AGENTS.md
   extensions
-    create  docs/solomonar/skills/templ/SKILL.md   rendered with: htmx (adds templ/C-4)
-    update  docs/solomonar/skills/htmx/SKILL.md    re-rendered with: templ (adds htmx/C-6)
-    create  .claude/skills/templ/SKILL.md
-    create  .agents/skills/templ/SKILL.md
-  decisions
-    append  docs/decisions.md   P/D-3 Frontend technologies: htmx, templ (supersedes P/D-2)
-    update  docs/decisions.md   P/D-2 status superseded, replaced by P/D-3
-    update  .solomonar/manifest.json   htmx.decision and templ.decision = P/D-3
-    update  installed frontend provenance   P/D-3 for both htmx and templ
-    append  docs/stack.md       frontend: htmx, templ (P/D-3)
-  update  AGENTS.md, .solomonar/manifest.json
-Added extension templ (frontend skill) under P/D-3.
+    create     docs/solomonar/extensions/templ/ (2 files)
+  decisions (approved, selected by you)
+    update     docs/decisions.md  P/D-3 frontend: htmx, templ · P/D-2 superseded
+    append     docs/stack.md      frontend: htmx, templ (P/D-3)
+  runtime claude
+    create     .claude/skills/ (1 skill stub: 0 core, 1 extension)
+  runtime codex
+    create     .agents/skills/ (1 skill stub: 0 core, 1 extension)
+  manifest
+    update     .solomonar/manifest.json
+Proceed? [Y/n] y
+
+Added extension templ (frontend skill, catalog, under P/D-3) in /work/ledger
+  4 files created, 4 updated, 57 unchanged, 1 skipped
+
+Next:
+  1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: add solomonar extension templ"
 ```
+
+The `htmx` and `templ` lines of `AGENTS.md` both read `(frontend, P/D-3)`, and both manifest entries hold `P/D-3`;
+`htmx`'s files are unchanged. Removing `templ` again records `P/D-4` with the selection `htmx` and supersedes
+`P/D-3`; removing both records an entry whose selected option is `none`. Re-filling an emptied group supersedes its
+`none` entry: `init --ext go` records `P/D-1`, `extension remove go` `P/D-2` (`none`, superseding `P/D-1`), and
+`extension add go` `P/D-3`, superseding `P/D-2`.
 
 A `--decision` that is not approved is rejected (exit 3):
 
 ```
-$ solomonar extension add tdd --decision W-002/D-2
+$ solomonar extension add templ --decision W-002/D-2
 error: extension add rejected (decision_not_approved)
   check: --decision must name an approved entry in docs/decisions.md
   found: W-002/D-2 has status pending
@@ -1248,83 +1496,61 @@ error: extension add rejected (decision_not_approved)
 nothing was written
 ```
 
-`extension remove` follows the same decision rules: without `--decision` it records a superseding `P/D-n` with the
-reduced selection, or, when the group becomes empty, an entry whose selected option is `none`. It re-renders the
-extensions that referred to the removed one and rejects a removal that leaves a `requires` unmet
-(`extension_requires`). A modified file is a conflict (4.5). The CLI never checks whether code still uses a
-technology; it prints `warning: code governed by <name> loses its rules`.
+A `--decision` absent from `docs/decisions.md` is `decision_not_found`: found `W-002/D-2 is not in
+docs/decisions.md`, fix `record the decision first (rules section 3), then rerun`.
 
 ### UC-7 Add workflow skills, review agents, or the project's own extensions
 
 Project extensions cover what the catalog does not: a domain rule set, an in-house library, a supporting procedure,
-or an extra reviewer. They use the catalog format and are project-owned; upgrades never change them.
+or an extra reviewer. They use the catalog format in the store, `docs/solomonar/extensions/<name>/`, and are
+project-owned: no command writes, tracks, or upgrades their files (4.3, 4.5).
 
-Create a stack-group skill with `extension new` (the `money` example of
-[`solomonar extension new`](../../site/src/docs/cli/extension.md#solomonar-extension-new)), write its rules, then
-adopt it; a stack group records a decision as in UC-6:
-
-```
-$ solomonar extension add money --yes
-Added extension money (backend skill) under P/D-4.
-  state installed
-```
-
-Create an extra reviewer; the `review` group records no decision:
+The `extension-authoring` skill writes a project extension, `extension.json` included, and validates it; it ends by
+handing off `solomonar extension add <name>`. A `workflow` or `review` extension records no decision; a project
+extension in a stack group records one as in UC-6. Adding the `review` agent `money-reviewer`, written to
+`docs/solomonar/extensions/money-reviewer/`:
 
 ```
-$ solomonar extension new a11y-reviewer --kind agent --group review --title "Accessibility reviewer" \
-    --applies-when "A change touches templates or docs/ui.md" --path "**/*.templ"
-Created draft project extension a11y-reviewer (review agent, project-owned)
-  create  docs/solomonar/agents/a11y-reviewer.md
-  update  .solomonar/manifest.json
-Write its specialty and finding prefix, then adopt it: solomonar extension add a11y-reviewer
+$ solomonar extension add money-reviewer --yes
+Added extension money-reviewer (review agent, project) in /work/ledger
+  2 files created, 2 updated, 55 unchanged, 1 skipped
 
-$ solomonar extension add a11y-reviewer --yes
-Plan
-  create  .claude/agents/a11y-reviewer.md   tools: Read, Grep, Glob, Bash
-  update  AGENTS.md (Extensions: agent a11y-reviewer, required when a change touches templates or docs/ui.md)
-  update  .solomonar/manifest.json
-Added extension a11y-reviewer (review agent). Triage now lists it beside the core specialists.
+Next:
+  1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: add solomonar extension money-reviewer"
 ```
 
-Add a supporting procedure from a local directory; the `workflow` group records no decision:
+The two created files are the role stubs `.claude/agents/money-reviewer.md` and `.codex/agents/money-reviewer.toml`
+(the reviewer form, 4.2); `AGENTS.md` and the manifest are updated; `docs/solomonar/extensions/money-reviewer/` is
+unchanged, and triage now lists the agent beside the core specialists. Adding the catalog `workflow` skill
+`extension-authoring` to a project initialized without it creates its six store files, its stubs, and, for codex,
+`.agents/skills/extension-authoring/agents/openai.yaml` (user-invoked, 4.2).
 
-```
-$ solomonar extension add ./tools/skills/release-notes --group workflow \
-    --applies-when "The user requests release notes" --yes
-Plan
-  create  docs/solomonar/skills/release-notes/SKILL.md   (project-ext, from ./tools/skills/release-notes)
-  create  .claude/skills/release-notes/SKILL.md
-  create  .agents/skills/release-notes/SKILL.md
-  update  AGENTS.md (Extensions: release-notes)
-  update  .solomonar/manifest.json
-Added extension release-notes (workflow skill, project-owned).
-```
-
-A local directory needs a `SKILL.md` with `name` and `description` frontmatter, or an agent file with `name` and
-`description`. A project extension's metadata lives in the manifest, never in an extra file: the CLI asks for the
-group and `applies_when`, or takes them from the flags in UC-6. `list` shows draft/installed separately; `show`
-prints the state and source. `add <draft-name>` is activation, not a name collision. An identical installed
-selection is a no-op. Rejections (exit 3): `core_item` for `extension remove work-spec` or `extension remove
-security-reviewer`; `name_collision` for a different extension with the same name (fix: choose another positional
-name on `new`, or rename the source directory); `unknown_extension` (exit 2, 4.3) for a name absent from both
-manifest and catalog; `invalid_value` naming a missing frontmatter
-field. A skill's `name` must match its directory (G11).
+An extension name is unique across the catalog and the store (`name_collision`, UC-6), and a skill's `name` must
+match its directory (G11). Rejections: `core_item` for `extension remove work-spec` or `extension remove
+security-reviewer`; `unknown_extension` for a name in neither the catalog nor the store; `invalid_value` for a project
+extension that fails the 4.3 loader, naming its reason, such as `applies_when is missing`. An installed project
+extension whose directory later fails the loader, or is gone, stops `init`, `upgrade`, and every `extension add|remove`
+that keeps it installed with the same `invalid_value`; `extension remove <name>` still deactivates it.
 
 ### UC-8 Sync adapters after editing the portable source
 
 Synopsis, flags, triggers, and examples: [`solomonar sync`](../../site/src/docs/cli/sync.md). Stubs are those of
-4.2 and re-rendering follows 4.3 Generation; a hand-edited stub is a conflict under 4.5. The help names the
-editable source: edit `docs/solomonar/`, never copy its body into a runtime stub.
+4.2; a hand-edited stub is a conflict under 4.5. The help names the editable source: edit `docs/solomonar/`, never
+copy its body into a runtime stub.
 
 ### UC-9 Upgrade the framework
 
+Delivered first as a minimal `upgrade` (CLI-D31), before the `extension` commands; `--diff` is deferred:
+
 ```
-solomonar upgrade [--dry-run] [--diff <path>] [--take-new <path>]... [--keep <path>]... [-y] [--json]
+solomonar upgrade [--keep <path>]... [--take-new <path>]... [-y|--yes] [--dry-run] [--json]
 ```
 
-The target is the framework version embedded in the running CLI. Per managed file, with `base` = manifest hash,
-`current` = hash of the file on disk, `new` = hash of the offered embedded/rendered content (4.5):
+The target is the framework version embedded in the running CLI. The choices (runtimes, models, installed catalog and
+project extensions) come from the manifest, and each stack group keeps its recorded decision: no decision is written
+and no decision entry is edited. An extension that became `default` or is newly detected is never added, and an
+installed `path` extension resolves through the store as in UC-3. The desired-state planner (4.5) computes the wanted paths; per managed file, with
+`base` = manifest hash, `current` = hash of the file on disk, `new` = hash of the offered embedded content:
 
 | Condition | Action |
 |---|---|
@@ -1333,40 +1559,102 @@ The target is the framework version embedded in the running CLI. Per managed fil
 | current ≠ base, new = base | `keep` (project edit preserved) |
 | current = new | `unchanged` (manifest base moves to new) |
 | current ≠ base, new ≠ base, current ≠ new | `conflict` |
+| no longer offered, current = base | `remove` |
+| no longer offered, current ≠ base | `conflict` |
 
 After a successful upgrade, the manifest base is `new` for every managed upstream file, including one resolved
 with `--keep`; its local content is left intact. For example: init offers A, keeps local B, and records base A.
 An upgrade offering C sees current B ≠ base A and new C ≠ base A, so it conflicts instead of overwriting B.
-Keeping B records base C; a later unchanged C preserves B, and a later D conflicts again.
+Keeping B records base C; a later unchanged C preserves B, and a later D conflicts again. `--take-new` writes the
+offered content, or deletes a no-longer-offered file; `--keep` on a no-longer-offered file untracks it and leaves it
+in place (4.5). Project extension files and decision documents are never touched; `AGENTS.md` changes only in its
+managed part. Known limitation: after moving a 0.1.7 project to the store, its decision entries keep their 0.1.7
+References, such as `` `docs/solomonar/skills/go/SKILL.md` ``, which no longer exist; the next decision for the group
+names the store paths. Known limitation: a newer catalog that no longer ships an installed catalog extension makes
+`upgrade` stop with the unexpected error `read extension <name>: not in the catalog`; 0.2.0 does not handle it.
+
+Checks run in this order: usage; the repository and the Git version; the manifest: absent is `not_initialized`
+(3.6), newer is `cli_outdated` (a downgrade; fix "install a newer solomonar release"), then `manifest_invalid`; the
+plan: a manifest `catalog` extension missing from the catalog is an unexpected error `read extension <name>: not in
+the catalog`, an installed project extension that fails the loader is `invalid_value` (UC-7), then `invalid_value`
+from `--keep`/`--take-new`; conflicts (`file_conflict`, exit 4, nothing written); `--dry-run`; the confirmation
+(`interactive_required` without a terminal and without `--yes`); the apply, rolled back through the journal on any
+error. A project at the current version whose plan creates, updates, or removes nothing is a no-op, exit 0, with no
+confirmation:
 
 ```
 $ solomonar upgrade
-Upgrade framework 0.1.0 → 0.2.0
-  update    docs/solomonar/rules.md
-  update    docs/solomonar/agents/orchestrator.md
-  keep      docs/solomonar/skills/spec/template.md   (project edit, unchanged upstream)
-  conflict  docs/solomonar/agents/implementer.md     (edited here and upstream)
-  update    AGENTS.md (framework part; Project notes preserved)
-  update    .claude/skills/ (7 stubs)
-error: 1 conflict; nothing was written (file_conflict)
-  fix: compare with `solomonar upgrade --diff docs/solomonar/agents/implementer.md`, then rerun with
-       --take-new <path> or --keep <path>
-
-$ solomonar upgrade --take-new docs/solomonar/agents/implementer.md --yes
-Upgraded framework 0.1.0 → 0.2.0: 7 files updated, 1 kept.
-Next: commit on main as "chore: upgrade solomonar framework to 0.2.0"; running tasks pick it up after updating from main.
+Already at solomonar 0.2.0; nothing to do.
+  48 files unchanged, 1 skipped
 ```
 
+Moving a 0.1.7 project with `go` and the claude and codex runtimes to the store layout of the next release
+(illustratively 0.2.0); the 0.1.7 install under `docs/solomonar/skills/go/` is no longer offered:
+
+```
+$ solomonar upgrade
+Upgrade framework 0.1.7 → 0.2.0
+  framework 0.2.0
+    update     docs/solomonar/agents/ (6 roles)
+    update     docs/solomonar/report.md
+    update     docs/solomonar/reviewer.md
+    update     docs/solomonar/rules.md
+    update     docs/solomonar/skills/prototype/ (SKILL.md, template.md)
+    update     docs/solomonar/skills/solomonar/ (SKILL.md)
+    update     docs/solomonar/skills/spec/ (SKILL.md, template.md)
+    update     docs/solomonar/skills/work-spec/ (SKILL.md, template.md)
+    update     AGENTS.md
+  extensions
+    create     docs/solomonar/extensions/go/ (6 files)
+    remove     docs/solomonar/skills/go/ (5 files)
+  runtime claude
+    update     .claude/skills/ (5 skill stubs: 4 core, 1 extension)
+    update     .claude/agents/ (5 role stubs; adversarial-reviewer model opus)
+  runtime codex
+    update     .agents/skills/ (5 skill stubs: 4 core, 1 extension; solomonar/agents/openai.yaml)
+    update     .codex/agents/ (5 role stubs)
+  manifest
+    update     .solomonar/manifest.json
+Proceed? [Y/n] y
+
+Upgraded solomonar 0.1.7 → 0.2.0 in /work/ledger
+  6 files created, 39 updated, 5 removed, 3 unchanged, 1 skipped
+
+Next:
+  1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: upgrade solomonar to 0.2.0"
+  2. Running tasks pick up the new framework after they update from main.
+```
+
+The header is `Upgrade framework <old> → <new>` (the same version twice when only files differ), followed by the
+grouped plan of UC-1 without `git`, `decisions`, and `registry` groups and without `unchanged` lines or `skip` lines
+that give no reason (as for `extension add`), then `Proceed? [Y/n] `, all on stderr because a prompt follows
+(architecture section 2; unlike `init`, which prints its plan and prompt on stdout). `--yes` prints neither the
+header nor the plan, only the result. `--dry-run` prints the header and every file line to stdout, then `Would upgrade
+solomonar <old> → <new> in <root>` and the counts. A conflict prints the header and every file line, then:
+
+```
+error: upgrade found 1 conflict (file_conflict)
+  check: no planned file conflicts with the project's files
+  found: 1 conflict: docs/solomonar/skills/go/SKILL.md
+  fix:   rerun with --keep <path> to keep the project's file, or --take-new <path> to take the new version
+nothing was written
+```
+
+The success form is `Upgraded solomonar <old> → <new> in <root>`, `  <counts>`, a blank line, and `Next:` with step 1
+`git add <paths> && git commit -m "chore: upgrade solomonar to <new>"` (paths by the UC-2 rule) and step 2 as above.
+`--json` data: `{"project", "from", "to", "files": [...], "next": [...]}`, with `"dry_run": true` and no `next` for
+`--dry-run`, and `"next": []` for a no-op.
+
 `upgrade` never touches the registry: a registry schema change is the separate `task migrate` (UC-25, CLI-D26),
-so framework files and registry state are updated by different commands. Downgrade is rejected (`cli_outdated`,
-fix: install the matching CLI). The upgrade never commits on main.
+so framework files and registry state are updated by different commands. The upgrade never commits on main.
+`upgrade --diff <path>` (architecture section 2, F5) remains increment 3.
 
 ### UC-10 Check the project
 
 Synopsis, the check areas with their `fail` and `warn` levels, and the example:
 [`solomonar doctor`](../../site/src/docs/cli/doctor.md). A newer project is a `fail` (`cli_outdated`, 3.6), and
 every installed stack extension must point to an approved decision for its group's complete current selection
-(4.3); drafts are excluded from the decision, requirement, and rendering checks. A missing `gh` makes the forge
+(4.3), and every installed project extension must pass the 4.3 loader. A missing `gh` makes the forge
 facts `unknown`, never passing.
 
 ## 6. Use cases: task state
@@ -1905,8 +2193,8 @@ unexpected errors (exit 1), not `invalid`. A suffix follows whichever registry p
 `registry missing`, or `registry invalid`): a project framework newer than the embedded one adds ` (newer than this
 CLI; install solomonar <project fw> or later)`; otherwise a manifest or registry schema newer than this CLI supports
 adds ` (newer than this CLI; install a newer solomonar release)`, and a registry schema older than this CLI's adds `
-(older than this CLI; run solomonar task migrate)` (UC-25). `--json`: `{"cli": "0.1.7", "framework": "0.1.7",
-"project_framework": "0.1.7", "registry_schema": 2}`; a value not shown (not initialized, missing, invalid) is `null`,
+(older than this CLI; run solomonar task migrate)` (UC-25). `--json`: `{"cli": "0.2.0", "framework": "0.2.0",
+"project_framework": "0.2.0", "registry_schema": 2}`; a value not shown (not initialized, missing, invalid) is `null`,
 so an invalid manifest leaves both project values `null`.
 
 ## 8. Reference: task validation
@@ -1961,7 +2249,7 @@ Field rules: `--revision` is accepted when the current or resulting stage is `im
 | `task confirm` | branch, recorded worktree as for `--worktree`, recorded base as for `--base`; from `implementation` up to, not including, `integration`, the approved plan at the branch tip | `branch_missing`, `worktree_unrecorded`, `worktree_missing`, `worktree_mismatch`, `base_missing`, `base_not_on_branch`, `plan_not_approved`, `plan_invalid` |
 | `--spec` | clean path relative to the worktree: not absolute, no `..` element, not `.`, already in clean form (`./a`, `a//b`, `a/`, `a/../b` are rejected) | `invalid_value` |
 | `--spec` given, or the move enters `implementation` | `spec` is a regular file in the worktree on `feature/<ID>` (located by `git worktree list --porcelain`), or a blob at the recorded `revision` (`git cat-file -t <revision>:<spec>` is `blob`; a directory does not count) | `spec_not_found` |
-| `--agent` | `<id>:<role>` split at the first `:`, id `[a-z]+-[0-9]+`, a core delegated role or an extension agent whose manifest state is `installed`, never a draft or `orchestrator`; without a manifest, the core agents `adversarial-reviewer`, `correctness-reviewer`, `implementer`, `security-reviewer`, `spec-reviewer`; the fix lists the allowed roles | `invalid_value` |
+| `--agent` | `<id>:<role>` split at the first `:`, id `[a-z]+-[0-9]+`, a core delegated role or an extension agent installed in the manifest, never an available one or `orchestrator`; without a manifest, the core agents `adversarial-reviewer`, `correctness-reviewer`, `implementer`, `security-reviewer`, `spec-reviewer`; the fix lists the allowed roles | `invalid_value` |
 | `--next` | `<actor>:<action>` split at the first `:`, actor `user`, the owner, or an `active_agents` id after the move, so an agent added by `--agent` in the same `task move` may act (`user` or the owner on `task register`); the fix lists the allowed actors; action 1 to 120 characters (runes) after trimming, on every command that takes `--next`, including `task register` | `invalid_value` |
 | `task register --owner` | agent ID `[a-z]+-[0-9]+` | `invalid_value` |
 | `task plan --title`, `task register --title` | not blank or whitespace-only | `invalid_value` |
@@ -2323,13 +2611,14 @@ conditions.
 | Increment | Commands | Completion condition |
 |---|---|---|
 | 1 | `init` (core, runtimes, catalog extensions), every `task` command, `version`, `help` | UC-1 to UC-4 and UC-11 to UC-21 pass as tests in temporary repositories, including the compare-and-swap retry and repeated `init` as a no-op |
-| 2 | `doctor`, `sync`, `runtime` list/add/remove, `extension` list/show/add/remove/new, `guard` | UC-5 to UC-8, UC-10, UC-22 |
-| 3 | `upgrade`, `dashboard` | UC-9, UC-23; an upgrade test between two embedded framework versions |
+| 2, partial (0.2.0) | the extension store, a minimal `upgrade` (no `--diff`), `extension` list/add/remove (CLI-D27 to CLI-D31) | UC-6, UC-7, and the delivered UC-9 subset pass as tests in temporary repositories, including an upgrade from a v0.1.7 fixture, a repeated upgrade as a no-op, and a repeated `extension add` as a no-op |
+| 2, rest | `doctor`, `sync`, `runtime` list/add/remove, `guard` | UC-5, UC-8, UC-10, UC-22 |
+| 3 | `upgrade --diff`, `dashboard` | the rest of UC-9, UC-23 |
 
 Copilot is an additional adapter delivery, after increment 1. Its first release
 adds generation and `init` selection only; runtime management remains increment 2, and no Copilot hook is
 specified by this addition. Support is established only after automated checks and a recorded live CLI smoke
-test, including a feature worktree and coexistence with the other adapters. Generation, manifest tracking,
+test, including a feature worktree and coexistence with the other adapters. Adapter generation, manifest tracking,
 and CLI initialization are implemented. The Copilot installation transcript passes, and CLI 1.0.85 discovers
 instructions and core skills in main and feature worktrees with all three adapters installed. CLI 1.0.103
 sessions run, but prompt mode cannot invoke the entry skill; delegation, tool behavior, model selection, and the
@@ -2372,14 +2661,14 @@ and the minimum supported Copilot version. Version 1.0.85 is a discovery baselin
 | CLI-D3 | Claude Code root instructions (G10) | a) create a one-line `CLAUDE.md` (`@AGENTS.md`) when absent, never modify an existing one; b) nothing, if Claude Code is verified to load `AGENTS.md` natively | a, unless the verification at implementation time shows b | **a**, author, 2026-10-22: implemented in v0.1.0 (4.2) |
 | CLI-D4 | Does `init` commit on main | a) never; print the commit command; `doctor` fails until committed; b) `--commit` flag; c) always | a: commits on main stay the user's; b can be added later | **a**, author, 2026-10-22: implemented in v0.1.0 (UC-1) |
 | CLI-D5 | Prompt implementation | a) line-based prompts with the standard library; b) a full-screen prompt library (a new dependency, needs approval) | a: no dependency, scriptable, testable with piped input | **decided**, author, 2026-10-21: text prompts and confirmations line-based with the standard library; the multi-select key-driven (↑/↓, Space, Enter) in raw terminal mode through `golang.org/x/term` (architecture AD-1) |
-| CLI-D6 | Extension sources in v0.1 | a) embedded catalog and local directories; b) a, plus Git URLs | a: remote sources bring pinning and trust questions; add later with a recorded commit and hash | open |
+| CLI-D6 | Extension sources in v0.1 | a) the embedded catalog and the project's store (CLI-D27); b) a, plus Git URLs | a: remote sources bring pinning and trust questions; add later with a recorded commit and hash | open |
 | CLI-D7 | Adapter file form | a) stubs that point to `docs/solomonar/`; b) full copies; c) symlinks | a: one source of content, small diffs, works where symlinks do not | **a**, author, 2026-10-22: implemented in v0.1.0 (4.2) |
 | CLI-D8 | Binary name: `go install ./cmd/cli` produces `cli` | a) rename the package directory to `cmd/solomonar`; b) keep `cmd/cli`, document `go build -o solomonar ./cmd/cli` and set the name in release builds; c) `main.go` at the module root, so `go install github.com/madalinpopa/solomonar` yields `solomonar` | c: the repository holds one binary | **c**, author, 2026-10-21 (architecture AD-13) |
 | CLI-D9 | Codex specifics: skill path, native role definitions, hook support | verify each against Codex documentation before increment 1 | adopt what is verified; fall back to packets naming role files and no hook | **decided**, author, 2026-10-21, from the official docs (I section 4.2): skills `.agents/skills/<skill>/SKILL.md`, the `solomonar` skill with `agents/openai.yaml` `allow_implicit_invocation: false`; roles `.codex/agents/<role>.toml` (`name`, `description`, `developer_instructions`, `model`), no tool allowlist; guard a `PreToolUse` hook in `.codex/hooks.json`, run once the user trusts it; Claude Code forms confirmed |
-| CLI-D10 | `workflow` and `review` extensions in the catalog | a) add `baseline` (records commands and known failures, rules section 11) and `decision` (prepares a decision entry, rules section 3) as `workflow` skills; b) none in v0.1, mechanism only | b for v0.1, as CLI-D13 fixes the catalog; a is the first candidate after it | open |
+| CLI-D10 | `workflow` and `review` extensions in the catalog | a) `extension-authoring` as the first `workflow` skill, `default: true` and `invocation: user`, with no `review` extension yet; b) none, mechanism only; c) add `baseline` (records commands and known failures, rules section 11) and `decision` (prepares a decision entry, rules section 3) as `workflow` skills | a: the skill that writes project extensions is useful in every project, and only the user should start it; `baseline` and `decision` remain candidates | **a**, author, 2026-10-24 (4.4) |
 | CLI-D11 | How a change of stack extensions is approved and recorded | a) `--decision <ID>` names an approved entry; otherwise the user's own command appends an approved project entry `P/D-n` per group, superseding the previous one, plus a line in `docs/stack.md` or `docs/architecture.md`; b) extensions install without any decision record; c) the CLI only accepts `--decision`, and the user writes every entry by hand | a: choosing a stack extension is an architecture or dependency decision (rules section 3); the user's command is that explicit decision, and the record keeps rules section 1 authority traceable | **a**, author, 2026-10-21: accepted workflow audit F-08; rules section 3 and register L |
 | CLI-D12 | Rule IDs and force inside extension skills | a) `<name>/C-n` with `must` (approved global rule, blocking) and `should` (suggestion); b) every extension rule binding; c) extensions are guidance only | a: matches the finding handling in rules section 6 and keeps preferences out of the blocking set | **a**, author, 2026-10-22: implemented in v0.1.0 (4.3) |
-| CLI-D13 | v0.1 extension catalog | a) a catalog for every group; b) a small catalog matching the stack in use | b: `go`, `htmx`, `templ`, `tdd`; other groups take project extensions until catalog ones are written | **b**, author, 2026-10-20: `go`, `htmx`, `templ`, `tdd` |
+| CLI-D13 | Extension catalog | a) a catalog for every group; b) a small catalog of reviewed content | b: only content written and reviewed as framework content ships; other groups take project extensions until catalog ones are written | **b**, author, 2026-10-20; revised 2026-10-24 for the shipped catalog: `go` (`language`, `detect: ["**/go.mod"]`) and `extension-authoring` (`workflow`, CLI-D10); `htmx` and `templ` remain only an illustrative test catalog (4.4) |
 | CLI-D15 | The user's entry point to the process | a) a core skill `solomonar`, invoked only by the user, that routes a request to `prototype`, `spec`, or the orchestrator role taken in the same top-level session, plus a short "Route a request" section in `AGENTS.md` for sessions started without it; b) the orchestrator rules move into `AGENTS.md`, so every session is an orchestrator; c) a skill that delegates the orchestrator to a subagent | a: b loads about 600 lines into every session and every delegated role, and contradicts the implementer and reviewer contracts; c fails because a delegated subagent cannot delegate the implementer and reviewers | **a**, author, 2026-10-21; framework files installed under `docs/solomonar/` instead of `docs/framework/` |
 | CLI-D14 | Core boundary | a) core = what `rules.md` names as a process step or required role: `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`; `prototype`, `spec`, `work-spec`; b) core = `orchestrator`, `implementer`, `work-spec`; reviewers and discovery skills become extensions | a: the review gates and the prototype-to-spec flow are the process; making them optional turns a required review into a choice | **a**, author, 2026-10-20: the current framework in `assets/framework/` is the core, with language-neutral core reviewers and Go rules in the `go` extension (CLI-D1, revised 2026-10-21) |
 | CLI-D16 | How the prior status of a `blocked`, `paused`, or `cancelled` task is known | a) derived from registry history: the last status other than `blocked` or `paused`; b) derived from the record: a task is `reserved` exactly while at `setup`, so the prior status is `reserved` at `setup` and `running` later | b: no walk of registry history on every `unblock` or resume, and the rule is a pure check on one record | **b**, author, 2026-10-21 |
@@ -2393,3 +2682,8 @@ and the minimum supported Copilot version. Version 1.0.85 is a discovery baselin
 | CLI-D24 | Checkpoint commit metadata | a) the planned subject and a `Step: <ID>/S-<n>` trailer; b) a, plus a `Plan: <sha>` trailer | a: step IDs are never reused, so a plan version adds noise without disambiguating | **a**, author, 2026-10-23 |
 | CLI-D25 | Who creates checkpoints | a) the implementer, with Git; the CLI only inspects; b) a CLI commit command | a: the decision to use real Git commits needs no wrapper | **a**, author, 2026-10-23 |
 | CLI-D26 | Registry migration | a) an explicit `task migrate`; b) automatic in `init` or `upgrade` | a: registry migration stays separate from framework updates and never runs implicitly | **a**, author, 2026-10-23 (UC-25) |
+| CLI-D27 | Where installed and project extensions live | a) one flat store `docs/solomonar/extensions/<name>/` holding only the installed catalog extensions, copied verbatim with `extension.json` and owner `ext:<name>`, and the project's own extensions in the same format, project-owned and never written or tracked by the CLI; b) installed files split into `docs/solomonar/skills/` and `docs/solomonar/agents/`, with project sources elsewhere and their metadata in the manifest; c) the whole catalog copied into every repository | a: one place and one format for both kinds, one loader, and a manifest that records only choices and CLI-written files; the planner removes catalog files that are no longer wanted (4.5) | **a**, author, 2026-10-24 (4.3, 4.5, 4.7) |
+| CLI-D28 | How the CLI suggests extensions | a) `detect` globs and `default` in `extension.json`, matched over `git ls-files --cached --others --exclude-standard` with an own `**` matcher; `init` preselects, `extension list` marks `suggested`, nothing installs on its own; b) hard-coded rules in the CLI (`go.mod` → `go`); c) install what is detected | a: the catalog states its own rules, project extensions can use them too, and a suggestion never replaces the user's choice | **a**, author, 2026-10-24 (4.3) |
+| CLI-D29 | Which skills only the user starts | a) an `invocation` field (`model` or `user`) in `extension.json` that adds `disable-model-invocation: true` to the Claude and Copilot stubs and the Codex `allow_implicit_invocation: false` policy, with a separate `AGENTS.md` line; b) a hard-coded name list; c) no user-only extensions | a: metadata, not names, decides; a separate line keeps user-invoked skills discoverable without the model loading them; Copilot prompt mode cannot start them (4.2, known limitation) | **a**, author, 2026-10-24 (4.2, 4.6) |
+| CLI-D30 | Combination rules and provenance inside extension files | a) none: extension files install byte-identical, and the decision appears in the `AGENTS.md` line and the manifest; b) sections kept or dropped by the installed set, plus a provenance line in each main file | a: no shipped extension needed combinations, verbatim copies keep hashes and upgrades simple, and project-owned files cannot be re-rendered anyway | **a**, author, 2026-10-24 (4.3, 4.6) |
+| CLI-D31 | Order of the increment 2 extension work | a) a minimal `upgrade` (no `--diff`; `--keep`, `--take-new`, `-y`, `--dry-run`, `--json`) first, so v0.1.7 projects move to the store; then `extension list`, `add`, `remove`, which reject an older framework with `framework_outdated`; b) all of increment 2 at once; c) the `extension` commands with an automatic layout migration | a: the commands work on one layout only, and the migration stays one explicit, reviewable command | **a**, author, 2026-10-24 (UC-9, 3.6) |
