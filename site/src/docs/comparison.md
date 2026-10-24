@@ -62,7 +62,7 @@ The core holds only the process: its rules, four skills, and the roles that impl
 
 Everything else arrives as the project needs it. Extensions add the rules of a language, library, or practice, a supporting procedure, or an extra reviewer. Adopting a stack extension records an architecture decision, so the agents' knowledge follows the stack you approved rather than a default. Your own rules join the same way: approved specifications and the `must` rules of installed extensions bind every implementer and reviewer.
 
-In v0.1.7, extensions are chosen at `init` and the catalog holds the `go` extension. Adding them later, and writing project extensions for your own domain, are [in development]({{ '/docs/cli/extension/' | url }}).
+The catalog holds the `go` extension and the `extension-authoring` skill. You choose extensions at `init`, add or remove them later with [`solomonar extension`]({{ '/docs/cli/extension/' | url }}), and write project extensions for your own domain with `extension-authoring`.
 
 ## When another tool fits better
 
