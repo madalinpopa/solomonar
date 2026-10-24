@@ -42,23 +42,27 @@ func TestInitUC2WithGo(t *testing.T) {
 	got := runInRepo(t, dir, goArgs()...)
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Contains(t, got.stdout, "  26 files created\n")
+	assert.Contains(t, got.stdout, "  27 files created\n")
 	assert.Contains(t, got.stdout, "\nNext:\n"+commitStep("AGENTS.md .solomonar docs"))
 	files := tree(t, dir)
-	assert.Contains(t, files["docs/solomonar/skills/go/SKILL.md"], "\n# Go language rules\n\nInstalled by P/D-1.\n\n")
+	for _, file := range []string{"SKILL.md", "extension.json"} {
+		source, err := fs.ReadFile(repoAssets(t), "extensions/language/go/"+file)
+		require.NoError(t, err)
+		assert.Equal(t, string(source), files["docs/solomonar/extensions/go/"+file], file)
+	}
 	assert.Contains(t, files["docs/decisions.md"], "## P/D-1: Programming languages\n")
 	assert.Contains(t, files["docs/decisions.md"], "- Date: 2026-10-21\n")
 	assert.Equal(t, "# Stack\n\n- language: go (P/D-1)\n", files["docs/stack.md"])
 	assert.Contains(t, files["docs/README.md"],
 		"- `docs/decisions.md`: decision entries and their status\n"+
 			"- `docs/stack.md`: technologies and practices, with the decisions that adopted them\n")
-	assert.Contains(t, files["AGENTS.md"], "- Skills\n  - `go` (language): A change touches Go code "+
+	assert.Contains(t, files["AGENTS.md"], "- Skills\n  - `go` (language, P/D-1): A change touches Go code "+
 		"(*.go, go.mod, go.sum); paths: `**/*.go`, `**/go.mod`, `**/go.sum`\n")
 	manifest := manifestOf(t, dir)
 	assert.Equal(t, goEntry("P/D-1"), manifest.Extensions)
 	assert.Equal(t, "decision", manifest.Files["docs/decisions.md"].Owner)
 	for _, topic := range []string{"concurrency", "design", "io", "testing"} {
-		path := "docs/solomonar/skills/go/rules/go/" + topic + ".md"
+		path := "docs/solomonar/extensions/go/rules/go/" + topic + ".md"
 		assert.NotEmpty(t, files[path], path)
 		assert.Equal(t, "ext:go", manifest.Files[path].Owner, path)
 	}
@@ -107,32 +111,74 @@ func TestInitWithGoAddsTheRuntimeSkillStub(t *testing.T) {
 			require.Equal(t, 0, got.exit, got.stderr)
 			stub := tree(t, dir)[tt.path]
 			assert.True(t, strings.HasPrefix(stub, "---\nname: "+tt.name+"\n"), stub)
-			assert.True(t, strings.HasSuffix(stub, "Load `docs/solomonar/skills/go/SKILL.md` and follow it.\n"), stub)
+			assert.True(t, strings.HasSuffix(stub, "Load `docs/solomonar/extensions/go/SKILL.md` and follow it.\n"), stub)
 			assert.Equal(t, "runtime:"+tt.runtime, manifestOf(t, dir).Files[tt.path].Owner)
 		})
 	}
 }
 
+func TestInitMarksExtensionAuthoringAsUserInvoked(t *testing.T) {
+	t.Parallel()
+
+	dir := committedRepo(t)
+
+	got := runInRepo(t, dir, "init", "--runtime", "claude,codex,copilot", "--ext", "extension-authoring", "--yes")
+
+	require.Equal(t, 0, got.exit, got.stderr)
+	files := tree(t, dir)
+	for _, stub := range []string{".claude/skills/extension-authoring/SKILL.md", ".github/skills/extension-authoring/SKILL.md"} {
+		assert.Contains(t, files[stub], "\ndisable-model-invocation: true\n---\n", stub)
+	}
+	assert.NotContains(t, files[".agents/skills/extension-authoring/SKILL.md"], "disable-model-invocation")
+	assert.Contains(t, files[".agents/skills/extension-authoring/agents/openai.yaml"],
+		"edit docs/solomonar/extensions/extension-authoring/SKILL.md.\n")
+	assert.Contains(t, files[".agents/skills/extension-authoring/agents/openai.yaml"],
+		"policy:\n  allow_implicit_invocation: false\n")
+	assert.Contains(t, files["AGENTS.md"], "- Skills: none.\n")
+	assert.Contains(t, files["AGENTS.md"],
+		"- User-invoked skills: load one only when the user starts it, never because it applies.\n"+
+			"  - `extension-authoring` (workflow): A request creates, changes, or validates a Solomonar extension "+
+			"skill, its rules, or a specialist reviewer\n")
+}
+
+func authoringEntry() project.Extension {
+	return project.Extension{State: "installed", Kind: "skill", Group: "workflow", Source: "catalog"}
+}
+
 func TestInitSelectsExtensions(t *testing.T) {
 	t.Parallel()
 
+	defaults := []string{"init", "--runtime", "none", "--yes"}
+	withGo := goEntry("P/D-1")
+	withGo["extension-authoring"] = authoringEntry()
+	onlyDefault := map[string]project.Extension{"extension-authoring": authoringEntry()}
 	tests := []struct {
 		name  string
-		goMod bool
+		files map[string]string
 		args  []string
 		want  map[string]project.Extension
 	}{
-		{name: "go from go.mod", goMod: true, args: []string{"init", "--runtime", "none", "--yes"}, want: goEntry("P/D-1")},
-		{name: "none without go.mod", args: []string{"init", "--runtime", "none", "--yes"}, want: map[string]project.Extension{}},
-		{name: "none requested beside go.mod", goMod: true, args: initArgs(), want: map[string]project.Extension{}},
+		{name: "go detected from go.mod", files: map[string]string{"go.mod": "m"}, args: defaults, want: withGo},
+		{name: "go detected in a subdirectory", files: map[string]string{"tools/go.mod": "m"}, args: defaults, want: withGo},
+		{
+			name:  "ignored go.mod is not detected",
+			files: map[string]string{".gitignore": "vendor/\n", "vendor/dep/go.mod": "m"},
+			args:  defaults, want: onlyDefault,
+		},
+		{name: "go.mod directory is not detected", files: map[string]string{"go.mod/keep": ""}, args: defaults, want: onlyDefault},
+		{name: "only the default without go.mod", args: defaults, want: onlyDefault},
+		{
+			name: "none requested beside go.mod", files: map[string]string{"go.mod": "m"}, args: initArgs(),
+			want: map[string]project.Extension{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
 			dir := committedRepo(t)
-			if tt.goMod {
-				writeFile(t, dir, "go.mod", "module example.com/ledger\n")
+			for name, content := range tt.files {
+				writeFile(t, dir, name, content)
 			}
 
 			got := runInRepo(t, dir, tt.args...)
@@ -143,15 +189,27 @@ func TestInitSelectsExtensions(t *testing.T) {
 	}
 }
 
-func TestInitIgnoresGoModDirectory(t *testing.T) {
+func TestInitGitInitSelectsOnlyTheDefault(t *testing.T) {
+	dir := plainDir(t)
+	writeFile(t, dir, "go.mod", "module example.com/ledger\n")
+
+	got := runCLI(t, repoAssets(t), "-C", dir, "init", "--git-init", "--runtime", "none", "--yes")
+
+	require.Equal(t, 0, got.exit, got.stderr)
+	assert.Equal(t, map[string]project.Extension{"extension-authoring": authoringEntry()}, manifestOf(t, dir).Extensions)
+}
+
+func TestInitRerunKeepsAnEmptyExtensionChoice(t *testing.T) {
 	t.Parallel()
 
 	dir := committedRepo(t)
-	writeFile(t, dir, "go.mod/keep", "")
+	writeFile(t, dir, "go.mod", "module example.com/ledger\n")
+	require.Equal(t, 0, runInRepo(t, dir, initArgs()...).exit)
 
 	got := runInRepo(t, dir, "init", "--runtime", "none", "--yes")
 
 	require.Equal(t, 0, got.exit, got.stderr)
+	assert.Contains(t, got.stdout, "Already initialized")
 	assert.Empty(t, manifestOf(t, dir).Extensions)
 }
 
@@ -240,7 +298,7 @@ func TestInitRerunWithGoIsNoOp(t *testing.T) {
 
 			require.Equal(t, 0, got.exit, got.stderr)
 			assert.Contains(t, got.stdout, "Already initialized with solomonar "+shipped+"; nothing to do.\n"+
-				"  25 files unchanged, 1 skipped · registry")
+				"  26 files unchanged, 1 skipped · registry")
 			assertNothingWritten(t, dir, before, tip)
 		})
 	}
@@ -296,7 +354,7 @@ func TestInitAppendsToExistingDecisions(t *testing.T) {
 	got := runInRepo(t, dir, goArgs()...)
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Contains(t, got.stdout, "  25 files created, 1 updated\n")
+	assert.Contains(t, got.stdout, "  26 files created, 1 updated\n")
 	decisions := tree(t, dir)["docs/decisions.md"]
 	assert.True(t, strings.HasPrefix(decisions,
 		"# Decisions\n\n## P/D-3: Storage\n\n- Status: approved\n\n## P/D-4: Programming languages\n"), decisions)
