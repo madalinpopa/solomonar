@@ -16,7 +16,7 @@ Updates the managed files to the framework version embedded in the running CLI, 
 
 Project extensions in `docs/solomonar/extensions/`, the decision documents, `docs/README.md`, and the `## Project notes` section of `AGENTS.md` are never touched. The registry is not touched either; a registry schema change is the separate [`task migrate`]({{ '/docs/cli/task/#solomonar-task-migrate' | url }}).
 
-{% cliUsage "After installing a newer CLI release, before the next task starts; `extension add` and `extension remove` reject a project whose framework is older than the CLI with `framework_outdated`.", "You, on main. Running tasks pick up the new framework after they update from main." %}
+{% cliUsage "After installing a newer CLI release, before the next task starts; `extension add` and `extension remove` reject a project whose framework is older than the CLI with `framework_outdated`. At the project's version, after changing a project extension's name or description, deleting a stub, or merging a branch that left a stub stale.", "You, on main. Running tasks pick up the new framework after they update from main." %}
 
 ## Synopsis
 
@@ -102,6 +102,27 @@ A project already at the CLI's version is a no-op and needs no confirmation:
 Already at solomonar 0.3.1; nothing to do.
   48 files unchanged, 1 skipped
 ```
+
+### Refresh at the same version
+
+At the project's version, `upgrade` still applies its plan when a file differs from what it would write: it regenerates the adapter stubs of a project extension whose name or description changed, recreates a deleted stub or managed file, and follows the same conflict rules. Core and catalog extension stubs take their name and description from the release, so editing those fields in `docs/solomonar/` changes no stub. The output says refresh instead of upgrade:
+
+After deleting `.claude/skills/spec/SKILL.md`:
+
+```sh
+solomonar upgrade --yes
+```
+
+```text
+Refreshed solomonar 0.3.1 in /work/ledger
+  1 file created, 47 unchanged, 1 skipped
+
+Next:
+  1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: refresh solomonar 0.3.1 files"
+  2. Running tasks pick up the new framework after they update from main.
+```
+
+In the plan and with `--dry-run`, the header reads `Refresh framework 0.3.1` and the last line `Would refresh solomonar 0.3.1 in /work/ledger`.
 
 ### A conflict
 
