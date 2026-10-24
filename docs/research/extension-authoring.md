@@ -2,7 +2,7 @@
 
 Initial prompt research: 2026-10-24, parent `3fbe9f5e`. Skill adoption candidate:
 2026-10-24, parent `655f0bb` (Solomonar 0.1.7). Store and extension commands:
-2026-10-24, [implementation plan](../cli/extension-implementation-plan.md) TASK-10.
+2026-10-24.
 
 The single external authoring source map now lives in
 [the skill's evidence reference](../../assets/extensions/workflow/extension-authoring/references/evidence.md).
