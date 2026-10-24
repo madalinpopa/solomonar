@@ -118,7 +118,8 @@ assets/extensions/language/go/
 docs/research/go-rules/review.md            evidence and maintenance rationale
 ```
 
-At installation, the Go directory becomes `docs/solomonar/skills/go/`. Keep the
+At installation, the Go directory becomes `docs/solomonar/skills/go/` (2026-10-24:
+the install path is now the store, `docs/solomonar/extensions/go/`). Keep the
 research outside `assets/` so it is neither installed nor offered as routine task
 context. Split topics only where they support an independent loading decision;
 do not create separate tiny files for naming, error strings, receivers, or benchmarks.
@@ -132,7 +133,7 @@ This fits existing mechanisms:
   receives conditional-section rendering; subordinate files are copied literally.
   Keep `With tdd` directives out of subordinate files.
   [Tests](../../../internal/project/extension_test.go),
-  [renderer](../../../internal/project/render.go).
+  renderer `internal/project/render.go` (removed 2026-10-24).
 - Runtime stubs already point to the portable `SKILL.md`. No adapter-specific
   copy of the engineering rules is needed.
   [Runtime adapters](../../../internal/project/runtime.go).
