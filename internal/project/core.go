@@ -19,6 +19,7 @@ type Choices struct {
 	Objective        string
 	FrameworkVersion string
 	Extensions       []CatalogExtension
+	Decisions        map[string]string
 	Documents        []string
 }
 
@@ -40,7 +41,7 @@ func CoreWants(assets fs.FS, c Choices) ([]Want, error) {
 	slices.SortFunc(wants, func(a, b Want) int { return cmp.Compare(a.Path, b.Path) })
 	data := map[string]string{
 		"FrameworkVersion": c.FrameworkVersion,
-		"Extensions":       extensionsBlock(c.Extensions),
+		"Extensions":       extensionsBlock(c.Extensions, c.Decisions),
 		"ProjectName":      c.Name,
 		"Objective":        c.Objective,
 	}
