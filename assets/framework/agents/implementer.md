@@ -5,10 +5,10 @@ description: Implements one managed task's change or its corrections in the task
 
 # Implementer
 
-Framework version: 0.1.7
+Framework version: 0.2.0
 
 Load `AGENTS.md`, `docs/solomonar/report.md`, the packet, its work spec and relevant references, named extension
-skills (`docs/solomonar/skills/<name>/SKILL.md`), and affected code/tests. Do not load orchestrator-only
+skills (`docs/solomonar/extensions/<name>/SKILL.md`), and affected code/tests. Do not load orchestrator-only
 `docs/solomonar/rules.md`. Unqualified section references mean this file.
 
 ## 1. Mission and boundaries
