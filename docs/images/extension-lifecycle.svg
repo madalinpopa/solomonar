@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="dg" width="960" height="372" viewBox="0 0 960 372" role="img" aria-label="The extension lifecycle: the embedded catalog holds go and extension-authoring, and extension add, or init, copies a catalog extension verbatim into the store at docs/solomonar/extensions/&lt;name&gt;/; the extension-authoring skill writes a project extension into the store, and the CLI never writes its files; extension add then activates either kind, creating its runtime stubs, its AGENTS.md line, its decision for a stack group, and its manifest entry; extension remove reverses the activation, deleting a catalog extension's store files and leaving a project extension's files in place.">
+<style>
+svg {
+  --bg: #F2F4F1; --surface: #FFFFFF; --ink: #18211E; --muted: #56625D; --line: #9AA7A1; --grid: #DDE3DF;
+  --acc: #1D6B86; --acc-soft: #DCEBF0; --warn: #A85A12; --warn-soft: #F6E7D6;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { svg {
+  --bg: #121816; --surface: #1B2320; --ink: #E4EBE7; --muted: #9BA9A3; --line: #5C6B64; --grid: #26302C;
+  --acc: #6CB8D3; --acc-soft: #173440; --warn: #E09A55; --warn-soft: #3A2A1A; color-scheme: dark; } }
+
+
+
+svg { font-family: var(--sans); }
+.bg { fill: var(--surface); }
+/* diagram vocabulary */
+.dg text { font-family: var(--sans); }
+.dg .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+.dg .box-acc { fill: var(--acc-soft); stroke: var(--acc); stroke-width: 1.25; }
+.dg .box-warn { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.25; }
+.dg .frame { fill: var(--bg); stroke: var(--line); stroke-width: 1; stroke-dasharray: 4 4; }
+.dg .t { font-size: 14px; font-weight: 600; fill: var(--ink); }
+.dg .t-sm { font-size: 12px; font-weight: 500; fill: var(--ink); }
+.dg .s { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.dg .s-acc { font-family: var(--mono); font-size: 11px; fill: var(--acc); font-weight: 500; }
+.dg .s-warn { font-family: var(--mono); font-size: 11px; fill: var(--warn); font-weight: 500; }
+.dg .lbl { font-size: 11.5px; fill: var(--muted); }
+.dg .lbl-warn { font-size: 11.5px; fill: var(--warn); font-weight: 500; }
+.dg .ph { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; fill: var(--muted); }
+.dg .rule { stroke: var(--line); stroke-width: 1; }
+.dg .lane { stroke: var(--grid); stroke-width: 2; }
+.dg .lane-strong { stroke: var(--line); stroke-width: 2.5; fill: none; }
+.dg .e { stroke: var(--ink); stroke-width: 1.4; fill: none; }
+.dg .e-acc { stroke: var(--acc); stroke-width: 1.4; fill: none; }
+.dg .e-warn { stroke: var(--warn); stroke-width: 1.4; fill: none; }
+.dg .dash { stroke-dasharray: 5 4; }
+.dg .mk { fill: var(--ink); }
+.dg .mk-acc { fill: var(--acc); }
+.dg .mk-warn { fill: var(--warn); }
+.dg .dot { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+.dg .dot-acc { fill: var(--acc); stroke: var(--acc); stroke-width: 1.5; }
+.dg .dot-warn { fill: var(--warn); stroke: var(--warn); stroke-width: 1.5; }
+.dg .bar { fill: var(--acc-soft); stroke: var(--acc); stroke-width: 1; }
+.dg .bar-warn { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1; }
+.dg .bar-t { font-size: 11px; fill: var(--ink); }
+.dg .ink { fill: var(--ink); }
+.dg .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 5px; stroke-linejoin: round; }
+</style>
+<rect class="bg" width="960" height="372"/>
+<defs>
+<marker id="el-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="mk"/></marker>
+<marker id="el-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="mk-acc"/></marker>
+<marker id="el-w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="mk-warn"/></marker>
+</defs>
+<rect class="frame" x="20" y="20" width="210" height="240" rx="6"/>
+<text class="ph" x="36" y="42">SOURCES</text>
+<rect class="box" x="36" y="86" width="178" height="48" rx="4"/>
+<text class="t-sm" x="125" y="106" text-anchor="middle">embedded catalog</text>
+<text class="s" x="125" y="123" text-anchor="middle">go · extension-authoring</text>
+<rect class="box" x="36" y="186" width="178" height="48" rx="4"/>
+<text class="t-sm" x="125" y="206" text-anchor="middle">extension-authoring</text>
+<text class="s" x="125" y="223" text-anchor="middle">skill, started by you</text>
+<rect class="frame" x="300" y="20" width="240" height="240" rx="6"/>
+<text class="ph" x="316" y="42">STORE</text>
+<text class="s" x="316" y="60">docs/solomonar/extensions/&lt;name&gt;/</text>
+<rect class="box" x="316" y="86" width="208" height="48" rx="4"/>
+<text class="t-sm" x="420" y="106" text-anchor="middle">catalog extension</text>
+<text class="s" x="420" y="123" text-anchor="middle">verbatim copy, hashed</text>
+<rect class="box" x="316" y="186" width="208" height="48" rx="4"/>
+<text class="t-sm" x="420" y="206" text-anchor="middle">project extension</text>
+<text class="s" x="420" y="223" text-anchor="middle">yours · CLI never writes</text>
+<path class="e" d="M214 110 H314" marker-end="url(#el-a)"/>
+<text class="lbl halo" x="265" y="88" text-anchor="middle">copied by</text>
+<text class="lbl halo" x="265" y="102" text-anchor="middle">add or init</text>
+<path class="e" d="M214 210 H314" marker-end="url(#el-a)"/>
+<text class="lbl halo" x="265" y="202" text-anchor="middle">writes</text>
+<rect class="box-acc" x="570" y="86" width="120" height="148" rx="4"/>
+<text class="s-acc" x="630" y="140" text-anchor="middle">solomonar</text>
+<text class="s-acc" x="630" y="156" text-anchor="middle">extension add</text>
+<text class="s-acc" x="630" y="172" text-anchor="middle">&lt;name&gt;</text>
+<text class="lbl" x="630" y="196" text-anchor="middle">activates</text>
+<path class="e" d="M524 110 H568" marker-end="url(#el-a)"/>
+<path class="e" d="M524 210 H568" marker-end="url(#el-a)"/>
+<rect class="frame" x="730" y="20" width="210" height="240" rx="6"/>
+<text class="ph" x="746" y="42">ACTIVATION</text>
+<path class="e-acc" d="M690 160 H744" marker-end="url(#el-c)"/>
+<rect class="box" x="746" y="54" width="178" height="40" rx="4"/>
+<text class="t-sm" x="835" y="71" text-anchor="middle">runtime stubs</text>
+<text class="s" x="835" y="86" text-anchor="middle">one per adapter</text>
+<rect class="box" x="746" y="102" width="178" height="40" rx="4"/>
+<text class="t-sm" x="835" y="119" text-anchor="middle">AGENTS.md line</text>
+<text class="s" x="835" y="134" text-anchor="middle">## Extensions</text>
+<rect class="box" x="746" y="150" width="178" height="40" rx="4"/>
+<text class="t-sm" x="835" y="167" text-anchor="middle">decision</text>
+<text class="s" x="835" y="182" text-anchor="middle">stack groups only</text>
+<rect class="box" x="746" y="198" width="178" height="40" rx="4"/>
+<text class="t-sm" x="835" y="215" text-anchor="middle">manifest entry</text>
+<text class="s" x="835" y="230" text-anchor="middle">.solomonar/manifest.json</text>
+<rect class="box-warn" x="300" y="300" width="640" height="52" rx="4"/>
+<text class="s-warn" x="620" y="321" text-anchor="middle">solomonar extension remove &lt;name&gt;</text>
+<text class="lbl" x="620" y="339" text-anchor="middle">reverses the activation · catalog extension: its store files are deleted · project extension: its files stay</text>
+<path class="e-warn dash" d="M835 298 V262" marker-end="url(#el-w)"/>
+<text class="lbl-warn halo" x="845" y="284">reverses</text>
+<path class="e-warn dash" d="M420 298 V262" marker-end="url(#el-w)"/>
+<text class="lbl-warn halo" x="430" y="284">deletes catalog files</text>
+</svg>
