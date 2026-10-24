@@ -1,0 +1,10 @@
+{
+  "name": "extension-authoring",
+  "kind": "skill",
+  "group": "workflow",
+  "title": "Evidence-based extension authoring",
+  "requires": [],
+  "conflicts": [],
+  "applies_when": "A request creates, changes, or validates a Solomonar extension skill, its rules, or a specialist reviewer",
+  "paths": []
+}
