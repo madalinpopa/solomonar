@@ -49,6 +49,7 @@ export default function (config) {
     blocks: "framework-blocks", cycle: "workflow-cycle", "task-loop": "workflow-task-loop",
     parallel: "workflow-parallel", "status-stage": "workflow-status-stage", closure: "workflow-closure",
     registry: "workflow-task-registry", "session-stop": "workflow-session-stop", takeover: "workflow-session-takeover",
+    "extension-lifecycle": "extension-lifecycle",
   };
   config.addShortcode("diagram", (name) => {
     if (!Object.hasOwn(diagrams, name)) throw new Error(`Unknown framework diagram: ${name}`);
