@@ -1,0 +1,86 @@
+# Remove a catalog stack extension and deactivate a project review agent.
+exec git init -q -b main repo
+cd repo
+exec solomonar init --runtime claude --ext go --yes
+mkdir docs/solomonar/extensions/money
+cp ../money/extension.json docs/solomonar/extensions/money/extension.json
+cp ../money/money.md docs/solomonar/extensions/money/money.md
+exec solomonar extension add money --yes
+
+# The core cannot be removed, and only installed names can.
+exitcode 3 solomonar extension remove work-spec --yes
+! stdout .
+stderr '^error: extension remove rejected \(core_item\)$'
+stderr '^  found: work-spec is part of the core$'
+exitcode 2 solomonar extension remove extension-authoring --yes
+stderr '^error: extension remove rejected \(unknown_extension\)$'
+stderr '^  found: "extension-authoring" is not installed; installed: go, money$'
+
+# Without a terminal the plan needs --yes.
+exitcode 2 solomonar extension remove go
+stderr '^error: extension remove needs a confirmation \(interactive_required\)$'
+
+# An edited store file is a conflict and nothing is written.
+cp ../edited.md docs/solomonar/extensions/go/SKILL.md
+exitcode 4 solomonar extension remove go --yes
+stdout '^  conflict   docs/solomonar/extensions/go/SKILL\.md'
+stderr '^error: extension remove found 1 conflict \(file_conflict\)$'
+! stderr warning
+exists docs/solomonar/extensions/go/extension.json
+grep '"go"' .solomonar/manifest.json
+
+# The dry run prints the removals and the none decision, and writes nothing.
+exec solomonar extension remove go --dry-run --keep docs/solomonar/extensions/go/SKILL.md
+stdout '^  keep       docs/solomonar/extensions/go/SKILL\.md  untracked; left in place$'
+stdout '^  remove     docs/solomonar/extensions/go/extension\.json$'
+stdout '^  remove     \.claude/skills/go/SKILL\.md$'
+stdout '^Would remove extension go in .+repo$'
+exists .claude/skills/go/SKILL.md
+
+# --keep untracks the edited file and leaves it on disk; the rest of the extension goes.
+exec solomonar extension remove go --yes --keep docs/solomonar/extensions/go/SKILL.md
+stdout '^Removed extension go \(language skill, catalog, under P/D-2\) in .+repo$'
+stdout '^  1\. git add AGENTS\.md \.claude \.solomonar docs && git commit -m "chore: remove solomonar extension go"$'
+stderr '^warning: code governed by go loses its rules$'
+cmp docs/solomonar/extensions/go/SKILL.md ../edited.md
+! exists docs/solomonar/extensions/go/extension.json
+! exists docs/solomonar/extensions/go/rules
+! exists .claude/skills/go
+! grep 'extensions/go/' .solomonar/manifest.json
+! grep '`go`' AGENTS.md
+grep '^- Status: superseded by P/D-2$' docs/decisions.md
+grep '^## P/D-2: Programming languages$' docs/decisions.md
+grep '^- Selected option: none$' docs/decisions.md
+grep '^- Scope: project; language extensions none$' docs/decisions.md
+grep '^- Rationale: selected by the user with `solomonar extension remove`$' docs/decisions.md
+grep '^- References: supersedes P/D-1$' docs/decisions.md
+grep '^- language: none \(P/D-2\)$' docs/stack.md
+
+# A project extension is deactivated; its directory stays and it lists as available again.
+exec solomonar ext remove money --yes
+stdout '^Removed extension money \(review agent, project\) in .+repo$'
+stderr '^warning: code governed by money loses its rules$'
+cmp docs/solomonar/extensions/money/extension.json ../money/extension.json
+cmp docs/solomonar/extensions/money/money.md ../money/money.md
+! exists .claude/agents/money.md
+! grep money AGENTS.md
+exec solomonar extension list --group review
+stdout '^review +money +agent +project +available '
+
+# JSON carries the removed names, the decisions, and the warning.
+exec solomonar extension add money --yes
+exec solomonar --json extension remove money --yes
+stdout '"removed": \[\s*"money"\s*\]'
+stdout '"code": "rules_removed"'
+stdout '"message": "code governed by money loses its rules"'
+
+-- edited.md --
+# Our Go rules
+-- money/extension.json --
+{"name": "money", "kind": "agent", "group": "review", "title": "Money reviewer", "applies_when": "A change handles monetary amounts"}
+-- money/money.md --
+---
+name: money
+description: Reviews monetary amounts.
+---
+# Money reviewer
