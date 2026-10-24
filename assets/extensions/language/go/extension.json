@@ -6,5 +6,6 @@
   "requires": [],
   "conflicts": [],
   "applies_when": "A change touches Go code (*.go, go.mod, go.sum)",
-  "paths": ["**/*.go", "**/go.mod", "**/go.sum"]
+  "paths": ["**/*.go", "**/go.mod", "**/go.sum"],
+  "detect": ["**/go.mod"]
 }
