@@ -357,8 +357,9 @@ runtimes that support a tool list.
 ### Add a core skill or agent
 
 The core changes only when the process itself gains a step or a required role. Every project gets it and cannot
-remove it, so open an issue first and record the decision in `docs/cli/interface.md` (the core boundary is
-decision CLI-D14).
+remove it while the framework stays installed: `extension remove` rejects core items, and only the
+whole-project `solomonar uninstall` (CLI-D32) removes the core with the rest of the installation. Open an issue
+first and record the decision in `docs/cli/interface.md` (the core boundary is decision CLI-D14).
 
 **A core skill** lives in `assets/framework/skills/<name>/`:
 

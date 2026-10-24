@@ -19,6 +19,10 @@ to CLI-D31) and are
 implemented. They replace the earlier extension design: no rendered combinations, no project-extension metadata
 in the manifest, and only the `list`, `add`, and `remove` subcommands.
 
+`uninstall` was specified on 2026-10-24 (UC-27, CLI-D32 to CLI-D35, architecture AD-16) and is implemented. It
+removes the project installation from one checkout. Removing an
+extension stays `extension remove`, and removing the executable stays a package-manager or manual step.
+
 The command pages in `site/src/docs/cli/` are the reference for each command's synopsis, flags, when to use it, who
 runs it, and its typical output; this spec does not repeat them. It holds the contract beneath those pages: check
 order, exact texts, file planning, the manifest, JSON data, and the task rules. A use case cites its command page and
@@ -66,6 +70,7 @@ each command writes and its use cases.
 | `extension list\|add\|remove` (alias `ext`) | `list` nothing; `add` and `remove`: catalog extension files in `docs/solomonar/extensions/<name>/` (never a project extension's directory), `docs/decisions.md`, `docs/stack.md`, `docs/architecture.md`, adapter files, manifest, `AGENTS.md` | UC-6, UC-7 |
 | `sync` | adapter files, manifest | UC-8 |
 | `upgrade` | managed files (create, update, remove), manifest | UC-9 |
+| `uninstall` | managed files (remove), the managed part of `AGENTS.md`, the generated index line of `docs/README.md`, manifest (remove); never `workflow-state` | UC-27 |
 | `doctor` | nothing | UC-10 |
 | `task plan`, `register`, `move`, `block`, `unblock`, `handoff`, `done` | `workflow-state` | UC-11 to UC-15, UC-18 to UC-21 |
 | `task migrate` | `workflow-state` | UC-25 |
@@ -97,9 +102,9 @@ commands:
 
 | Flag | Commands | Meaning |
 |---|---|---|
-| `-y`, `--yes` | `init`, `runtime`, `extension`, `upgrade` | Accept the plan without the confirmation prompt; with `init`, take defaults for every unanswered choice. |
+| `-y`, `--yes` | `init`, `runtime`, `extension`, `upgrade`, `uninstall` | Accept the plan without the confirmation prompt; with `init`, take defaults for every unanswered choice. |
 | `--dry-run` | writing commands except `task migrate` | Run every check and print the plan or the record that would be written; write nothing; exit as the real run would. |
-| `--keep <path>`, `--overwrite <path>` | `init`, `runtime add\|remove`, `extension add\|remove`; `upgrade` uses `--take-new` instead of `--overwrite` | Resolve a managed-file conflict explicitly; `--keep` preserves local content without making it the distributed base (4.5). On a removal conflict, keep untracks the file and leaves it on disk; overwrite (`--take-new`) deletes it. |
+| `--keep <path>`, `--overwrite <path>` | `init`, `runtime add\|remove`, `extension add\|remove`, `uninstall` (UC-27); `upgrade` uses `--take-new` instead of `--overwrite` | Resolve a managed-file conflict explicitly; `--keep` preserves local content without making it the distributed base (4.5). On a removal conflict, keep untracks the file and leaves it on disk; overwrite (`--take-new`) deletes it. |
 | `--decision <ID>`, `--rationale <text>` | `extension add\|remove` | Record the change of a stack group under an approved decision, or give the rationale of the `P/D-n` the CLI writes (4.3); on a call that changes no stack group, either is `invalid_usage`. |
 | `--overwrite <path>` | `sync` | Replace a conflicting generated stub explicitly. |
 | `--as <owner>` | `task move`, `block`, `unblock`, `done` | Acting orchestrator, checked against the record's `owner` (CLI-D2). Defaults to `SOLOMONAR_OWNER`; neither is `owner_required`. Agents pass `--as` on every command, because a runtime may start a new shell per command and lose the variable; the variable is a convenience for the user's terminal. The check guards against mistakes (wrong task, a stale session after a handoff), not against impersonation. |
@@ -189,7 +194,8 @@ in 8.4; project commands use `not_a_repository`, `not_initialized`,
 `not_initialized` (exit 3) for a project command: `upgrade` and `extension add|remove` need
 `.solomonar/manifest.json`; without it they reject with check `the project is initialized`, found `no
 .solomonar/manifest.json in <root>`, and the fix "run solomonar init". (The task commands' `not_initialized`, 8.4,
-names the missing registry instead.) `extension list` works without a manifest.
+names the missing registry instead.) `extension list` works without a manifest, and `uninstall` without one is
+a no-op (UC-27).
 
 `cli_outdated` (exit 3, CLI-D19): the manifest's `framework_version` or `schema_version`, or the registry's
 `schema_version`, is newer than this CLI supports. The CLI checks the versions before decoding either file
@@ -200,8 +206,8 @@ the manifest or the registry rejects with it and writes nothing, with the fix "i
 `framework_outdated` (exit 3, CLI-D31): the manifest's `framework_version` is older than this CLI's embedded
 framework. `extension add` and `extension remove` reject with it after the manifest validates and before any
 extension is resolved, and write nothing: check `the project's framework matches this CLI`, found `manifest
-framework <v>, this CLI ships <v>`, fix "run solomonar upgrade". `extension list` and `upgrade` accept an older
-project; `init` keeps its own rules (UC-3).
+framework <v>, this CLI ships <v>`, fix "run solomonar upgrade". `extension list`, `upgrade`, and `uninstall`
+accept an older project; `init` keeps its own rules (UC-3).
 
 `manifest_invalid` (exit 1, like `registry_invalid`): `.solomonar/manifest.json` fails strict decoding or the 4.7
 validation. The message names the field, and the fix is "inspect .solomonar/manifest.json; never edit it by hand".
@@ -240,7 +246,7 @@ present.
 
 | Part | Contains | Installed |
 |---|---|---|
-| Core: the process | `docs/solomonar/rules.md`, `report.md`, `reviewer.md`; the process roles `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`; the process skills `solomonar` (user entry point, CLI-D15), `prototype`, `spec`, `work-spec`; `AGENTS.md`; `docs/README.md`; the empty registry on `refs/heads/workflow-state`; `.solomonar/manifest.json` | always; cannot be removed |
+| Core: the process | `docs/solomonar/rules.md`, `report.md`, `reviewer.md`; the process roles `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`; the process skills `solomonar` (user entry point, CLI-D15), `prototype`, `spec`, `work-spec`; `AGENTS.md`; `docs/README.md`; the empty registry on `refs/heads/workflow-state`; `.solomonar/manifest.json` | always; no part can be removed while the framework stays installed (`extension remove` rejects a core item with `core_item`); only `uninstall` removes the core, together with the whole installation (UC-27, CLI-D32), and it keeps the registry |
 | Runtimes | Adapter files for `claude`, `codex`, `copilot` (4.2) | zero or more; default: those found on `PATH` |
 | Extensions | Skills (knowledge of a language, library, or practice; or a supporting procedure) and agents (extra specialist reviewers), grouped by decision type (4.3) | zero or more; default at `init`: the catalog extensions marked `default` or detected in the repository (4.3) |
 
@@ -679,20 +685,21 @@ supersession.
 
 ### 4.5 File ownership
 
-| Class | Files | `init` | `upgrade` | `sync` |
-|---|---|---|---|---|
-| `core` | `docs/solomonar/**` except `docs/solomonar/extensions/` | create | update if unmodified, else conflict; remove when no longer offered | - |
-| `ext:<name>` | every file of an installed catalog extension's store directory, `docs/solomonar/extensions/<name>/` | create, verbatim | as `core` | - |
-| project extension (no class) | `docs/solomonar/extensions/<name>/` of a project extension | never planned, written, or recorded | never | never |
-| `decision` entries | `P/D-n` entries in `docs/decisions.md`; one line per group in `docs/stack.md` or `docs/architecture.md` | `append`; `create` the file when absent (4.3); a re-run plans recorded files `unchanged` | never | never |
-| `core+notes` | `AGENTS.md` | create, or adopt an existing file (UC-4) | the part above `## Project notes` as `core`; the section from that heading on is project-owned | rendered lists (4.6) |
-| `runtime:<name>` | adapter stubs, `CLAUDE.md` when created | create | regenerate | regenerate |
-| `runtime:<name>` entry | the guard hook entry inside `.claude/settings.json` or `.codex/hooks.json` | merge the entry; never touch other keys | merge | merge |
-| `seed` | `docs/README.md` | create when absent, else `skip`; when the CLI creates a document, a present file with `## Documents` gets the index lines (`append`), else `skip` with the reason (4.3) | never | never |
-| `manifest` | `.solomonar/manifest.json` | create | update | update |
+| Class | Files | `init` | `upgrade` | `sync` | `uninstall` (UC-27) |
+|---|---|---|---|---|---|
+| `core` | `docs/solomonar/**` except `docs/solomonar/extensions/` | create | update if unmodified, else conflict; remove when no longer offered | - | remove if unmodified, else conflict |
+| `ext:<name>` | every file of an installed catalog extension's store directory, `docs/solomonar/extensions/<name>/` | create, verbatim | as `core` | - | as `core` |
+| project extension (no class) | `docs/solomonar/extensions/<name>/` of a project extension | never planned, written, or recorded | never | never | never; the source stays |
+| `decision` entries | `P/D-n` entries in `docs/decisions.md`; one line per group in `docs/stack.md` or `docs/architecture.md` | `append`; `create` the file when absent (4.3); a re-run plans recorded files `unchanged` | never | never | never |
+| `core+notes` | `AGENTS.md` | create, or adopt an existing file (UC-4) | the part above `## Project notes` as `core`; the section from that heading on is project-owned | rendered lists (4.6) | remove the verified managed part; keep the notes part, or remove the file when the notes part holds only the template heading and comment |
+| `runtime:<name>` | adapter stubs, `CLAUDE.md` when created | create | regenerate | regenerate | as `core` |
+| `runtime:<name>` entry | the guard hook entry inside `.claude/settings.json` or `.codex/hooks.json` | merge the entry; never touch other keys | merge | merge | conflict: entry removal is not supported yet |
+| `seed` | `docs/README.md` | create when absent, else `skip`; when the CLI creates a document, a present file with `## Documents` gets the index lines (`append`), else `skip` with the reason (4.3) | never | never | remove only the exact generated framework index line (CLI-D35) |
+| `manifest` | `.solomonar/manifest.json` | create | update | update | remove, last |
 
 `extension add|remove` follow the `init` column for the paths they plan: `add` creates a catalog extension's files,
-`remove` removes them, and both regenerate stubs and `AGENTS.md`.
+`remove` removes them, and both regenerate stubs and `AGENTS.md`. `uninstall` is not a desired-state plan: it
+plans removals from the manifest's records and the files on disk alone (UC-27).
 
 "Unmodified" means the file's SHA-256 equals the manifest's `sha256`: the hash of the last distributed or
 generated base offered by the CLI, **not the hash of a kept project edit**. For `core+notes`, hash only the managed
@@ -702,7 +709,7 @@ part. A kept differing file stays different from that base.
 The next upgrade can therefore preserve the edit or report a conflict instead of overwriting it as unmodified.
 
 **Desired-state planning** (CLI-D27). `init`, `upgrade`, and `extension add|remove` share one
-planner. From the choices (runtimes, models, installed extensions, each stack group's decision) it computes every
+planner; `uninstall` does not use it (UC-27, AD-16). From the choices (runtimes, models, installed extensions, each stack group's decision) it computes every
 wanted path: core files, catalog extension files, stubs, `AGENTS.md`, decision documents, the manifest. Each wanted
 path is classified from `disk` (the current file), `base` (the manifest `sha256`), and `offer` (the content the CLI
 would write); the recorded base is always the hash of `offer`. A path is managed when the manifest records a `sha256`
@@ -735,8 +742,9 @@ A managed path that no wanted path names, such as a removed extension's file or 
 A removal deletes the file and then every parent directory it leaves empty, never a top-level directory (`docs`,
 `.claude`, `.codex`, `.github`, `.agents`), `docs/solomonar`, or `docs/solomonar/extensions`: removing `go` deletes
 `docs/solomonar/extensions/go/` and `.claude/skills/go/`, and `.claude/skills/` too when it is left empty. A rollback
-recreates the removed directories with their modes. Nothing under a project extension's directory is ever wanted or
-managed, so it is never in either table.
+recreates the removed directories with their modes. Only `uninstall` also removes `docs/solomonar/extensions`,
+`docs/solomonar`, and `.solomonar` when they are left empty (UC-27). Nothing under a project extension's directory is
+ever wanted or managed, so it is never in either table.
 
 A path that cannot be inspected for a reason other than absence (for example, a parent that is a file) is an
 unexpected error, not `absent`. Only conflicts carry a reason, `adopted` aside.
@@ -1656,6 +1664,159 @@ Synopsis, the check areas with their `fail` and `warn` levels, and the example:
 every installed stack extension must point to an approved decision for its group's complete current selection
 (4.3), and every installed project extension must pass the 4.3 loader. A missing `gh` makes the forge
 facts `unknown`, never passing.
+
+### UC-27 Uninstall Solomonar from a project
+
+Specified on 2026-10-24 (CLI-D32 to CLI-D35, architecture AD-16) and implemented; the command page is
+[`solomonar uninstall`](../../site/src/docs/cli/uninstall.md).
+
+```
+solomonar uninstall [--keep <path>]... [--overwrite <path>]... [-y|--yes] [--dry-run] [--json]
+```
+
+`uninstall` removes the project installation from the checkout selected by the working directory or `-C`, a linked
+worktree included: the framework core, every installed catalog extension, the runtime adapters, the generated
+`AGENTS.md` part and index line, and the manifest. It is the only command that removes the core (4.1, CLI-D32);
+`extension remove` still rejects a core item with `core_item`, and there is no `remove` alias and no selective core
+removal. It does not remove the executable, a Homebrew package, runtime applications, or user-wide configuration,
+and it changes no other worktree, branch, ref, or remote. It takes no positional argument, adds no environment
+variable (`SOLOMONAR_OWNER` is irrelevant here), and uses no network.
+
+**Checks**, in order: usage; the repository and the Git version (3.2); the manifest. An absent manifest is a no-op,
+not `not_initialized`: exit 0, no prompt, no `--yes` needed, and the line `No Solomonar manifest; nothing to
+uninstall automatically.` The CLI never searches for installation files without the manifest. `--keep` and
+`--overwrite` still need real conflicts, so with an absent manifest any such path is `invalid_value`. A manifest
+that is a symlink, directory, or special file, or lies under a symlinked `.solomonar`, is never read:
+`file_conflict` (exit 4, no plan), check `the manifest is a regular file`, found `.solomonar/manifest.json exists
+and is not a regular file`, fix `restore .solomonar/manifest.json as a regular file, then rerun solomonar
+uninstall`; neither flag resolves it. A newer
+manifest is `cli_outdated` (3.6); a malformed one is `manifest_invalid`. An older framework that the strict decoder
+reads, the 0.1.7 layout included, is accepted without `framework_outdated` and without a prior `upgrade`. Then the
+plan and `invalid_value` from `--keep`/`--overwrite` (4.5 rules: a path in both flags, an unsafe path, or a path that
+is not a resolvable conflict of this plan; repeating a path adds nothing); conflicts (`file_conflict`, exit 4,
+nothing written); `--dry-run`; the confirmation (`interactive_required`, exit 2, without a terminal or with `--json`
+and without `--yes`); the input recheck; the apply, rolled back through the journal on any handled error. `--yes`
+never resolves a conflict.
+
+**Planning** (CLI-D33, AD-16). The plan comes from the decoded manifest and the current files, never from today's
+catalog, store, or templates: no core or adapter file is rendered, no `extension.json` is loaded or validated, and
+no decision is written. Each recorded path is planned by the first matching row:
+
+| Record or path | Condition | Action |
+|---|---|---|
+| a project extension's directory, a legacy `project-ext:<name>` record, or a hashed file under a `path` extension's directory | any | `skip`, `project extension; source kept`; source wins over the hash record |
+| `runtime:<name>` entry (`entry` instead of `sha256`) | any | `conflict`, `hook entry removal is not supported`; the containing JSON file is never deleted and its record is never dropped |
+| a hashed `core`, `ext:<name>`, `core+notes`, or whole-file `runtime:<name>` record outside the paths `uninstall` may remove (below) | any | `conflict`, `outside the paths solomonar uninstall removes`; `--overwrite` cannot resolve it |
+| `core`, `ext:<name>`, whole-file `runtime:<name>` (`CLAUDE.md` included), legacy paths such as `docs/solomonar/skills/go/` | absent | no plan line |
+| same | regular file, hash = recorded `sha256` | `remove` |
+| same | edited | `conflict`, `modified since installation (manifest sha256 differs)` |
+| same | a symlink, directory, or special file, or reached through a symlinked parent directory (inside or outside the checkout) | `conflict`, `exists and is not a regular file`; never followed or removed recursively |
+| `AGENTS.md` (`core+notes`) | see below | `remove`, `update`, or `conflict` |
+| `docs/README.md` | see below | `update` or `skip` |
+| `decision` files and other documents | any | not planned; kept |
+| `.solomonar/manifest.json` | a regular file (otherwise rejected before planning, see Checks) | `remove`, the last file change |
+
+Each `path` extension of the manifest, a draft included, also gets one `skip` line for its directory (owner
+`project-ext:<name>`), with the same reason, so the plan shows the kept sources. The plan lists every line in path
+order, then the manifest.
+
+The paths `uninstall` may remove are `docs/solomonar/**` (core and catalog extension files, legacy locations
+included) except a project extension's directory, the adapter stub directories of 4.2 (`.claude/skills/`,
+`.claude/agents/`, `.agents/skills/`, `.codex/agents/`, `.github/skills/`, `.github/agents/`), `CLAUDE.md`,
+`AGENTS.md`, and the manifest. Nothing in `.git`, `.jj`, or Git metadata is a removal target.
+
+`AGENTS.md` (CLI-D34) is split at the first `## Project notes` line, as in 4.5. When the managed part's hash equals
+the record: with a notes part holding project content (adopted instructions included), the file is `update`, reason
+`managed part removed; project notes kept`, and is rewritten as exactly the notes part, byte for byte, from its
+heading on; with no notes part, or one holding only whitespace and the template's heading and comment, the file is
+`remove`; the template comment is the current one or the 0.1.0 and 0.1.1 one. A changed managed part is `conflict`,
+`modified since installation (manifest sha256 differs)`. No `## Project notes` line, so the managed part cannot be
+verified, is `conflict`, `no "## Project notes" boundary`. The pre-install formatting of an adopted file cannot be reconstructed (the manifest does not record it).
+
+`docs/README.md` (CLI-D35): when it is a regular project file, the one standalone line
+`` - `docs/solomonar/`: framework rules, roles, and skills `` inside its `## Documents` section is removed
+(`update`, reason `framework index line removed`); every other byte, line endings included, stays. A missing file
+is not created. A customized entry, or the exact line outside `## Documents`, is left unchanged (`skip`, reason
+`framework index entry customized; review by hand`) and reported for manual review with the warning
+`manual_reference`; so is an updated file that still mentions `docs/solomonar`. A file without any `docs/solomonar`
+mention gets no plan line. A non-regular file or a symlinked `docs` is never followed or rewritten: `skip`, reason
+`exists and is not a regular file`, with the same warning.
+
+Conflicts resolve as in 4.5. `--keep <path>` keeps the whole file as it is, untracked, with reason `untracked; left
+in place`; this includes an unsafe target and a record outside the removal paths. `--overwrite <path>` authorizes
+the removal of an edited regular file. For `AGENTS.md`, `--overwrite` removes the managed part and keeps the notes
+part, removing the file when the notes part holds only the template; with no boundary, `--overwrite AGENTS.md` is
+`invalid_value`: found `AGENTS.md has no "## Project notes" boundary`, fix `restore the boundary by hand or pass
+--keep AGENTS.md`, so notes are never discarded. `--overwrite` on a non-regular path or a path outside the removal
+paths is `invalid_value` with the 4.5 texts (found `<path> is not a regular file` or `<path> is outside the paths
+solomonar uninstall removes`, fix `remove it by hand or pass --keep <path>`). A hook entry conflict cannot
+be resolved by either flag until hook removal ships with the guard hooks; until then such a project cannot be
+uninstalled automatically: `--keep` or `--overwrite` on it is `invalid_value`, found `<path> holds a hook entry, which
+uninstall cannot remove yet`, fix `keep the installation until hook entry removal ships with the guard hooks`.
+
+**Retained**: project extension sources and their extra files, `docs/decisions.md` and every decision entry (also
+those naming removed extension paths), `docs/stack.md`, `docs/architecture.md`, specifications, work specs,
+reports, prototypes, the rest of `docs/README.md`, the `AGENTS.md` notes, an unmanaged `CLAUDE.md`, untracked runtime
+files and unrelated configuration, every kept path, `refs/heads/workflow-state` and its remote counterpart, task
+branches, worktrees, `.git`, and `.jj`. `uninstall` writes no `- <group>: none` decision, because the project's
+technology does not change. A retained `CLAUDE.md` that still contains `@AGENTS.md` after `AGENTS.md` is removed is
+reported with the warning `manual_reference`.
+
+**Directories.** A removal deletes the parent directories it leaves empty, as in 4.5. Only `uninstall` also removes
+`docs/solomonar/extensions`, `docs/solomonar`, and `.solomonar` when empty, through the journal. The top-level
+`docs`, `.claude`, `.codex`, `.agents`, and `.github` directories, and every nonempty directory, stay.
+
+**Output.** In a terminal without `--yes`, `Plan`, the file plan grouped as in UC-9 (with `skip` lines that carry a
+reason), and `Proceed? [Y/n] ` go to stderr; declining prints `Cancelled; nothing was written.` on stdout, exit 0.
+`--dry-run` runs every check, prints `Plan`, every file line, and `Would uninstall solomonar from <root>` with the
+counts on stdout, never prompts, needs no `--yes`, and writes no file, directory, or ref. The success form is:
+
+```
+Uninstalled solomonar from <root>
+  <counts>
+  kept: <retained paths>
+  The registry (refs/heads/workflow-state) and other worktrees are unchanged.
+
+Next:
+  1. Review the removal with git status, then commit it.
+```
+
+The `kept:` line lists the plan's `skip`, `keep`, and `update` paths and the `manual_reference` paths, and is left
+out when there are none. It never stages, commits, or pushes, and never claims that every mention of Solomonar is
+gone. On `file_conflict` the plan goes to stdout and the error to stderr (UC-9's form; the fix reads `rerun with
+--keep <path> to keep the project's file, or --overwrite <path> to remove it`). A second run is the
+absent-manifest no-op. The `manual_reference` warnings (stderr, or the envelope's `warnings`, with `--dry-run` and on
+success) read `docs/README.md still mentions docs/solomonar; review it by hand`, `CLAUDE.md still imports
+@AGENTS.md, which uninstall removes; edit it by hand`, and, for each `--keep` path, `<path> is kept and no longer
+managed; remove it by hand if unneeded`.
+
+`--json` data: `{"project", "files": [...], "preserved": [...], "next": [...]}`, with `files` entries as for
+UC-9 (`path`, `action`, `owner`, `reason`), `preserved` the `kept:` paths and `refs/heads/workflow-state`, sorted,
+`next` the `Next:` step, `"dry_run": true` and no
+`next` for `--dry-run`, and `{"project", "already_absent": true, "files": [], "preserved": [], "next": []}` for the
+absent-manifest no-op. A failure uses the error envelope without `data`; warnings stay in the envelope.
+
+**Apply.** After the confirmation and before the first write, the CLI checks that the manifest and every planned
+file still have the content and type it planned from, by rereading the manifest bytes and planning again without and
+with the resolutions; any change is `file_conflict`, message `uninstall found a change since the plan was shown`,
+check `the planned files are unchanged since the plan was shown`, found `<path> changed since the plan was shown`
+(the manifest's path when the manifest changed), fix `rerun solomonar uninstall`, and nothing is written. The apply then follows AD-6: handled
+failures and signals (exit 1, 130, 143) roll back the removals, the `AGENTS.md` and `docs/README.md` rewrites, the
+manifest, and the removed directories with their modes. When a rollback itself fails, the error keeps its code and
+exit, with found `not restored: <paths>`, fix `restore these paths by hand, for example with git restore, then rerun
+solomonar uninstall`, and the last stderr line `rollback incomplete; recover the paths named above` instead of
+`nothing was written`. There is no cross-process lock and no recovery after
+SIGKILL, power loss, or a concurrent write during the apply. Once every change has succeeded the command reports
+success.
+
+| Exit | Condition |
+|---|---|
+| 0 | Removal, dry run, absent-manifest no-op, or declined confirmation |
+| 1 | `manifest_invalid`, `git_too_old`, an unexpected I/O or Git failure, or a failed apply (rolled back) |
+| 2 | `invalid_usage`, `invalid_value`, `interactive_required` |
+| 3 | `not_a_repository`, `cli_outdated` |
+| 4 | `file_conflict`: an edited or unsafe managed file or manifest, a record outside the removal paths, a hook entry, or changed plan inputs |
+| 130, 143 | `interrupted` before the removal completed; rolled back |
 
 ## 6. Use cases: task state
 
@@ -2613,7 +2774,11 @@ conditions.
 | 1 | `init` (core, runtimes, catalog extensions), every `task` command, `version`, `help` | UC-1 to UC-4 and UC-11 to UC-21 pass as tests in temporary repositories, including the compare-and-swap retry and repeated `init` as a no-op |
 | 2, partial (0.2.0) | the extension store, a minimal `upgrade` (no `--diff`), `extension` list/add/remove (CLI-D27 to CLI-D31) | UC-6, UC-7, and the delivered UC-9 subset pass as tests in temporary repositories, including an upgrade from a v0.1.7 fixture, a repeated upgrade as a no-op, and a repeated `extension add` as a no-op |
 | 2, rest | `doctor`, `sync`, `runtime` list/add/remove, `guard` | UC-5, UC-8, UC-10, UC-22 |
+| uninstall (delivered) | `uninstall` (CLI-D32 to CLI-D35) | UC-27 passes as tests in temporary repositories, including current, core-only, and v0.1.7 layouts, a conflict and a rollback that leave the installation intact, a linked worktree whose neighbors and registry tips stay unchanged, and a repeated `uninstall` as a no-op |
 | 3 | `upgrade --diff`, `dashboard` | the rest of UC-9, UC-23 |
+
+`uninstall` is an additional delivery that needs only the existing plan, apply, and journal; it was delivered
+without waiting for the rest of increment 2. Hook entry removal ships with `guard` (UC-27).
 
 Copilot is an additional adapter delivery, after increment 1. Its first release
 adds generation and `init` selection only; runtime management remains increment 2, and no Copilot hook is
@@ -2687,3 +2852,7 @@ and the minimum supported Copilot version. Version 1.0.85 is a discovery baselin
 | CLI-D29 | Which skills only the user starts | a) an `invocation` field (`model` or `user`) in `extension.json` that adds `disable-model-invocation: true` to the Claude and Copilot stubs and the Codex `allow_implicit_invocation: false` policy, with a separate `AGENTS.md` line; b) a hard-coded name list; c) no user-only extensions | a: metadata, not names, decides; a separate line keeps user-invoked skills discoverable without the model loading them; Copilot prompt mode cannot start them (4.2, known limitation) | **a**, author, 2026-10-24 (4.2, 4.6) |
 | CLI-D30 | Combination rules and provenance inside extension files | a) none: extension files install byte-identical, and the decision appears in the `AGENTS.md` line and the manifest; b) sections kept or dropped by the installed set, plus a provenance line in each main file | a: no shipped extension needed combinations, verbatim copies keep hashes and upgrades simple, and project-owned files cannot be re-rendered anyway | **a**, author, 2026-10-24 (4.3, 4.6) |
 | CLI-D31 | Order of the increment 2 extension work | a) a minimal `upgrade` (no `--diff`; `--keep`, `--take-new`, `-y`, `--dry-run`, `--json`) first, so v0.1.7 projects move to the store; then `extension list`, `add`, `remove`, which reject an older framework with `framework_outdated`; b) all of increment 2 at once; c) the `extension` commands with an automatic layout migration | a: the commands work on one layout only, and the migration stays one explicit, reviewable command | **a**, author, 2026-10-24 (UC-9, 3.6) |
+| CLI-D32 | How the project installation is removed | a) one top-level `uninstall` that removes the core, catalog extensions, and adapters together; while the framework stays installed, no core item can be removed, and `extension remove` keeps rejecting one (`core_item`); b) core items removable one by one through `extension remove`; c) a `remove` alias or an `init --remove` mode | a: the core is the process (CLI-D14) and is either installed whole or not at all; one name keeps project uninstall distinct from extension removal and from removing the executable | **a**, author, 2026-10-24 (4.1, UC-27) |
+| CLI-D33 | What `uninstall` deletes and keeps | a) only manifest-recorded files whose hash equals the recorded base, legacy locations included, with no prior `upgrade`; project extension sources, decision and seeded documents, and `workflow-state` stay; no `none` decision is written; b) regenerate today's wanted set and remove it; c) also delete decisions and the registry | a: recorded ownership is the only authority for deletion; regeneration misses legacy paths and would load the catalog; decisions and task history are evidence, and the installed technology does not change | **a**, author, 2026-10-24 (4.5, UC-27) |
+| CLI-D34 | How `uninstall` treats `AGENTS.md` | a) remove only the verified managed part and keep the `## Project notes` part byte for byte, adopted instructions and heading included; remove the file only when the notes hold just the template; never discard notes to resolve a missing boundary; b) delete the whole file; c) restore the pre-install content | a: the notes are project-owned; c is impossible because the manifest does not record the original content | **a**, author, 2026-10-24 (UC-27) |
+| CLI-D35 | The framework entry in the seeded `docs/README.md` | a) `uninstall` removes only the exact generated line `` - `docs/solomonar/`: framework rules, roles, and skills `` from `## Documents`, keeps every other byte, and reports a customized entry for manual review; b) never touch the seed and leave a dangling entry; c) delete the file or every framework mention | a: a narrow, explicit exception to the rule that the CLI never modifies a present seed except to append index lines (4.3, 4.5) that removes the only active generated reference without rewriting project prose | **a**, author, 2026-10-24 (4.5, UC-27) |

@@ -14,6 +14,8 @@ generation, manifest tracking, and CLI `init` selection are implemented; live ac
 Runtime management and hooks remain increment 2; this addition specifies no Copilot hook and changes no existing
 architectural decision.
 
+`uninstall` was specified on 2026-10-24 (I UC-27, AD-16) and is implemented. It adds no package, dependency, interface, or manifest schema.
+
 Contents: 1 Scope · 2 Analysis of the interface design · 3 Toolchain · 4 Architectural decisions · 5 Layout and
 packages · 6 Key types · 7 Execution flow · 8 Errors, cancellation, and file safety · 9 Code conventions ·
 10 Tooling · 11 Testing · 12 Implementation plan · 13 Open questions · 14 Non-goals and deferred work
@@ -86,6 +88,7 @@ Section 10 enforces these with lint rules.
 | AD-13 | The entry point is `main.go` at the module root, not `cmd/solomonar/main.go`; it also holds `//go:embed assets` and passes the tree to `cli.Run` in `Env`. | The repository holds one binary, which is the official layout for "a command with supporting packages" (go.dev/doc/modules/layout); the install path shortens to the module path; the `assets` package and its global disappear. | `cmd/solomonar/`: meant for repositories with several binaries. A `cmd` package holding the command handlers (the Cobra convention): in Go, `cmd/<name>` means a `main` package, so it misleads readers and `go install ./cmd/...`. |
 | AD-14 | Tests use testify: `require` when the test cannot continue after a failure (errors, setup), `assert` for the remaining checks. `mock` and `suite` are not used. | Author decision, 2026-10-21. Shorter, uniform assertions with readable diffs (`assert.JSONEq` for the `--json` envelopes). Without `mock` and `suite`, tests keep real repositories and plain test functions (section 11). | The standard `testing` package alone. |
 | AD-15 | Transcript tests run the built binary through `testscript`: `main_test.go` registers `main` with `testscript.Main`, and one `.txtar` script per scenario lives in `testdata/`. They cover the process boundary and end-to-end journeys, not the rules already covered in-process (section 11). | Author decision, 2026-10-22. Only the real process exercises `main.go`: the embedded assets, `os.Exit` codes, separate standard streams, terminal detection, and real environment and working directory; the use cases read as transcripts. | In-process `cli.Run` tests alone: they bypass `main`. Building the binary with `os/exec` in a test: hand-written process plumbing that `testscript` already provides. |
+| AD-16 | `uninstall` plans in `internal/project` from the decoded manifest and the current files, not through the desired-state planner (`InitPlan` and its wants) or today's catalog, store, and templates; it reuses `Plan`, `Change`, `Resolutions`, `Apply`, and `Journal`. `internal/cli` locates the checkout, binds flags, reads the manifest directly (not through the `not_initialized` path), confirms, rechecks the planned inputs, applies, and renders. Only an uninstall apply also prunes the empty `docs/solomonar/extensions`, `docs/solomonar`, and `.solomonar` directories, journaled like every removed directory; other callers keep their directory policy (I UC-27, CLI-D33). | Recorded ownership is the deletion authority: rendering today's wants would miss legacy paths, load extensions that may no longer validate, and plan core files to keep. One plan/apply engine keeps `--dry-run`, conflicts, and rollback as in AD-6. Author decision, 2026-10-24. | `InitPlan` with empty choices: it keeps the core and writes decisions. A separate package or a deletion interface: a second engine for the same file-safety rules. A recursive delete of `docs/solomonar`: it removes project extension sources. |
 
 ## 5. Layout and packages
 
@@ -159,6 +162,7 @@ type Error struct {
 	Message           string // error: <Message> (<Code>); the JSON message
 	Check, Found, Fix string
 	Err               error
+	Unrestored        []string // paths a failed rollback left changed; replaces "nothing was written" (uninstall)
 }
 
 type runFunc func(ctx context.Context, env Env, flags sharedFlags, args []string) (output, error)
@@ -234,9 +238,13 @@ type Change struct {
 	Reason  string
 }
 
-type Plan struct{ Changes []Change }
+type Plan struct {
+	Changes []Change
+	Prune   []string // directories Apply removes after the changes when empty; set only by uninstall (AD-16)
+}
 
 func (p Plan) Conflicts() []Change
+func (p Plan) Changed(other Plan) (string, bool) // first path whose action, content, or reason differs
 
 type Want struct {
 	Path, Owner string
@@ -313,7 +321,20 @@ func InitPlan(root *os.Root, existing *Manifest, wants []Want, resolve Resolutio
 type Journal struct{ /* each touched path's previous content and mode, or its absence */ }
 
 func Apply(ctx context.Context, root *os.Root, p Plan) (*Journal, error)
-func (j *Journal) Rollback() error
+func (j *Journal) Rollback() error // a failure is a *RollbackError
+
+type RollbackError struct {
+	Paths []string // the entries left unrestored, in apply order
+	Err   error
+}
+
+type Uninstall struct {
+	Plan   Plan
+	Review []string // retained files with framework references (manual_reference)
+}
+
+func ReadUninstallManifest(root *os.Root) ([]byte, error) // nil when absent; never follows a symlink
+func PlanUninstall(root *os.Root, m *Manifest, r Resolutions) (Uninstall, error) // nil m checks r only
 ```
 
 `Classify` applies I section 4.5's rules and returns the plan with the manifest `files` entries for the wanted paths;
@@ -401,6 +422,27 @@ any file apply. A valid registry is reused; an invalid one is rejected without t
 project files (I UC-3). On `file_conflict`, `render` still prints the plan text (`Plan` and the conflict lines) on
 stdout before the error on stderr; JSON keeps `data` absent.
 
+**Project uninstall** (`uninstall`, I UC-27, AD-16):
+
+1. `cli` parses the flags, locates the worktree root from `-C` or the working directory, checks Git, and reads
+   `.solomonar/manifest.json` directly with `ReadUninstallManifest`: absent is the no-op result (after rejecting
+   any `--keep`/`--overwrite` path as not a conflict); a symlink or other non-regular manifest, or one under a
+   symlinked `.solomonar`, is `file_conflict` and is never read; newer is `cli_outdated`; malformed is
+   `manifest_invalid`; an older framework is accepted. It opens no registry store and runs no `git ls-files`.
+2. `project` builds the removal `Plan` from the manifest records and the bytes and types under the `os.Root`:
+   ordinary managed files through the existing removal rows and `Resolutions`, plus the `AGENTS.md` notes split,
+   the exact `docs/README.md` index line, preserved project extension sources as `skip`, the unsupported runtime
+   entry and out-of-scope records as conflicts, and the manifest `remove` last. It loads no catalog, store, or
+   template and writes nothing.
+3. `cli` stops on conflicts (exit 4) or after `--dry-run`, then confirms (`interactive_required` without a terminal or
+   with `--json`, without `--yes`).
+4. Before the first write, `cli` rereads the manifest bytes and has `project` plan again, without and with the
+   resolutions, comparing each plan with `Plan.Changed`; a different manifest or path is `file_conflict` and
+   nothing is written.
+5. `Apply` runs the plan with uninstall's directory pruning (section 8). A handled failure or signal rolls back
+   through the journal; success is the local commit point. No registry write, network call, or task-state change
+   follows. `cli` renders the result and `Next:`.
+
 ## 8. Errors, cancellation, and file safety
 
 - Expected failures are values: a `Rejection` for user-correctable checks, `cli.Error` at the boundary.
@@ -427,13 +469,21 @@ stdout before the error on stderr; JSON keeps `data` absent.
     (permission bits only, independent of the umask), then renamed over the target; updates keep their mode, new
     files get `0o644`. Missing parent directories are created `0o755` one level at a time, each journaled. A
     `remove` then deletes each parent directory it leaves empty, never a top-level one, `docs/solomonar`, or
-    `docs/solomonar/extensions` (I section 4.5), journaling each with its mode so a rollback recreates it.
+    `docs/solomonar/extensions` (I section 4.5), journaling each with its mode so a rollback recreates it. An
+    uninstall apply alone also removes `docs/solomonar/extensions`, `docs/solomonar`, and `.solomonar` when they
+    are left empty, journaled the same way (AD-16): `PlanUninstall` lists them in `Plan.Prune`, and `Apply`
+    removes each, after every change, when it is a directory (never a symlink) with no entries. No caller removes a
+    directory recursively.
   - The journal keeps each touched path's previous content and mode, or its absence. Errors are wrapped
     `apply <path>: %w` (cancellation wraps the context error); a failed or cancelled `Apply` rolls back
     automatically, joins any rollback failure into the error, and returns no journal.
   - `Journal.Rollback` restores in reverse order through the same temp-file-and-rename, deletes created files, and
     removes a created directory only when empty. Entries that fail to restore stay in the journal for the next
-    `Rollback`; after a full rollback the journal is empty, so a repeated call is a no-op.
+    `Rollback`; after a full rollback the journal is empty, so a repeated call is a no-op. A failed `Rollback`
+    returns a `*RollbackError` naming the unrestored paths.
+  - Other commands still end a failed rollback with the `nothing was written` footer. `uninstall` instead sets
+    `cli.Error.Unrestored`: `found` reads `not restored: <paths>` and the footer `rollback incomplete; recover the
+    paths named above` (I UC-27); the footer stays for a rollback that succeeds.
 - `init` creates the registry only when the ref is absent (`update-ref <ref> <new> ""` is create-only); it never
   overwrites one. On any failure before that CAS succeeds (a failed create, cancellation) it calls
   `Journal.Rollback` and returns the error (`interrupted` or `unexpected_error`) with the rollback error joined.
@@ -591,6 +641,9 @@ The rest of increment 2 (`doctor`, `sync`, `runtime`, `guard`) and increment 3 f
 The additional Copilot delivery is recorded in [interface section 10](interface.md#copilot-runtime-acceptance). It extends adapter generation and `init`
 before increment 2 without implementing runtime management. `init` continues rejecting changed recorded
 choices, so adding Copilot to an initialized project waits for `runtime add`.
+
+`uninstall` (I UC-27, AD-16) adds one command file in `cli` and the removal planner in `project`, with no new
+package or dependency. It is implemented.
 
 ## 13. Open questions
 

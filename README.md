@@ -27,7 +27,7 @@ Solomonar is an open-source workflow for building software with AI coding agents
 It has two parts:
 
 - **The framework:** Markdown rules, skills, and agent roles that `solomonar init` installs into your repository under `docs/solomonar/`. Your agent runtime reads them. The core works with any programming language; extensions add the rules for your stack.
-- **The CLI:** the `solomonar` binary. It installs and upgrades the framework, adds and removes extensions, writes the runtime adapters, and validates every task update against Git. It never calls a model, starts an agent, or stores review verdicts.
+- **The CLI:** the `solomonar` binary. It installs, upgrades, and uninstalls the framework, adds and removes extensions, writes the runtime adapters, and validates every task update against Git. It never calls a model, starts an agent, or stores review verdicts.
 
 ![The Solomonar framework: the core in docs/solomonar/ holds the agent roles, the skills, and the contracts every role follows; optional extensions, the go and extension-authoring skills from the catalog or your own skills and reviewers, add stack rules, procedures, and extra reviewers, loaded when their applies_when matches the change or when you start them.](docs/images/framework-core.svg)
 
@@ -78,7 +78,7 @@ Check the installation:
 solomonar version
 ```
 
-See [Install the CLI](https://solomonar.dev/docs/install/) for upgrades and the JSON output.
+See [Install the CLI](https://solomonar.dev/docs/install/) for upgrades, removal, and the JSON output.
 
 ## Quick start
 
@@ -90,7 +90,7 @@ solomonar init --git-init --runtime claude --ext go \
   --objective "Shared expenses for small groups" --yes
 ```
 
-`--ext go` installs the Go rules. Without `--ext`, `init` selects `extension-authoring` in every project and `go` when a `go.mod` exists; add or remove extensions later with `solomonar extension add|remove`, and move to a newer framework with `solomonar upgrade`.
+`--ext go` installs the Go rules. Without `--ext`, `init` selects `extension-authoring` in every project and `go` when a `go.mod` exists; add or remove extensions later with `solomonar extension add|remove`, and move to a newer framework with `solomonar upgrade`. `solomonar uninstall` removes the framework from a checkout again, keeping your notes, project extensions, decisions, and task history.
 
 Make the first commit, because task worktrees branch from `main`. `init` prints the exact command for the runtimes you chose:
 
