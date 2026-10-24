@@ -40,8 +40,8 @@ Plan
   create     .codex/agents/spec-reviewer.toml
   create     .solomonar/manifest.json
   registry   create refs/heads/workflow-state with an empty registry
-Would initialize solomonar 0.1.7 in /work/ledger
-  39 files created
+Would initialize solomonar 0.2.0 in /work/ledger
+  48 files created
 ```
 
 Choose `--runtime claude`, `--runtime codex`, `--runtime copilot`, any combination, or `--runtime none` alone. Without the flag, a new project's defaults select the runtimes found on your `PATH`. Explicit selection does not require the executable installed; a rerun preserves the manifest's choices.
@@ -57,11 +57,11 @@ This plan creates 28 files, including `.github/skills/` and `.github/agents/` ad
 
 ## Choose extensions
 
-Extensions add the rules of your stack. The v0.1.7 catalog holds `go`, the Go language rules. Add it with `--ext go`; without `--ext`, `init` selects `go` when the repository root has a `go.mod`, and nothing otherwise. `--ext none` installs no extension.
+Extensions add the rules of your stack, supporting procedures, and extra reviewers. The catalog holds `go`, the Go language rules, and `extension-authoring`, the skill that writes your project's own extensions. Without `--ext`, `init` selects the suggested ones: `extension-authoring` in every project, and `go` when a `go.mod` exists anywhere in the repository. The empty `ledger` directory therefore gets only `extension-authoring`. Pass `--ext go` to choose Go yourself, or `--ext none` for no extension.
 
 Choosing a stack extension is an approved decision: `init` records it as `P/D-1` in `docs/decisions.md` and lists it in `docs/stack.md`. The extension installs instructions for the agents, never application packages.
 
-A new project can also start with no extension and choose its stack after discovery. Adding an extension to an initialized project needs the `extension add` command, which is planned.
+A new project can also start with no stack extension and choose its stack after discovery: `solomonar extension list` shows what is available and suggested, and `solomonar extension add go` records your decision when you make it. See [`solomonar extension`]({{ '/docs/cli/extension/' | url }}).
 
 ## Initialize
 
@@ -73,13 +73,13 @@ solomonar init --git-init --runtime claude --runtime codex \
 ```
 
 ```text
-Initialized solomonar 0.1.7 in /work/ledger
-  39 files created
-  registry  refs/heads/workflow-state @ d769ccf0e2985d73a01b442fb0556fb8854de1fe
+Initialized solomonar 0.2.0 in /work/ledger
+  48 files created
+  registry  refs/heads/workflow-state @ e8f817f0693ebfb7967375390242914ae750a2dd
 
 Next:
   1. First commit required before task worktrees:
-       git add AGENTS.md CLAUDE.md .claude .agents .codex .solomonar docs && git commit -m "chore: initialize solomonar 0.1.7"
+       git add AGENTS.md CLAUDE.md .claude .agents .codex .solomonar docs && git commit -m "chore: initialize solomonar 0.2.0"
   2. Start a top-level session in /work/ledger with your selected outcome:
        Claude Code: /solomonar Explore the next useful flow.
        Codex:       $solomonar Explore the next useful flow.
@@ -95,7 +95,7 @@ Task worktrees branch from `main`, so `main` needs a commit. Run the command fro
 
 ```sh
 git add AGENTS.md CLAUDE.md .claude .agents .codex .solomonar docs
-git commit -m "chore: initialize solomonar 0.1.7"
+git commit -m "chore: initialize solomonar 0.2.0"
 ```
 
 For a Copilot selection, use the printed command: it names each generated adapter file under `.github/skills/` and `.github/agents/`. Do not substitute `git add .github`, which can stage unrelated project files.
@@ -108,8 +108,8 @@ Start your selected runtime at the repository root. For Copilot CLI, run `copilo
 | --- | --- |
 | `AGENTS.md` | Instructions every agent session reads first. |
 | `docs/README.md` | Your project's mission, objective, document index, and run and check commands. You own it. |
-| `docs/solomonar/` | The framework: rules, the four skills, and the six agent roles, plus the skills of installed extensions. |
-| `docs/decisions.md`, `docs/stack.md` | Your approved stack decisions, written only when you chose an extension. |
+| `docs/solomonar/` | The framework: rules, the four skills, and the six agent roles. Installed extensions live in `docs/solomonar/extensions/<name>/`. |
+| `docs/decisions.md`, `docs/stack.md` | Your approved stack decisions, written only when you chose a stack extension such as `go`. |
 | `CLAUDE.md`, `.claude/` | Claude Code adapters: an `@AGENTS.md` import, skill stubs, and agent stubs. |
 | `.agents/`, `.codex/` | Codex adapters: skill stubs and agent definitions. |
 | `.github/skills/<skill>/SKILL.md`, `.github/agents/<role>.agent.md` | Copilot CLI skill and delegated-role adapters, when selected; no extra root instruction file or guard hook. |
@@ -136,10 +136,10 @@ If the repository already has an application, agents discover its build and test
 `init` is safe to repeat. With the same choices and unchanged files, it does nothing:
 
 ```text
-Already initialized with solomonar 0.1.7; nothing to do.
+Already initialized with solomonar 0.2.0; nothing to do.
 ```
 
-It never changes a recorded choice, such as the runtimes or the extensions. Those will change through the planned `runtime` and `extension` commands. To add Copilot to an already initialized Solomonar project with different runtimes, wait for `runtime add`; do not edit the manifest or pass different runtimes to `init`.
+It never changes a recorded choice, such as the runtimes or the extensions. Change extensions with [`extension add` and `extension remove`]({{ '/docs/cli/extension/' | url }}); after a CLI update, move the framework with [`upgrade`]({{ '/docs/cli/upgrade/' | url }}). Runtimes will change through the planned `runtime` commands. To add Copilot to an already initialized Solomonar project with different runtimes, wait for `runtime add`; do not edit the manifest or pass different runtimes to `init`.
 
 ## Next
 
