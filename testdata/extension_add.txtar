@@ -1,0 +1,125 @@
+# Activate a project review agent and a catalog workflow skill on a project initialized without extensions.
+exec git init -q -b main repo
+cd repo
+exec solomonar init --runtime claude,codex --ext none --yes
+mkdir docs/solomonar/extensions/money
+cp ../money/extension.json docs/solomonar/extensions/money/extension.json
+cp ../money/money.md docs/solomonar/extensions/money/money.md
+
+# Without a terminal the plan needs --yes.
+exitcode 2 solomonar extension add money
+! stdout .
+stderr '^error: extension add needs a confirmation \(interactive_required\)$'
+
+# The dry run prints every file line and writes nothing.
+exec solomonar extension add money --dry-run
+stdout '^Plan$'
+stdout '^  update     AGENTS\.md$'
+stdout '^  create     \.claude/agents/money\.md$'
+stdout '^  create     \.codex/agents/money\.toml$'
+stdout '^  update     \.solomonar/manifest\.json$'
+stdout '^Would add extension money in .+repo$'
+stdout '^  2 files created, 2 updated, \d+ unchanged, 1 skipped$'
+! exists .claude/agents/money.md
+! grep money .solomonar/manifest.json
+
+# The project agent gets its stubs, AGENTS.md line, and manifest entry; its directory stays untouched.
+exec solomonar extension add money --yes
+stdout '^Added extension money \(review agent, project\) in .+repo$'
+stdout '^  2 files created, 2 updated, \d+ unchanged, 1 skipped$'
+stdout '^  1\. git add AGENTS\.md \.claude \.agents \.codex \.solomonar docs && git commit -m "chore: add solomonar extension money"$'
+! stderr .
+cmp docs/solomonar/extensions/money/extension.json ../money/extension.json
+cmp docs/solomonar/extensions/money/money.md ../money/money.md
+grep 'docs/solomonar/extensions/money/money\.md' .claude/agents/money.md
+grep '^description = "Reviews monetary amounts\."$' .codex/agents/money.toml
+grep '^  - `money` \(review\): A change handles monetary amounts$' AGENTS.md
+grep '"source": "path"' .solomonar/manifest.json
+grep '"path": "docs/solomonar/extensions/money"' .solomonar/manifest.json
+! grep '"docs/solomonar/extensions/money/' .solomonar/manifest.json
+
+# A second run is a no-op.
+exec solomonar ext add money
+stdout '^Already installed: money; nothing to do\.$'
+stdout '^  \d+ files unchanged, 1 skipped$'
+
+# A catalog workflow skill is copied into the store.
+exec solomonar extension add extension-authoring --yes
+stdout '^Added extension extension-authoring \(workflow skill, catalog\) in .+repo$'
+cmp docs/solomonar/extensions/extension-authoring/SKILL.md $ASSETS/extensions/workflow/extension-authoring/SKILL.md
+cmp docs/solomonar/extensions/extension-authoring/extension.json $ASSETS/extensions/workflow/extension-authoring/extension.json
+grep '"owner": "ext:extension-authoring"' .solomonar/manifest.json
+grep '^  allow_implicit_invocation: false$' .agents/skills/extension-authoring/agents/openai.yaml
+
+exec solomonar extension list --installed
+stdout '^workflow +extension-authoring +skill +catalog +installed '
+stdout '^review +money +agent +project +installed '
+
+# --decision and --rationale apply to stack groups only.
+exitcode 2 solomonar extension add money --rationale why --yes
+stderr '^error: --decision and --rationale apply to stack groups only \(invalid_usage\)$'
+
+# A --decision entry that is not approved is rejected.
+cp ../pending.md docs/decisions.md
+exitcode 3 solomonar extension add go --decision W-002/D-2 --yes
+stderr '^error: extension add rejected \(decision_not_approved\)$'
+stderr '^  found: W-002/D-2 has status pending$'
+exitcode 3 solomonar extension add go --decision W-002/D-3 --yes
+stderr '^error: extension add rejected \(decision_not_found\)$'
+stderr '^  found: W-002/D-3 is not in docs/decisions\.md$'
+! exists docs/stack.md
+rm docs/decisions.md
+
+# A stack extension records the user's decision P/D-1 in its group's documents, the manifest, and AGENTS.md.
+exec solomonar extension add go --yes
+stdout '^Added extension go \(language skill, catalog, under P/D-1\) in .+repo$'
+grep '^## P/D-1: Programming languages$' docs/decisions.md
+grep '^- Status: approved$' docs/decisions.md
+grep '^- Rationale: selected by the user with `solomonar extension add`$' docs/decisions.md
+grep '^- References: `docs/solomonar/extensions/go/SKILL\.md`$' docs/decisions.md
+grep '^- language: go \(P/D-1\)$' docs/stack.md
+grep '^- `docs/stack\.md`: technologies and practices, with the decisions that adopted them$' docs/README.md
+grep '"decision": "P/D-1"' .solomonar/manifest.json
+grep '^  - `go` \(language, P/D-1\): A change touches Go code' AGENTS.md
+
+# Re-adding it keeps the recorded decision.
+exec solomonar extension add go
+stdout '^Already installed: go; nothing to do\.$'
+
+# A name in neither the catalog nor the store is rejected.
+exitcode 2 solomonar extension add nope --yes
+stderr '^error: extension add rejected \(unknown_extension\)$'
+stderr '^  found: "nope" is not in the catalog or docs/solomonar/extensions/; known: none$'
+
+# A project on an older framework must upgrade first.
+cd ../old
+exec git init -q -b main
+exitcode 3 solomonar extension add money --yes
+! stdout .
+stderr '^error: extension add rejected \(framework_outdated\)$'
+stderr '^  found: manifest framework 0\.1\.6, this CLI ships .+$'
+stderr '^  fix:   run solomonar upgrade$'
+
+-- pending.md --
+# Decisions
+
+## W-002/D-2: Programming languages
+
+- Status: pending
+-- money/extension.json --
+{"name": "money", "kind": "agent", "group": "review", "title": "Money reviewer", "applies_when": "A change handles monetary amounts"}
+-- money/money.md --
+---
+name: money
+description: Reviews monetary amounts.
+---
+# Money reviewer
+-- old/.solomonar/manifest.json --
+{
+  "schema_version": 1,
+  "framework_version": "0.1.6",
+  "project": {"name": "old", "main_branch": "main", "remote": "origin"},
+  "runtimes": {},
+  "extensions": {},
+  "files": {".solomonar/manifest.json": {"owner": "manifest"}}
+}
