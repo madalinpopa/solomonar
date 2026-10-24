@@ -252,6 +252,7 @@ h2 { font-size: clamp(2.5rem, 4.2vw, 3.6rem); line-height: 1.12; letter-spacing:
 .workflow-diagram .bar-warn { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1; }
 .workflow-diagram .bar-t { font-size: 11px; fill: var(--ink); }
 .workflow-diagram .ink { fill: var(--ink); }
+.workflow-diagram .halo { paint-order: stroke; stroke: var(--bg); stroke-width: 5px; stroke-linejoin: round; }
 
 @keyframes scholar-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 @keyframes rider-flight { 0%, 100% { transform: translate(0, 0) rotate(-1deg); } 50% { transform: translate(9px, -12px) rotate(1deg); } }
