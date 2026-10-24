@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" class="dg" width="960" height="290" viewBox="0 0 960 290" role="img" aria-label="The Solomonar framework: the core in docs/solomonar/ holds the agent roles, the skills, and the contracts every role follows; optional extensions add stack rules and extra reviewers, loaded when their applies_when matches the change.">
+<svg xmlns="http://www.w3.org/2000/svg" class="dg" width="960" height="290" viewBox="0 0 960 290" role="img" aria-label="The Solomonar framework: the core in docs/solomonar/ holds the agent roles, the skills, and the contracts every role follows; optional extensions, the go and extension-authoring skills from the catalog or your own skills and reviewers, add stack rules, procedures, and extra reviewers, loaded when their applies_when matches the change or when you start them.">
 <style>
 svg {
   --bg: #F2F4F1; --surface: #FFFFFF; --ink: #18211E; --muted: #56625D; --line: #9AA7A1; --grid: #DDE3DF;
@@ -97,16 +97,16 @@ svg { font-family: var(--sans); }
 <rect class="box" x="716" y="196" width="208" height="24" rx="4"/>
 <text class="t-sm" x="726" y="212">go</text>
 <text class="s" x="914" y="212" text-anchor="end">language rules</text>
-<rect class="box dash" x="716" y="225" width="208" height="24" rx="4"/>
-<text class="t-sm" x="726" y="241">htmx · templ · tdd</text>
-<text class="s" x="914" y="241" text-anchor="end">planned</text>
+<rect class="box" x="716" y="225" width="208" height="24" rx="4"/>
+<text class="t-sm" x="726" y="241">extension-authoring</text>
+<text class="s" x="914" y="241" text-anchor="end">workflow</text>
 <text class="t" x="716" y="272">Agents</text>
 <rect class="box dash" x="716" y="282" width="208" height="24" rx="4"/>
 <text class="t-sm" x="726" y="298">extra reviewers</text>
 <text class="s" x="914" y="298" text-anchor="end">your own</text>
 <text class="lbl" x="716" y="334">Loaded when applies_when</text>
-<text class="lbl" x="716" y="350">matches the change; rules</text>
-<text class="lbl" x="716" y="366">are cited as name/C-n.</text>
+<text class="lbl" x="716" y="350">matches, or started by you;</text>
+<text class="lbl" x="716" y="366">rules are cited as name/C-n.</text>
 <path class="e" d="M700 265 H642" marker-end="url(#ba)"/>
 <text class="lbl" x="671" y="257" text-anchor="middle">extends</text>
 </g>
