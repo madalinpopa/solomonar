@@ -1,6 +1,6 @@
 # Framework rules
 
-Framework version: 0.1.7
+Framework version: 0.2.0
 
 These rules apply to every managed task. Orchestrators load this file together with `AGENTS.md`. Report
 format, result values, finding fields, and the PR Verification section: `docs/solomonar/report.md`. Role
@@ -74,7 +74,7 @@ Here, "main" means the integration branch named by `.solomonar/manifest.json` â†
 - Stack extensions follow the same approval rule. When available, the user's `solomonar extension add|remove`
   records `P/D-n` for each affected group's complete selection, using the entry format above; the orchestrator
   instead passes `--decision <approved-ID>`. The CLI updates installed extensions' decision references and
-  supersession links together. Drafts approve nothing and are excluded from loading, rendering, and triage.
+  supersession links together.
 - Check availability with `solomonar help` (section 11). If extension management is unavailable, report it;
   never substitute manual edits to the manifest or generated adapters.
 
