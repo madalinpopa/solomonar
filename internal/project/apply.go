@@ -44,7 +44,36 @@ func Apply(ctx context.Context, root *os.Root, p Plan) (*Journal, error) {
 			return nil, errors.Join(fmt.Errorf("apply %s: %w", c.Path, err), j.Rollback())
 		}
 	}
+	for _, dir := range p.Prune {
+		err := ctx.Err()
+		if err == nil {
+			err = j.prune(dir)
+		}
+		if err != nil {
+			return nil, errors.Join(fmt.Errorf("apply %s: %w", dir, err), j.Rollback())
+		}
+	}
 	return j, nil
+}
+
+// prune removes dir when it is an empty directory, not a symlink, journaling it with its mode.
+func (j *Journal) prune(dir string) error {
+	info, err := j.root.Lstat(dir)
+	if errors.Is(err, fs.ErrNotExist) || err == nil && !info.IsDir() {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	empty, err := j.isEmpty(dir)
+	if err != nil || !empty {
+		return err
+	}
+	if err := j.root.Remove(dir); err != nil {
+		return err
+	}
+	j.entries = append(j.entries, journalEntry{path: dir, mode: info.Mode().Perm(), removedDir: true})
+	return nil
 }
 
 func (j *Journal) apply(c Change) error {
@@ -168,7 +197,14 @@ func (j *Journal) Rollback() error {
 	}
 	slices.Reverse(failed)
 	j.entries = failed
-	return errors.Join(errs...)
+	if len(failed) == 0 {
+		return nil
+	}
+	paths := make([]string, 0, len(failed))
+	for _, e := range failed {
+		paths = append(paths, e.path)
+	}
+	return &RollbackError{Paths: paths, Err: errors.Join(errs...)}
 }
 
 func (j *Journal) undo(e journalEntry) error {
@@ -236,3 +272,13 @@ func writeFile(root *os.Root, name string, content []byte, mode fs.FileMode) err
 	}
 	return err
 }
+
+// RollbackError lists the paths a rollback could not restore.
+type RollbackError struct {
+	Paths []string
+	Err   error
+}
+
+func (e *RollbackError) Error() string { return e.Err.Error() }
+
+func (e *RollbackError) Unwrap() error { return e.Err }

@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	adoptedNotes = `adopted; existing content moved under "## Project notes"`
-	notRegular   = "exists and is not a regular file"
+	adoptedNotes   = `adopted; existing content moved under "## Project notes"`
+	notRegular     = "exists and is not a regular file"
+	modifiedReason = "modified since installation (manifest sha256 differs)"
 )
 
 // Adopted reports whether the change moves an unmanaged file's content under "## Project notes".
@@ -187,29 +188,38 @@ func classifyRemovals(root *os.Root, m *Manifest, wants []Want) ([]Change, error
 		if file.SHA256 == "" || wanted {
 			continue
 		}
-		change := Change{Path: path, Owner: file.Owner}
-		info, err := root.Lstat(path)
-		switch {
-		case errors.Is(err, fs.ErrNotExist):
-			continue
-		case err != nil:
-			return nil, fmt.Errorf("classify %s: %w", path, err)
-		case !info.Mode().IsRegular():
-			changes = append(changes, conflict(change, notRegular))
-			continue
-		}
-		disk, err := root.ReadFile(path)
+		change, present, err := classifyRemoval(root, path, file)
 		if err != nil {
-			return nil, fmt.Errorf("classify %s: %w", path, err)
+			return nil, err
 		}
-		if Hash(disk) == file.SHA256 {
-			change.Action = ActionRemove
-		} else {
-			change = conflict(change, "modified since installation (manifest sha256 differs)")
+		if present {
+			changes = append(changes, change)
 		}
-		changes = append(changes, change)
 	}
 	return changes, nil
+}
+
+// classifyRemoval plans removing one hashed managed file; present is false when it is absent.
+func classifyRemoval(root *os.Root, path string, file File) (change Change, present bool, err error) {
+	change = Change{Path: path, Owner: file.Owner}
+	info, err := root.Lstat(path)
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return Change{}, false, nil
+	case err != nil:
+		return Change{}, false, fmt.Errorf("classify %s: %w", path, err)
+	case !info.Mode().IsRegular():
+		return conflict(change, notRegular), true, nil
+	}
+	disk, err := root.ReadFile(path)
+	if err != nil {
+		return Change{}, false, fmt.Errorf("classify %s: %w", path, err)
+	}
+	if Hash(disk) != file.SHA256 {
+		return conflict(change, modifiedReason), true, nil
+	}
+	change.Action = ActionRemove
+	return change, true, nil
 }
 
 // classify plans one wanted path and returns the content an update or --overwrite writes.
@@ -279,7 +289,7 @@ func compare(change Change, disk, offer, written []byte, base string) Change {
 	case Hash(offer) == base:
 		change.Action = ActionKeep
 	default:
-		change = conflict(change, "modified since installation (manifest sha256 differs)")
+		change = conflict(change, modifiedReason)
 	}
 	return change
 }
