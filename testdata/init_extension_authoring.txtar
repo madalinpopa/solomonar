@@ -1,22 +1,30 @@
-# One portable workflow package is copied; all runtimes get pointers to it.
+# One portable workflow package is copied into the store; all runtimes get pointers to it.
 exec git init -q -b main repo
 cd repo
 exec solomonar init --runtime claude,codex,copilot --ext extension-authoring --yes
 stdout '^Initialized solomonar '
-exists docs/solomonar/skills/extension-authoring/SKILL.md
-cmp docs/solomonar/skills/extension-authoring/references/research.md $ASSETS/extensions/workflow/extension-authoring/references/research.md
-cmp docs/solomonar/skills/extension-authoring/references/author.md $ASSETS/extensions/workflow/extension-authoring/references/author.md
-cmp docs/solomonar/skills/extension-authoring/references/validate.md $ASSETS/extensions/workflow/extension-authoring/references/validate.md
-cmp docs/solomonar/skills/extension-authoring/references/evidence.md $ASSETS/extensions/workflow/extension-authoring/references/evidence.md
-! exists docs/solomonar/skills/extension-authoring/extension.json
-grep 'docs/solomonar/skills/extension-authoring/SKILL.md' .claude/skills/extension-authoring/SKILL.md
-grep 'docs/solomonar/skills/extension-authoring/SKILL.md' .agents/skills/extension-authoring/SKILL.md
-grep 'docs/solomonar/skills/extension-authoring/SKILL.md' .github/skills/extension-authoring/SKILL.md
+cmp docs/solomonar/extensions/extension-authoring/extension.json $ASSETS/extensions/workflow/extension-authoring/extension.json
+cmp docs/solomonar/extensions/extension-authoring/SKILL.md $ASSETS/extensions/workflow/extension-authoring/SKILL.md
+cmp docs/solomonar/extensions/extension-authoring/references/research.md $ASSETS/extensions/workflow/extension-authoring/references/research.md
+cmp docs/solomonar/extensions/extension-authoring/references/author.md $ASSETS/extensions/workflow/extension-authoring/references/author.md
+cmp docs/solomonar/extensions/extension-authoring/references/validate.md $ASSETS/extensions/workflow/extension-authoring/references/validate.md
+cmp docs/solomonar/extensions/extension-authoring/references/evidence.md $ASSETS/extensions/workflow/extension-authoring/references/evidence.md
+! exists docs/solomonar/skills/extension-authoring
+grep 'docs/solomonar/extensions/extension-authoring/SKILL.md' .claude/skills/extension-authoring/SKILL.md
+grep 'docs/solomonar/extensions/extension-authoring/SKILL.md' .agents/skills/extension-authoring/SKILL.md
+grep 'docs/solomonar/extensions/extension-authoring/SKILL.md' .github/skills/extension-authoring/SKILL.md
+grep '^disable-model-invocation: true$' .claude/skills/extension-authoring/SKILL.md
+grep '^disable-model-invocation: true$' .github/skills/extension-authoring/SKILL.md
+! grep 'disable-model-invocation' .agents/skills/extension-authoring/SKILL.md
+grep '^  allow_implicit_invocation: false$' .agents/skills/extension-authoring/agents/openai.yaml
 grep '"owner": "ext:extension-authoring"' .solomonar/manifest.json
 grep '"owner": "runtime:claude"' .solomonar/manifest.json
 grep '"owner": "runtime:codex"' .solomonar/manifest.json
 grep '"owner": "runtime:copilot"' .solomonar/manifest.json
-grep 'extension-authoring.*workflow' AGENTS.md
+! grep 'rendered_with' .solomonar/manifest.json
+grep '^- User-invoked skills: load one only when the user starts it, never because it applies\.$' AGENTS.md
+grep '^  - `extension-authoring` \(workflow\): ' AGENTS.md
+grep '^- Skills: none\.$' AGENTS.md
 ! exists docs/decisions.md docs/stack.md
 
 # Repeated initialization preserves the same metadata and adapters.
@@ -24,3 +32,20 @@ cp .solomonar/manifest.json ../manifest.json
 exec solomonar init
 stdout '^Already initialized with solomonar .+; nothing to do\.$'
 cmp .solomonar/manifest.json ../manifest.json
+
+# Without --ext, init preselects the default extension and those its detect globs find.
+cd ..
+exec git init -q -b main detected
+cd detected
+exec solomonar init --runtime none --yes
+grep '"extension-authoring": \{' .solomonar/manifest.json
+grep '"go": \{' .solomonar/manifest.json
+cd ..
+exec git init -q -b main plain
+cd plain
+exec solomonar init --runtime none --yes
+grep '"extension-authoring": \{' .solomonar/manifest.json
+! grep '"go": \{' .solomonar/manifest.json
+
+-- detected/tools/go.mod --
+module example.com/tools
