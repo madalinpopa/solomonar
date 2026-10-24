@@ -15,6 +15,9 @@ Commands:
   upgrade            Move the project to this CLI's framework version
   uninstall          Remove the framework installation from the project
   version            Print the CLI and project framework versions
+  runtime list       List the supported runtimes and their adapters
+  runtime add        Install a runtime's adapters
+  runtime remove     Remove a runtime's adapters
   extension list     List catalog and project extensions
   extension add      Install catalog or project extensions
   extension remove   Remove catalog or deactivate project extensions
@@ -162,6 +165,51 @@ func TestHelpForExtensionListThroughTheAlias(t *testing.T) {
 		"Global flags: see 'solomonar help'.\n", viaHelp.stdout)
 	assert.Equal(t, viaHelp.stdout, viaFlag.stdout)
 	assert.Contains(t, viaJSON.stdout, `"command": "extension list"`)
+}
+
+func TestHelpForRuntimeList(t *testing.T) {
+	t.Parallel()
+
+	viaHelp := runCLI(t, repoAssets(t), "help", "runtime", "list")
+	viaFlag := runCLI(t, repoAssets(t), "runtime", "list", "--help")
+	viaJSON := runCLI(t, repoAssets(t), "--json", "runtime", "list", "-h")
+
+	require.Equal(t, 0, viaHelp.exit, viaHelp.stderr)
+	assert.Equal(t, "Usage: solomonar runtime list [--json]\n\n"+
+		"List claude, codex, and copilot with whether the project installs each, whether its executable\n"+
+		"is on PATH, and its adapter locations. Works without a manifest. Read-only.\n\n"+
+		"Global flags: see 'solomonar help'.\n", viaHelp.stdout)
+	assert.Equal(t, viaHelp.stdout, viaFlag.stdout)
+	assert.Contains(t, viaJSON.stdout, `"command": "runtime list"`)
+}
+
+func TestHelpForRuntimeAdd(t *testing.T) {
+	t.Parallel()
+
+	got := runCLI(t, repoAssets(t), "runtime", "add", "-h")
+
+	require.Equal(t, 0, got.exit, got.stderr)
+	assert.Equal(t, "Usage: solomonar runtime add <claude|codex|copilot> [--adversarial-model <model>] [--keep <path>]...\n"+
+		"                             [--overwrite <path>]... [-y|--yes] [--dry-run] [--json]\n\n"+
+		"Generate the runtime's skill and role stubs for the core and the installed extensions, and\n"+
+		"record it in the manifest; --adversarial-model sets its adversarial reviewer's model. Other choices\n"+
+		"stay as recorded. --keep or --overwrite resolves a conflicting file; --dry-run prints the plan and\n"+
+		"writes nothing. No hook or runtime settings file is written.\n\n"+
+		"Global flags: see 'solomonar help'.\n", got.stdout)
+}
+
+func TestHelpForRuntimeRemove(t *testing.T) {
+	t.Parallel()
+
+	got := runCLI(t, repoAssets(t), "runtime", "remove", "-h")
+
+	require.Equal(t, 0, got.exit, got.stderr)
+	assert.Equal(t, "Usage: solomonar runtime remove <claude|codex|copilot> [--keep <path>]... [--overwrite <path>]...\n"+
+		"                                [-y|--yes] [--dry-run] [--json]\n\n"+
+		"Delete the runtime's managed adapter files and drop it and its model from the manifest. Other\n"+
+		"choices, unmanaged files, and the framework stay. --keep untracks an edited file, --overwrite\n"+
+		"deletes it; --dry-run prints the plan and writes nothing.\n\n"+
+		"Global flags: see 'solomonar help'.\n", got.stdout)
 }
 
 func TestHelpForExtensionAdd(t *testing.T) {
