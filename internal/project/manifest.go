@@ -45,14 +45,13 @@ type Runtime struct {
 
 // Extension is one installed or draft extension.
 type Extension struct {
-	State        string   `json:"state"`
-	Kind         string   `json:"kind"`
-	Group        string   `json:"group"`
-	Source       string   `json:"source"`
-	Path         string   `json:"path,omitempty"`
-	Decision     string   `json:"decision,omitempty"`
-	RenderedWith []string `json:"rendered_with,omitempty"`
-	Title        string   `json:"title,omitempty"`
+	State    string `json:"state"`
+	Kind     string `json:"kind"`
+	Group    string `json:"group"`
+	Source   string `json:"source"`
+	Path     string `json:"path,omitempty"`
+	Decision string `json:"decision,omitempty"`
+	Title    string `json:"title,omitempty"`
 	// omitzero keeps a project extension's empty lists, as in the I section 4.7 draft.
 	Requires    []string `json:"requires,omitzero"`
 	Conflicts   []string `json:"conflicts,omitzero"`
