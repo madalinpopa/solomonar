@@ -74,8 +74,8 @@ func TestVersionReportsTheProject(t *testing.T) {
 			want: "framework " + shipped + " · registry invalid",
 		},
 		{
-			name: "unreadable registry with newer framework", manifest: `{"schema_version": 1, "framework_version": "0.2.0"}`, registry: `[`,
-			want: "framework 0.2.0 · registry invalid (newer than this CLI; install solomonar 0.2.0 or later)",
+			name: "unreadable registry with newer framework", manifest: `{"schema_version": 1, "framework_version": "0.3.0"}`, registry: `[`,
+			want: "framework 0.3.0 · registry invalid (newer than this CLI; install solomonar 0.3.0 or later)",
 		},
 	}
 	for _, tt := range tests {
