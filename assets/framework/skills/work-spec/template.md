@@ -2,7 +2,7 @@
 Status: In review
 Type: <feature | bug fix | refactor | technical task>
 
-<!-- Framework version: 0.1.7. English. Delete empty optional sections, unused optional bullets, and all hints.
+<!-- Framework version: 0.2.0. English. Delete empty optional sections, unused optional bullets, and all hints.
 No execution state or readiness verdicts. Status stays "In review" until the user approves the implementation
 plan; the orchestrator then sets "Approved". -->
 
