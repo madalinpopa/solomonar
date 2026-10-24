@@ -171,6 +171,13 @@ Without Task, `go build -trimpath -o bin/solomonar .` and `go test -race ./...` 
 
 Contributions are welcome. [`CONTRIBUTING.md`](CONTRIBUTING.md) covers the development setup, the documents to update with each change, commit conventions, and step-by-step guides with templates for adding framework rules, extension skills, and agents. For anything beyond a small fix, open an issue first to agree on the behavior.
 
+The source catalog includes `go` and the optional
+[`extension-authoring` workflow skill](assets/extensions/workflow/extension-authoring/SKILL.md).
+The latter researches, writes, and validates catalog extensions or project-specific
+source. New projects can select it with `init --ext extension-authoring`; runtime
+stubs load the same portable instructions. It does not replace CLI installation
+or metadata tracking.
+
 To report a problem, include the output of `solomonar version`, the command, the error code, and the relevant Git state, with secrets redacted. The [troubleshooting guide](https://solomonar.dev/docs/troubleshooting/#report-a-problem-with-evidence) lists what helps. Report security problems privately as [`SECURITY.md`](SECURITY.md) describes.
 
 ### Releases
