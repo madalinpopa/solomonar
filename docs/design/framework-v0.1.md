@@ -29,12 +29,12 @@ The framework is a lightweight core of a process: a way of working, not a techno
 - FW-1: An item belongs to the core only if the rules name it as a process step or a required role. Anything else is an extension.
 - FW-2: The core is language-agnostic. No core rule, skill, or agent names a language, framework, or library; that knowledge lives in extension skills.
 - FW-3: The process never depends on an extension. With no extension installed, every gate runs on the core reviewers.
-- FW-4: Only the CLI installs, renders, and removes extensions. Adding or dropping a stack extension (language, architecture, frontend, backend, persistence, testing, operations) is an architecture or dependency decision and follows the approval loop.
+- FW-4: Only the CLI installs and removes extensions. Adding or dropping a stack extension (language, architecture, frontend, backend, persistence, testing, operations) is an architecture or dependency decision and follows the approval loop.
 - FW-5: The orchestrator names the installed extensions that apply to a change in each packet. Their `must` rules are approved global rules (authority order 2); installed extension agents join triage beside the core reviewers.
 
 Verification: a project initialized with no extension can run the Phase 1 validation scenarios; `grep` of the core assets finds no language-, framework-, or library-specific rule.
 
-Interface, catalog, rendering, and file ownership: [CLI v0.1 section 4.1 and section 4.3–4.6](../cli/interface.md#41-core-and-extensions).
+Interface, catalog, store, and file ownership: [CLI v0.1 section 4.1 and section 4.3–4.6](../cli/interface.md#41-core-and-extensions).
 
 # Agreed decisions
 
@@ -194,7 +194,7 @@ The four core reviewers are language-agnostic (FW-2). Language, library, and pra
 | - | Adversarial (`adversarial-reviewer`) | The integrated feature as a whole (next section). | The risk tier requires it (rules section 6), after the specialists pass. |
 
 - Priority applies after every code change. The three specialists still run in parallel on the same revision; they run in priority order only when the runtime cannot run them in parallel or their checks interfere. The orchestrator orders the consolidated correction list by priority, and when two corrections conflict, the higher-priority one is applied and the other re-examined. The authority order still decides between requirements; priority never overrides evidence.
-- Language rules live in the language's extension skill, never in a reviewer. Choosing Go at `init` (or `solomonar extension add go`) installs `docs/solomonar/skills/go/SKILL.md` (source: [`assets/extensions/language/go/`](../../assets/extensions/language/go/SKILL.md)) with rules `go/C-n`; the implementer follows them and the Spec reviewer checks every `must` rule.
+- Language rules live in the language's extension skill, never in a reviewer. Choosing Go at `init` (or `solomonar extension add go`) installs `docs/solomonar/extensions/go/SKILL.md` (source: [`assets/extensions/language/go/`](../../assets/extensions/language/go/SKILL.md)) with rules `go/C-n`; the implementer follows them and the Spec reviewer checks every `must` rule.
 - Spec checks that the change does what its written criteria and rules say. Correctness checks that the domain logic holds in every case those rules cover, including cases no AC names. The orchestrator deduplicates a defect both report.
 - Language-specific checks and tools (for example `go vet` or `govulncheck`) are suggested by the extension that applies; a reviewer runs them when available and records any check not run.
 - During triage, the orchestrator records which reviewers are required and why. A reviewer that does not apply is marked not required with a reason. An installed extension agent is required when its `applies_when` matches the change.
