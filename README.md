@@ -27,9 +27,9 @@ Solomonar is an open-source workflow for building software with AI coding agents
 It has two parts:
 
 - **The framework:** Markdown rules, skills, and agent roles that `solomonar init` installs into your repository under `docs/solomonar/`. Your agent runtime reads them. The core works with any programming language; extensions add the rules for your stack.
-- **The CLI:** the `solomonar` binary. It installs the framework, writes the runtime adapters, and validates every task update against Git. It never calls a model, starts an agent, or stores review verdicts.
+- **The CLI:** the `solomonar` binary. It installs and upgrades the framework, adds and removes extensions, writes the runtime adapters, and validates every task update against Git. It never calls a model, starts an agent, or stores review verdicts.
 
-![The Solomonar framework: the core in docs/solomonar/ holds the agent roles, the skills, and the contracts every role follows; optional extensions add stack rules and extra reviewers, loaded when their applies_when matches the change.](docs/images/framework-core.svg)
+![The Solomonar framework: the core in docs/solomonar/ holds the agent roles, the skills, and the contracts every role follows; optional extensions, the go and extension-authoring skills from the catalog or your own skills and reviewers, add stack rules, procedures, and extra reviewers, loaded when their applies_when matches the change or when you start them.](docs/images/framework-core.svg)
 
 The name comes from Romanian folklore: a solomonar is a wizard who learns every secret from a single book and rides a dragon to command the storms. Solomonar gives your project its book (specs), its spells (skills), and its dragons (agents). Read [the story](https://solomonar.dev/docs/story/) behind the name.
 
@@ -90,11 +90,13 @@ solomonar init --git-init --runtime claude --ext go \
   --objective "Shared expenses for small groups" --yes
 ```
 
+`--ext go` installs the Go rules. Without `--ext`, `init` selects `extension-authoring` in every project and `go` when a `go.mod` exists; add or remove extensions later with `solomonar extension add|remove`, and move to a newer framework with `solomonar upgrade`.
+
 Make the first commit, because task worktrees branch from `main`. `init` prints the exact command for the runtimes you chose:
 
 ```sh
 git add AGENTS.md CLAUDE.md .claude .solomonar docs
-git commit -m "chore: initialize solomonar 0.1.7"
+git commit -m "chore: initialize solomonar 0.2.0"
 ```
 
 Open a top-level agent session in the project and start every request with the `solomonar` skill:
@@ -159,7 +161,7 @@ Without Task, `go build -trimpath -o bin/solomonar .` and `go test -race ./...` 
 | `main.go` | Entry point; embeds `assets/` into the binary. |
 | `internal/cli` | Commands, flags, prompts, help, and output rendering. |
 | `internal/task` | The task registry model, transitions, and fact checks. |
-| `internal/project` | The init plan, manifest, managed files, adapters, and extension catalog. |
+| `internal/project` | The desired-state plan for `init`, `upgrade`, and `extension`, the manifest, managed files, adapters, the extension catalog and store. |
 | `internal/git` | The Git runner and repository discovery. |
 | `assets/framework` | The framework core that `init` installs. |
 | `assets/extensions` | The extension catalog. |
@@ -171,12 +173,12 @@ Without Task, `go build -trimpath -o bin/solomonar .` and `go test -race ./...` 
 
 Contributions are welcome. [`CONTRIBUTING.md`](CONTRIBUTING.md) covers the development setup, the documents to update with each change, commit conventions, and step-by-step guides with templates for adding framework rules, extension skills, and agents. For anything beyond a small fix, open an issue first to agree on the behavior.
 
-The source catalog includes `go` and the optional
-[`extension-authoring` workflow skill](assets/extensions/workflow/extension-authoring/SKILL.md).
-The latter researches, writes, and validates catalog extensions or project-specific
-source. New projects can select it with `init --ext extension-authoring`; runtime
-stubs load the same portable instructions. It does not replace CLI installation
-or metadata tracking.
+The catalog holds `go` and the
+[`extension-authoring` workflow skill](assets/extensions/workflow/extension-authoring/SKILL.md),
+which `init` suggests in every project. Start it yourself: it researches, writes, and
+validates catalog extensions here, or project extensions in an adopting repository's
+`docs/solomonar/extensions/<name>/`, and hands off `solomonar extension add <name>`.
+The CLI, not the skill, activates an extension and tracks it in the manifest.
 
 To report a problem, include the output of `solomonar version`, the command, the error code, and the relevant Git state, with secrets redacted. The [troubleshooting guide](https://solomonar.dev/docs/troubleshooting/#report-a-problem-with-evidence) lists what helps. Report security problems privately as [`SECURITY.md`](SECURITY.md) describes.
 
