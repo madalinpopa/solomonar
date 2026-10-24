@@ -636,8 +636,8 @@ func TestInitGitInitCreatesRepository(t *testing.T) {
 func TestInitGitInitDryRunRunsNoGit(t *testing.T) {
 	dir := plainDir(t)
 
-	human := runCLI(t, repoAssets(t), "-C", dir, "init", "--git-init", "--dry-run")
-	asJSON := runCLI(t, repoAssets(t), "-C", dir, "init", "--git-init", "--dry-run", "--json")
+	human := runCLI(t, repoAssets(t), "-C", dir, "init", "--git-init", "--ext", "none", "--dry-run")
+	asJSON := runCLI(t, repoAssets(t), "-C", dir, "init", "--git-init", "--ext", "none", "--dry-run", "--json")
 
 	require.Equal(t, 0, human.exit, human.stderr)
 	assert.True(t, strings.HasPrefix(human.stdout, "Plan\n  git        init -b main\n  create     docs/solomonar/"),
