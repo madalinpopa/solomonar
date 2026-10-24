@@ -13,7 +13,7 @@ sources:
 
 ## A command is unknown
 
-First run `solomonar help` to see the command table in your binary. The interface specification includes future commands; the current build does not yet implement `doctor`, `sync`, `runtime`, `extension`, or `upgrade`.
+First run `solomonar help` to see the command table in your binary. The interface specification includes future commands; the current build does not yet implement `doctor`, `sync`, `runtime`, `guard`, `dashboard`, or `upgrade --diff`. An older build may also lack `upgrade` and `extension`.
 
 Use the [availability table]({{ '/docs/cli/#current-commands' | url }}) before following an example from the full design contract. An unknown command exits 2; it does not mean your application needs to be scaffolded again.
 
@@ -44,9 +44,29 @@ solomonar init --overwrite .claude/agents/implementer.md --yes
 
 ## init rejects a choice
 
-`already_initialized` means the project's manifest records a different choice than the one you passed, such as another runtime. `init` never changes recorded choices; the planned `runtime` and `extension` commands will. Rerun without the differing flag.
+`already_initialized` means the project's manifest records a different choice than the one you passed, such as another runtime or other extensions. `init` never changes recorded choices. Rerun without the differing flag; change extensions with [`extension add` and `extension remove`]({{ '/docs/cli/extension/' | url }}). Runtimes change through the planned `runtime` commands.
 
-`unknown_extension` (exit 2) means an `--ext` value is not in the embedded catalog; the error lists the known names. `--ext none` cannot be combined with another name.
+`unknown_extension` (exit 2) means an `--ext` value is not in the embedded catalog; the error lists the known names. `--ext none` cannot be combined with another name. `init --ext` takes catalog names only: activate a project extension after `init` with `extension add <name>`.
+
+## An extension command rejects the project
+
+`framework_outdated` (exit 3) means the project's framework is older than this CLI. `extension add` and `extension remove` refuse to write until the files match the CLI:
+
+```text
+error: extension add rejected (framework_outdated)
+  check: the project's framework matches this CLI
+  found: manifest framework 0.1.7, this CLI ships 0.2.0
+  fix:   run solomonar upgrade
+nothing was written
+```
+
+Run [`solomonar upgrade`]({{ '/docs/cli/upgrade/' | url }}) on main, commit the result, then rerun the command. `extension list` and `upgrade` accept an older project.
+
+`not_initialized` from `upgrade` or `extension add|remove` means there is no `.solomonar/manifest.json`; run `solomonar init` first. `extension list` works without it.
+
+`unknown_extension` from `extension add` means the name is neither in the catalog nor a directory in `docs/solomonar/extensions/`; run `solomonar extension list` for the names you can add. `invalid_value` names the first problem of a project extension, such as `applies_when is missing`; fix its directory, or ask the `extension-authoring` skill to validate it, then rerun. `name_collision` means a project extension reuses a catalog name; rename its directory and its `name`.
+
+`file_conflict` (exit 4) from `upgrade` or `extension remove` means a managed file was edited. Resolve each listed path with `--keep <path>` or `--take-new <path>` for `upgrade`, and `--keep <path>` or `--overwrite <path>` for the `extension` commands.
 
 `not_a_repository` from `init` means the directory is not inside a Git repository. Run `git init -b main` first, or pass `--git-init`.
 
