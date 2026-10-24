@@ -10,17 +10,31 @@ requirements remain questions or are omitted, rather than becoming mandatory.
 | --- | --- | --- |
 | Catalog skill | `assets/extensions/<group>/<name>/SKILL.md` and routed support files | `extension.json` beside it, using the current strict schema |
 | Catalog reviewer | `assets/extensions/<group>/<name>/<name>.md`, normally group `review` | `extension.json` beside it, `kind: agent` |
-| New project source | `tools/solomonar/extensions/<name>/SKILL.md` or `<name>.md` | Proposed CLI metadata in the research record, not an extra `extension.json` |
-| Existing project source/draft | Its verified project-owned source path | Preserve recorded identity; CLI owns changes to registered metadata |
+| New project extension | `docs/solomonar/extensions/<name>/SKILL.md` or `<name>.md` and support files | `extension.json` beside it, same schema as the catalog |
+| Existing project extension | Its verified store directory | Preserve its name and rule IDs; edit its `extension.json` in place |
 
-Catalog `extension.json` fields are `name`, `kind`, `group`, `title`, `requires`,
-`conflicts`, `applies_when`, and `paths`. Verify the allowed groups and unique
-name against the current catalog. Name/group match directories; do not silently
-add dependencies. `paths` matches work governed by the extension, not the
-extension's own source or installation path. Use an empty list for a
-request-driven procedure with no relevant governed-file glob. A project source
-directory is not a registered draft and has
-no installed rule authority or reviewer-triage role.
+`extension.json` fields are `name`, `kind`, `group`, `title`, `requires`,
+`conflicts`, `applies_when`, and `paths`, plus optional `detect`, `default`, and
+`invocation`; the strict loader rejects unknown fields. Verify the allowed
+groups and that the name is unique across the catalog and the store. `name`
+matches the directory and the main file's frontmatter; a catalog `group` matches
+its directory. Do not silently add dependencies; a project extension may require
+catalog or project extensions. `paths` matches work governed by the extension,
+not the extension's own location. Use an empty list for a request-driven
+procedure with no relevant governed-file glob.
+
+- `detect`: repository-file globs whose presence suggests the extension, such as
+  `**/go.mod`. Globs are repository-relative, never start with `/`, and use `**`
+  only as a whole segment. Omit it or use `[]` when no file reliably signals the
+  need; never match the extension's own directory.
+- `default`: `true` suggests the extension in every project; reserve it for
+  procedures most projects use. Omit it otherwise.
+- `invocation`: `user` when only the user should start the skill, such as a
+  procedure with side effects or a long workflow; omit it for `model`. An agent
+  is never user-invoked.
+
+Detection and defaults only suggest; nothing installs without the user's choice.
+A project extension has no rule authority or triage role until it is installed.
 
 Use the main file's one-line `name` and `description` frontmatter. Descriptions
 say what the skill/reviewer does and when it applies. Use the applicable
@@ -59,26 +73,24 @@ and `report.md` contracts: focus, method, checks, evidence, blocking conditions,
 and neighboring owners. Keep review read-only on one stable revision and report
 to the orchestrator. Select a finding prefix not used by another installed role.
 
-Combination sections belong only in the skill/agent main file; support files are
-copied verbatim. A catalog reviewer installs only `<name>.md`: do not reference
-unshipped support files. Recheck current CLI support before assuming that a
-project extension offers additional packaging capabilities.
+Every file in the extension directory is used verbatim. Link support files
+relative to the file that references them and keep them inside that directory.
+Recheck current CLI support before assuming further packaging capabilities.
 
 ## Integrate without registering by hand
 
 In catalog mode, update the affected catalog listings and contributor docs
-named by `CONTRIBUTING.md`. Let the existing installer generate stubs from this
-portable source; no new registration code or copied runtime body is needed.
+named by `CONTRIBUTING.md`. Let the existing installer copy the package and
+generate stubs; no new registration code or copied runtime body is needed.
 
-In project mode, leave new source unregistered until supported adoption. When
-`extension new` exists, the user can choose its tracked-draft path before
-authoring; it is optional when a local source directory already exists. Prepare
-the appropriate `extension add <path>` or `add <draft-name>` metadata handoff
-only after confirming the command/flags exist. Follow framework authority for
-the actual adoption; authoring alone supplies no adoption approval. If lifecycle
-commands are unavailable, report that boundary and retain the source candidate.
-Do not use `init` to change recorded extension choices or hand-write a manifest,
-runtime stub, activation entry, or rendered combination.
+In project mode, write only the store directory and the research record. The
+handoff is `solomonar extension add <name>`, run by the user, or by the owning
+orchestrator with `--decision <approved-ID>`. Follow framework authority for the
+actual adoption; authoring alone supplies no adoption approval. Body edits to an
+installed extension apply directly; after changing its `extension.json` or
+frontmatter, rerunning `extension add <name>` refreshes its stubs and
+`AGENTS.md` line. Do not use `init` to change recorded extension choices or
+hand-write a manifest, runtime stub, or activation entry.
 
 Map final rules/procedures/checks to the supported claim IDs in the single
 research record. Preserve stable IDs and prior retirement/adoption history.
