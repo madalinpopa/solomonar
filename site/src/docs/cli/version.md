@@ -29,13 +29,13 @@ solomonar version
 ```
 
 ```text
-solomonar 0.2.0
-project   framework 0.2.0 · registry schema 2
+solomonar 0.3.0
+project   framework 0.3.0 · registry schema 2
 ```
 
 Outside a project:
 
 ```text
-solomonar 0.2.0
+solomonar 0.3.0
 project   not initialized
 ```

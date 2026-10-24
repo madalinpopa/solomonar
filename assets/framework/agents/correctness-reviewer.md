@@ -5,7 +5,7 @@ description: Reviews one candidate revision for business-logic correctness, in a
 
 # Correctness reviewer
 
-Framework version: 0.2.0
+Framework version: 0.3.0
 
 Load `AGENTS.md`, `docs/solomonar/report.md`, and `docs/solomonar/reviewer.md`; follow the shared preflight,
 isolation, evidence, and result rules. This file adds only the business-logic specialty.
