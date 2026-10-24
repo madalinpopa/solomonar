@@ -1,0 +1,31 @@
+# List the catalog and the project extensions of a repository without a manifest.
+cd repo
+exec git init -q -b main
+
+exec solomonar extension list
+stdout '^GROUP +NAME +KIND +SOURCE +STATUS +DECISION +SUGGESTED +APPLIES WHEN$'
+stdout '^language +go +skill +catalog +available +- +go\.mod +A change touches Go code'
+stdout '^backend +money +skill +project +available +- +- +A change handles monetary amounts$'
+stdout '^review +a11y-reviewer +agent +project +invalid: applies_when is missing +- +- +-$'
+! stderr .
+
+# The alias runs the same command.
+exec solomonar --json extension list
+cp stdout $WORK/full.json
+exec solomonar --json ext list
+cmp stdout $WORK/full.json
+
+-- repo/go.mod --
+module example.com/ledger
+-- repo/docs/solomonar/extensions/money/extension.json --
+{"name": "money", "kind": "skill", "group": "backend", "title": "Money rules", "applies_when": "A change handles monetary amounts"}
+-- repo/docs/solomonar/extensions/money/SKILL.md --
+---
+name: money
+description: Use for monetary amounts.
+---
+# Money
+-- repo/docs/solomonar/extensions/a11y-reviewer/extension.json --
+{"name": "a11y-reviewer", "kind": "agent", "group": "review", "title": "Accessibility"}
+-- repo/docs/solomonar/extensions/a11y-reviewer/a11y-reviewer.md --
+# a11y
