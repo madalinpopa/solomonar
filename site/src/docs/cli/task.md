@@ -290,7 +290,7 @@ Leaving `setup` records the task's base commit, its worktree path relative to th
 | `--revision` | The reviewed candidate commit on `feature/<ID>`. Accepted when the current or resulting stage is `implementation` or `integration`. |
 | `--spec` | The work specification, a clean path relative to the worktree. Accepted from `specification` on; entering `implementation` needs it. |
 | `--tier` | Review tier `0`, `1`, or `2`. Stages after `implementation` need it, passed with `--revision`. |
-| `--agent` | An active delegated agent as `<id>:<role>`, such as `impl-1:implementer`; repeatable, replacing the list. `--agent none` clears it. The role is a core delegated role or an installed agent extension, never `orchestrator` or a draft. |
+| `--agent` | An active delegated agent as `<id>:<role>`, such as `impl-1:implementer`; repeatable, replacing the list. `--agent none` clears it. The role is a core delegated role or an installed agent extension, never `orchestrator`. |
 | `--pr` | The pull request, as a positive number or an `https://` URL. Accepted in `integration`. |
 | `--next` | New next action. An agent added by `--agent` in the same command may be the actor. |
 | `--base` | Fills a missing base, such as after a migration. It must be on `feature/<ID>`; a recorded base never changes. |
