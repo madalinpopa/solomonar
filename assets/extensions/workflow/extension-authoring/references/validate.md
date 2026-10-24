@@ -23,10 +23,16 @@ merely because this skill lists it.
 
 Inspect what an agent would actually receive: portable main/support files,
 activation routes, manifest ownership, and generated stubs for supported
-runtimes. Exercise relevant combination conditions. Never repair a failed
-install by editing generated output. An unregistered project source cannot pass
-installation/discovery checks until adoption is supported and authorized;
-report content validation separately rather than registering it yourself.
+runtimes. Never repair a failed install by editing generated output.
+
+In project mode, check the store directory with `solomonar extension list`,
+which is read-only: its row must not be `invalid: <reason>`, and `SUGGESTED`
+shows whether `detect` or `default` matches as intended. An empty `detect`
+suggests nothing; a custom one should match a representative project file and
+miss unrelated ones. Check `invocation` against who should start the skill.
+Installation and discovery checks wait for the authorized
+`solomonar extension add <name>`; report content validation separately rather
+than registering the extension yourself.
 
 ## Exercise behavior
 
