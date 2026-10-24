@@ -1,49 +1,97 @@
 ---
 title: solomonar extension
 navTitle: solomonar extension
-description: Choose the stack and add skills or reviewers to a Solomonar project with the solomonar extension commands list, show, add, remove, and new. In development.
+description: List, add, and remove the catalog and project extensions of a Solomonar project with solomonar extension list, add, and remove, recording stack decisions as you go.
 kind: Reference
-group: In development
-order: 20
-inDevelopment: true
+group: Commands
+order: 13.7
 sources:
+  - internal/cli/extension.go
+  - internal/project/extension.go
+  - internal/project/catalog.go
+  - internal/project/detect.go
   - docs/cli/interface.md
 ---
 
-> These commands are in development and not in the current build; running one today exits 2 with an unknown-command error. This page describes the planned behavior; the final output may differ in detail.
+An extension is one skill or one agent: the rules of a language, library, or practice, a supporting procedure, or an extra reviewer. Extensions are grouped by the type of decision that selects them, so the project's capabilities follow its approved stack. `ext` is an alias for `extension`.
 
-An extension is one skill or one agent: the rules of a language, library, or practice, a supporting procedure, or an extra reviewer. Extensions are grouped by the type of decision that selects them, so the project's capabilities follow its approved stack. `ext` is an alias for `extension`. Until these commands exist, choose catalog extensions with `init --ext`.
+The catalog embedded in the CLI holds two extensions:
 
-The examples use the specification's `ledger` project, initialized with the `go` extension only (`P/D-1`).
+| Extension | Kind | Group | Suggested | Invocation |
+| --- | --- | --- | --- | --- |
+| `go` | skill | `language` | when a `go.mod` exists anywhere in the repository | The model loads it when a change touches Go code |
+| `extension-authoring` | skill | `workflow` | in every project | Only you start it |
 
-The source catalog also includes the optional `extension-authoring` workflow
-skill. Select it with `init --ext extension-authoring` in a project without
-recorded choices, then ask: “Use the extension-authoring skill to create a
-project-specific skill for <topic>.” It also supports catalog contributions in
-Solomonar's source checkout. Research, authoring, and validation are separate
-stages that share one evidence record and one portable instruction body.
+`init` preselects the suggested extensions; afterwards, `extension list` marks the ones not installed as suggested. A suggestion never installs anything: an extension is installed only by your choice at `init` or by `extension add`. The catalog has no `review` extension; the project's own reviewers are project extensions.
 
-Content authoring and extension management have different owners. The skill
-writes and checks the content; the planned CLI commands below own installation,
-manifest tracking, activation, and runtime stubs. `extension new` remains a
-deterministic tracked-draft scaffold, not a source of engineering guidance.
-Without those commands, project source stays unregistered until adoption is
-available. An existing initialized project cannot add this skill by rerunning
-`init` with different choices.
+## The store
+
+Every extension a project uses lives in one flat directory per name, `docs/solomonar/extensions/<name>/`, whatever its group or kind. A repository never carries the whole catalog: the store holds only the installed catalog extensions and the project's own extensions.
+
+- **Catalog extension.** `extension add` copies every file of its catalog directory, `extension.json` included, into the store, byte for byte, and records each file's hash in the manifest. `upgrade` keeps them current; `extension remove` deletes them.
+- **Project extension.** A store directory whose name the catalog does not use. It is yours: the CLI reads it but never writes, hashes, or upgrades a file in it. `extension add <name>` activates it, and `extension remove <name>` deactivates it, leaving the directory as it was.
+
+Both kinds use the same format: `extension.json`, then `SKILL.md` for a skill or `<name>.md` for an agent, then any support files. Activating an extension creates its runtime stubs, its line in the `## Extensions` section of `AGENTS.md`, its manifest entry, and, in a stack group, its decision. The decision appears in the `AGENTS.md` line and the manifest, never inside the extension's files.
+
+{% diagram "extension-lifecycle" %}
+
+### extension.json
+
+The `go` entry of the catalog:
+
+```json
+{
+  "name": "go",
+  "kind": "skill",
+  "group": "language",
+  "title": "Go language rules",
+  "requires": [],
+  "conflicts": [],
+  "applies_when": "A change touches Go code (*.go, go.mod, go.sum)",
+  "paths": ["**/*.go", "**/go.mod", "**/go.sum"],
+  "detect": ["**/go.mod"]
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `name` | The extension ID; matches the directory and the `name` in the main file's frontmatter. |
+| `kind`, `group` | `skill` or `agent`, and one of the nine groups below. |
+| `title` | One-line name, shown by the `init` prompt and `extension list --json`. |
+| `requires`, `conflicts` | Extensions that must, or must not, be installed with it. |
+| `applies_when` | For a skill, when an agent loads it; for an agent, when triage requires the reviewer. Written into `AGENTS.md`. |
+| `paths` | Globs of the files the extension governs. Written into `AGENTS.md`. |
+| `detect` | Optional. Globs of repository files that suggest the extension, such as `**/go.mod`. |
+| `default` | Optional. `true` suggests the extension in every project. |
+| `invocation` | Optional. `model` (the default) lets the model load the skill when it applies; `user` means only you start it. A user-invoked skill gets its own line in `AGENTS.md`, and its runtime stubs disable model invocation. Agents are always `model`. |
+
+Detection runs over the files Git lists in the worktree, tracked and untracked but not ignored. `**` matches any number of directories, so `**/go.mod` matches a `go.mod` at the root or in any subdirectory.
 
 ## Groups
 
 | Group | Selects | Records a decision |
 | --- | --- | --- |
-| `language`, `architecture`, `frontend`, `backend`, `persistence`, `testing`, `operations` | The stack | Yes: adopting or dropping one is an architecture or dependency decision, recorded in `docs/decisions.md` |
+| `language`, `architecture`, `frontend`, `backend`, `persistence`, `testing`, `operations` | The stack | Yes: adopting or dropping one is an architecture or dependency decision, recorded in `docs/decisions.md` and `docs/stack.md` (`docs/architecture.md` for `architecture`) |
 | `workflow` | Procedures that support the process | No |
 | `review` | Extra specialist reviewers | No |
 
+A stack extension's decision approves the technology and its rules. It approves no version and no further dependency; each one still needs its own approval.
+
+## Write a project extension
+
+Project extensions cover what the catalog does not: a domain rule set, an in-house library, a supporting procedure, or an extra reviewer. Install `extension-authoring` (it is suggested in every project), then ask in a top-level session:
+
+> Use the extension-authoring skill to create a project reviewer for money handling.
+
+The skill is user-invoked, so it runs only when you start it. Research, authoring, and validation are separate stages that share one evidence record. It writes the extension in catalog format to `docs/solomonar/extensions/<name>/`, `extension.json` included, validates it, and hands off the activation command, `solomonar extension add <name>`. In Solomonar's own source checkout, the same skill writes catalog contributions instead.
+
+The skill owns the content; the CLI owns activation. The skill never edits the manifest, the stubs, or `AGENTS.md`.
+
 ## solomonar extension list
 
-Read-only. Lists the catalog and project extensions by group, with their state, the decision that adopted them, their requirements, and when they apply.
+Read-only. Lists the catalog extensions and the project extensions in the store, by group, with their status, the decision that adopted them, and why one is suggested. It works before `init`, when every row is `available`.
 
-{% cliUsage "When you choose part of the stack, for example after a prototype, or to see which rules apply to the project.", "You and agents." %}
+{% cliUsage "Before you choose part of the stack, after writing a project extension, or to see which rules and reviewers apply to the project.", "You and agents." %}
 
 ```text
 solomonar extension list [--group <group>] [--kind <skill|agent>] [--installed] [--json]
@@ -57,190 +105,275 @@ solomonar extension list [--group <group>] [--kind <skill|agent>] [--installed] 
 | `--kind` | Only skills or only agents. |
 | `--installed` | Only installed extensions. |
 
+`STATUS` is `installed`, `available`, or, for a project extension that fails the extension checks, `invalid: <reason>`. `SUGGESTED` shows, for an extension that is not installed, the first file that matched its `detect` globs or `default`.
+
 ### Example
+
+These examples come from a run of the 0.2.0 build in the fictional `ledger` project, upgraded from 0.1.7 with `go` installed under `P/D-1`, for Claude Code and Codex; paths are shortened to `/work/ledger`.
 
 ```sh
 solomonar extension list
 ```
 
 ```text
-GROUP     NAME   KIND   SOURCE   STATUS     DECISION  REQUIRES  APPLIES WHEN
-language  go     skill  catalog  installed  P/D-1     -         A change touches Go code
-frontend  htmx   skill  catalog  available  -         -         hx-* attributes or endpoints that return fragments
-frontend  templ  skill  catalog  available  -         go        *.templ files or the handlers that render them
-testing   tdd    skill  catalog  available  -         -         A change adds or changes behavior
+GROUP     NAME                 KIND   SOURCE   STATUS     DECISION  SUGGESTED  APPLIES WHEN
+language  go                   skill  catalog  installed  P/D-1     -          A change touches Go code (*.go, go.mod, go.sum)
+workflow  extension-authoring  skill  catalog  available  -         default    A request creates, changes, or validates a Solomonar extension skill, its rules, or a specialist reviewer
 ```
 
-## solomonar extension show
-
-Read-only. Prints one extension as rendered for this project: its group, source, state, decision, requirements, when it applies, and its rules, including the rules added by the other installed extensions.
-
-{% cliUsage "To read the exact rules an agent follows for a technology before you adopt it, or when a review cites one.", "You and agents." %}
+A project extension that fails the checks is listed with its first failure and cannot be added until you fix it:
 
 ```text
-solomonar extension show <name> [--json]
-```
-
-### Example
-
-```sh
-solomonar extension show templ
-```
-
-```text
-templ components · frontend skill · catalog · installed under P/D-3 · requires go
-Applies when: a change touches *.templ files or the handlers that render them (paths: **/*.templ)
-Rendered with: htmx
-  templ/C-1  must    *_templ.go files are generated by templ generate and never edited by hand; CI fails when stale
-  templ/C-2  must    User data is never rendered through templ.Raw or any other unescaped output
-  templ/C-3  should  Components take view models built for the page, not domain entities or database rows
-  templ/C-4  must    With htmx: render the fragment component when HX-Request is set, else the page component
-File: docs/solomonar/skills/templ/SKILL.md
+GROUP     NAME                 KIND   SOURCE   STATUS                            DECISION  SUGGESTED  APPLIES WHEN
+language  go                   skill  catalog  installed                         P/D-1     -          A change touches Go code (*.go, go.mod, go.sum)
+workflow  extension-authoring  skill  catalog  installed                         -         -          A request creates, changes, or validates a Solomonar extension skill, its rules, or a specialist reviewer
+review    a11y-reviewer        agent  project  invalid: applies_when is missing  -         -          -
+review    money-reviewer       agent  project  available                         -         -          A change computes, stores, converts, or displays monetary amounts
 ```
 
 ## solomonar extension add
 
-Installs catalog extensions, a project extension from a local directory, or a draft created with `extension new`, with their runtime stubs. For a stack group, without `--decision` the CLI records your approved `P/D-n` in `docs/decisions.md` and `docs/stack.md`, superseding the previous selection of that group.
+Installs catalog extensions into the store, or activates project extensions already there, with their runtime stubs, `AGENTS.md` line, and manifest entry. It takes names, never paths: a name resolves in the catalog, then in the store. For a stack group, without `--decision` your command is the decision: the CLI appends a `P/D-n` entry to `docs/decisions.md` and a line to `docs/stack.md`, superseding the group's previous decision. Adding an installed extension refreshes its stubs; an identical result is a no-op.
 
-{% cliUsage "When you decide part of the stack, for example htmx for the frontend; when a task's approved decision adopts a technology; or to add a workflow procedure or an extra reviewer.", "You, to record a project decision. An orchestrator only with `--decision` naming an approved task decision, in the task worktree. The state guard denies an agent's stack change without `--decision`." %}
+{% cliUsage "When you decide part of the stack; when a task's approved decision adopts a technology; after the extension-authoring skill hands off a project extension; or to add a workflow procedure or an extra reviewer.", "You, to record a project decision. An orchestrator only with `--decision` naming an approved task decision." %}
 
 ```text
-solomonar extension add <name | path>... [--decision <ID>] [--rationale <text>] [-y] [--dry-run] [--json]
-                        [--kind <skill|agent>] [--group <group>] [--title <text>]
-                        [--requires <name>]... [--conflicts <name>]... [--applies-when <text>] [--path <glob>]...
+solomonar extension add <name>... [--decision <ID>] [--rationale <text>] [--keep <path>]... [--overwrite <path>]...
+                        [-y|--yes] [--dry-run] [--json]
 ```
 
 ### Flags
 
 | Flag | Meaning |
 | --- | --- |
-| `<name \| path>` | Required. Catalog names, draft names, or local directories; several are allowed. |
-| `--decision` | An approved decision that adopts the extension, such as `W-002/D-1`. Stack groups only. |
-| `--rationale` | The reason recorded with the new `P/D-n`. Stack groups only. |
-| `--kind`, `--group`, `--title` | Metadata of a local directory or draft. `kind` is inferred when unambiguous; `group` defaults to `workflow` for skills and `review` for agents. |
-| `--requires`, `--conflicts` | Other extensions this one needs or excludes; repeatable. Local directories and drafts only. |
-| `--applies-when`, `--path` | When the extension applies, and the matching path globs. `--applies-when` is required at adoption; without a terminal its absence is `interactive_required`. |
-| `-y`, `--yes` | Accept the plan without prompts. |
+| `<name>` | Required. Catalog or project extension names; several are allowed. |
+| `--decision` | An approved entry in `docs/decisions.md` that adopts the extension, such as `W-002/D-1`. Stack groups only. |
+| `--rationale` | The rationale recorded with the new `P/D-n`. Stack groups only. |
+| `--keep`, `--overwrite` | Resolve one conflicting file; one path per flag. |
+| `-y`, `--yes` | Accept the plan without prompts. Required without a terminal. |
 | `--dry-run` | Print the plan and write nothing. |
 
-### Example
+A project initialized with an older framework is rejected with `framework_outdated` (exit 3) until you run [`solomonar upgrade`]({{ '/docs/cli/upgrade/' | url }}):
 
-You adopt htmx for the frontend:
+```text
+error: extension add rejected (framework_outdated)
+  check: the project's framework matches this CLI
+  found: manifest framework 0.1.7, this CLI ships 0.2.0
+  fix:   run solomonar upgrade
+nothing was written
+```
+
+### Examples
+
+Add the catalog workflow skill `extension-authoring`. In a terminal the plan goes to stderr before the prompt:
 
 ```sh
-solomonar extension add htmx
+solomonar extension add extension-authoring
 ```
 
 ```text
 Plan
+  framework 0.2.0
+    update     AGENTS.md
   extensions
-    create  docs/solomonar/skills/htmx/SKILL.md
-    create  .claude/skills/htmx/SKILL.md
-    create  .agents/skills/htmx/SKILL.md
-  decisions
-    append  docs/decisions.md   P/D-2 Frontend technologies: htmx (approved, selected by you)
-    append  docs/stack.md       frontend: htmx (P/D-2)
-  update  AGENTS.md (Extensions: htmx)
-  update  .solomonar/manifest.json
-Record P/D-2 as your approved decision for the frontend group? [Y/n] y
-Added extension htmx (frontend skill) under P/D-2.
-  note: P/D-2 approves the technology and its rules; versions stay in the manifests, and every further
-        dependency still needs approval (rules section 3).
-Next: commit on main: git add AGENTS.md .solomonar .claude .agents docs && git commit -m "docs: adopt the htmx extension (P/D-2)"
+    create     docs/solomonar/extensions/extension-authoring/ (6 files)
+  runtime claude
+    create     .claude/skills/ (1 skill stub: 0 core, 1 extension)
+  runtime codex
+    create     .agents/skills/ (1 skill stub: 0 core, 1 extension; extension-authoring/agents/openai.yaml)
+  manifest
+    update     .solomonar/manifest.json
+Proceed? [Y/n] y
+
+Added extension extension-authoring (workflow skill, catalog) in /work/ledger
+  9 files created, 2 updated, 46 unchanged, 1 skipped
+
+Next:
+  1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: add solomonar extension extension-authoring"
 ```
 
-An orchestrator applying an approved task decision, in the task worktree, so the extension merges with the task:
+The skill then writes the project reviewer `money-reviewer` to `docs/solomonar/extensions/money-reviewer/`:
+
+```text
+docs/solomonar/extensions/money-reviewer/
+  extension.json
+  money-reviewer.md
+```
+
+```json
+{
+  "name": "money-reviewer",
+  "kind": "agent",
+  "group": "review",
+  "title": "Money handling reviewer",
+  "requires": [],
+  "conflicts": [],
+  "applies_when": "A change computes, stores, converts, or displays monetary amounts",
+  "paths": ["internal/money/**"]
+}
+```
+
+`extension list` shows it `available`. Activate it:
 
 ```sh
-solomonar extension add tdd --decision W-002/D-1 --yes
+solomonar extension add money-reviewer --yes
 ```
 
 ```text
-Verified W-002/D-1: approved in docs/decisions.md (selected option: test-driven development for all behavior changes)
-Plan
-  extensions
-    create  docs/solomonar/skills/tdd/SKILL.md
-    create  .claude/skills/tdd/SKILL.md
-    create  .agents/skills/tdd/SKILL.md
-  decisions
-    append  docs/stack.md   testing: tdd (W-002/D-1)
-  update  AGENTS.md, .solomonar/manifest.json
-Added extension tdd (testing skill) under W-002/D-1.
-Next: commit in the worktree as "docs(W-002): adopt extensions for W-002/D-1"; they reach main with the task's merge.
+Added extension money-reviewer (review agent, project) in /work/ledger
+  2 files created, 2 updated, 55 unchanged, 1 skipped
+
+Next:
+  1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: add solomonar extension money-reviewer"
 ```
 
-An unmet requirement is rejected and writes nothing:
+The two created files are the role stubs `.claude/agents/money-reviewer.md` and `.codex/agents/money-reviewer.toml`; the store directory is unchanged, and the suggested `git add` includes it under `docs`. `AGENTS.md` now lists every installed extension, the user-invoked skill on its own line, and triage requires the reviewer when its condition matches:
+
+```markdown
+- Skills
+  - `go` (language, P/D-1): A change touches Go code (*.go, go.mod, go.sum); paths: `**/*.go`, `**/go.mod`, `**/go.sum`
+- Agents: an installed agent is a specialist reviewer, required by triage when its "applies when" matches.
+  - `money-reviewer` (review): A change computes, stores, converts, or displays monetary amounts; paths: `internal/money/**`
+- User-invoked skills: load one only when the user starts it, never because it applies.
+  - `extension-authoring` (workflow): A request creates, changes, or validates a Solomonar extension skill, its rules, or a specialist reviewer
+```
+
+Adding an extension that is already installed changes nothing:
 
 ```text
-error: extension add rejected (extension_requires)
-  check: templ requires go (language), which is not installed
-  fix:   solomonar extension add go templ
+Already installed: go; nothing to do.
+  59 files unchanged, 1 skipped
+```
+
+In a project that has dropped Go (see [`extension remove`](#solomonar-extension-remove)), an orchestrator applying a task decision that adopts it again passes `--decision`; the CLI checks that the entry is approved and edits no entry itself:
+
+```sh
+solomonar extension add go --decision W-002/D-1
+```
+
+```text
+error: extension add rejected (decision_not_approved)
+  check: --decision must name an approved entry in docs/decisions.md
+  found: W-002/D-1 has status pending
+  fix:   wait for the user's approval (rules section 3), then rerun
+nothing was written
+```
+
+Once you approve `W-002/D-1`, the same command with `--yes` installs `go` under it and appends `- language: go (W-002/D-1)` to `docs/stack.md`.
+
+Other rejections: `unknown_extension` (exit 2) for a name in neither the catalog nor the store, `invalid_value` (exit 2) for a project extension that fails the checks, `name_collision` (exit 3) for a store directory that reuses a catalog name, and `extension_requires` or `extension_conflict` (exit 3) for an unmet `requires` or `conflicts`.
+
+```text
+error: extension add rejected (invalid_value)
+  check: docs/solomonar/extensions/a11y-reviewer is a valid extension
+  found: applies_when is missing
+  fix:   fix docs/solomonar/extensions/a11y-reviewer/ and rerun; the extension-authoring skill validates it
 nothing was written
 ```
 
 ## solomonar extension remove
 
-Removes installed extensions, their unmodified files and runtime stubs, and re-renders the extensions that referred to them. For a stack group it follows the same decision rules as `extension add`: without `--decision` it records a superseding `P/D-n` with the reduced selection, or `none` when the group becomes empty.
+Removes installed catalog extensions, deleting their store files, or deactivates project extensions, leaving their directory untouched. Both lose their stubs, their `AGENTS.md` line, and their manifest entry. For a stack group it follows the same decision rules as `extension add`; a group left empty records the selection `none`. A file you edited is a conflict (exit 4) until you pass `--keep` or `--overwrite`.
 
 {% cliUsage "When the project drops a technology, practice, procedure, or reviewer. The CLI does not check whether code still uses the technology; it warns that the code loses its rules.", "You, or an orchestrator with an approved task decision, as for `extension add`." %}
 
 ```text
 solomonar extension remove <name>... [--decision <ID>] [--rationale <text>] [--keep <path>]... [--overwrite <path>]...
-                           [-y] [--dry-run] [--json]
+                           [-y|--yes] [--dry-run] [--json]
 ```
 
 ### Flags
 
 | Flag | Meaning |
 | --- | --- |
-| `<name>` | Required. Installed extensions to remove. Core items are rejected with `core_item`. |
+| `<name>` | Required. Installed extensions to remove. Core skills and roles are rejected with `core_item`. |
 | `--decision`, `--rationale` | As for `extension add`. Stack groups only. |
-| `--keep`, `--overwrite` | Resolve one modified file, otherwise a conflict (exit 4); one path per flag. |
-| `-y`, `--yes` | Accept the plan without prompts. |
+| `--keep` | Keep one edited store file in place and stop tracking it; one path per flag. |
+| `--overwrite` | Delete one edited store file; one path per flag. |
+| `-y`, `--yes` | Accept the plan without prompts. Required without a terminal. |
 | `--dry-run` | Print the plan and write nothing. |
 
-### Example
+### Examples
+
+Deactivate the project reviewer:
 
 ```sh
-solomonar extension remove htmx --rationale "Server-rendered pages only" --yes
-```
-
-The plan records a superseding frontend decision, deletes the htmx files, re-renders `templ` without its htmx rule, and prints `warning: code governed by htmx loses its rules`. Removing `go` while `templ` is installed is rejected with `extension_requires`.
-
-## solomonar extension new
-
-Creates a draft project extension: a skill or an extra reviewer that the catalog does not cover, such as a domain rule set or an accessibility reviewer. A draft has no decision, adapter, or `AGENTS.md` entry until you adopt it with `extension add <name>`. Project extensions are project-owned; upgrades never change them.
-
-{% cliUsage "When the project needs its own rules or reviewer, before writing their content.", "You. You or an agent then write the rules, and you adopt the extension." %}
-
-```text
-solomonar extension new <name> --kind <skill|agent> --group <group> [--title <text>] [--requires <name>]...
-                        [--conflicts <name>]... [--applies-when <text>] [--path <glob>]... [--dry-run] [--json]
-```
-
-### Flags
-
-| Flag | Meaning |
-| --- | --- |
-| `<name>` | Required. A new name; an existing one is `name_collision`. |
-| `--kind` | Required. `skill` or `agent`. |
-| `--group` | Required. One of the nine groups; `workflow` and `review` record no decision. |
-| `--title` | Display title; defaults to the name. |
-| `--requires`, `--conflicts` | Other extensions this one needs or excludes; repeatable. |
-| `--applies-when`, `--path` | When the extension applies, and the matching path globs. May be left for adoption. |
-| `--dry-run` | Print the plan and write nothing. |
-
-### Example
-
-```sh
-solomonar extension new money --kind skill --group backend --title "Money handling" \
-  --applies-when "A change handles monetary amounts"
+solomonar extension remove money-reviewer
 ```
 
 ```text
-Created draft project extension money (backend skill, project-owned)
-  create  docs/solomonar/skills/money/SKILL.md
-  update  .solomonar/manifest.json   (state draft; metadata: group, requires, applies_when, paths)
-  no decision, adapter, rendered combination, or AGENTS.md entry until adopted
-Write its rules as money/C-n (must|should), then adopt it: solomonar extension add money
+Plan
+  framework 0.2.0
+    update     AGENTS.md
+  runtime claude
+    remove     .claude/agents/ (1 role stub: 0 core, 1 extension)
+  runtime codex
+    remove     .codex/agents/ (1 role stub: 0 core, 1 extension)
+  manifest
+    update     .solomonar/manifest.json
+Proceed? [Y/n] y
+
+Removed extension money-reviewer (review agent, project) in /work/ledger
+  2 files updated, 2 removed, 55 unchanged, 1 skipped
+
+Next:
+  1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: remove solomonar extension money-reviewer"
+warning: code governed by money-reviewer loses its rules
+```
+
+`docs/solomonar/extensions/money-reviewer/` stays as it was, and `extension list` shows it `available` again.
+
+Drop Go, with the reason recorded in the new decision:
+
+```sh
+solomonar extension remove go --rationale "The ledger moves to a hosted spreadsheet backend"
+```
+
+```text
+Plan
+  framework 0.2.0
+    update     AGENTS.md
+  extensions
+    remove     docs/solomonar/extensions/go/ (6 files)
+  decisions (approved, selected by you)
+    update     docs/decisions.md  P/D-2 language: none · P/D-1 superseded
+    append     docs/stack.md      language: none (P/D-2)
+  runtime claude
+    remove     .claude/skills/ (1 skill stub: 0 core, 1 extension)
+  runtime codex
+    remove     .agents/skills/ (1 skill stub: 0 core, 1 extension)
+  manifest
+    update     .solomonar/manifest.json
+Proceed? [Y/n] y
+
+Removed extension go (language skill, catalog, under P/D-2) in /work/ledger
+  4 files updated, 8 removed, 45 unchanged, 1 skipped
+
+Next:
+  1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: remove solomonar extension go"
+warning: code governed by go loses its rules
+```
+
+The new entry selects `none` and supersedes `P/D-1`, whose status becomes `superseded by P/D-2`:
+
+```markdown
+## P/D-2: Programming languages
+
+- Status: approved
+- Selected option: none
+- Rejected options: none
+- Scope: project; language extensions none
+- Rationale: The ledger moves to a hosted spreadsheet backend
+- Date: 2026-10-24
+- References: supersedes P/D-1
+```
+
+`extension list` shows `go` `available` again, suggested by `go.mod`. A core skill or role cannot be removed:
+
+```text
+error: extension remove rejected (core_item)
+  check: extension remove names an extension
+  found: work-spec is part of the core
+  fix:   the core cannot be removed (4.1)
+nothing was written
 ```
