@@ -35,7 +35,7 @@ solomonar init [<dir>] [--name <name>] [--objective <text>]
 | `--name` | Project name; defaults to the directory name. |
 | `--objective` | Current objective written to `docs/README.md`. |
 | `--runtime` | `claude`, `codex`, `copilot`, or `none`; repeatable or comma-separated. For a new project, defaults to runtimes found on `PATH`; a rerun keeps the manifest's choices. Explicit selection works without the executable installed. `none` must be used alone. |
-| `--ext` | Extensions to install, repeatable or comma-separated, or `none`. The catalog holds `go`. Defaults to `go` when the repository root has a `go.mod`, otherwise none. |
+| `--ext` | Extensions to install, repeatable or comma-separated, or `none`. The source catalog holds `go` and `extension-authoring`. Defaults to `go` when the repository root has a `go.mod`, otherwise none. |
 | `--adversarial-model` | Model for the adversarial reviewer of a selected runtime, such as `claude=<model>` or `copilot=<model>`. Repeatable; the last value for each runtime wins. |
 | `--main-branch`, `--remote` | Defaults: `main` and `origin`. |
 | `--keep`, `--overwrite` | Resolve one conflicting file; one path per flag. |
