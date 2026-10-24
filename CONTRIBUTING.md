@@ -54,7 +54,7 @@ The documentation website lives in `site/`. Its setup and checks are in [`site/R
 | Path | Contents |
 | --- | --- |
 | `assets/framework/` | The framework core: `rules.md`, `report.md`, `reviewer.md`, the agent roles in `agents/`, and the skills in `skills/`. `init` installs it as `docs/solomonar/`. |
-| `assets/extensions/<group>/<name>/` | The extension catalog. Each extension is one skill or one agent, plus `extension.json`. |
+| `assets/extensions/<group>/<name>/` | The extension catalog. Each extension is one skill or one agent, plus `extension.json`. An installed extension is copied as is to the project's store, `docs/solomonar/extensions/<name>/`, beside the project's own extensions. |
 | `assets/templates/` | Templates for `AGENTS.md`, `docs/README.md`, and the empty task registry header (`state.json`). |
 | `internal/` | The CLI: commands, the task registry, the init plan, adapters, and the extension catalog loader. |
 | `docs/cli/` | The CLI interface specification and architecture. |
@@ -114,10 +114,14 @@ not installed, ask the agent to load
 | Research only | `Use the extension-authoring skill to research a catalog extension for <topic> only.` |
 | Author only | `Use the extension-authoring skill to author the extension described in <research-record>; authoring only.` |
 | Validate only | `Use the extension-authoring skill to validate and refine <candidate-paths>, using <research-record>.` |
+| Project extension | `Use the extension-authoring skill to create a project skill for <topic> in docs/solomonar/extensions/<name>/, then hand off solomonar extension add <name>.` |
 
-Specify project-specific source instead of catalog when working in an adopting
-project. Include scope and supported versions when known. Stage-only requests
-reuse the same research record; a complete creation request runs all three stages.
+In an adopting project, ask for a project extension instead of a catalog one: the
+skill writes it to `docs/solomonar/extensions/<name>/`, `extension.json`
+included, and the request ends with `solomonar extension add <name>`, which you
+run to activate it. Include scope and supported versions when known. Stage-only
+requests reuse the same research record; a complete creation request runs all
+three stages.
 
 - Write in English, in the imperative, one instruction per bullet. Prefer `must` and `never` only where they
   are meant literally.
@@ -161,7 +165,7 @@ Steps:
 ### Add an extension skill
 
 An extension skill carries the rules of a language, library, or practice. It installs to
-`docs/solomonar/skills/<name>/` and gets a skill stub in each runtime.
+`docs/solomonar/extensions/<name>/`, every file copied as is, and gets a skill stub in each runtime.
 
 1. **Choose the group.** Use the group of the decision that selects the extension: `language`, `architecture`,
    `frontend`, `backend`, `persistence`, `testing`, `operations`, or `workflow`. The groups are fixed. Adopting an
@@ -179,7 +183,8 @@ An extension skill carries the rules of a language, library, or practice. It ins
      "requires": [],
      "conflicts": [],
      "applies_when": "A change touches <files or behavior>",
-     "paths": ["**/*.<ext>"]
+     "paths": ["**/*.<ext>"],
+     "detect": ["**/<marker file>"]
    }
    ```
 
@@ -187,9 +192,14 @@ An extension skill carries the rules of a language, library, or practice. It ins
    | --- | --- |
    | `name`, `group` | Equal to the directory names. |
    | `kind` | `skill`. |
-   | `title`, `applies_when` | Required, not blank. `applies_when` is rendered into the project's `AGENTS.md`, and agents load the skill when it matches. |
+   | `title`, `applies_when` | Required, not blank. `applies_when` is written into the project's `AGENTS.md`, and agents load the skill when it matches. |
    | `requires`, `conflicts` | Names of other catalog extensions. Never add a dependency silently: a missing one is an error the user sees. |
    | `paths` | Globs of the files the extension governs; the orchestrator uses them to name the extension in review packets. |
+   | `detect` | Optional. Globs of repository files that suggest the extension, such as `**/go.mod`; `init` preselects it and `extension list` marks it `suggested`. Omit it when no file reliably signals the need. |
+   | `default` | Optional, `false` by default. `true` suggests the extension in every project; keep it for procedures most projects use. |
+   | `invocation` | Optional, `model` by default. `user` means only the user starts the skill: its stubs disable model invocation and `AGENTS.md` lists it on a separate line. |
+
+   Neither `detect` nor `default` installs anything; the user still chooses at `init` or with `extension add`.
 
 4. **Add `SKILL.md`.** Its frontmatter `name` equals the extension name:
 
@@ -232,23 +242,11 @@ An extension skill carries the rules of a language, library, or practice. It ins
    Keep only the rules that apply to almost every change in `Common rules`. Move topic rules to files under
    `rules/<name>/`, routed from the `Load by impact` table. Drop the table when there are no topic files.
 
-5. **Add rules that depend on another extension** as a combination section in `SKILL.md`. The CLI keeps the
-   section only when every named extension is installed, and drops it otherwise:
-
-   ```markdown
-   ## With <other>
-   <!-- solomonar:with <other> -->
-
-   - <name>/C-n (must) — Rule: <a rule that only holds when <other> is installed too>.
-   ```
-
-   Combination sections work only in `SKILL.md` (or the agent file); topic rule files are copied verbatim.
-
-6. **Document it.** Add the extension to the catalog listings on the site (`site/src/docs/cli/init.md`,
+5. **Document it.** Add the extension to the catalog listings on the site (`site/src/docs/cli/init.md`,
    `site/src/docs/cli/extension.md`, `site/src/docs/configuration.md`) and in the README's project status.
    Put research and sources for a substantial rule set in `docs/research/<name>-rules/`, as
    [`docs/research/go-rules/`](docs/research/go-rules/) does.
-7. [Verify the change](#verify-a-framework-change).
+6. [Verify the change](#verify-a-framework-change).
 
 The [`go` extension](assets/extensions/language/go/) is the reference implementation.
 
@@ -286,13 +284,15 @@ The [`go` extension](assets/extensions/language/go/) is the reference implementa
 ### Add an extension agent
 
 An extension agent is an extra specialist reviewer, for example for accessibility or a regulated domain. It
-installs to `docs/solomonar/agents/<name>.md`, runs in parallel with the core reviewers when its `applies_when`
-matches the change, and gets read-only tools in runtimes that support a tool list.
+installs to its own store directory, `docs/solomonar/extensions/<name>/` with `<name>.md` and `extension.json`,
+runs in parallel with the core reviewers when its `applies_when` matches the change, and gets read-only tools in
+runtimes that support a tool list.
 
 1. **Create the directory** `assets/extensions/review/<name>/`. Use another group only when the reviewer belongs to a
    stack decision.
 2. **Add `extension.json`** with `"kind": "agent"`. Here `applies_when` is the condition under which triage
-   requires this reviewer, so make it precise:
+   requires this reviewer, so make it precise. `detect` and `default` work as for a skill; `invocation` stays
+   unset, because an agent is never user-invoked:
 
    ```json
    {
@@ -352,7 +352,7 @@ matches the change, and gets read-only tools in runtimes that support a tool lis
    ```
 
    Choose a finding prefix no other role uses (`SEC`, `COR`, `SPEC`, and `ADV` are taken).
-4. Document it as for a skill (step 6 above), then [verify the change](#verify-a-framework-change).
+4. Document it as for a skill (step 5 above), then [verify the change](#verify-a-framework-change).
 
 ### Add a core skill or agent
 
@@ -423,8 +423,9 @@ never gets an adapter, because it runs as the top-level session.
      --objective "Scratch project" --yes
    ```
 
-   Check `docs/solomonar/`, the `## Extensions` section of `AGENTS.md`, and the stubs in `.claude/` and `.agents/`
-   or `.codex/`.
+   Check the installed files in `docs/solomonar/extensions/<name>/`, the `## Extensions` section of `AGENTS.md`,
+   and the stubs in `.claude/` and `.agents/` or `.codex/`. For an extension that is not default, also run
+   `solomonar extension list` and `solomonar extension add <name>` in a project initialized without it.
 3. Run a real task with the changed rules in Claude Code or Codex when the change affects agent behavior, and
    describe what you observed in the pull request.
 
