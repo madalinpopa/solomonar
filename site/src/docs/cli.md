@@ -23,6 +23,10 @@ These commands are present in the current implementation. Use `solomonar help` f
 | Command | Purpose | Who runs it | Requires a project |
 | --- | --- | --- | --- |
 | [`init`]({{ '/docs/cli/init/' | url }}) | Install the framework core, runtime adapters, and extensions, and create the registry. | You | No |
+| [`upgrade`]({{ '/docs/cli/upgrade/' | url }}) | Move the project to this CLI's framework version, keeping project edits and choices. | You | Yes |
+| [`extension list`]({{ '/docs/cli/extension/#solomonar-extension-list' | url }}) | List the catalog and project extensions with their status, decision, and suggestion; alias `ext`. | You and agents | No |
+| [`extension add`]({{ '/docs/cli/extension/#solomonar-extension-add' | url }}) | Install catalog extensions or activate project extensions, recording a stack decision. | You, or an orchestrator with an approved decision | Yes |
+| [`extension remove`]({{ '/docs/cli/extension/#solomonar-extension-remove' | url }}) | Remove catalog extensions or deactivate project extensions. | You, or an orchestrator with an approved decision | Yes |
 | [`task plan`]({{ '/docs/cli/task/#solomonar-task-plan' | url }}) | Create a planned task with the next free ID. | You | Yes |
 | [`task register`]({{ '/docs/cli/task/#solomonar-task-register' | url }}) | Reserve a task for one orchestrator. | Orchestrator agent | Yes |
 | [`task show`]({{ '/docs/cli/task/#solomonar-task-show' | url }}) | Read the stored registry or one task. | You and agents | Yes |
@@ -37,7 +41,7 @@ These commands are present in the current implementation. Use `solomonar help` f
 | [`version`]({{ '/docs/cli/version/' | url }}) | Print the CLI and project framework versions. | You | No |
 | [`help`]({{ '/docs/cli/help/' | url }}) | Print help; `-h` and `--help` are equivalent. | You and agents | No |
 
-Task commands need a project prepared with `init`. Agents run the writing task commands; you mostly use `init`, `task plan`, `task show`, and `task status`.
+Task commands, `upgrade`, and `extension add|remove` need a project prepared with `init`; `extension list` runs in any repository. Agents run the writing task commands; you mostly use `init`, `upgrade`, `extension`, `task plan`, `task show`, and `task status`.
 
 ## Commands in development
 
@@ -48,10 +52,7 @@ These commands are specified and scheduled for the next delivery increment. They
 | [`doctor`]({{ '/docs/cli/doctor/' | url }}) | Check the repository, registry, files, extensions, adapters, and forge settings. | You, or CI |
 | [`sync`]({{ '/docs/cli/sync/' | url }}) | Regenerate runtime adapter files from the portable source. | You, or CI with `--check` |
 | [`runtime list/add/remove`]({{ '/docs/cli/runtime/' | url }}) | Manage Claude Code, Codex, and Copilot CLI adapters. | You |
-| [`extension list/show/add/remove/new`]({{ '/docs/cli/extension/' | url }}) | Choose the stack and add skills or reviewers; alias `ext`. | You, or an orchestrator with an approved decision |
 | [`guard`]({{ '/docs/cli/guard/' | url }}) | Deny direct registry writes from an agent session. | The runtime's hook |
-
-Increment 2 also completes the new-product path: a project initialized with `--ext none` chooses its stack later with `extension add`.
 
 ## Global flags
 
@@ -121,10 +122,10 @@ These are interface contracts, not commands available in the current build.
 
 | Delivery increment | Planned |
 | --- | --- |
-| Increment 2, [in development](#commands-in-development) | `doctor`, `sync`, `runtime list/add/remove`, `extension list/show/add/remove/new` (alias `ext`), project extensions from a local path, `guard` and its runtime hooks |
-| Increment 3 | `upgrade`, `dashboard` |
+| Increment 2, [in development](#commands-in-development) | `doctor`, `sync`, `runtime list/add/remove`, `guard` and its runtime hooks |
+| Increment 3 | `upgrade --diff`, `dashboard` |
 
-The `htmx`, `templ`, and `tdd` extensions of the interface catalog are added once their framework content is written.
+The catalog holds `go` and `extension-authoring`; further catalog extensions are added once their framework content is written and reviewed. A project's own rules and reviewers are [project extensions]({{ '/docs/cli/extension/#write-a-project-extension' | url }}).
 
 The read-only dashboard is a planned local view of the registry, not this documentation website. Windows, model calls, a daemon, and independently writable registry clones are outside the v0.1 scope.
 
