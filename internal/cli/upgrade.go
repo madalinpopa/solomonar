@@ -39,6 +39,8 @@ func upgradeCommand() command {
 		description: "Update the managed files to the framework embedded in this CLI, with the choices the manifest\n" +
 			"records, and remove the managed files no longer offered. --keep keeps the project's version of a\n" +
 			"conflicting file, --take-new takes the new one; --dry-run prints the plan and writes nothing.\n" +
+			"At the project's version, it regenerates adapter stubs, as after a project extension's metadata\n" +
+			"change, and restores missing managed files.\n" +
 			"Decision documents, project extensions, and the registry are never touched.",
 		bind: func(fs *flag.FlagSet) runFunc {
 			var f upgradeFlags
@@ -82,7 +84,7 @@ func (f *upgradeFlags) run(ctx context.Context, env Env, flags sharedFlags, args
 	switch {
 	case f.dryRun:
 		return u.dryRun(), nil
-	case u.from == u.framework && !slices.ContainsFunc(u.plan.Changes, writes):
+	case u.refresh() && !slices.ContainsFunc(u.plan.Changes, writes):
 		return u.noOp(), nil
 	}
 	return confirmed(env, flags, "upgrade", f.yes, u.changedPlan(u.header()), func() (output, error) {
@@ -165,7 +167,15 @@ func initializedManifest(root *os.Root, framework, dir string) (*project.Manifes
 }
 
 func (u upgradeRun) header() string {
+	if u.refresh() {
+		return fmt.Sprintf("Refresh framework %s\n", u.framework)
+	}
 	return fmt.Sprintf("Upgrade framework %s → %s\n", u.from, u.framework)
+}
+
+// refresh reports a run at the project's version, which only regenerates files (UC-9).
+func (u upgradeRun) refresh() bool {
+	return u.from == u.framework
 }
 
 // planText is the header and every file line, as --dry-run and a conflict print them.
@@ -179,11 +189,14 @@ func (u upgradeRun) apply(ctx context.Context, root *os.Root) (output, error) {
 		return output{}, err
 	}
 	data := u.data()
-	commit := "git add " + strings.Join(u.generatedPaths(), " ") +
-		fmt.Sprintf(" && git commit -m \"chore: upgrade solomonar to %s\"", u.framework)
+	message, done := "upgrade solomonar to "+u.framework, fmt.Sprintf("Upgraded solomonar %s → %s", u.from, u.framework)
+	if u.refresh() {
+		message, done = "refresh solomonar "+u.framework+" files", "Refreshed solomonar "+u.framework
+	}
+	commit := "git add " + strings.Join(u.generatedPaths(), " ") + fmt.Sprintf(" && git commit -m \"chore: %s\"", message)
 	data.Next = []string{commit, "Running tasks pick up the new framework after they update from main."}
-	text := fmt.Sprintf("Upgraded solomonar %s → %s in %s\n  %s\n\nNext:\n  1. %s\n  2. %s\n", u.from, u.framework,
-		u.root, counts(u.plan.Changes), data.Next[0], data.Next[1])
+	text := fmt.Sprintf("%s in %s\n  %s\n\nNext:\n  1. %s\n  2. %s\n", done, u.root, counts(u.plan.Changes),
+		data.Next[0], data.Next[1])
 	return output{data: data, text: text}, nil
 }
 
@@ -197,8 +210,11 @@ func (u upgradeRun) noOp() output {
 func (u upgradeRun) dryRun() output {
 	data := u.data()
 	data.DryRun = true
-	text := u.planText() + fmt.Sprintf("Would upgrade solomonar %s → %s in %s\n  %s\n", u.from, u.framework, u.root,
-		counts(u.plan.Changes))
+	would := fmt.Sprintf("Would upgrade solomonar %s → %s", u.from, u.framework)
+	if u.refresh() {
+		would = "Would refresh solomonar " + u.framework
+	}
+	text := u.planText() + fmt.Sprintf("%s in %s\n  %s\n", would, u.root, counts(u.plan.Changes))
 	return output{data: data, text: text}
 }
 
