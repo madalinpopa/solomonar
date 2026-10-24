@@ -25,8 +25,8 @@ sources:
 | `AGENTS.md` | Compact mandatory instructions and context routes; your notes go under `## Project notes`. | Framework section managed; notes yours |
 | `docs/README.md` | Project mission, objective, document index, and verified run and check commands. | You (seeded once) |
 | `docs/solomonar/` | Framework rules, report format, the four skills, and the six agent roles. | Managed core |
-| `docs/solomonar/skills/<extension>/` | The rules of an installed extension, such as `go`. | Managed extension |
-| `docs/decisions.md`, `docs/stack.md` | One approved `P/D-n` entry per extension group you chose, and one stack line per group. Written only when you chose an extension. | Entries appended by `init`; the files are yours |
+| `docs/solomonar/extensions/<name>/` | The store: an installed catalog extension, such as `go`, copied with its `extension.json`; or a project extension you or the `extension-authoring` skill wrote. | Catalog extensions managed, `ext:<name>`; project extensions yours |
+| `docs/decisions.md`, `docs/stack.md` | One approved decision entry per change to a stack group's extensions, and one stack line per change. Written only when a stack extension is chosen, added, or removed. | Entries appended by `init` and `extension add\|remove`; the files are yours |
 | `CLAUDE.md`, `.claude/skills/`, `.claude/agents/` | Claude Code adapter stubs. | Managed runtime files |
 | `.agents/skills/`, `.codex/agents/` | Codex adapter stubs. | Managed runtime files |
 | `.github/skills/<skill>/SKILL.md`, `.github/agents/<role>.agent.md` | Copilot CLI adapter stubs. | Managed runtime files, `runtime:copilot` |
@@ -95,19 +95,21 @@ Agents pass `--as` on each owner command because a runtime may start a new shell
 
 Extensions add skills and specialist reviewers. Stack extensions record an approved technology decision; workflow and review extensions configure the process without a stack decision.
 
-In this source tree, `init --ext` installs the `go` language extension and the optional `extension-authoring` workflow skill from the embedded catalog. The `extension` commands that add or remove an extension later, and project extensions from a local directory, are planned.
+Every extension the project uses lives in the store, `docs/solomonar/extensions/<name>/`. `init --ext` and [`extension add`]({{ '/docs/cli/extension/#solomonar-extension-add' | url }}) copy a catalog extension there, `extension.json` included, and the manifest tracks each of its files as `ext:<name>`; `upgrade` keeps them current and `extension remove` deletes them. The catalog holds the `go` language extension and the `extension-authoring` workflow skill.
 
-`extension-authoring` researches, writes, and validates skills, rules, or specialist reviewers. It supports catalog source in Solomonar and project-owned source in adopting repositories. Its runtime stubs point to `docs/solomonar/skills/extension-authoring/SKILL.md`; conditional stage references and one authoring-evidence source map live beside that file. Each authored extension keeps its own sources, decisions, and results in a single research record.
+A project extension is a store directory whose name the catalog does not use. It is project-owned: no command writes, tracks, or upgrades a file in it. `extension add <name>` activates it with runtime stubs, an `AGENTS.md` line, a manifest entry with `source: path`, and, in a stack group, a decision; `extension remove <name>` deactivates it and leaves the directory as it was.
 
-The skill creates content; the CLI installs it, records ownership and metadata, and generates adapters. Until project-extension adoption is supported, project mode leaves an unregistered source directory. It does not edit the manifest or adapters to activate the draft.
+`extension-authoring` researches, writes, and validates skills, rules, or specialist reviewers. It supports catalog source in Solomonar and project extensions in adopting repositories. It is user-invoked: its runtime stubs disable model invocation, and `AGENTS.md` lists it under "User-invoked skills", so it runs only when you start it. Its stubs point to `docs/solomonar/extensions/extension-authoring/SKILL.md`; conditional stage references and one authoring-evidence source map live beside that file. Each authored extension keeps its own sources, decisions, and results in a single research record.
 
-The v0.1.7 catalog holds no specialist-reviewer extension; those arrive as project extensions. `task move --agent` already accepts the role of any agent extension the manifest lists as installed, alongside the core roles.
+The skill creates content; the CLI activates it. In project mode the skill writes the extension in catalog format to the store, validates it, and hands off `solomonar extension add <name>`. It never edits the manifest, the runtime stubs, or `AGENTS.md`.
 
-An installed extension is listed in the `## Extensions` section of `AGENTS.md` with its "applies when" condition and paths. Agents load it when a change matches, and cite its rules as `<name>/C-n`.
+The catalog holds no specialist-reviewer extension; those arrive as project extensions in the `review` group. `task move --agent` accepts the role of any agent extension the manifest lists as installed, alongside the core roles.
 
-Project extensions will start as inactive drafts until adopted. Drafts do not contribute rules, runtime adapters, or required reviewers.
+An installed extension is listed in the `## Extensions` section of `AGENTS.md` with its group, its decision for a stack group, its "applies when" condition, and its paths. Agents load a model-invoked skill when a change matches, and cite its rules as `<name>/C-n`; triage requires an installed agent when its condition matches.
 
-`init` and upgrades preserve project edits. Identical managed content is a no-op; differing content becomes an explicit conflict. A retained project edit does not become the distributed base hash. This allows a later upgrade to detect the difference again.
+A project extension that is not installed contributes no rules, runtime adapters, or required reviewers. `extension list` shows it `available`, or `invalid: <reason>` when it fails the extension checks.
+
+`init`, `upgrade`, and the `extension` commands preserve project edits. Identical managed content is a no-op; differing content becomes an explicit conflict. A retained project edit does not become the distributed base hash. This allows a later upgrade to detect the difference again.
 
 Copilot adapters use the same file classification and conflict rules, without taking ownership of unrelated `.github` files. The manifest stays at schema version 1; older binaries can reject a newer framework version or the unknown runtime. Do not hand-edit the manifest or lower its version. Adding Copilot to a project with other recorded runtimes remains deferred until `runtime add` is available; `init` never changes recorded runtime choices.
 
