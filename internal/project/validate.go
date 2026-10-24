@@ -74,14 +74,6 @@ func (m *Manifest) validateExtension(name string, e Extension) error {
 	); err != nil {
 		return err
 	}
-	if e.State == "draft" && len(e.RenderedWith) > 0 {
-		return invalidManifest("%srendered_with is not allowed for a draft", field)
-	}
-	for _, other := range e.RenderedWith {
-		if _, ok := m.Extensions[other]; !ok {
-			return invalidManifest("%srendered_with %q is not a known extension", field, other)
-		}
-	}
 	return nil
 }
 
@@ -119,8 +111,8 @@ func validateDecision(field string, e Extension) error {
 		return nil
 	case e.Decision == "":
 		return invalidManifest("%s is missing", field)
-	case !projectDecision(e.Decision):
-		return invalidManifest("%s %q is not P/D-<n>", field, e.Decision)
+	case !ValidDecisionID(e.Decision):
+		return invalidManifest("%s %q is not P/D-<n> or <task-ID>/D-<n>", field, e.Decision)
 	}
 	return nil
 }
@@ -147,8 +139,8 @@ func (m *Manifest) validateFile(key string, f File) error {
 		return invalidManifest("%ssha256 %q is not 64 lowercase hex", field, f.SHA256)
 	}
 	for _, entry := range f.Entries {
-		if !projectDecision(entry) {
-			return invalidManifest("%sentries %q is not P/D-<n>", field, entry)
+		if !ValidDecisionID(entry) {
+			return invalidManifest("%sentries %q is not P/D-<n> or <task-ID>/D-<n>", field, entry)
 		}
 	}
 	return nil
@@ -197,9 +189,12 @@ func extensionName(name string) bool {
 		!strings.ContainsFunc(name, func(r rune) bool { return (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' })
 }
 
-func projectDecision(ref string) bool {
-	digits, ok := strings.CutPrefix(ref, "P/D-")
-	return ok && allDigits(digits)
+// ValidDecisionID accepts P/D-<n> and <task-ID>/D-<n> (I section 4.7).
+func ValidDecisionID(ref string) bool {
+	scope, digits, ok := strings.Cut(ref, "/D-")
+	task, isTask := strings.CutPrefix(scope, "W-")
+	return ok && digits != "" && allDigits(digits) &&
+		(scope == "P" || isTask && len(task) >= 3 && allDigits(task))
 }
 
 func lowerHex64(s string) bool {
