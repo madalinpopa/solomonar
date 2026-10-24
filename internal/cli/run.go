@@ -44,6 +44,7 @@ func commands() []command {
 			bind:        withoutFlags(runHelp),
 		},
 		initCommand(),
+		upgradeCommand(),
 		{
 			name:    "version",
 			summary: "Print the CLI and project framework versions",
@@ -52,6 +53,9 @@ func commands() []command {
 				`Outside a project the project line reads "not initialized".`,
 			bind: withoutFlags(runVersion),
 		},
+		extensionListCommand(),
+		extensionAddCommand(),
+		extensionRemoveCommand(),
 		taskBlockCommand(),
 		taskConfirmCommand(),
 		taskDoneCommand(),
@@ -70,12 +74,15 @@ func withoutFlags(run runFunc) func(*flag.FlagSet) runFunc {
 	return func(*flag.FlagSet) runFunc { return run }
 }
 
-// commandName joins a group word such as "task" with the subcommand that follows it.
+// commandName joins a group word such as "task" with its subcommand; "ext" names "extension".
 func commandName(args []string) (name string, rest []string) {
 	if len(args) == 0 {
 		return "", nil
 	}
 	name, rest = args[0], args[1:]
+	if name == "ext" {
+		name = "extension"
+	}
 	isGroup := slices.ContainsFunc(commands(), func(c command) bool { return strings.HasPrefix(c.name, name+" ") })
 	if isGroup && len(rest) > 0 && !strings.HasPrefix(rest[0], "-") {
 		return name + " " + rest[0], rest[1:]
