@@ -12,7 +12,7 @@ sources:
 
 > This command is in development and not in the current build; running it today exits 2 with an unknown-command error. This page describes the planned behavior; the final output may differ in detail.
 
-Regenerates the runtime adapter files from the portable source in `docs/solomonar/`, re-renders the catalog extensions whose combined rules depend on the installed set, and updates the "Extensions" section of `AGENTS.md`. Draft extensions are excluded.
+Regenerates the runtime adapter files from the portable source in `docs/solomonar/`, including the stubs of installed extensions, and updates the "Extensions" section of `AGENTS.md`. It never writes an extension's files in `docs/solomonar/extensions/`.
 
 {% cliUsage "After you edit a role's or skill's frontmatter in `docs/solomonar/`, delete a stub, or merge a branch that changed `docs/solomonar/`. Edit the source, never a runtime stub: a body-only edit needs no sync, because stubs load the source.", "You. CI runs `sync --check`." %}
 
