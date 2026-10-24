@@ -14,6 +14,8 @@ sources:
 
 ## Status and stage
 
+{% diagram "status-stage" %}
+
 **Status** says whether work can advance. **Stage** says where it has reached. A blocked or paused task preserves its stage.
 
 | Status | Meaning |
@@ -31,6 +33,10 @@ The stages are `setup`, `specification`, `implementation`, `specialized_review`,
 A task is `reserved` exactly while at `setup`. On leaving setup, it becomes `running`, and the CLI records the task's base commit, its worktree path, and the owner's confirmation. A blocked or paused task resumes to `reserved` at setup and `running` at a later stage.
 
 ## One registry, checked writes
+
+{% diagram "registry" %}
+
+The registry holds decisions; the task branch holds progress. Every state change is one `state(<ID>): …` commit on `workflow-state`. Once the task enters `implementation`, the plan steps exist only as commits on `feature/<ID>`.
 
 The registry lives on `refs/heads/workflow-state`, created empty by `solomonar init`: `state.json` holds only the schema version, and each task is one file, `tasks/<ID>.json`. It has no filesystem checkout. Only `solomonar task` commands write it, using Git compare-and-swap updates. A write changes only the files of the tasks it touches, but every writer still swaps the same ref.
 
@@ -72,7 +78,15 @@ The CLI enforces two gates: implementation cannot start without the approved pla
 
 ## A new session takes over
 
+A session that stops suddenly loses only what it held in memory. Committed steps, the approved plan, and the registry record stay in Git; uncommitted files stay in the worktree, unverified. The record still names the stopped session as the confirmed owner, and nothing takes over automatically.
+
+{% diagram "session-stop" %}
+
 The CLI cannot see sessions. A new session takes a task through `task handoff` on your instruction, which clears the confirmation. It inspects `task status`, preserves uncommitted work, and runs `task confirm`; until then, stage changes are rejected. It then delegates only the remaining steps. Confirmation proves neither that the plan was approved nor that the earlier session stopped; make sure it did.
+
+{% diagram "takeover" %}
+
+The new session reads progress from Git, not from the earlier conversation, so it does not repeat committed steps.
 
 ## Blockers
 
