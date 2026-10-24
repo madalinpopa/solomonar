@@ -83,6 +83,18 @@ solomonar version --json
 
 The object has `ok`, `command`, `data`, and `warnings` fields. The [output contract]({{ '/docs/cli/#output-formats' | url }}) describes it.
 
+## Remove the CLI
+
+Removing the binary does not touch your projects. To stop using Solomonar in a project, first run [`solomonar uninstall`]({{ '/docs/cli/uninstall/' | url }}) in each checkout to clean up, then commit the result there. It keeps the registry, your decisions, and your project extensions.
+
+Then, only if you no longer need the CLI, remove the executable. A Homebrew install is removed with:
+
+```sh
+brew uninstall --cask solomonar
+```
+
+A binary you copied by hand is deleted by hand, for example `rm ~/.local/bin/solomonar`. Neither step changes any repository or your runtime applications' configuration.
+
 ## Next
 
 Your binary works. Now [set up a project]({{ '/docs/set-up-a-project/' | url }}) with `solomonar init`.

@@ -377,3 +377,5 @@ error: extension remove rejected (core_item)
   fix:   the core cannot be removed (4.1)
 nothing was written
 ```
+
+The core is removed only with the whole installation, by [`solomonar uninstall`]({{ '/docs/cli/uninstall/' | url }}).

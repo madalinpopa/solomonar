@@ -109,8 +109,14 @@ An installed extension is listed in the `## Extensions` section of `AGENTS.md` w
 
 A project extension that is not installed contributes no rules, runtime adapters, or required reviewers. `extension list` shows it `available`, or `invalid: <reason>` when it fails the extension checks.
 
-`init`, `upgrade`, and the `extension` commands preserve project edits. Identical managed content is a no-op; differing content becomes an explicit conflict. A retained project edit does not become the distributed base hash. This allows a later upgrade to detect the difference again.
+`init`, `upgrade`, `uninstall`, and the `extension` commands preserve project edits. Identical managed content is a no-op; differing content becomes an explicit conflict. A retained project edit does not become the distributed base hash. This allows a later upgrade to detect the difference again.
 
 Copilot adapters use the same file classification and conflict rules, without taking ownership of unrelated `.github` files. The manifest stays at schema version 1; older binaries can reject a newer framework version or the unknown runtime. Do not hand-edit the manifest or lower its version. Adding Copilot to a project with other recorded runtimes remains deferred until `runtime add` is available; `init` never changes recorded runtime choices.
 
 The full catalog and conflict-resolution flags remain in the [CLI interface specification]({{ 'docs/cli/interface.md' | source }}).
+
+## Removing the installation
+
+[`solomonar uninstall`]({{ '/docs/cli/uninstall/' | url }}) follows the ownership in the tables above. It removes the managed files the manifest records and that are still unchanged: the core, catalog extensions in the store, the runtime stubs, a `CLAUDE.md` the CLI created, the managed part of `AGENTS.md`, and the manifest. In `docs/README.md` it removes only the framework index line. An edited managed file is a conflict you resolve with `--keep` or `--overwrite`.
+
+Everything you own stays: the `## Project notes` section of `AGENTS.md`, project extensions in `docs/solomonar/extensions/<name>/`, `docs/decisions.md` and `docs/stack.md` with every entry, the documents your work created, a `CLAUDE.md` you wrote, other files in `.claude/`, `.codex/`, `.agents/`, and `.github/`, and the registry `refs/heads/workflow-state` with its task history. Mentions of Solomonar in those files are yours to edit; the command warns only about the ones it knows of. It does not touch other worktrees, the binary, or user-wide configuration.

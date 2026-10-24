@@ -24,6 +24,7 @@ These commands are present in the current implementation. Use `solomonar help` f
 | --- | --- | --- | --- |
 | [`init`]({{ '/docs/cli/init/' | url }}) | Install the framework core, runtime adapters, and extensions, and create the registry. | You | No |
 | [`upgrade`]({{ '/docs/cli/upgrade/' | url }}) | Move the project to this CLI's framework version, keeping project edits and choices. | You | Yes |
+| [`uninstall`]({{ '/docs/cli/uninstall/' | url }}) | Remove the framework, catalog extensions, and adapters from one checkout, keeping project extensions, decisions, notes, and task history. | You | Yes |
 | [`extension list`]({{ '/docs/cli/extension/#solomonar-extension-list' | url }}) | List the catalog and project extensions with their status, decision, and suggestion; alias `ext`. | You and agents | No |
 | [`extension add`]({{ '/docs/cli/extension/#solomonar-extension-add' | url }}) | Install catalog extensions or activate project extensions, recording a stack decision. | You, or an orchestrator with an approved decision | Yes |
 | [`extension remove`]({{ '/docs/cli/extension/#solomonar-extension-remove' | url }}) | Remove catalog extensions or deactivate project extensions. | You, or an orchestrator with an approved decision | Yes |
@@ -41,11 +42,11 @@ These commands are present in the current implementation. Use `solomonar help` f
 | [`version`]({{ '/docs/cli/version/' | url }}) | Print the CLI and project framework versions. | You | No |
 | [`help`]({{ '/docs/cli/help/' | url }}) | Print help; `-h` and `--help` are equivalent. | You and agents | No |
 
-Task commands, `upgrade`, and `extension add|remove` need a project prepared with `init`; `extension list` runs in any repository. Agents run the writing task commands; you mostly use `init`, `upgrade`, `extension`, `task plan`, `task show`, and `task status`.
+Task commands, `upgrade`, and `extension add|remove` need a project prepared with `init`; `extension list` runs in any repository. `uninstall` without a manifest is a no-op. Agents run the writing task commands; you mostly use `init`, `upgrade`, `extension`, `uninstall`, `task plan`, `task show`, and `task status`.
 
 ## Commands in development
 
-These commands are specified and scheduled for the next delivery increment. They are **not in the current build**: running one today exits 2 with an unknown-command error. Their pages carry an <span class="cli-label">In development</span> label and show examples from the interface specification.
+These commands are specified and scheduled for delivery. They are **not in the current build**: running one today exits 2 with an unknown-command error. Their pages carry an <span class="cli-label">In development</span> label and show examples from the interface specification.
 
 | Command | Purpose | Who runs it |
 | --- | --- | --- |
@@ -107,7 +108,7 @@ Unknown forge or check facts never count as passing.
 | Code | Meaning |
 | --- | --- |
 | 0 | Success, including a no-op, a declined confirmation, and success with warnings such as a failed push. |
-| 1 | Unexpected failure: I/O, a Git error, a corrupt object. Nothing is written. |
+| 1 | Unexpected failure: I/O, a Git error, a corrupt object. Nothing is written; only when `uninstall` cannot restore its changes does it name the paths left changed. |
 | 2 | Usage error: unknown command or flag, missing or malformed argument. |
 | 3 | Rejected: a validation, ownership, transition, or fact check failed. |
 | 4 | Conflict: a managed file differs from what the CLI would write, or the registry update kept losing to concurrent writes. |

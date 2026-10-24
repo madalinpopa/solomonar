@@ -1,7 +1,7 @@
 ---
 title: CLI troubleshooting
 navTitle: Troubleshooting
-description: Diagnose Solomonar CLI errors, init conflicts and confirmations, missing initialization, task ownership conflicts, rejected transitions, and exit codes.
+description: Diagnose Solomonar CLI errors, init conflicts and confirmations, uninstall conflicts and retained files, missing initialization, task ownership conflicts, rejected transitions, and exit codes.
 kind: How-to guide
 group: Guides
 order: 10
@@ -13,7 +13,7 @@ sources:
 
 ## A command is unknown
 
-First run `solomonar help` to see the command table in your binary. The interface specification includes future commands; the current build does not yet implement `doctor`, `sync`, `runtime`, `guard`, `dashboard`, or `upgrade --diff`. An older build may also lack `upgrade` and `extension`.
+First run `solomonar help` to see the command table in your binary. The interface specification includes future commands; the current build does not yet implement `doctor`, `sync`, `runtime`, `guard`, `dashboard`, or `upgrade --diff`. An older build may also lack `upgrade`, `extension`, and `uninstall`.
 
 Use the [availability table]({{ '/docs/cli/#current-commands' | url }}) before following an example from the full design contract. An unknown command exits 2; it does not mean your application needs to be scaffolded again.
 
@@ -72,6 +72,27 @@ Run [`solomonar upgrade`]({{ '/docs/cli/upgrade/' | url }}) on main, commit the 
 
 To add Copilot to a project that already records different Solomonar runtimes, wait for the planned `runtime add` command. Do not hand-edit `.solomonar/manifest.json`, lower its version, or rerun `init` with different runtime choices.
 
+## uninstall stops or leaves files
+
+[`solomonar uninstall`]({{ '/docs/cli/uninstall/' | url }}) plans from `.solomonar/manifest.json` alone.
+
+- `No Solomonar manifest; nothing to uninstall automatically.` (exit 0) means the manifest is missing: the project was never initialized, was already uninstalled, or the manifest was deleted. The CLI does not search for framework files without it. If files remain, remove them by hand, or restore the manifest from Git history and rerun.
+- `manifest_invalid` (exit 1) means the manifest cannot be decoded. Restore it from Git history, for example with `git restore .solomonar/manifest.json`; never edit it by hand. A manifest that is a symlink, directory, or special file is `file_conflict` before any plan; restore it as a regular file.
+- `cli_outdated` (exit 3) means a newer release wrote the project; install that release or a newer one and rerun.
+- `file_conflict` (exit 4) lists each edited or unsafe managed file. Rerun with `--keep <path>` to leave the file, no longer managed, or `--overwrite <path>` to remove it. A record outside the paths `uninstall` removes can only be kept. If the files changed after the plan was shown, simply rerun.
+- `hook entry removal is not supported` means the manifest records a runtime hook entry. Neither flag resolves it, so keep the installation until hook entry removal ships with the planned `guard` hooks. The current releases write no hook entries.
+
+After a successful run, some content stays on purpose:
+
+- Your `## Project notes` in `AGENTS.md`, project extensions in `docs/solomonar/extensions/<name>/`, decisions, specifications, and other documents. Delete a project extension's directory by hand if you no longer want it.
+- The registry `refs/heads/workflow-state` with its task history, task branches, and other worktrees. `solomonar task show` still reads the registry. Delete the branch with Git only if you want to discard the history.
+- Every path passed to `--keep`, reported with the warning `<path> is kept and no longer managed; remove it by hand if unneeded`.
+- References the command reports with `manual_reference`, such as a `CLAUDE.md` you wrote that still imports `@AGENTS.md`, or a customized framework entry in `docs/README.md`. Other mentions of Solomonar in your documents are not searched for; edit them yourself.
+
+A rerun of `init` does not restore the removed `docs/README.md` index line, because `init` never rewrites an existing `docs/README.md`.
+
+If the last error line reads `rollback incomplete; recover the paths named above`, a failed removal could not restore every file. The `found: not restored: …` line names the paths. Restore them, for example with `git restore`, then rerun `uninstall`.
+
 ## Copilot does not discover the framework
 
 Check `solomonar init --help` for `copilot`; an older build may not include the adapter. Initialize an eligible project with `--runtime copilot`, then start `copilot` at its worktree root. The adapter uses `.github/skills/<skill>/SKILL.md` and `.github/agents/<role>.agent.md`, while root instructions come from `AGENTS.md`.
@@ -129,7 +150,7 @@ A rejected state update leaves the registry unchanged. A failed remote push afte
 
 ## Exit codes
 
-The [exit code table]({{ '/docs/cli/#exit-codes' | url }}) lists every code. Any non-zero code means nothing was written, so fix the cause and rerun. A `0` with a warning such as `push_failed` or `push_interrupted` means the local write succeeded and only publication failed: do not repeat the write.
+The [exit code table]({{ '/docs/cli/#exit-codes' | url }}) lists every code. Any non-zero code means nothing was written, so fix the cause and rerun. The one exception is an `uninstall` that ends with `rollback incomplete`; see [above](#uninstall-stops-or-leaves-files). A `0` with a warning such as `push_failed` or `push_interrupted` means the local write succeeded and only publication failed: do not repeat the write.
 
 ## Report a problem with evidence
 

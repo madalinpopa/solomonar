@@ -141,6 +141,10 @@ Already initialized with solomonar 0.2.0; nothing to do.
 
 It never changes a recorded choice, such as the runtimes or the extensions. Change extensions with [`extension add` and `extension remove`]({{ '/docs/cli/extension/' | url }}); after a CLI update, move the framework with [`upgrade`]({{ '/docs/cli/upgrade/' | url }}). Runtimes will change through the planned `runtime` commands. To add Copilot to an already initialized Solomonar project with different runtimes, wait for `runtime add`; do not edit the manifest or pass different runtimes to `init`.
 
+## Remove Solomonar from a project
+
+[`solomonar uninstall`]({{ '/docs/cli/uninstall/' | url }}) removes what `init` installed from one checkout: the framework core, the catalog extensions, the adapters, the framework part of `AGENTS.md`, the framework line in `docs/README.md`, and the manifest. Your project notes, project extensions, decisions, specifications, and the task registry stay. Preview it with `--dry-run`, then review and commit the removal yourself.
+
 ## Next
 
 The project is ready. [Run your first task]({{ '/docs/first-task/' | url }}).
