@@ -10,7 +10,6 @@ import (
 )
 
 const (
-	notRegular  = "exists and is not a regular file"
 	modified    = "modified since installation (manifest sha256 differs)"
 	notManaged  = "exists and is not managed by solomonar"
 	rulesPath   = "docs/solomonar/rules.md"
@@ -106,7 +105,7 @@ func TestClassify(t *testing.T) {
 
 			root, _ := openTree(t, tt.disk)
 
-			plan, files, err := Classify(root, tt.manifest, []Want{tt.want}, tt.keep, tt.overwrite)
+			plan, files, err := Classify(root, tt.manifest, []Want{tt.want}, Resolutions{Keep: tt.keep, Overwrite: tt.overwrite})
 
 			require.NoError(t, err)
 			require.Len(t, plan.Changes, 1)
@@ -127,7 +126,7 @@ func TestClassifySymlinkIsNotRegular(t *testing.T) {
 	root, dir := openTree(t, map[string]entry{"target.md": {content: contentA, mode: 0o644}})
 	require.NoError(t, os.Symlink("target.md", filepath.Join(dir, "link.md")))
 
-	plan, _, err := Classify(root, nil, []Want{{Path: "link.md", Owner: "core", Content: []byte(contentA)}}, nil, nil)
+	plan, _, err := Classify(root, nil, []Want{{Path: "link.md", Owner: "core", Content: []byte(contentA)}}, Resolutions{})
 
 	require.NoError(t, err)
 	assert.Equal(t, ActionConflict, plan.Changes[0].Action)
@@ -144,7 +143,7 @@ func TestClassifyKeepsWantedOrder(t *testing.T) {
 		{Path: "a.md", Owner: "core", Content: []byte(contentA)},
 	}
 
-	plan, _, err := Classify(root, nil, wants, nil, nil)
+	plan, _, err := Classify(root, nil, wants, Resolutions{})
 
 	require.NoError(t, err)
 	var paths []string
@@ -152,6 +151,20 @@ func TestClassifyKeepsWantedOrder(t *testing.T) {
 		paths = append(paths, c.Path)
 	}
 	assert.Equal(t, []string{"c.md", "b.md", "a.md"}, paths)
+}
+
+func TestClassifyRejectsAPathWantedTwice(t *testing.T) {
+	t.Parallel()
+
+	root, _ := openTree(t, map[string]entry{})
+	wants := []Want{
+		{Path: "a.md", Owner: "core", Content: []byte(contentA)},
+		{Path: "a.md", Owner: "runtime claude", Content: []byte(contentB)},
+	}
+
+	_, _, err := Classify(root, nil, wants, Resolutions{})
+
+	require.EqualError(t, err, "plan a.md: wanted twice")
 }
 
 func TestClassifyRejectsInvalidResolution(t *testing.T) {
@@ -183,7 +196,7 @@ func TestClassifyRejectsInvalidResolution(t *testing.T) {
 				{Path: "differs.md", Owner: "core", Content: []byte(contentA)},
 			}
 
-			_, _, err := Classify(root, nil, wants, tt.keep, tt.overwrite)
+			_, _, err := Classify(root, nil, wants, Resolutions{Keep: tt.keep, Overwrite: tt.overwrite})
 
 			assert.Equal(t, &Rejection{
 				Code:  "invalid_value",
@@ -204,7 +217,7 @@ func TestClassifyKeepFollowsUpstreamBase(t *testing.T) {
 	step := func(offer string, keep []string) Change {
 		t.Helper()
 		wants := []Want{{Path: rulesPath, Owner: "core", Content: []byte(offer)}}
-		plan, files, err := Classify(root, manifest, wants, keep, nil)
+		plan, files, err := Classify(root, manifest, wants, Resolutions{Keep: keep})
 		require.NoError(t, err)
 		if len(plan.Conflicts()) == 0 {
 			manifest = &Manifest{Files: files}
@@ -234,10 +247,123 @@ func TestClassifyAdoptsIdenticalFile(t *testing.T) {
 
 	root, _ := openTree(t, map[string]entry{rulesPath: {content: contentA, mode: 0o644}})
 
-	plan, files, err := Classify(root, nil, []Want{{Path: rulesPath, Owner: "core", Content: []byte(contentA)}}, nil, nil)
+	plan, files, err := Classify(root, nil, []Want{{Path: rulesPath, Owner: "core", Content: []byte(contentA)}}, Resolutions{})
 
 	require.NoError(t, err)
 	assert.Equal(t, Change{Path: rulesPath, Action: ActionUnchanged, Owner: "core", Reason: "adopted"}, plan.Changes[0])
 	assert.Equal(t, File{Owner: "core", SHA256: Hash([]byte(contentA))}, files[rulesPath])
 	assert.Empty(t, plan.Conflicts())
+}
+
+func TestClassifyRemovals(t *testing.T) {
+	t.Parallel()
+
+	const goSkill = "docs/solomonar/skills/go/SKILL.md"
+	recorded := File{Owner: "ext:go", SHA256: Hash([]byte(contentA))}
+	tests := []struct {
+		name      string
+		disk      map[string]entry
+		keep      []string
+		overwrite []string
+		changes   []Change
+		files     map[string]File
+	}{
+		{
+			name: "unmodified is removed", disk: map[string]entry{goSkill: {content: contentA, mode: 0o644}},
+			changes: []Change{{Path: goSkill, Action: ActionRemove, Owner: "ext:go"}},
+			files:   map[string]File{},
+		},
+		{
+			name: "modified is a conflict", disk: map[string]entry{goSkill: {content: contentB, mode: 0o644}},
+			changes: []Change{{Path: goSkill, Action: ActionConflict, Owner: "ext:go", Reason: modified}},
+			files:   map[string]File{goSkill: recorded},
+		},
+		{
+			name: "not a regular file is a conflict", disk: map[string]entry{goSkill + "/inner": {content: "x", mode: 0o644}},
+			changes: []Change{{Path: goSkill, Action: ActionConflict, Owner: "ext:go", Reason: notRegular}},
+			files:   map[string]File{goSkill: recorded},
+		},
+		{name: "absent is dropped", files: map[string]File{}},
+		{
+			name: "keep untracks a conflict", disk: map[string]entry{goSkill: {content: contentB, mode: 0o644}},
+			keep:    []string{goSkill},
+			changes: []Change{{Path: goSkill, Action: ActionKeep, Owner: "ext:go", Reason: "untracked; left in place"}},
+			files:   map[string]File{},
+		},
+		{
+			name: "overwrite removes a conflict", disk: map[string]entry{goSkill: {content: contentB, mode: 0o644}},
+			overwrite: []string{goSkill},
+			changes:   []Change{{Path: goSkill, Action: ActionRemove, Owner: "ext:go"}},
+			files:     map[string]File{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			root, _ := openTree(t, tt.disk)
+			manifest := &Manifest{Files: map[string]File{goSkill: recorded}}
+
+			plan, files, err := Classify(root, manifest, nil, Resolutions{Keep: tt.keep, Overwrite: tt.overwrite})
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.changes, plan.Changes)
+			assert.Equal(t, tt.files, files)
+		})
+	}
+}
+
+func TestClassifyPlansRemovalsAfterWantsInPathOrder(t *testing.T) {
+	t.Parallel()
+
+	root, _ := openTree(t, map[string]entry{
+		"b.md":           {content: contentB, mode: 0o644},
+		"a.md":           {content: contentA, mode: 0o644},
+		"docs/README.md": {content: "mine\n", mode: 0o644},
+		"docs/stack.md":  {content: "stack\n", mode: 0o644},
+	})
+	manifest := &Manifest{Files: map[string]File{
+		"b.md":             {Owner: "core", SHA256: Hash([]byte(contentB))},
+		"a.md":             {Owner: "core", SHA256: Hash([]byte(contentA))},
+		"docs/README.md":   {Owner: "seed"},
+		"docs/stack.md":    {Owner: "decision", Entries: []string{"P/D-1"}},
+		".claude/settings": {Owner: "runtime:claude", Entry: "guard"},
+		ManifestPath:       {Owner: "manifest"},
+	}}
+	wants := []Want{{Path: "c.md", Owner: "core", Content: []byte(contentC)}}
+
+	plan, _, err := Classify(root, manifest, wants, Resolutions{})
+
+	require.NoError(t, err)
+	var paths []string
+	for _, c := range plan.Changes {
+		paths = append(paths, c.Path)
+	}
+	assert.Equal(t, []string{"c.md", "a.md", "b.md"}, paths)
+}
+
+func TestClassifyRejectsResolvingAPlainRemoval(t *testing.T) {
+	t.Parallel()
+
+	root, _ := openTree(t, map[string]entry{rulesPath: {content: contentA, mode: 0o644}})
+
+	_, _, err := Classify(root, managed(rulesPath, contentA), nil, Resolutions{Keep: []string{rulesPath}})
+
+	assert.Equal(t, Resolutions{}.invalid("%s is not a conflict", rulesPath), err)
+}
+
+func TestClassifyRejectsOverwritingANonRegularRemoval(t *testing.T) {
+	t.Parallel()
+
+	root, dir := openTree(t, map[string]entry{"target.md": {content: contentA, mode: 0o644}})
+	require.NoError(t, os.Symlink("target.md", filepath.Join(dir, "link.md")))
+
+	_, _, err := Classify(root, managed("link.md", contentA), nil, Resolutions{Overwrite: []string{"link.md"}})
+
+	assert.Equal(t, &Rejection{
+		Code:  "invalid_value",
+		Check: "--keep and --overwrite resolve conflicts",
+		Found: "link.md is not a regular file",
+		Fix:   "remove it by hand or pass --keep link.md",
+	}, err)
 }
