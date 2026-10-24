@@ -135,7 +135,7 @@ tasks:
     cmds:
       - task: version:set
         vars: {VERSION: '{{trimPrefix "v" .NEXT}}'}
-      - 'git commit -aqm "chore(release): {{.NEXT}}"'
+      - 'git diff --quiet || git commit -aqm "chore(release): {{.NEXT}}"'
       - git push origin HEAD:main
       - git tag -a {{.NEXT}} -m "Release {{.NEXT}}"
       - git push origin {{.NEXT}}
