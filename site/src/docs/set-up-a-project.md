@@ -139,7 +139,15 @@ If the repository already has an application, agents discover its build and test
 Already initialized with solomonar 0.2.0; nothing to do.
 ```
 
-It never changes a recorded choice, such as the runtimes or the extensions. Change extensions with [`extension add` and `extension remove`]({{ '/docs/cli/extension/' | url }}); after a CLI update, move the framework with [`upgrade`]({{ '/docs/cli/upgrade/' | url }}). Runtimes will change through the planned `runtime` commands. To add Copilot to an already initialized Solomonar project with different runtimes, wait for `runtime add`; do not edit the manifest or pass different runtimes to `init`.
+It never changes a recorded choice, such as the runtimes or the extensions. Change extensions with [`extension add` and `extension remove`]({{ '/docs/cli/extension/' | url }}); after a CLI update, move the framework with [`upgrade`]({{ '/docs/cli/upgrade/' | url }}). Change runtimes with [`runtime add` and `runtime remove`]({{ '/docs/cli/runtime/' | url }}); do not edit the manifest or pass different runtimes to `init`. For example, to add Copilot to a project initialized for Claude Code and Codex, or drop it again:
+
+```sh
+solomonar runtime add copilot --dry-run
+solomonar runtime add copilot --yes
+solomonar runtime remove copilot --yes
+```
+
+Each write prints the `git add` and `git commit` command for the changed adapter files and the manifest.
 
 ## Remove Solomonar from a project
 

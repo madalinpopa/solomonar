@@ -13,7 +13,7 @@ sources:
 
 ## A command is unknown
 
-First run `solomonar help` to see the command table in your binary. The interface specification includes future commands; the current build does not yet implement `doctor`, `sync`, `runtime`, `guard`, `dashboard`, or `upgrade --diff`. An older build may also lack `upgrade`, `extension`, and `uninstall`.
+First run `solomonar help` to see the command table in your binary. The interface specification includes future commands; the current build does not yet implement `doctor`, `sync`, `guard`, `dashboard`, or `upgrade --diff`. An older build may also lack `upgrade`, `extension`, `uninstall`, and `runtime`.
 
 Use the [availability table]({{ '/docs/cli/#current-commands' | url }}) before following an example from the full design contract. An unknown command exits 2; it does not mean your application needs to be scaffolded again.
 
@@ -44,7 +44,7 @@ solomonar init --overwrite .claude/agents/implementer.md --yes
 
 ## init rejects a choice
 
-`already_initialized` means the project's manifest records a different choice than the one you passed, such as another runtime or other extensions. `init` never changes recorded choices. Rerun without the differing flag; change extensions with [`extension add` and `extension remove`]({{ '/docs/cli/extension/' | url }}). Runtimes change through the planned `runtime` commands.
+`already_initialized` means the project's manifest records a different choice than the one you passed, such as another runtime or other extensions. `init` never changes recorded choices. Rerun without the differing flag; change extensions with [`extension add` and `extension remove`]({{ '/docs/cli/extension/' | url }}). Change runtimes with [`runtime add` and `runtime remove`]({{ '/docs/cli/runtime/' | url }}), and a runtime's adversarial-reviewer model with `runtime add <runtime> --adversarial-model <model>`.
 
 `unknown_extension` (exit 2) means an `--ext` value is not in the embedded catalog; the error lists the known names. `--ext none` cannot be combined with another name. `init --ext` takes catalog names only: activate a project extension after `init` with `extension add <name>`.
 
@@ -66,11 +66,11 @@ Run [`solomonar upgrade`]({{ '/docs/cli/upgrade/' | url }}) on main, commit the 
 
 `unknown_extension` from `extension add` means the name is neither in the catalog nor a directory in `docs/solomonar/extensions/`; run `solomonar extension list` for the names you can add. `invalid_value` names the first problem of a project extension, such as `applies_when is missing`; fix its directory, or ask the `extension-authoring` skill to validate it, then rerun. `name_collision` means a project extension reuses a catalog name; rename its directory and its `name`.
 
-`file_conflict` (exit 4) from `upgrade` or `extension remove` means a managed file was edited. Resolve each listed path with `--keep <path>` or `--take-new <path>` for `upgrade`, and `--keep <path>` or `--overwrite <path>` for the `extension` commands.
+`file_conflict` (exit 4) from `upgrade`, `extension remove`, or `runtime add|remove` means a managed file was edited. Resolve each listed path with `--keep <path>` or `--take-new <path>` for `upgrade`, and `--keep <path>` or `--overwrite <path>` for the `extension` and `runtime` commands. On a removal, `--keep` leaves the edited file on disk, no longer managed, and `--overwrite` deletes it.
 
 `not_a_repository` from `init` means the directory is not inside a Git repository. Run `git init -b main` first, or pass `--git-init`.
 
-To add Copilot to a project that already records different Solomonar runtimes, wait for the planned `runtime add` command. Do not hand-edit `.solomonar/manifest.json`, lower its version, or rerun `init` with different runtime choices.
+To add Copilot to a project that already records different Solomonar runtimes, run `solomonar runtime add copilot`. Do not hand-edit `.solomonar/manifest.json`, lower its version, or rerun `init` with different runtime choices.
 
 ## uninstall stops or leaves files
 

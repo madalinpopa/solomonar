@@ -11,6 +11,7 @@ sources:
   - assets/framework/rules.md
   - internal/cli/move.go
   - internal/project/runtime.go
+  - internal/cli/runtime.go
   - internal/project/validate.go
 ---
 
@@ -76,7 +77,11 @@ Reviewer tool restrictions exclude direct editing tools, but shell commands can 
 
 The `solomonar` entry skill is invoked only by you, never by the model on its own. A portable request is “Use the solomonar skill.” The orchestrator has no adapter file: it is always the top-level session, because it must delegate the implementer and reviewers itself.
 
-`--adversarial-model <runtime>=<model>` sets the model of that runtime's adversarial reviewer.
+`--adversarial-model <runtime>=<model>` sets the model of that runtime's adversarial reviewer at `init`. Afterwards, `solomonar runtime add <runtime> --adversarial-model <model>` changes it.
+
+### Changing runtimes
+
+`init` records the runtimes once. [`runtime add`]({{ '/docs/cli/runtime/' | url }}#solomonar-runtime-add) generates another runtime's adapters for the core and the installed extensions, restores a missing adapter of an installed runtime, or updates its adversarial-reviewer model. [`runtime remove`]({{ '/docs/cli/runtime/' | url }}#solomonar-runtime-remove) deletes the runtime's unmodified adapter files and drops it from the manifest; an edited adapter is a conflict you resolve with `--keep` or `--overwrite`. Both keep the other runtimes, extensions, and decisions, and leave unrelated files under `.claude`, `.codex`, `.agents`, and `.github`, a `CLAUDE.md` the CLI did not create, and the top-level adapter directories in place. No runtime command installs, merges, or removes a hook or a runtime settings file; hook management is deferred with `guard`.
 
 `--adversarial-model copilot=<model>` configures the Copilot adversarial-reviewer stub. This is a runtime preference: overrides or unavailable models can cause a different model to run. Installation does not authenticate or check account model access. Live acceptance must observe the actual model rather than treating the configuration as proof of model isolation.
 
@@ -109,9 +114,9 @@ An installed extension is listed in the `## Extensions` section of `AGENTS.md` w
 
 A project extension that is not installed contributes no rules, runtime adapters, or required reviewers. `extension list` shows it `available`, or `invalid: <reason>` when it fails the extension checks.
 
-`init`, `upgrade`, `uninstall`, and the `extension` commands preserve project edits. Identical managed content is a no-op; differing content becomes an explicit conflict. A retained project edit does not become the distributed base hash. This allows a later upgrade to detect the difference again.
+`init`, `upgrade`, `uninstall`, and the `runtime` and `extension` commands preserve project edits. Identical managed content is a no-op; differing content becomes an explicit conflict. A retained project edit does not become the distributed base hash. This allows a later upgrade to detect the difference again.
 
-Copilot adapters use the same file classification and conflict rules, without taking ownership of unrelated `.github` files. The manifest stays at schema version 1; older binaries can reject a newer framework version or the unknown runtime. Do not hand-edit the manifest or lower its version. Adding Copilot to a project with other recorded runtimes remains deferred until `runtime add` is available; `init` never changes recorded runtime choices.
+Copilot adapters use the same file classification and conflict rules, without taking ownership of unrelated `.github` files. The manifest stays at schema version 1; older binaries can reject a newer framework version or the unknown runtime. Do not hand-edit the manifest or lower its version. `init` never changes recorded runtime choices; add Copilot to a project with other recorded runtimes with `runtime add copilot`.
 
 The full catalog and conflict-resolution flags remain in the [CLI interface specification]({{ 'docs/cli/interface.md' | source }}).
 

@@ -53,9 +53,10 @@ The CLI is built in increments. This table describes the source tree; check `sol
 | Extensions: `go` and `extension-authoring` at `init`, then `extension list`, `add`, and `remove` | Available |
 | Project extensions in `docs/solomonar/extensions/`, written with the `extension-authoring` skill | Available |
 | `upgrade` to the CLI's framework version | Available |
+| Runtime adapters after `init`: `runtime list`, `add`, and `remove`, without hooks | Available |
 | Task commands: `plan`, `register`, `show`, `status`, `move`, `block`, `unblock`, `handoff`, `confirm`, `migrate`, `done` | Available |
 | More catalog extensions | Planned |
-| `doctor`, `sync`, `runtime`, `guard`, `upgrade --diff`, `dashboard` | Planned |
+| `doctor`, `sync`, `guard`, `upgrade --diff`, `dashboard` | Planned |
 
 The [CLI reference]({{ '/docs/cli/#planned-commands' | url }}) keeps the full list of planned commands.
 

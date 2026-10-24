@@ -25,6 +25,9 @@ These commands are present in the current implementation. Use `solomonar help` f
 | [`init`]({{ '/docs/cli/init/' | url }}) | Install the framework core, runtime adapters, and extensions, and create the registry. | You | No |
 | [`upgrade`]({{ '/docs/cli/upgrade/' | url }}) | Move the project to this CLI's framework version, keeping project edits and choices. | You | Yes |
 | [`uninstall`]({{ '/docs/cli/uninstall/' | url }}) | Remove the framework, catalog extensions, and adapters from one checkout, keeping project extensions, decisions, notes, and task history. | You | Yes |
+| [`runtime list`]({{ '/docs/cli/runtime/#solomonar-runtime-list' | url }}) | List Claude Code, Codex, and Copilot CLI with their installation, executable, and adapter locations. | You | No |
+| [`runtime add`]({{ '/docs/cli/runtime/#solomonar-runtime-add' | url }}) | Generate one runtime's adapter files and record it, or update its adversarial-reviewer model. | You | Yes |
+| [`runtime remove`]({{ '/docs/cli/runtime/#solomonar-runtime-remove' | url }}) | Delete one runtime's unmodified adapter files and drop it from the manifest. | You | Yes |
 | [`extension list`]({{ '/docs/cli/extension/#solomonar-extension-list' | url }}) | List the catalog and project extensions with their status, decision, and suggestion; alias `ext`. | You and agents | No |
 | [`extension add`]({{ '/docs/cli/extension/#solomonar-extension-add' | url }}) | Install catalog extensions or activate project extensions, recording a stack decision. | You, or an orchestrator with an approved decision | Yes |
 | [`extension remove`]({{ '/docs/cli/extension/#solomonar-extension-remove' | url }}) | Remove catalog extensions or deactivate project extensions. | You, or an orchestrator with an approved decision | Yes |
@@ -42,7 +45,7 @@ These commands are present in the current implementation. Use `solomonar help` f
 | [`version`]({{ '/docs/cli/version/' | url }}) | Print the CLI and project framework versions. | You | No |
 | [`help`]({{ '/docs/cli/help/' | url }}) | Print help; `-h` and `--help` are equivalent. | You and agents | No |
 
-Task commands, `upgrade`, and `extension add|remove` need a project prepared with `init`; `extension list` runs in any repository. `uninstall` without a manifest is a no-op. Agents run the writing task commands; you mostly use `init`, `upgrade`, `extension`, `uninstall`, `task plan`, `task show`, and `task status`.
+Task commands, `upgrade`, `runtime add|remove`, and `extension add|remove` need a project prepared with `init`; `runtime list` and `extension list` run in any repository. `uninstall` without a manifest is a no-op. Agents run the writing task commands; you mostly use `init`, `upgrade`, `runtime`, `extension`, `uninstall`, `task plan`, `task show`, and `task status`.
 
 ## Commands in development
 
@@ -52,7 +55,6 @@ These commands are specified and scheduled for delivery. They are **not in the c
 | --- | --- | --- |
 | [`doctor`]({{ '/docs/cli/doctor/' | url }}) | Check the repository, registry, files, extensions, adapters, and forge settings. | You, or CI |
 | [`sync`]({{ '/docs/cli/sync/' | url }}) | Regenerate runtime adapter files from the portable source. | You, or CI with `--check` |
-| [`runtime list/add/remove`]({{ '/docs/cli/runtime/' | url }}) | Manage Claude Code, Codex, and Copilot CLI adapters. | You |
 | [`guard`]({{ '/docs/cli/guard/' | url }}) | Deny direct registry writes from an agent session. | The runtime's hook |
 
 ## Global flags
@@ -123,7 +125,7 @@ These are interface contracts, not commands available in the current build.
 
 | Delivery increment | Planned |
 | --- | --- |
-| Increment 2, [in development](#commands-in-development) | `doctor`, `sync`, `runtime list/add/remove`, `guard` and its runtime hooks |
+| Increment 2, [in development](#commands-in-development) | `doctor`, `sync`, `guard` and its runtime hooks |
 | Increment 3 | `upgrade --diff`, `dashboard` |
 
 The catalog holds `go` and `extension-authoring`; further catalog extensions are added once their framework content is written and reviewed. A project's own rules and reviewers are [project extensions]({{ '/docs/cli/extension/#write-a-project-extension' | url }}).

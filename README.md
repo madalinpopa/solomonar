@@ -27,7 +27,7 @@ Solomonar is an open-source workflow for building software with AI coding agents
 It has two parts:
 
 - **The framework:** Markdown rules, skills, and agent roles that `solomonar init` installs into your repository under `docs/solomonar/`. Your agent runtime reads them. The core works with any programming language; extensions add the rules for your stack.
-- **The CLI:** the `solomonar` binary. It installs, upgrades, and uninstalls the framework, adds and removes extensions, writes the runtime adapters, and validates every task update against Git. It never calls a model, starts an agent, or stores review verdicts.
+- **The CLI:** the `solomonar` binary. It installs, upgrades, and uninstalls the framework, adds and removes extensions, adds and removes the runtime adapters, and validates every task update against Git. It never calls a model, starts an agent, or stores review verdicts.
 
 ![The Solomonar framework: the core in docs/solomonar/ holds the agent roles, the skills, and the contracts every role follows; optional extensions, the go and extension-authoring skills from the catalog or your own skills and reviewers, add stack rules, procedures, and extra reviewers, loaded when their applies_when matches the change or when you start them.](docs/images/framework-core.svg)
 
@@ -108,7 +108,16 @@ Open a top-level agent session in the project and start every request with the `
 | GitHub Copilot CLI | `/solomonar Prototype adding a shared expense.` (live workflow acceptance pending) |
 | Any runtime | `Use the solomonar skill to prototype adding a shared expense.` |
 
-To install the Copilot adapter in a project with no recorded Solomonar choices, use `--runtime copilot` instead of `--runtime claude`. Follow the printed commit command: it lists individual Copilot files rather than the whole `.github` directory. Adding Copilot to an already initialized Solomonar project must wait for the planned `runtime add` command; `init` never changes recorded choices.
+To install the Copilot adapter in a project with no recorded Solomonar choices, use `--runtime copilot` instead of `--runtime claude`. Follow the printed commit command: it lists individual Copilot files rather than the whole `.github` directory. `init` never changes recorded choices; in an already initialized project, change runtimes with the [`runtime` commands](https://solomonar.dev/docs/cli/runtime/):
+
+```sh
+solomonar runtime list
+solomonar runtime add copilot --dry-run
+solomonar runtime add copilot --yes
+solomonar runtime remove copilot --yes
+```
+
+Each write prints the commit command for the changed adapter files. The runtime commands write no hooks or runtime settings.
 
 With no request, the skill reports what is waiting on you and what can start next. Follow the tasks from your shell:
 
