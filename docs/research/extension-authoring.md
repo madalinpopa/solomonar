@@ -1,7 +1,8 @@
 # Extension authoring: evidence and adoption
 
 Initial prompt research: 2026-10-24, parent `3fbe9f5e`. Skill adoption candidate:
-2026-10-24, parent `655f0bb` (Solomonar 0.1.7).
+2026-10-24, parent `655f0bb` (Solomonar 0.1.7). Store and extension commands:
+2026-10-24, [implementation plan](../cli/extension-implementation-plan.md) TASK-10.
 
 The single external authoring source map now lives in
 [the skill's evidence reference](../../assets/extensions/workflow/extension-authoring/references/evidence.md).
@@ -20,9 +21,9 @@ It is a supporting procedure, not a new required core role or step.
 
 - Catalog mode researches and edits `assets/extensions/<group>/<name>/` and its
   associated research/documentation/check fixtures.
-- Project mode researches and edits project-owned source, using
-  `tools/solomonar/extensions/<name>/` for a new unregistered candidate or the
-  recorded source path of an existing CLI-created draft.
+- Project mode researches and writes a project extension in the store,
+  `docs/solomonar/extensions/<name>/`, in catalog format with its own
+  `extension.json`, and hands off `solomonar extension add <name>`.
 - Research → authoring → validation is the default for a complete creation
   request. Stage-only requests stop at that stage. Scoped approvals persist;
   stage transitions introduce no new confirmation gate.
@@ -31,8 +32,9 @@ It is a supporting procedure, not a new required core role or step.
   were removed after consolidation into the skill. Short stage invocation
   examples live in [CONTRIBUTING.md](../../CONTRIBUTING.md#writing-framework-text);
   the skill's stage references own the procedures.
-- Runtime adapters remain generated pointers to one installed portable body.
-  No new CLI command or runtime-adapter implementation is introduced.
+- Runtime adapters remain generated pointers to one portable body in the store.
+  The skill adds no CLI command or runtime-adapter implementation; the
+  `extension list|add|remove` commands own activation.
 
 ## Skill and CLI responsibilities
 
@@ -40,23 +42,21 @@ It is a supporting procedure, not a new required core role or step.
 | --- | --- | --- |
 | Domain research, rules, exceptions, reviewer method, evaluation | Skill | Existing prompt workflow; E-9/E-13 in the source map |
 | Catalog metadata | Catalog author, checked by CLI | [Catalog parser](../../internal/project/catalog.go); strict `extension.json` schema |
-| Project metadata and draft registration | CLI | [Interface UC-7](../cli/interface.md#uc-7-add-workflow-skills-review-agents-or-the-projects-own-extensions); proposed values remain in the research record until registration |
-| Installation, ownership, activation, combinations, generated stubs | CLI | [AGENTS template](../../assets/templates/AGENTS.md), [installer](../../internal/project/extension.go), [runtime generation](../../internal/project/runtime.go) |
-| Draft scaffold | Planned `extension new` | It creates source **and records a tracked draft**, so authoring content is not a complete replacement |
-| Adopting a local source directory | Planned `extension add <path>` | An existing source needs no `new` step; adoption remains a separate supported operation |
+| Project extension files, `extension.json` included | Skill or user | [Interface 4.3 and UC-7](../cli/interface.md#uc-7-add-workflow-skills-review-agents-or-the-projects-own-extensions); the same strict loader as the catalog; the CLI never writes or tracks them |
+| Validating a project extension | Skill, through `extension list` | Read-only; an invalid directory lists as `invalid: <reason>`, and `SUGGESTED` shows `detect`/`default` |
+| Activation, ownership, decisions, generated stubs | CLI (`extension add\|remove`) | [AGENTS template](../../assets/templates/AGENTS.md), [installer](../../internal/project/extension.go), [runtime generation](../../internal/project/runtime.go) |
 
-Retain the planned lifecycle commands. The skill can replace the manual content
-writing portion of a new-extension workflow; `extension new` remains a small
-optional deterministic scaffold/registration operation. Removing tracked-draft
-semantics would be a separate CLI design change, not necessary for this skill.
-The current [command registry](../../internal/cli/run.go) has no extension
-management commands. New project source therefore remains unregistered, and an
-initialized project cannot change extension choices with another `init` call.
+The skill writes content and metadata in the store; activation is a separate
+`solomonar extension add <name>`, run by the user or by an orchestrator with an
+approved decision. There is no scaffold or tracked-draft step: a project
+extension is available as soon as its directory passes the loader, and nothing
+about it is recorded until it is installed. An initialized project changes
+extension choices with `extension add|remove`, never with another `init` call.
 
-The project-source contract specifically says metadata belongs in the manifest,
-not a separate package `extension.json`. The original catalog-only prompts did
-not account for that distinction. It is now explicit in both the target map and
-adoption handoff, without teaching the agent to modify the manifest itself.
+Catalog and project extensions share one `extension.json` schema, including the
+optional `detect`, `default`, and `invocation` fields. The skill therefore writes
+the file directly in project mode, without teaching the agent to modify the
+manifest itself.
 
 ## Context and source ownership
 
@@ -69,11 +69,11 @@ adoption handoff, without teaching the agent to modify the manifest itself.
 | `references/evidence.md` | One external source map, loaded during research only |
 
 The stage references use relative links so they resolve both in the catalog and
-under `docs/solomonar/skills/extension-authoring/`. The installed skill never
+under `docs/solomonar/extensions/extension-authoring/`. The installed skill never
 requires Solomonar's source checkout or contributor guide for project mode.
-Source-only paths are restricted to catalog mode. No core route or default
-extension selection is changed; direct invocation and existing extension
-activation metadata make this optional capability discoverable after installation.
+Source-only paths are restricted to catalog mode. No core route changes. The
+skill is `default: true`, so `init` preselects it, and `invocation: user`, so
+only the user starts it; its own `AGENTS.md` line keeps it discoverable.
 
 ## Instruction evidence matrix
 
@@ -101,8 +101,9 @@ added to adopting projects.
 | Case | Expected outcome |
 | --- | --- |
 | New catalog skill | Strict catalog metadata, portable main/support files, normal generated adapters, no manual registration code |
-| New project skill with extension commands unavailable | Project-owned unregistered source, one evidence record, no manifest/AGENTS/stub edits, explicit adoption gap |
-| Project skill with `extension new` available | Use verified tracked-draft path when selected; CLI owns draft metadata and adoption |
+| New project skill | Store directory with `extension.json` and `SKILL.md`, one evidence record, no manifest/AGENTS/stub edits, handoff `solomonar extension add <name>` |
+| Project extension fails the store loader | `extension list` shows `invalid: <reason>`; fix the named defect in the extension's files, never in the manifest or stubs |
+| Project extension with no file signal, or a reliable marker file | Empty or omitted `detect`; a custom glob matches a representative file, and `SUGGESTED` confirms it |
 | Specialist reviewer | Specialty-only contract with unique prefix and shared report/reviewer boundaries; no unshipped support references |
 | Rules added to existing extension | Preserve active/retired IDs; allocate after historical maximum; refresh only affected evidence |
 | Unsupported absolute or inaccessible source | Qualify/omit/investigate; no fabricated certainty or blocking policy |
@@ -143,6 +144,8 @@ observable behaviors; no production Go code or CLI command implementation change
 Fixtures: `/tmp/solomonar-authoring-trial-18fpz3zf/`. Each used a small supplied
 release-summary policy and an existing research brief, with authoring-only scope.
 No package installation, publication, or history mutation was authorized.
+The trials predate the store: project mode then targeted `tools/solomonar/extensions/`
+and had no adoption command; it now targets `docs/solomonar/extensions/<name>/`.
 
 | Trial | Observed result | Limit |
 | --- | --- | --- |
@@ -193,6 +196,6 @@ Technical support and structural checks are complete for the scoped candidate.
 Packaging is verified, including all three generated adapter formats and the
 recheck after clarifying `paths`. Live authoring observations cover both target
 modes; behavior claims remain limited as described above. New installations from
-this source can select the optional skill. Existing installed projects retain
-their recorded choices until supported lifecycle management becomes available.
+this source can select the optional skill; existing projects add it with
+`solomonar extension add extension-authoring`.
 All repository changes remain uncommitted.
