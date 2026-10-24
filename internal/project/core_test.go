@@ -82,8 +82,9 @@ func TestCoreWantsEmbeddedAssets(t *testing.T) {
 	assert.Equal(t, []string{"core"}, compactOwners(owners[:len(owners)-2]))
 	agents := string(wants[len(wants)-2].Content)
 	assert.Contains(t, agents, "Framework version: 9.8.7.")
-	assert.Contains(t, agents, "matches your change, before writing or reviewing code, and cite its rules as `<name>/C-n`.\n"+
-		"The orchestrator names the matching extensions in each packet.\n\n"+noExtensions+"\n\n## Context routes")
+	assert.Contains(t, agents, "## Extensions\n\nInstalled with `solomonar`. Load every installed extension skill whose "+
+		"\"applies when\" matches your change, before\nwriting or reviewing code, and cite its rules as `<name>/C-n`. "+
+		"The orchestrator names the matching extensions in\neach packet.\n\n"+noExtensions+"\n\n## Context routes")
 	assert.Contains(t, agents, "\n## Project notes\n")
 	readme := string(wants[len(wants)-1].Content)
 	assert.True(t, strings.HasPrefix(readme, "# ledger\n"))
@@ -171,7 +172,7 @@ func TestClassifyAgents(t *testing.T) {
 			root, _ := openTree(t, disk)
 			want := Want{Path: agentsPath, Owner: "core+notes", Content: []byte(managedC + offerNotes)}
 
-			plan, files, err := Classify(root, tt.manifest, []Want{want}, nil, tt.overwrite)
+			plan, files, err := Classify(root, tt.manifest, []Want{want}, Resolutions{Overwrite: tt.overwrite})
 
 			require.NoError(t, err)
 			assert.Equal(t, Change{
@@ -196,7 +197,7 @@ func TestClassifyAgentsCannotBeKept(t *testing.T) {
 	root, _ := openTree(t, map[string]entry{agentsPath: {content: "# Old\n", mode: 0o644}})
 	want := Want{Path: agentsPath, Owner: "core+notes", Content: []byte(managedC + offerNotes)}
 
-	_, _, err := Classify(root, nil, []Want{want}, []string{agentsPath}, nil)
+	_, _, err := Classify(root, nil, []Want{want}, Resolutions{Keep: []string{agentsPath}})
 
 	assert.Equal(t, &Rejection{
 		Code:  "invalid_value",
@@ -221,6 +222,10 @@ func TestCoreWantsRendersTheExtensionsBlock(t *testing.T) {
 	perf := CatalogExtension{
 		Name: "perf", Kind: "agent", Group: "operations", AppliesWhen: "Hot paths", Paths: []string{"cmd/**"},
 	}
+	author := CatalogExtension{
+		Name: "author", Kind: "skill", Group: "workflow", AppliesWhen: "A request authors an extension",
+		Invocation: "user",
+	}
 	tests := []struct {
 		name       string
 		extensions []CatalogExtension
@@ -230,22 +235,30 @@ func TestCoreWantsRendersTheExtensionsBlock(t *testing.T) {
 		{
 			name: "skills only, by group then name", extensions: []CatalogExtension{gin, golang, chi},
 			block: "- Skills\n" +
-				"  - `go` (language): A change touches Go code; paths: `**/*.go`, `**/go.mod`\n" +
-				"  - `chi` (backend): Routes\n" +
-				"  - `gin` (backend): A change adds routes\n" +
+				"  - `go` (language, P/D-1): A change touches Go code; paths: `**/*.go`, `**/go.mod`\n" +
+				"  - `chi` (backend, P/D-2): Routes\n" +
+				"  - `gin` (backend, P/D-2): A change adds routes\n" +
 				"- Agents: none. An installed agent is a specialist reviewer, required by triage when its " +
 				"\"applies when\" matches.",
 		},
 		{
 			name: "agents only", extensions: []CatalogExtension{contrast, perf},
 			block: "- Skills: none.\n" + agentsNote +
-				"  - `perf` (operations): Hot paths; paths: `cmd/**`\n" +
+				"  - `perf` (operations, P/D-3): Hot paths; paths: `cmd/**`\n" +
 				"  - `contrast` (review): UI changes",
+		},
+		{
+			name: "user-invoked skills after the agents", extensions: []CatalogExtension{author, golang, contrast},
+			block: "- Skills\n" +
+				"  - `go` (language, P/D-1): A change touches Go code; paths: `**/*.go`, `**/go.mod`\n" + agentsNote +
+				"  - `contrast` (review): UI changes\n" +
+				"- User-invoked skills: load one only when the user starts it, never because it applies.\n" +
+				"  - `author` (workflow): A request authors an extension",
 		},
 		{
 			name: "skills and agents", extensions: []CatalogExtension{contrast, golang},
 			block: "- Skills\n" +
-				"  - `go` (language): A change touches Go code; paths: `**/*.go`, `**/go.mod`\n" + agentsNote +
+				"  - `go` (language, P/D-1): A change touches Go code; paths: `**/*.go`, `**/go.mod`\n" + agentsNote +
 				"  - `contrast` (review): UI changes",
 		},
 	}
@@ -258,7 +271,10 @@ func TestCoreWantsRendersTheExtensionsBlock(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			wants, err := CoreWants(assets, Choices{Name: "ledger", Extensions: tt.extensions})
+			wants, err := CoreWants(assets, Choices{
+				Name: "ledger", Extensions: tt.extensions,
+				Decisions: map[string]string{"language": "P/D-1", "backend": "P/D-2", "operations": "P/D-3"},
+			})
 
 			require.NoError(t, err)
 			got := wantedContent(t, wants, agentsPath)
