@@ -660,3 +660,13 @@ the interface (sections 8.6 and 8.7, UC-25 and UC-26).
   implementation without an approved plan and review without a clean, fully checkpointed candidate.
 - A new session takes a task through `task handoff`, inspects it, and runs `task confirm` before any stage
   change; it delegates only the remaining steps. Reviews still run on one stable cumulative candidate.
+
+# Amendment: runtime commands without hooks (2026-10-24)
+
+This amendment narrows the statement above that runtime adapters arrive with hooks. Runtime management is delivered
+as `solomonar runtime list|add|remove` alone
+([interface UC-5](../cli/interface.md#uc-5-add-list-or-remove-a-runtime) and CLI-D36,
+[architecture section 12](../cli/architecture.md#12-implementation-plan)); guard hooks, their installation, and
+their removal stay deferred to `guard`. The commands are implemented: they add, update, or remove one runtime's
+adapter files and manifest choice after `init`, and never write a hook, runtime settings, or the registry. Live
+runtime acceptance stays separate evidence.

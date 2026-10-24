@@ -11,8 +11,8 @@ accepted workflow-audit corrections are applied to these contracts and the frame
 
 The Copilot CLI contract was added on 2026-10-23 (acceptance record: [section 10](#copilot-runtime-acceptance)):
 adapter generation, manifest tracking, and `init --runtime copilot` are implemented. Live Copilot acceptance and
-the minimum supported runtime version remain pending. Runtime management and hooks remain increment 2; this addition
-defines no Copilot guard hook. Existing Claude and Codex contracts are unchanged.
+the minimum supported runtime version remain pending. Runtime management is a separate delivery (UC-5), now
+implemented, and hooks remain deferred; this addition defines no Copilot guard hook. Existing Claude and Codex contracts are unchanged.
 
 The extension store, the minimal `upgrade`, and `extension list|add|remove` were specified on 2026-10-24 (CLI-D27
 to CLI-D31) and are
@@ -22,6 +22,10 @@ in the manifest, and only the `list`, `add`, and `remove` subcommands.
 `uninstall` was specified on 2026-10-24 (UC-27, CLI-D32 to CLI-D35, architecture AD-16) and is implemented. It
 removes the project installation from one checkout. Removing an
 extension stays `extension remove`, and removing the executable stays a package-manager or manual step.
+
+`runtime list|add|remove` were specified on 2026-10-24 (UC-5, CLI-D36) as a commands-only delivery and are
+implemented. Guard hooks, their installation, and their removal stay deferred; the hook design in 4.2, 4.5,
+4.7, and UC-22 is future work, not current behavior.
 
 The command pages in `site/src/docs/cli/` are the reference for each command's synopsis, flags, when to use it, who
 runs it, and its typical output; this spec does not repeat them. It holds the contract beneath those pages: check
@@ -66,7 +70,7 @@ each command writes and its use cases.
 | Command | Writes | Use case |
 |---|---|---|
 | `init` | project files, manifest, `workflow-state` | UC-1 to UC-4 |
-| `runtime list\|add\|remove` | adapter files, manifest, `AGENTS.md` | UC-5 |
+| `runtime list\|add\|remove` | `list` nothing; `add` and `remove`: `runtime:<name>` adapter files, any managed file the shared plan restores (4.5), manifest; never a hook or runtime settings file (CLI-D36) | UC-5 |
 | `extension list\|add\|remove` (alias `ext`) | `list` nothing; `add` and `remove`: catalog extension files in `docs/solomonar/extensions/<name>/` (never a project extension's directory), `docs/decisions.md`, `docs/stack.md`, `docs/architecture.md`, adapter files, manifest, `AGENTS.md` | UC-6, UC-7 |
 | `sync` | adapter files, manifest | UC-8 |
 | `upgrade` | managed files (create, update, remove), manifest | UC-9 |
@@ -76,7 +80,7 @@ each command writes and its use cases.
 | `task migrate` | `workflow-state` | UC-25 |
 | `task confirm` | `workflow-state` | UC-26 |
 | `task show`, `task status` | nothing | UC-16, UC-17 |
-| `guard` | nothing | UC-22 |
+| `guard` (deferred) | nothing | UC-22 |
 | `dashboard` | nothing | UC-23 |
 | `version`, `help` | nothing | UC-24 |
 
@@ -191,10 +195,10 @@ in 8.4; project commands use `not_a_repository`, `not_initialized`,
 `decision_not_approved`, `registry_exists_invalid`, `manifest_invalid`, `interactive_required`,
 `checks_failed`, `cli_outdated`, `framework_outdated`, `interrupted`.
 
-`not_initialized` (exit 3) for a project command: `upgrade` and `extension add|remove` need
+`not_initialized` (exit 3) for a project command: `upgrade`, `extension add|remove`, and `runtime add|remove` need
 `.solomonar/manifest.json`; without it they reject with check `the project is initialized`, found `no
 .solomonar/manifest.json in <root>`, and the fix "run solomonar init". (The task commands' `not_initialized`, 8.4,
-names the missing registry instead.) `extension list` works without a manifest, and `uninstall` without one is
+names the missing registry instead.) `extension list` and `runtime list` work without a manifest, and `uninstall` without one is
 a no-op (UC-27).
 
 `cli_outdated` (exit 3, CLI-D19): the manifest's `framework_version` or `schema_version`, or the registry's
@@ -206,8 +210,8 @@ the manifest or the registry rejects with it and writes nothing, with the fix "i
 `framework_outdated` (exit 3, CLI-D31): the manifest's `framework_version` is older than this CLI's embedded
 framework. `extension add` and `extension remove` reject with it after the manifest validates and before any
 extension is resolved, and write nothing: check `the project's framework matches this CLI`, found `manifest
-framework <v>, this CLI ships <v>`, fix "run solomonar upgrade". `extension list`, `upgrade`, and `uninstall`
-accept an older project; `init` keeps its own rules (UC-3).
+framework <v>, this CLI ships <v>`, fix "run solomonar upgrade". `runtime add` and `runtime remove` reject with
+it at the same point (UC-5). `extension list`, `runtime list`, `upgrade`, and `uninstall` accept an older project; `init` keeps its own rules (UC-3).
 
 `manifest_invalid` (exit 1, like `registry_invalid`): `.solomonar/manifest.json` fails strict decoding or the 4.7
 validation. The message names the field, and the fix is "inspect .solomonar/manifest.json; never edit it by hand".
@@ -276,7 +280,7 @@ These are documentation checks; live Copilot acceptance and the minimum supporte
 | Skills | `.claude/skills/<skill>/SKILL.md` stub per installed skill | `.agents/skills/<skill>/SKILL.md` stub per installed skill |
 | Roles | `.claude/agents/<role>.md` per delegated role; reviewers get a read-only tool list; `adversarial-reviewer` gets the configured model | `.codex/agents/<role>.toml` per delegated role (`name`, `description`, `developer_instructions`, `model` for `adversarial-reviewer`); no tool allowlist, so read-only reviewers are a behavioral contract (rules section 11) |
 | Orchestrator | no native agent file: it is a top-level session (G13) | same |
-| State guard | `PreToolUse` hook running `solomonar guard --runtime claude`, merged into `.claude/settings.json` | `PreToolUse` hook running `solomonar guard --runtime codex`, merged into `.codex/hooks.json`; Codex runs it only after the user trusts the project's `.codex/` layer and reviews the hook (`doctor` warns until then) |
+| State guard (deferred, CLI-D36) | future: `PreToolUse` hook running `solomonar guard --runtime claude`, merged into `.claude/settings.json`; not generated today | future: `PreToolUse` hook running `solomonar guard --runtime codex`, merged into `.codex/hooks.json`; Codex runs it only after the user trusts the project's `.codex/` layer and reviews the hook (`doctor` warns until then); not generated today |
 | Adversarial model | `--adversarial-model claude=<model>` writes `model: <model>` in its role stub | `--adversarial-model codex=<model>` writes `model = "<model>"` in its role stub |
 
 | Concern | `copilot` (GitHub Copilot CLI; live acceptance pending) |
@@ -285,8 +289,12 @@ These are documentation checks; live Copilot acceptance and the minimum supporte
 | Skills | `.github/skills/<skill>/SKILL.md` stub per installed skill; `solomonar` and every `invocation: user` extension skill add `disable-model-invocation: true` |
 | Roles | `.github/agents/<role>.agent.md` per delegated role; `name`, `description`, and `include-custom-instructions: true`; reviewers add `tools: [read, search, execute]` |
 | Orchestrator | no native agent file: it remains the top-level session (G13) |
-| State guard | none in this delivery; no hook file or manifest hook entry generated |
+| State guard | none, current or planned; no hook file or manifest hook entry generated |
 | Adversarial model | `--adversarial-model copilot=<model>` writes the `model` field only in the adversarial-reviewer stub; absent when unspecified |
+
+The state guard rows are the deferred hook design (CLI-D36): no current command, `init` and `runtime add|remove`
+included, writes a hook, a settings file, or a manifest `entry`. They ship with `guard` (UC-22), after its real hook
+payloads are verified.
 
 Copilot skill and role bodies load the same portable paths as the existing adapters. Role bodies explicitly load
 `AGENTS.md`, the portable role, and the files its first lines require. Copilot metadata is serialized as valid YAML
@@ -693,12 +701,13 @@ supersession.
 | `decision` entries | `P/D-n` entries in `docs/decisions.md`; one line per group in `docs/stack.md` or `docs/architecture.md` | `append`; `create` the file when absent (4.3); a re-run plans recorded files `unchanged` | never | never | never |
 | `core+notes` | `AGENTS.md` | create, or adopt an existing file (UC-4) | the part above `## Project notes` as `core`; the section from that heading on is project-owned | rendered lists (4.6) | remove the verified managed part; keep the notes part, or remove the file when the notes part holds only the template heading and comment |
 | `runtime:<name>` | adapter stubs, `CLAUDE.md` when created | create | regenerate | regenerate | as `core` |
-| `runtime:<name>` entry | the guard hook entry inside `.claude/settings.json` or `.codex/hooks.json` | merge the entry; never touch other keys | merge | merge | conflict: entry removal is not supported yet |
+| `runtime:<name>` entry (deferred, CLI-D36) | the future guard hook entry inside `.claude/settings.json` or `.codex/hooks.json`; no current command writes one | future: merge the entry; never touch other keys | future: merge | future: merge | conflict: entry removal is not supported yet |
 | `seed` | `docs/README.md` | create when absent, else `skip`; when the CLI creates a document, a present file with `## Documents` gets the index lines (`append`), else `skip` with the reason (4.3) | never | never | remove only the exact generated framework index line (CLI-D35) |
 | `manifest` | `.solomonar/manifest.json` | create | update | update | remove, last |
 
 `extension add|remove` follow the `init` column for the paths they plan: `add` creates a catalog extension's files,
-`remove` removes them, and both regenerate stubs and `AGENTS.md`. `uninstall` is not a desired-state plan: it
+`remove` removes them, and both regenerate stubs and `AGENTS.md`. `runtime add|remove` (UC-5) do the same for one
+runtime's `runtime:<name>` files. `uninstall` is not a desired-state plan: it
 plans removals from the manifest's records and the files on disk alone (UC-27).
 
 "Unmodified" means the file's SHA-256 equals the manifest's `sha256`: the hash of the last distributed or
@@ -708,8 +717,8 @@ part. A kept differing file stays different from that base.
 `--keep` resolves a conflict, advance the base to the offered upstream version, never to the kept local content.
 The next upgrade can therefore preserve the edit or report a conflict instead of overwriting it as unmodified.
 
-**Desired-state planning** (CLI-D27). `init`, `upgrade`, and `extension add|remove` share one
-planner; `uninstall` does not use it (UC-27, AD-16). From the choices (runtimes, models, installed extensions, each stack group's decision) it computes every
+**Desired-state planning** (CLI-D27). `init`, `upgrade`, `extension add|remove`, and `runtime
+add|remove` (UC-5, CLI-D36) share one planner; `uninstall` does not use it (UC-27, AD-16). From the choices (runtimes, models, installed extensions, each stack group's decision) it computes every
 wanted path: core files, catalog extension files, stubs, `AGENTS.md`, decision documents, the manifest. Each wanted
 path is classified from `disk` (the current file), `base` (the manifest `sha256`), and `offer` (the content the CLI
 would write); the recorded base is always the hash of `offer`. A path is managed when the manifest records a `sha256`
@@ -874,7 +883,11 @@ lives only in its `extension.json`. `files` keys are repo-relative paths, and a 
 ```
 
 `files` is abridged: a real manifest lists every managed path, such as the other `docs/solomonar/extensions/go/`
-files and every stub.
+files and every stub. The `.claude/settings.json` record shows the reserved `entry` shape of the deferred guard hook
+(4.5, CLI-D36); no current command writes one, and validation still accepts it.
+
+After `init` records `runtimes`, only `runtime add|remove` (UC-5) change it, setting or dropping one key and its
+`adversarial_model`; an `init` re-run rejects a change (UC-3), and `upgrade` and `extension add|remove` carry it over.
 
 Validation, in order, reporting the first failure:
 
@@ -929,8 +942,8 @@ Project name [ledger]:
 Current objective, one line (optional): Track shared household expenses
 
 Runtimes that will run this project's sessions:
-    [x] claude   Claude Code: CLAUDE.md import, .claude/skills, .claude/agents, state guard hook
-    [x] codex    Codex: AGENTS.md (native), .agents/skills, .codex/agents, state guard hook
+    [x] claude   Claude Code: CLAUDE.md import, .claude/skills, .claude/agents
+    [x] codex    Codex: AGENTS.md (native), .agents/skills, .codex/agents
     [ ] copilot  GitHub Copilot CLI: AGENTS.md (native), .github/skills, .github/agents
 
 Model for the adversarial reviewer in Claude Code, different from your main session model
@@ -970,11 +983,9 @@ Plan
     create     CLAUDE.md
     create     .claude/skills/ (6 skill stubs: 4 core, 2 extensions)
     create     .claude/agents/ (5 role stubs; adversarial-reviewer model opus)
-    create     .claude/settings.json (state guard hook)
   runtime codex
     create     .agents/skills/ (6 skill stubs: 4 core, 2 extensions; extension-authoring/agents/openai.yaml; solomonar/agents/openai.yaml)
     create     .codex/agents/ (5 role stubs)
-    create     .codex/hooks.json (state guard hook)
   registry
     create     refs/heads/workflow-state with an empty registry
   manifest
@@ -982,7 +993,7 @@ Plan
 Proceed? [Y/n] y
 
 Initialized solomonar 0.2.0 in /work/ledger
-  60 files created
+  58 files created
   registry  refs/heads/workflow-state @ 3a5c0d7e9f1b2a4c6d8e0f1a3b5c7d9e1f2a4b6c
   pushed    origin/workflow-state
 
@@ -1312,12 +1323,106 @@ before the registry's warnings (such as the no-remote warning).
 
 ### UC-5 Add, list, or remove a runtime
 
-Synopsis, flags, and examples: [`solomonar runtime`](../../site/src/docs/cli/runtime.md). The adapter files are those
-of 4.2, planned as `init` plans them; a modified adapter file on `remove` is a conflict under 4.5.
-These commands remain unimplemented. Their planned runtime names are `claude`, `codex`, and `copilot`.
-Copilot add/remove manages only its adapter files and manifest records, without a guard hook. `list` reports its
-native `AGENTS.md` loading, `.github/skills`, `.github/agents`, executable presence, and project installation.
-Until `runtime add` exists, `init` cannot add Copilot to a project with different recorded runtimes (UC-3).
+Specified on 2026-10-24 (CLI-D36) and implemented. Command page: [`solomonar runtime`](../../site/src/docs/cli/runtime.md). The commands manage only the
+4.2 adapter files and the manifest's runtime choices; none installs, merges, or removes a guard hook or touches a
+runtime settings or hook file, and none depends on `guard` (CLI-D36).
+
+```
+solomonar runtime list [--json]
+solomonar runtime add <claude|codex|copilot> [--adversarial-model <model>]
+                      [--keep <path>]... [--overwrite <path>]... [-y|--yes] [--dry-run] [--json]
+solomonar runtime remove <claude|codex|copilot>
+                         [--keep <path>]... [--overwrite <path>]... [-y|--yes] [--dry-run] [--json]
+```
+
+Global flags, `-C` included, apply, and flags may be interspersed with arguments (3.1). `runtime` alone or an
+unknown subcommand is `unknown_command`; an argument to `list`, a missing or extra name for `add` or `remove`, or an
+unknown flag is `invalid_usage`. Another name, `none` included (an `init` selection value, not a runtime), is
+`unknown_runtime` (exit 2): check `<runtime> names a known runtime`, found `"<v>" is not a runtime; known: claude,
+codex, copilot`, fix `pass claude, codex, or copilot`.
+
+**`runtime list`** is read-only, never prompts, and works in any Git repository, initialized or not. It reads the
+manifest when present; an older valid manifest is read, a newer one is `cli_outdated` and an invalid one
+`manifest_invalid` (3.6). Without a manifest every runtime is `available`. It loads no catalog or store, generates
+no adapter, runs no runtime, and checks no file health. One row per runtime in the order `claude`, `codex`,
+`copilot`; columns, two spaces apart and padded to the widest cell, the last unpadded:
+
+| Column | Value |
+|---|---|
+| `RUNTIME` | the name |
+| `STATUS` | `installed` when the manifest's `runtimes` has the name, else `available`; executable presence never changes it |
+| `ON PATH` | `yes` or `no`, from a `PATH` lookup of the executable (`claude`, `codex`, `copilot`) |
+| `ADAPTER` | the 4.2 locations: `CLAUDE.md, .claude/skills, .claude/agents`; `AGENTS.md (native), .agents/skills, .codex/agents`; `AGENTS.md (native), .github/skills, .github/agents` |
+
+`--json` data: `{"runtimes": [{"name": "claude", "status": "installed", "on_path": true, "adapters": ["CLAUDE.md",
+".claude/skills", ".claude/agents"]}, …]}`, in the same order; Codex and Copilot list `AGENTS.md` first, as in the
+human column without `(native)`.
+
+**`runtime add` and `runtime remove`** reuse the desired-state planner of 4.5: the choices are the manifest's,
+with only the named runtime, or its model, changed; the installed catalog and project extensions resolve through the
+store as in UC-9, each stack group keeps its recorded decision, and no default or detected extension is added. The
+complete wanted set goes to the planner, never one runtime's files alone, so other runtimes' files stay managed.
+`add` creates the runtime's core and installed-extension stubs, Codex policy files, and a create-only `CLAUDE.md`
+(4.2), owned `runtime:<name>`; `remove` makes them no longer wanted, so each is `remove` when unmodified, dropped from
+the manifest when already absent, and `conflict` when edited (4.5). The plan may also restore a missing managed file
+or refresh a generated stub under the 4.5 rows, and every resulting action is reported; there is no implicit
+framework upgrade. `AGENTS.md` has no runtime field and normally stays `unchanged`.
+
+Removal keeps an unmanaged `CLAUDE.md`, unrelated files under `.github`, `.claude`, `.codex`, and `.agents`, the
+portable framework, and project extension directories; empty parents are pruned as in 4.5, so the top-level
+`.claude`, `.codex`, `.agents`, and `.github` directories stay, even when left empty. Removing the last
+runtime leaves the framework and extensions installed. No runtime command writes `workflow-state`, a branch, a
+commit, or a remote.
+
+`--adversarial-model <model>` takes a plain model string, not `init`'s `<runtime>=<model>`. Given, it becomes the
+named runtime's `adversarial_model`, also for an installed runtime, whose affected role stub is then updated by the
+planner; an explicitly empty value is `invalid_value` (exit 2), check `--adversarial-model names a model`, found
+`empty model`, fix `pass a model or omit --adversarial-model`. Omitted, an installed runtime keeps its recorded
+model and a new one has none. There is no runtime or model prompt and no model default. The model is serialized by
+the 4.2 rules; the CLI never authenticates or checks model availability. Adding works when the executable is not on
+`PATH`. `--keep` and `--overwrite` follow 4.5, including the in-both, not-a-conflict, and non-regular removal
+checks.
+
+Checks run in this order, the first failure ending the command with nothing written: arguments and the model;
+the repository and Git (3.2); the manifest (absent is `not_initialized`, newer `cli_outdated`, invalid
+`manifest_invalid`); the framework (`framework_outdated` when older than this CLI, 3.6); the installed extensions;
+the plan and its resolutions (`file_conflict`, exit 4, never resolved by `--yes`); `--dry-run` or the no-op;
+the confirmation; the apply.
+
+No-ops: `add` of an installed runtime whose plan changes nothing, and `remove` of a supported runtime not in the
+manifest. The second returns without planning project files, with `--dry-run` too, but a `--keep` or `--overwrite`
+path on it is still `invalid_value` (`<path> is not a conflict`). A no-op writes nothing, needs no confirmation, and
+exits 0.
+
+**Writing output.** As for `extension add|remove` (UC-7): on a terminal without `--yes` the grouped plan and
+`Proceed? [Y/n] ` go to stderr; without a terminal, or with `--json`, and without `--yes`, a write is
+`interactive_required` (exit 2); `--dry-run` prints `Plan` and every file line to stdout, then `Would add runtime
+<name> in <root>` (or `Would remove`) and the counts; the `file_conflict` plan lists every file on stdout before the
+error. The success form is `Added runtime <name> in <root>` (`Removed runtime …`), `  <counts>`, a blank line, and
+`Next:` with `  1. git add <paths> && git commit -m "chore: add solomonar runtime <name>"` (`remove`: `"chore:
+remove solomonar runtime <name>"`); `add` follows with `  2. ` and the runtime's session invocation (4.2, Starting a
+session). The paths include removed tracked paths and name individual files under `.github` rather than the whole
+directory, `CLAUDE.md` only when created or removed. The CLI never runs the suggestion. The no-op forms follow
+UC-7: `Already installed: <name>; nothing to do.` and the counts for `add`, `Not installed: <name>; nothing to do.`
+for `remove`.
+
+`--json` data: `{"project", "runtime", "adversarial_model", "files": [...], "next": [...]}`, with `files` entries as
+for `init` (UC-2), `adversarial_model` the resulting selection and absent when there is none (always for
+`remove`), `"dry_run": true` and no `next` for `--dry-run`, and `"next": []` for a no-op. `next` holds only the
+commit suggestion; the session step of `add` is human output only, as for `init`. A failure has no `data`
+(3.4).
+
+| Exit | Result |
+|---|---|
+| 0 | success, `--dry-run`, no-op, or declined confirmation |
+| 1 | unexpected I/O or Git failure, `manifest_invalid`, prompt input failure |
+| 2 | `unknown_command`, `invalid_usage`, `unknown_runtime`, `invalid_value`, `interactive_required` |
+| 3 | `not_a_repository`, `not_initialized` (`add`, `remove`), `cli_outdated`, `framework_outdated` |
+| 4 | `file_conflict`, a removal conflict included |
+| 130, 143 | `interrupted` before the file plan completes; the journal rolls back every change (3.5) |
+
+No environment variable or configuration option is added: detection uses `PATH`, the global output controls apply,
+and `SOLOMONAR_OWNER` has no effect.
 
 ### UC-6 Choose extensions for an architecture or stack decision
 
@@ -2300,7 +2405,8 @@ with ` (unchanged)`, no commit is written, and `--json` has `changed: []` and th
 
 ### UC-22 The state guard denies a direct registry write
 
-The Claude Code adapter registers a `PreToolUse` hook that runs `solomonar guard --runtime claude`. The guard reads
+Deferred (CLI-D36): `guard` is not implemented, and no current adapter registers its hook. Once it ships, the
+Claude Code adapter registers a `PreToolUse` hook that runs `solomonar guard --runtime claude`. The guard reads
 the tool call from stdin and answers in the runtime's hook format. It denies, with a reason that names the right
 command:
 
@@ -2773,16 +2879,18 @@ conditions.
 |---|---|---|
 | 1 | `init` (core, runtimes, catalog extensions), every `task` command, `version`, `help` | UC-1 to UC-4 and UC-11 to UC-21 pass as tests in temporary repositories, including the compare-and-swap retry and repeated `init` as a no-op |
 | 2, partial (0.2.0) | the extension store, a minimal `upgrade` (no `--diff`), `extension` list/add/remove (CLI-D27 to CLI-D31) | UC-6, UC-7, and the delivered UC-9 subset pass as tests in temporary repositories, including an upgrade from a v0.1.7 fixture, a repeated upgrade as a no-op, and a repeated `extension add` as a no-op |
-| 2, rest | `doctor`, `sync`, `runtime` list/add/remove, `guard` | UC-5, UC-8, UC-10, UC-22 |
+| runtime (delivered, CLI-D36) | `runtime` list/add/remove, without hooks | UC-5 passes as tests in temporary repositories, including each runtime added from `--runtime none` and beside another, a repeated `add` and `remove` as no-ops, a model update, a removal conflict resolved by `--keep` and `--overwrite`, a rollback that restores the old manifest and files, and unchanged registry tips; the `runtime_management` transcript covers the process boundary |
+| 2, rest | `doctor`, `sync`, `guard` with hook installation and removal | UC-8, UC-10, UC-22 |
 | uninstall (delivered) | `uninstall` (CLI-D32 to CLI-D35) | UC-27 passes as tests in temporary repositories, including current, core-only, and v0.1.7 layouts, a conflict and a rollback that leave the installation intact, a linked worktree whose neighbors and registry tips stay unchanged, and a repeated `uninstall` as a no-op |
 | 3 | `upgrade --diff`, `dashboard` | the rest of UC-9, UC-23 |
 
 `uninstall` is an additional delivery that needs only the existing plan, apply, and journal; it was delivered
-without waiting for the rest of increment 2. Hook entry removal ships with `guard` (UC-27).
+without waiting for the rest of increment 2. Hook entry removal ships with `guard` (UC-27). Runtime management is
+likewise delivered apart from `guard` (CLI-D36): it installs no hook, so it needs none of the guard work.
 
 Copilot is an additional adapter delivery, after increment 1. Its first release
-adds generation and `init` selection only; runtime management remains increment 2, and no Copilot hook is
-specified by this addition. Support is established only after automated checks and a recorded live CLI smoke
+adds generation and `init` selection only; runtime management is the separate runtime delivery (UC-5), and no
+Copilot hook is specified by this addition. Support is established only after automated checks and a recorded live CLI smoke
 test, including a feature worktree and coexistence with the other adapters. Adapter generation, manifest tracking,
 and CLI initialization are implemented. The Copilot installation transcript passes, and CLI 1.0.85 discovers
 instructions and core skills in main and feature worktrees with all three adapters installed. CLI 1.0.103
@@ -2856,3 +2964,4 @@ and the minimum supported Copilot version. Version 1.0.85 is a discovery baselin
 | CLI-D33 | What `uninstall` deletes and keeps | a) only manifest-recorded files whose hash equals the recorded base, legacy locations included, with no prior `upgrade`; project extension sources, decision and seeded documents, and `workflow-state` stay; no `none` decision is written; b) regenerate today's wanted set and remove it; c) also delete decisions and the registry | a: recorded ownership is the only authority for deletion; regeneration misses legacy paths and would load the catalog; decisions and task history are evidence, and the installed technology does not change | **a**, author, 2026-10-24 (4.5, UC-27) |
 | CLI-D34 | How `uninstall` treats `AGENTS.md` | a) remove only the verified managed part and keep the `## Project notes` part byte for byte, adopted instructions and heading included; remove the file only when the notes hold just the template; never discard notes to resolve a missing boundary; b) delete the whole file; c) restore the pre-install content | a: the notes are project-owned; c is impossible because the manifest does not record the original content | **a**, author, 2026-10-24 (UC-27) |
 | CLI-D35 | The framework entry in the seeded `docs/README.md` | a) `uninstall` removes only the exact generated line `` - `docs/solomonar/`: framework rules, roles, and skills `` from `## Documents`, keeps every other byte, and reports a customized entry for manual review; b) never touch the seed and leave a dangling entry; c) delete the file or every framework mention | a: a narrow, explicit exception to the rule that the CLI never modifies a present seed except to append index lines (4.3, 4.5) that removes the only active generated reference without rewriting project prose | **a**, author, 2026-10-24 (4.5, UC-27) |
+| CLI-D36 | Scope of the runtime delivery and the defaults UC-5 left open | a) `runtime list\|add\|remove` only, for `claude`, `codex`, `copilot`, through the shared planner; hook installation, removal, and `guard` deferred; b) runtime commands together with guard hooks for Claude and Codex | a: no hook may point to an unavailable `guard`, and the adapter files are useful without one | **a**, user, 2026-10-24 (confirmed scope). Newly specified defaults, author, 2026-10-24 (UC-5): `list` works in any Git repository and reports installation from the manifest only, never from `PATH` or file health; `add\|remove` need an initialized project whose framework matches the CLI (`framework_outdated` otherwise), while `list` reads an older valid manifest; `add` of an installed runtime reconciles it and is a no-op when nothing changes; an omitted `--adversarial-model` keeps the recorded model, an explicit empty one is `invalid_value`; `remove` of an uninstalled supported runtime is a no-op; no-ops need no confirmation; `none` and other names are `unknown_runtime` |

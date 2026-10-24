@@ -11,8 +11,11 @@ fixes are applied, with runtime verification kept separate from completion of th
 The Copilot CLI adapter contract was added on 2026-10-23; its acceptance record is in
 [interface section 10](interface.md#copilot-runtime-acceptance). Project-layer
 generation, manifest tracking, and CLI `init` selection are implemented; live acceptance remains pending.
-Runtime management and hooks remain increment 2; this addition specifies no Copilot hook and changes no existing
-architectural decision.
+This addition specifies no Copilot hook and changes no existing architectural decision.
+
+`runtime list|add|remove` were specified on 2026-10-24 (I UC-5, CLI-D36) as a commands-only delivery and are
+implemented in `internal/cli/runtime.go`. They add no package, dependency, interface, or manifest schema. Guard
+hooks and `guard` stay deferred.
 
 `uninstall` was specified on 2026-10-24 (I UC-27, AD-16) and is implemented. It adds no package, dependency, interface, or manifest schema.
 
@@ -32,6 +35,7 @@ Requirements come from the interface spec and `assets/framework/rules.md` sectio
 | Human and `--json` output with the same content, one envelope | I section 3.3, section 3.4 | Every command returns data; one renderer chooses the form. |
 | Exit codes 0 to 5, actionable errors with check, found, fix | I section 3.5, section 3.6, section 8.4 | One error type carries the code, the exit class, and the fix. |
 | Embedded framework and catalog, copied then owned, manifest hashes | I section 4.5, section 4.7 | `embed.FS` plus a plan/apply engine over project files. |
+| Runtime adapters changed after `init`, without hooks | I UC-5, CLI-D36 | `runtime add\|remove` reuse the desired-state planner and journaled apply; no hook want, guard dependency, or new package. |
 | Prompts only on a terminal; never with `--json` | I section 3.7, CLI-D5 | Prompts read from an injected reader; the multi-select enters raw mode through an injected `Env.RawMode`. |
 | Optional network: `git push`, read-only `gh` | I section 1, J6 | Time-limited external calls whose failures become warnings. |
 | macOS and Linux; `go install` and release binaries | AD-11, AD-12 | No Windows path, quoting, or terminal code in v0.1. |
@@ -405,9 +409,9 @@ With `--dry-run`, step 3 reads the registry and applies the change to it without
 only without `--no-forge` and when installed; compute drift and `allowed_next` from the rule tables; render.
 Exit 0 whatever the drift.
 
-**Project write** (`init`, `extension add`, `sync`, `upgrade`, `runtime add|remove`): load the manifest (absent
-for `init`); take choices from flags, then prompts when interactive; build the `Plan` from the embedded assets and
-the files on disk; show it; stop on conflicts (exit 4) or after `--dry-run`; confirm, only when the plan creates or
+**Project write** (`init`, `extension add`, `sync`, `upgrade`, and `runtime add|remove`): load the
+manifest (absent for `init`); take choices from flags, then prompts when interactive; build the `Plan` from the
+embedded assets and the files on disk; show it; stop on conflicts (exit 4) or after `--dry-run`; confirm, only when the plan creates or
 updates a file or, for `init`, creates the registry (`interactive_required` without `--yes` and without a terminal);
 `Apply` every project file, including the manifest. When `init` creates the registry, do so only after all file
 writes succeed. Keep the file journal until that CAS succeeds, rolling back this run's changes on a handled
@@ -421,6 +425,17 @@ and `RuntimeWants` wants go with the decisions to `InitPlan`. Validate an existi
 any file apply. A valid registry is reused; an invalid one is rejected without touching either the registry or
 project files (I UC-3). On `file_conflict`, `render` still prints the plan text (`Plan` and the conflict lines) on
 stdout before the error on stderr; JSON keeps `data` absent.
+
+For `runtime add|remove` (I UC-5), the choices are the manifest's with only the named runtime or its model changed,
+and the installed catalog and project extensions resolve through `LoadCatalog` and `LoadStore` with their recorded
+decisions; no default or detected extension is selected and no decision is written. The complete wanted set goes
+through `initRun.planFiles`, `InitPlan`, `Classify`, and `Apply`: one runtime's wants alone would make the other
+runtimes' files no longer wanted. No hook want, registry store, or ref write is involved; the file apply, manifest
+last, is the local commit point. Removal keeps apply's directory policy, so an emptied top-level `.claude`,
+`.codex`, `.agents`, or `.github` stays. `remove` of a runtime absent from the manifest returns its no-op without
+planning project files; any `--keep` or `--overwrite` path is still rejected as not a conflict. Stage suggestions come
+from the plan's created, updated, and removed paths: top-level directories, except individual files under
+`.github`. `runtime list` reads only the manifest and `git.OnPath`.
 
 **Project uninstall** (`uninstall`, I UC-27, AD-16):
 
@@ -608,8 +623,9 @@ contract walkthrough and the runtime smoke results distinct in the audit report.
 | F-09 | Inject errors writing the manifest and at registry CAS; separately fail push after CAS | Manifest failure creates no new ref; CAS failure restores the manifest and other files; successful CAS plus failed push returns local success with warning. Existing valid init registry is preserved, and invalid registry is rejected before file apply. |
 | F-10 | Review an io.Reader implementation and a new project-owned cancellable API | The imposed Read signature is accepted; the new API still propagates context. A signature exception is not a blanket exemption from cancellation discipline. |
 
-Manual runtime smoke checks belong to the runtime adapter's increment; they need not turn rule/fixture tests
-into model-provider calls. Use the existing human/JSON, rollback, concurrency, and use-case suites for the other
+F-06 belongs to the deferred `guard` delivery, not to the runtime commands (CLI-D36); F-05's `runtime add`
+sessions need only the adapter files. Manual runtime smoke checks belong to the runtime adapter's increment; they
+need not turn rule/fixture tests into model-provider calls. Use the existing human/JSON, rollback, concurrency, and use-case suites for the other
 acceptance scenarios instead of duplicating them in another layer.
 
 Before adding or changing any runtime option, adapter template, or discovery choice, research the runtime's
@@ -635,12 +651,18 @@ payloads) are verified.
 
 Increment 2 is partial in its first delivery, planned as 0.2.0 (I section 10, CLI-D31): the extension store
 (I section 4.3), the minimal `upgrade` (I UC-9, no `--diff`), and `extension list|add|remove` (I UC-6, UC-7).
-The rest of increment 2 (`doctor`, `sync`, `runtime`, `guard`) and increment 3 follow unchanged. The structure stays within section 5: two command files in `cli`, the planner, loader, and matcher in
+The rest of increment 2 (`doctor`, `sync`, `guard` with hook installation and removal) and increment 3 follow
+unchanged. The structure stays within section 5: two command files in `cli`, the planner, loader, and matcher in
 `project`, no new package or dependency.
 
 The additional Copilot delivery is recorded in [interface section 10](interface.md#copilot-runtime-acceptance). It extends adapter generation and `init`
 before increment 2 without implementing runtime management. `init` continues rejecting changed recorded
-choices, so adding Copilot to an initialized project waits for `runtime add`.
+choices; `runtime add` adds Copilot to an initialized project.
+
+`runtime list|add|remove` (I UC-5, CLI-D36) are delivered apart from `guard`: one command file in `cli` over the
+existing planner and apply, with no hook, package, dependency, or schema change. Their in-process tests and the
+`runtime_management` transcript are the completed command acceptance. Hook installation, merging, trust checks,
+removal, and `guard` (F-06) stay deferred, and the live runtime sessions of F-05 remain separate evidence.
 
 `uninstall` (I UC-27, AD-16) adds one command file in `cli` and the removal planner in `project`, with no new
 package or dependency. It is implemented.
@@ -654,6 +676,8 @@ None.
 - Not built: agent launching, model calls, verdict storage, a daemon, a cache, multiple writable clones of the
   registry, Jujutsu support (I section 1, rules section 11).
 - Increments 2 and 3: I section 10.
+- Guard hooks: installation, merging, trust checks, and removal ship with `guard` (I UC-22), not with the runtime
+  commands (CLI-D36).
 - Deferred until a concrete need: shell completion (and with it AD-2), Git URL extension sources
   (CLI-D6), Windows (AD-11), a configuration file, any environment variable beyond `SOLOMONAR_OWNER` and
   `NO_COLOR`.
