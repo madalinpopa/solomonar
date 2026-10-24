@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"strings"
@@ -40,7 +41,7 @@ func (a *initPrompts) section() {
 }
 
 // choices asks for every choice whose flag was not given and records the answers as those flags.
-func (a *initPrompts) choices(f *initFlags, root *os.Root, defaultName string, catalog project.Catalog) error {
+func (a *initPrompts) choices(f *initFlags, files []string, defaultName string, catalog project.Catalog) error {
 	var err error
 	if f.requested.Name == "" || f.objective == "" {
 		a.section()
@@ -68,7 +69,7 @@ func (a *initPrompts) choices(f *initFlags, root *os.Root, defaultName string, c
 	if len(catalog) == 0 || f.requested.Extensions != nil {
 		return nil
 	}
-	f.requested.Extensions, err = a.extensions(catalog, root)
+	f.requested.Extensions, err = a.extensions(catalog, files)
 	return err
 }
 
@@ -98,16 +99,10 @@ func (a *initPrompts) models(f *initFlags) error {
 	return nil
 }
 
-// extensions asks group by group until the selection resolves, starting from the default selection.
-func (a *initPrompts) extensions(catalog project.Catalog, root *os.Root) ([]string, error) {
-	defaults, err := selectExtensions(catalog, nil, nil, root)
-	if err != nil {
-		return nil, err
-	}
-	var selected []string
-	for _, e := range defaults {
-		selected = append(selected, e.Name)
-	}
+// extensions asks group by group until the selection resolves, starting from the suggested ones.
+func (a *initPrompts) extensions(catalog project.Catalog, files []string) ([]string, error) {
+	selected := slices.Sorted(maps.Keys(catalog.Suggested(files)))
+	var err error
 	a.section()
 	fmt.Fprint(a.out, "Extensions, by decision type. A choice in a stack group is recorded as your approved decision in\n"+
 		"docs/decisions.md. Enter with nothing selected skips a group; add more later with\n"+
@@ -185,7 +180,7 @@ func (a *initPrompts) cancelOn(err error, warnings []warning) (output, error) {
 // cancelled ends the declined question's block and reports that init wrote nothing (I section 3.7).
 func (a *initPrompts) cancelled(warnings []warning) output {
 	fmt.Fprintln(a.out)
-	return output{text: "Cancelled; nothing was written.\n", warnings: warnings}
+	return output{text: cancelled, warnings: warnings}
 }
 
 // header names the CLI version and where init runs (UC-1); repo is nil outside a repository.
