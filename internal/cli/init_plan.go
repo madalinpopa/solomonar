@@ -28,7 +28,7 @@ func (r initRun) groupedPlan() string {
 		writeGroup(&b, "git", []planLine{{action: "init", path: "-b " + r.mainBranch}})
 	}
 	writeGroup(&b, "framework "+r.framework, collapse(byGroup["framework"], frameworkSet, frameworkLabel))
-	writeGroup(&b, "extensions", r.extensionLines(byGroup["extensions"]))
+	writeGroup(&b, "extensions", collapse(byGroup["extensions"], extensionSet, extensionLabel))
 	writeGroup(&b, "decisions (approved, selected by you)", r.decisionLines(byGroup["decision"]))
 	for _, runtime := range []string{"claude", "codex", "copilot"} {
 		writeGroup(&b, "runtime "+runtime, collapse(byGroup["runtime "+runtime], stubSet, r.stubLabel))
@@ -36,6 +36,42 @@ func (r initRun) groupedPlan() string {
 	writeGroup(&b, "registry", []planLine{registry})
 	writeGroup(&b, "manifest", collapse(byGroup["manifest"], noSet, nil))
 	return b.String()
+}
+
+const cancelled = "Cancelled; nothing was written.\n"
+
+// changedPlan is the UC-1 grouped plan without unchanged lines and skips that give no reason.
+func (r initRun) changedPlan(header string) string {
+	byGroup := map[string][]project.Change{}
+	for _, c := range r.plan.Changes {
+		if c.Action == project.ActionUnchanged || c.Action == project.ActionSkip && c.Reason == "" {
+			continue
+		}
+		byGroup[planGroup(c.Owner)] = append(byGroup[planGroup(c.Owner)], c)
+	}
+	var b strings.Builder
+	b.WriteString(header)
+	writeGroup(&b, "framework "+r.framework, collapse(byGroup["framework"], frameworkSet, frameworkLabel))
+	writeGroup(&b, "extensions", collapse(byGroup["extensions"], extensionSet, extensionLabel))
+	writeGroup(&b, "decisions (approved, selected by you)", r.decisionLines(byGroup["decision"]))
+	for _, runtime := range []string{"claude", "codex", "copilot"} {
+		writeGroup(&b, "runtime "+runtime, collapse(byGroup["runtime "+runtime], stubSet, r.stubLabel))
+	}
+	writeGroup(&b, "manifest", collapse(byGroup["manifest"], noSet, nil))
+	return b.String()
+}
+
+// confirmPlan shows plan on stderr, since a prompt follows (AD-2), and asks to proceed.
+func confirmPlan(env Env, plan string) (bool, error) {
+	ask := newPrompter(env)
+	ask.out = env.Stderr
+	fmt.Fprint(ask.out, plan)
+	yes, err := ask.confirm("Proceed?", true)
+	if err != nil {
+		return false, err
+	}
+	fmt.Fprintln(ask.out)
+	return yes, nil
 }
 
 func planGroup(owner string) string {
@@ -145,6 +181,7 @@ func (r initRun) stubLabel(dir string, set []project.Change) string {
 		kind = "role"
 	}
 	var n, extensions int
+	var adversarial bool
 	var extra []string
 	for _, c := range set {
 		rel := strings.TrimPrefix(c.Path, dir)
@@ -159,7 +196,8 @@ func (r initRun) stubLabel(dir string, set []project.Change) string {
 			continue
 		}
 		n++
-		if slices.ContainsFunc(r.extensions, func(e project.CatalogExtension) bool { return e.Name == id }) {
+		adversarial = adversarial || kind == "role" && id == "adversarial-reviewer"
+		if slices.ContainsFunc(slices.Concat(r.extensions, r.removed), func(e project.CatalogExtension) bool { return e.Name == id }) {
 			extensions++
 		}
 	}
@@ -176,23 +214,25 @@ func (r initRun) stubLabel(dir string, set []project.Change) string {
 	} else if strings.HasPrefix(dir, ".github/") {
 		runtime = "copilot"
 	}
-	if model := r.models[runtime]; kind == "role" && model != "" {
+	if model := r.models[runtime]; adversarial && model != "" {
 		extra = append(extra, "adversarial-reviewer model "+model)
 	}
 	return dir + " (" + strings.Join(append([]string{summary}, extra...), "; ") + ")"
 }
 
-// extensionLines notes each extension's main file with the extensions it was rendered with.
-func (r initRun) extensionLines(changes []project.Change) []planLine {
-	lines := collapse(changes, noSet, nil)
-	for i, c := range changes {
-		name := strings.TrimPrefix(c.Owner, "ext:")
-		main := c.Path == "docs/solomonar/skills/"+name+"/SKILL.md" || c.Path == "docs/solomonar/agents/"+name+".md"
-		if with := r.renderedWith[name]; main && len(with) > 0 {
-			lines[i].note = joinNotes(lines[i].note, "rendered with: "+strings.Join(with, ", "))
+// extensionSet names the store directory of an extension file, or its v0.1.7 install directory.
+func extensionSet(p string) string {
+	for _, dir := range []string{"docs/solomonar/extensions/", "docs/solomonar/skills/"} {
+		if rest, ok := strings.CutPrefix(p, dir); ok {
+			name, _, _ := strings.Cut(rest, "/")
+			return dir + name + "/"
 		}
 	}
-	return lines
+	return ""
+}
+
+func extensionLabel(dir string, set []project.Change) string {
+	return fmt.Sprintf("%s (%d %s)", dir, len(set), plural(len(set), "file", "files"))
 }
 
 // decisionLines notes the decision documents with the entries this run records.
@@ -201,9 +241,11 @@ func (r initRun) decisionLines(changes []project.Change) []planLine {
 	for i, c := range changes {
 		var notes []string
 		for _, d := range r.decisions {
-			names := strings.Join(d.Selected, ", ")
+			names := d.Selection()
 			switch {
 			case c.Action == project.ActionUnchanged:
+			case c.Path == "docs/decisions.md" && d.Supersedes != "":
+				notes = append(notes, d.ID+" "+d.Group+": "+names, d.Supersedes+" superseded")
 			case c.Path == "docs/decisions.md":
 				notes = append(notes, d.ID+" "+d.Group+": "+names)
 			case c.Path == decisionDocument(d.Group):
