@@ -14,7 +14,7 @@ sources:
 
 Installs the framework core into the worktree containing `<dir>` (default: the current directory), generates the adapter files of the selected runtimes, installs the chosen extensions, writes `.solomonar/manifest.json`, and creates the registry branch `refs/heads/workflow-state` when it is absent.
 
-{% cliUsage "Once per repository, before the first task: in a new project or in an existing repository. Run it again after a CLI update or to resolve a file conflict; a re-run with the same choices and unchanged files is a no-op, and it never changes a recorded choice.", "You, from your terminal. Agents do not set up projects." %}
+{% cliUsage "Once per repository, before the first task: in a new project or in an existing repository. Run it again to resolve a file conflict; after a CLI update, run `upgrade` instead. A re-run with the same choices and unchanged files is a no-op, and it never changes a recorded choice.", "You, from your terminal. Agents do not set up projects." %}
 
 ## Synopsis
 
@@ -35,7 +35,7 @@ solomonar init [<dir>] [--name <name>] [--objective <text>]
 | `--name` | Project name; defaults to the directory name. |
 | `--objective` | Current objective written to `docs/README.md`. |
 | `--runtime` | `claude`, `codex`, `copilot`, or `none`; repeatable or comma-separated. For a new project, defaults to runtimes found on `PATH`; a rerun keeps the manifest's choices. Explicit selection works without the executable installed. `none` must be used alone. |
-| `--ext` | Extensions to install, repeatable or comma-separated, or `none`. The source catalog holds `go` and `extension-authoring`. Defaults to `go` when the repository root has a `go.mod`, otherwise none. |
+| `--ext` | Catalog extensions to install, repeatable or comma-separated, or `none`. The catalog holds `go` and `extension-authoring`. For a new project, defaults to the suggested extensions: `extension-authoring` always, and `go` when a `go.mod` exists anywhere in the repository, tracked or untracked but not ignored. A rerun keeps the manifest's extensions. Activate project extensions after `init` with [`extension add`]({{ '/docs/cli/extension/#solomonar-extension-add' | url }}). |
 | `--adversarial-model` | Model for the adversarial reviewer of a selected runtime, such as `claude=<model>` or `copilot=<model>`. Repeatable; the last value for each runtime wins. |
 | `--main-branch`, `--remote` | Defaults: `main` and `origin`. |
 | `--keep`, `--overwrite` | Resolve one conflicting file; one path per flag. |
@@ -72,7 +72,7 @@ Plan
   ...
   create     .solomonar/manifest.json
   registry   create refs/heads/workflow-state with an empty registry
-Would initialize solomonar 0.1.7 in /work/ledger
+Would initialize solomonar 0.2.0 in /work/ledger
   29 files created
 ```
 
@@ -84,13 +84,13 @@ solomonar init --name ledger --objective "Track shared household expenses" \
 ```
 
 ```text
-Initialized solomonar 0.1.7 in /work/ledger
+Initialized solomonar 0.2.0 in /work/ledger
   39 files created
   registry  refs/heads/workflow-state @ 2be8870347892548d1c083c28a0e8c834d1327bb
   pushed    origin/workflow-state
 
 Next:
-  1. git add AGENTS.md CLAUDE.md .claude .agents .codex .solomonar docs && git commit -m "chore: initialize solomonar 0.1.7"
+  1. git add AGENTS.md CLAUDE.md .claude .agents .codex .solomonar docs && git commit -m "chore: initialize solomonar 0.2.0"
   2. Start a top-level session in /work/ledger with your selected outcome:
        Claude Code: /solomonar Explore the next useful flow.
        Codex:       $solomonar Explore the next useful flow.
@@ -120,7 +120,7 @@ Plan
   create     .github/agents/spec-reviewer.agent.md
   create     .solomonar/manifest.json
   registry   create refs/heads/workflow-state with an empty registry
-Would initialize solomonar 0.1.7 in /work/ledger
+Would initialize solomonar 0.2.0 in /work/ledger
   28 files created
 ```
 
@@ -128,4 +128,4 @@ Remove `--dry-run` to install, then follow the printed commit command. It names 
 
 You can combine runtimes, for example `--runtime codex,copilot`. JSON reports the sorted selection in `data.choices.runtimes`, each adapter with owner `runtime:copilot` in `data.files`, and the same staging paths in `data.next`. Add `--adversarial-model copilot=<model>` to request an adversarial model; installation does not authenticate or check model access. Copilot may override or fall back from that preference. No Copilot hook is installed.
 
-An unchanged rerun is a no-op. `init` cannot add Copilot to a project with different recorded runtime choices; that needs the planned `runtime add` command. Copilot adapter collisions use the same `--keep`/`--overwrite` rules as other managed files. See [Project files and configuration]({{ '/docs/configuration/' | url }}).
+An unchanged rerun is a no-op. To change extensions later, use [`extension add` and `extension remove`]({{ '/docs/cli/extension/' | url }}); after a CLI update, move the framework with [`upgrade`]({{ '/docs/cli/upgrade/' | url }}). `init` cannot add Copilot to a project with different recorded runtime choices; that needs the planned `runtime add` command. Copilot adapter collisions use the same `--keep`/`--overwrite` rules as other managed files. See [Project files and configuration]({{ '/docs/configuration/' | url }}).
