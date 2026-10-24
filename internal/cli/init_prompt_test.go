@@ -91,14 +91,14 @@ func TestInteractiveInitUC1(t *testing.T) {
 		extensionsIntro+
 		"\nLanguage:\n    [x] go  Go language rules\n"+
 		"\nFrontend:\n    [x] htmx   T\n    [ ] react  T\n    [x] templ  T (requires htmx)\n"+
-		"\nWorkflow:\n    [ ] extension-authoring  Evidence-based extension authoring\n\n", prompts)
+		"\nWorkflow:\n    [x] extension-authoring  Evidence-based extension authoring\n\n", prompts)
 	assert.Contains(t, rest, "  registry\n    create     refs/heads/workflow-state with an empty registry\n"+
 		"  manifest\n    create     .solomonar/manifest.json\n"+
 		"Proceed? [Y/n] \nInitialized solomonar "+shipped+" in "+dir+"\n")
 	manifest := manifestOf(t, dir)
 	assert.Equal(t, filepath.Base(dir), manifest.Project.Name)
 	assert.Equal(t, map[string]project.Runtime{"claude": {AdversarialModel: "opus"}, "codex": {}}, manifest.Runtimes)
-	assert.ElementsMatch(t, []string{"go", "htmx", "templ"}, slices.Collect(maps.Keys(manifest.Extensions)))
+	assert.ElementsMatch(t, []string{"extension-authoring", "go", "htmx", "templ"}, slices.Collect(maps.Keys(manifest.Extensions)))
 	assert.Contains(t, tree(t, dir)["docs/README.md"], "Track shared household expenses")
 }
 
@@ -232,7 +232,7 @@ func TestInteractiveInitDryRunAsksChoicesWithoutConfirmation(t *testing.T) {
 		"    [ ] copilot  GitHub Copilot CLI: AGENTS.md (native), .github/skills, .github/agents\n"+
 		extensionsIntro+
 		"\nLanguage:\n    [ ] go  Go language rules\n"+
-		"\nWorkflow:\n    [ ] extension-authoring  Evidence-based extension authoring\n\nPlan\n"), transcript)
+		"\nWorkflow:\n    [x] extension-authoring  Evidence-based extension authoring\n\nPlan\n"), transcript)
 	assert.Contains(t, transcript, "\nWould initialize solomonar "+shipped+" in "+dir+"\n")
 	assert.NotContains(t, transcript, "Proceed?")
 	assertNothingWritten(t, dir, before, tip)
@@ -249,12 +249,12 @@ func TestInteractiveInitAsksExtensionsAgainAfterRejection(t *testing.T) {
 	require.Equal(t, 0, got.exit, got.stderr)
 	assert.Contains(t, screen(t, got.stdout),
 		"\nFrontend:\n    [ ] htmx   T\n    [ ] react  T\n    [x] templ  T (requires htmx)\n"+
-			"\nWorkflow:\n    [ ] extension-authoring  Evidence-based extension authoring\n"+
+			"\nWorkflow:\n    [x] extension-authoring  Evidence-based extension authoring\n"+
 			"  templ requires htmx; add --ext htmx\n"+
 			"\nLanguage:\n    [ ] go  Go language rules\n"+
 			"\nFrontend:\n    [x] htmx   T\n    [ ] react  T\n    [x] templ  T (requires htmx)\n"+
-			"\nWorkflow:\n    [ ] extension-authoring  Evidence-based extension authoring\n\nPlan\n")
-	assert.ElementsMatch(t, []string{"htmx", "templ"}, slices.Collect(maps.Keys(manifestOf(t, dir).Extensions)))
+			"\nWorkflow:\n    [x] extension-authoring  Evidence-based extension authoring\n\nPlan\n")
+	assert.ElementsMatch(t, []string{"extension-authoring", "htmx", "templ"}, slices.Collect(maps.Keys(manifestOf(t, dir).Extensions)))
 }
 
 func TestInteractiveInitFailsOnClosedInput(t *testing.T) {
