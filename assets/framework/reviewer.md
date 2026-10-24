@@ -1,6 +1,6 @@
 # Reviewer contract
 
-Framework version: 0.1.7
+Framework version: 0.2.0
 
 Load `AGENTS.md`, `docs/solomonar/report.md`, your role file, and the context in section 2. Do not load
 orchestrator-only `docs/solomonar/rules.md`. Unqualified section references mean this file.
@@ -17,7 +17,7 @@ Every core reviewer is language-agnostic.
   Read referenced spec sections, scoped decisions (`P/D-n`, `W-001/D-n`), contracts, the packet's diff
   (`<base>..<revision>`), and affected code/tests. Review the cumulative change of that one candidate, not
   each checkpoint commit; the implementation plan and its `Step` trailers locate work, they prove nothing. Read referenced prototype flows/assets at their cited SHA.
-- Load every extension skill the packet names (`docs/solomonar/skills/<name>/SKILL.md`). Cite its rules as
+- Load every extension skill the packet names (`docs/solomonar/extensions/<name>/SKILL.md`). Cite its rules as
   `<name>/C-n`.
 - Expand only for a discovered dependency, shared contract, or security rule that may affect correctness. Name
   each addition and why in `Summary`.
