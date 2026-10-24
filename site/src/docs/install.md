@@ -58,7 +58,7 @@ solomonar version
 ```
 
 ```text
-solomonar 0.3.1
+solomonar 0.3.2
 project   not initialized
 ```
 

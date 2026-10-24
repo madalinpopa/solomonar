@@ -63,7 +63,7 @@ solomonar upgrade
 
 ```text
 Upgrade framework 0.1.7 → 0.2.0
-  framework 0.3.1
+  framework 0.3.2
     update     docs/solomonar/agents/ (6 roles)
     update     docs/solomonar/report.md
     update     docs/solomonar/reviewer.md
@@ -99,7 +99,7 @@ Commit the files as shown. `--dry-run` prints the same header and every file lin
 A project already at the CLI's version is a no-op and needs no confirmation:
 
 ```text
-Already at solomonar 0.3.1; nothing to do.
+Already at solomonar 0.3.2; nothing to do.
   48 files unchanged, 1 skipped
 ```
 
@@ -114,15 +114,15 @@ solomonar upgrade --yes
 ```
 
 ```text
-Refreshed solomonar 0.3.1 in /work/ledger
+Refreshed solomonar 0.3.2 in /work/ledger
   1 file created, 47 unchanged, 1 skipped
 
 Next:
-  1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: refresh solomonar 0.3.1 files"
+  1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: refresh solomonar 0.3.2 files"
   2. Running tasks pick up the new framework after they update from main.
 ```
 
-In the plan and with `--dry-run`, the header reads `Refresh framework 0.3.1` and the last line `Would refresh solomonar 0.3.1 in /work/ledger`.
+In the plan and with `--dry-run`, the header reads `Refresh framework 0.3.2` and the last line `Would refresh solomonar 0.3.2 in /work/ledger`.
 
 ### A conflict
 
