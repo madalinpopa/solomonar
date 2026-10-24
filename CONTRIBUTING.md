@@ -97,6 +97,14 @@ accessibility reviewer) is an extension. When you are unsure, it is an extension
 
 ### Writing framework text
 
+For evidence-based authoring, use the optional
+[`extension-authoring` skill](assets/extensions/workflow/extension-authoring/SKILL.md).
+It supports catalog contributions here and project-specific source in adopting
+repositories, through research, authoring, and validation. The
+[three prompts](docs/prompts/add-extension/01-research.md) select individual stages;
+their instructions live in the skill rather than being maintained twice.
+The skill writes content; the CLI owns adoption, manifests, and runtime stubs.
+
 - Write in English, in the imperative, one instruction per bullet. Prefer `must` and `never` only where they
   are meant literally.
 - Keep files short. Agents load them into limited context; put rarely needed detail in a separate file and load it
