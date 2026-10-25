@@ -14,7 +14,7 @@ stderr '^nothing was written$'
 
 # --keep resolves it with the project's content.
 exec solomonar init --runtime none --ext none --yes --keep docs/solomonar/rules.md
-stdout '^  22 files created, 1 kept$'
+stdout '^  23 files created, 1 kept$'
 cmp docs/solomonar/rules.md ../project_rules.md
 exists .solomonar/manifest.json
 
@@ -24,7 +24,7 @@ exec git init -q -b main other
 mkdir other/docs/solomonar
 cp project_rules.md other/docs/solomonar/rules.md
 exec solomonar -C other init --runtime none --ext none --yes --overwrite docs/solomonar/rules.md
-stdout '^  22 files created, 1 updated$'
+stdout '^  23 files created, 1 updated$'
 cmp other/docs/solomonar/rules.md $ASSETS/framework/rules.md
 
 -- project_rules.md --

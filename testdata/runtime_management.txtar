@@ -28,7 +28,7 @@ stdout '^  create     \.github/skills/solomonar/SKILL\.md$'
 stdout '^  create     \.github/agents/implementer\.agent\.md$'
 stdout '^  update     \.solomonar/manifest\.json$'
 stdout '^Would add runtime copilot in .+/repo$'
-stdout '^  9 files created, 1 updated, 21 unchanged, 1 skipped$'
+stdout '^  9 files created, 1 updated, 22 unchanged, 1 skipped$'
 ! exists .github
 ! grep copilot .solomonar/manifest.json
 
@@ -41,7 +41,7 @@ stderr '^error: runtime add needs a confirmation \(interactive_required\)$'
 # The runtime gets its adapters and manifest entry, with commit guidance naming individual Copilot files.
 exec solomonar runtime add copilot --yes
 stdout '^Added runtime copilot in .+/repo$'
-stdout '^  9 files created, 1 updated, 21 unchanged, 1 skipped$'
+stdout '^  9 files created, 1 updated, 22 unchanged, 1 skipped$'
 stdout '^  1\. git add \.github/skills/prototype/SKILL\.md .+ \.github/agents/spec-reviewer\.agent\.md \.solomonar && git commit -m "chore: add solomonar runtime copilot"$'
 stdout '^       /solomonar Explore the next useful flow\.$'
 exists .github/skills/solomonar/SKILL.md .github/agents/implementer.agent.md
@@ -54,7 +54,7 @@ exec git commit -q -m 'add copilot'
 cp .solomonar/manifest.json ../manifest-added.json
 exec solomonar runtime add copilot
 stdout '^Already installed: copilot; nothing to do\.$'
-stdout '^  31 files unchanged, 1 skipped$'
+stdout '^  32 files unchanged, 1 skipped$'
 cmp .solomonar/manifest.json ../manifest-added.json
 exec solomonar runtime list
 stdout '^copilot +installed '
@@ -64,7 +64,7 @@ exec solomonar runtime remove copilot --dry-run
 stdout '^  remove     \.github/agents/implementer\.agent\.md$'
 stdout '^  remove     \.github/skills/solomonar/SKILL\.md$'
 stdout '^Would remove runtime copilot in .+/repo$'
-stdout '^  1 file updated, 9 removed, 21 unchanged, 1 skipped$'
+stdout '^  1 file updated, 9 removed, 22 unchanged, 1 skipped$'
 exists .github/skills/solomonar/SKILL.md
 
 # The JSON removal reports each removed file, and its commit guidance stages the deleted paths.
