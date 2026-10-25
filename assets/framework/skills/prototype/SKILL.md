@@ -20,7 +20,7 @@ Framework version: {{ .Version }}
 - Edit only `prototype/**` and these parts of `docs/README.md`: an unset Current objective; user-confirmed
   Mission and Intended users; the Documents entry for `prototype/README.md`. Do not edit specs, production code,
   or task state. An in-task request returns here in the primary checkout; the orchestrator owns task coordination.
-- Reuse existing answers and scoped approvals; ask only the next necessary question, per `AGENTS.md` rule 11.
+- Reuse answers and scoped approvals; ask necessary questions per `AGENTS.md` rule 11.
   A defect fix restoring already approved prototype behavior or an internal refactor needs verification, not
   renewed behavioral approval.
 

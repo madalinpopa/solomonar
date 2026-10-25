@@ -166,7 +166,7 @@ func uninstalledTree(before map[string]string) map[string]string {
 
 func uninstalled(dir string) string {
 	return "Uninstalled solomonar from " + dir + "\n" +
-		"  2 files updated, 52 removed, 1 skipped\n" +
+		"  2 files updated, 68 removed, 1 skipped\n" +
 		"  kept: AGENTS.md, docs/README.md, " + moneySource + "\n" +
 		"  The registry (refs/heads/workflow-state) and other worktrees are unchanged.\n\n" +
 		"Next:\n  1. Review the removal with git status, then commit it.\n"
@@ -239,7 +239,7 @@ func TestUninstallDryRunWritesNothing(t *testing.T) {
 		assert.Contains(t, got.stdout, line)
 	}
 	assert.True(t, strings.HasSuffix(got.stdout, "  remove     .solomonar/manifest.json\n"+
-		"Would uninstall solomonar from "+dir+"\n  2 files updated, 52 removed, 1 skipped\n"), got.stdout)
+		"Would uninstall solomonar from "+dir+"\n  2 files updated, 68 removed, 1 skipped\n"), got.stdout)
 	assert.Empty(t, got.stderr)
 	assertNothingWritten(t, dir, before, tip)
 }
@@ -278,7 +278,7 @@ func TestUninstallJSON(t *testing.T) {
 			assert.Equal(t, []any{"AGENTS.md", "docs/README.md", moneySource, "refs/heads/workflow-state"},
 				envelope.Data["preserved"])
 			files := envelope.Data["files"].([]any)
-			assert.Len(t, files, 55)
+			assert.Len(t, files, 71)
 			assert.Equal(t, map[string]any{
 				"path": "AGENTS.md", "action": "update", "owner": "core+notes",
 				"reason": "managed part removed; project notes kept",

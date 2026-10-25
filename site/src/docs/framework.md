@@ -21,7 +21,18 @@ If you followed [Run your first task]({{ '/docs/first-task/' | url }}), you have
 
 {% diagram "blocks" %}
 
-Runtime adapters are generated stubs that load the portable framework in `docs/solomonar/`: the agent roles, the skills, and the contracts every role follows. Extensions add the rules of your stack and extra reviewers. Skills write the project documents that every role reads, and the orchestrator records task state only through the `solomonar` CLI, which keeps the registry in Git.
+Runtime adapters are generated stubs that load the portable framework in `docs/solomonar/`: the agent roles, the skills, and their required contracts. Extensions add the rules of your stack and extra reviewers. Skills write project documents that agents read within their assigned scope, and the orchestrator records task state only through the `solomonar` CLI, which keeps the registry in Git.
+
+## Load context for the request
+
+`AGENTS.md` holds project-wide invariants and request routes. A question or task-status request does not start
+task execution. Orchestrators read shared gates, then the current stage's procedure in `workflow/`; later
+stages load when reached. Spec and implementer modes select their own references. Common report rules stay
+shared, while correction and PR formats load only for their consumers.
+
+Installed extensions select topic rules by impact. References and indexes do not load every linked file;
+missing required inputs still block dependent work. Previously read text can remain in conversation history,
+so these boundaries reduce unnecessary reads rather than automatically clearing context at each stage.
 
 ## The full cycle at a glance
 

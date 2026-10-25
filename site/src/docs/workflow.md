@@ -14,6 +14,11 @@ sources:
 
 This page explains the stages of a managed task and the gates between them. For concrete prompts and terminal examples, use [Task workflow]({{ '/docs/use-cases/' | url }}); for discovery and approval, use [Prototype workflow]({{ '/docs/prototype/' | url }}).
 
+The orchestrator loads shared authority and transition gates, then the procedure for its current stage.
+Decision and recovery procedures load when needed; report formats load before their output is prepared or
+consumed. Read-only status does not activate these procedures or resume work. See
+[context loading]({{ '/docs/framework/#load-context-for-the-request' | url }}) for the request boundaries.
+
 ## Behavioral agreement
 
 For new or changed behavior, use `prototype`, obtain human approval of the demonstrated flow, then use `spec` before production implementation. Update an existing prototype through the same loop. CLI commands, modules/libraries, and services use executable commands, consumers, or requests instead of a browser UI. Technical work preserving existing behavior and defect fixes restoring approved behavior reuse that agreement.

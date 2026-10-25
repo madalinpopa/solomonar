@@ -53,7 +53,7 @@ The documentation website lives in `site/`. Its setup and checks are in [`site/R
 
 | Path | Contents |
 | --- | --- |
-| `assets/framework/` | The framework core: `rules.md`, `report.md`, `reviewer.md`, the agent roles in `agents/`, and the skills in `skills/`. `init` installs it as `docs/solomonar/`. |
+| `assets/framework/` | Shared contracts and conditional procedures in `workflow/` and `reports/`, agent roles in `agents/`, skills in `skills/`, and the project-source lookup `context.md`. `init` installs it as `docs/solomonar/`. |
 | `assets/extensions/<group>/<name>/` | The extension catalog. Each extension is one skill or one agent, plus `extension.json`. An installed extension is copied as is to the project's store, `docs/solomonar/extensions/<name>/`, beside the project's own extensions. |
 | `assets/templates/` | Templates for `AGENTS.md`, `docs/README.md`, and the empty task registry header (`state.json`). |
 | `internal/` | The CLI: commands, the task registry, the init plan, adapters, and the extension catalog loader. |
@@ -139,12 +139,19 @@ Framework rules live in the file that owns their subject:
 
 | Subject | File |
 | --- | --- |
-| Orchestration, approvals, task flow, review triage, state, merge, closure, recovery | `assets/framework/rules.md` |
+| Shared authority, cross-stage gates, state, procedure triggers | `assets/framework/rules.md` |
+| Setup, specification, implementation, decisions, reviews, integration/closure, recovery | Triggered procedure in `assets/framework/workflow/` |
 | What every reviewer does (preflight, isolation, evidence, result) | `assets/framework/reviewer.md` |
-| Report format, result values, findings, the PR Verification section | `assets/framework/report.md` |
+| Common report format, result values, evidence, findings | `assets/framework/report.md` |
+| Correction list; PR Verification | `assets/framework/reports/corrections.md`; `reports/pr-verification.md` |
 | One role's specialty | `assets/framework/agents/<role>.md` |
-| One skill's procedure | `assets/framework/skills/<skill>/SKILL.md` |
+| One skill's shared contract and mode selection | `assets/framework/skills/<skill>/SKILL.md`; conditional procedures in its `references/` |
 | What agents load and when | `assets/templates/AGENTS.md` |
+| Project document/command lookup | `assets/framework/context.md`; read only when source paths are unknown |
+
+Keep stage/mode details out of shared entry files. Retain authority, approval triggers, ownership, and failure
+gates in the contract every applicable role reads. Load a procedure before its action, not merely because a
+link exists; restore required context after compaction. Measure the complete required file set, not entry size alone.
 
 Steps:
 

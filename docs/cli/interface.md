@@ -248,7 +248,7 @@ present.
 
 | Part | Contains | Installed |
 |---|---|---|
-| Core: the process | `docs/solomonar/rules.md`, `registry.md`, `report.md`, `reviewer.md`; the process roles `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`; the process skills `solomonar` (user entry point, CLI-D15), `prototype`, `spec`, `work-spec`; `AGENTS.md`; `docs/README.md`; the empty registry on `refs/heads/workflow-state`; `.solomonar/manifest.json` | always; no part can be removed while the framework stays installed (`extension remove` rejects a core item with `core_item`); only `uninstall` removes the core, together with the whole installation (UC-27, CLI-D32), and it keeps the registry |
+| Core: the process | `docs/solomonar/rules.md`, `registry.md`, `report.md`, `reviewer.md`, `context.md`, conditional procedures in `workflow/` and `reports/`; the process roles `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer` and their references; the process skills `solomonar` (user entry point, CLI-D15), `prototype`, `spec`, `work-spec` and their references; `AGENTS.md`; `docs/README.md`; the empty registry on `refs/heads/workflow-state`; `.solomonar/manifest.json` | always; no part can be removed while the framework stays installed (`extension remove` rejects a core item with `core_item`); only `uninstall` removes the core, together with the whole installation (UC-27, CLI-D32), and it keeps the registry |
 | Runtimes | Adapter files for `claude`, `codex`, `copilot` (4.2) | zero or more; default: those found on `PATH` |
 | Extensions | Skills (knowledge of a language, library, or practice; or a supporting procedure) and agents (extra specialist reviewers), grouped by decision type (4.3) | zero or more; default at `init`: the catalog extensions marked `default` or detected in the repository (4.3) |
 
@@ -258,6 +258,11 @@ extension, and the four core reviewers stay language-neutral (CLI-D1; design not
 
 A project whose stack is not known yet starts with no stack extension: the stack is decided later (rules section 3), and
 `solomonar extension add` follows that decision (UC-6).
+
+Installation makes these sources available; it does not load them all into agent context. `AGENTS.md` owns
+request routing, shared entry contracts name their required inputs, and stage/mode procedures load only when
+their trigger applies. The CLI copies nested references recursively and generates the same thin runtime stubs;
+selective loading changes no task schema or lifecycle gate.
 
 ### 4.2 Runtime adapters
 

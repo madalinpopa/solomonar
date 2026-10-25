@@ -140,7 +140,7 @@ func uniform(changes []project.Change) bool {
 
 // frameworkSet names the core roles directory or a core skill's directory.
 func frameworkSet(p string) string {
-	if strings.HasPrefix(p, "docs/solomonar/agents/") {
+	if rest, ok := strings.CutPrefix(p, "docs/solomonar/agents/"); ok && !strings.Contains(rest, "/") {
 		return "docs/solomonar/agents/"
 	}
 	if rest, ok := strings.CutPrefix(p, "docs/solomonar/skills/"); ok {

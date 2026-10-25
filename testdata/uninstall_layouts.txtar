@@ -7,7 +7,7 @@ exec git rev-parse refs/heads/workflow-state
 cp stdout ../core-tip.txt
 exec solomonar uninstall --yes
 stdout '^Uninstalled solomonar from .+/core$'
-stdout '^  1 file updated, 23 removed$'
+stdout '^  1 file updated, 39 removed$'
 stdout '^  kept: docs/README\.md$'
 ! exists .solomonar docs/solomonar AGENTS.md
 exists docs/README.md

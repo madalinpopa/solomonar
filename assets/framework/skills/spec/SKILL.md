@@ -21,19 +21,15 @@ Framework version: {{ .Version }}
 
 ## 2. Modes
 
-| Mode | Where | Input | Commits |
-|---|---|---|---|
-| Discovery | Main checkout | Approved prototype handoff references; existing code for observations only | Yes (section 7) |
-| In task | Assigned feature worktree (`feature/<ID>`) | Approved decisions or the work spec's "Spec changes", backed by approved prototype references for behavior | No; the owning orchestrator commits |
+Before editing, inspect `git rev-parse --show-toplevel`, `git branch --show-current`,
+`git worktree list --porcelain`, and `git status --short`; preserve unrelated edits.
+Load exactly the selected mode before acting; location, owner, or input mismatch stops editing.
 
-- Before editing, inspect `git rev-parse --show-toplevel`, `git branch --show-current`,
-  `git worktree list --porcelain`, and `git status --short`; preserve unrelated edits.
-- Discovery requires the primary checkout on a named branch, outside `feature/*` and `workflow-state`.
-  If repository rules forbid commits on the current branch, use `spec/<topic>` there and tell the user.
-- In-task use belongs only to the owning orchestrator. Confirm the registered task, owner, branch, and assigned
-  worktree with `solomonar task status <ID>` and the Git inspection above. Edit only the listed approved
-  decisions or user-confirmed "Spec changes"; never update the work spec through this skill.
-- A location, owner, or input mismatch: stop before editing and report it.
+| Mode | Load | Input |
+|---|---|---|
+| Discovery, primary checkout | [references/discovery.md](references/discovery.md) | Approved prototype handoffs; code supports observations only |
+| In task, owning orchestrator's worktree | [references/in-task.md](references/in-task.md) | Approved decisions/Spec changes backed by approved behavior; no commits |
+
 
 ## 3. Labels and rule IDs
 
@@ -58,52 +54,28 @@ Framework version: {{ .Version }}
   the system shall <response>".
 - Each rule has one primary document. Other documents cite its ID; they never copy it.
 
-## 4. Procedure, discovery mode
+## 4. Prototype approval and conflicts
 
-1. Start from the user's outcome or handoff references and `docs/README.md`. Load only relevant capability
-   specs, shared UI rules, and scoped decision entries. Read architecture/stack entries only when needed to
-   resolve an implication; expand context for discovered dependencies or shared contracts.
-2. For each handoff, use `git show "<SHA>:prototype/README.md"` to check the selected flow's ID, entry file,
+### Approval check (both modes)
+
+For each handoff, use `git show "<SHA>:prototype/README.md"` to check the selected flow's ID, entry file,
    `ready for spec` status, and explicit approval covering the selected scenarios. Read its entry file and
    supporting files at that same SHA, never from the working copy. Entry-file paths in the README are relative
    to `prototype/`. Select simulations/questions by their flow IDs, plus
    relevant project-wide entries. Missing references, draft/stale approval, or unrepresented behavior: stop that
    part and return it to `prototype`; direct confirmation of a spec rule cannot bypass this check.
-3. Extract only demonstrated, approved behavior per flow: actions/inputs, outputs, transitions, validation,
-   business constraints, relevant success/failure/edge cases, and persistence/integration outcomes. A
-   `SIMULATED:` step yields only its observable outcome (e.g. "a placed order is still listed after reload"); the
-   mechanism (e.g. `localStorage`) stays evidence, subject to section 1's decision boundary.
-4. Map items to capabilities: reuse existing files; create a file only for an independently loadable area; put
-   cross-capability layout and interaction rules in `docs/ui.md`. When the split is unclear, propose one and ask
-   per `AGENTS.md` rule 11, with the proposal as the recommended option.
-5. Mark faithfully extracted approved behavior **Agreed**, citing its approval and prototype reference. Keep
-   existing unconfirmed observations **Observed**; promote them only after representation and prototype approval.
-   A readiness label or intentional-change entry alone does not approve inferred rules or additional behavior.
-6. On a prototype/spec conflict, leave the affected requirement unchanged and record an **Open** item citing
+
+### Conflict procedure (both modes)
+
+On a prototype/spec conflict, leave the affected requirement unchanged and record an **Open** item citing
    both sources. Resolve it through `prototype` first: restore approved behavior for a defect, or demonstrate
    and obtain approval for a change. Resume only with the resolved approved snapshot; never choose silently.
-7. Surface ambiguous or missing behavior for a decision, blocking questions first. Send it to `prototype` for
-   demonstration/approval before finalizing the related rule; continue independent approved extraction only.
-8. Delete an **Open** item that an approved `P/D-n` resolves and cite that decision under "References".
-   Create or update files and validate them per section 6. Put prototype references under "References".
-9. Commit (section 7) and report: files changed; rules per label per file; open questions, blocking first;
-   prototype defects found; next action: `work-spec` for a selected change, `prototype` for blocking unknowns,
-   or answering remaining project open questions (`rules.md` section 3).
+
+Discovery procedure: [references/discovery.md](references/discovery.md), loaded only in that mode.
 
 ## 5. Procedure, in-task mode
 
-1. Read the listed decisions in `docs/decisions.md` (only status `approved`; a `pending` entry approves nothing)
-   or the work spec's "Spec changes" line, and the spec rules they affect. Apply section 4 step 2's prototype
-   check to every behavioral change; without that handoff, report it to the orchestrator and leave it unchanged.
-2. Apply each authorized change in the rule's primary document, using section 3's IDs, labels, and sources.
-   Assign final IDs to `<capability>/new` entries; delete the **Open** items the change resolves. Use section 4
-   step 6 for conflicts; a task decision does not authorize resolving one solely in the specification.
-3. Leave everything else unchanged, including **Observed** rules the input does not cover.
-4. An input that is unclear for a rule, lacks a decision or user source, or contradicts another **Agreed** rule:
-   change nothing for it; report it.
-5. Apply section 6's document-creation and validation steps. Report changed files, rule IDs, `new` and split-ID
-   mappings, unresolved inputs, and required reference fixes outside scope to the orchestrator. It updates the
-   work spec and commits; this mode never commits.
+Load [references/in-task.md](references/in-task.md) only in that mode.
 
 ## 6. Writing and validation (both modes)
 
@@ -123,8 +95,4 @@ Framework version: {{ .Version }}
 
 ## 7. Commits (discovery mode)
 
-- Messages: `docs(<capability>): <summary>`; `docs(ui): <summary>` for `docs/ui.md`. One commit per file when
-  practical; include the related `docs/README.md` index change.
-- Commit only intended changes allowed by section 1, selected by path, on the branch established at startup.
-  Inspect the staged diff; preserve unrelated staged changes. Skip the commit when nothing relevant changed.
-- Never push unless the user asks.
+Discovery commits follow [references/discovery.md](references/discovery.md#commits). In-task mode never commits.

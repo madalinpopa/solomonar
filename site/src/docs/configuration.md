@@ -25,7 +25,7 @@ sources:
 | --- | --- | --- |
 | `AGENTS.md` | Compact mandatory instructions and context routes; your notes go under `## Project notes`. | Framework section managed; notes yours |
 | `docs/README.md` | Project mission, objective, document index, and verified run and check commands. | You (seeded once) |
-| `docs/solomonar/` | Framework rules, report format, the four skills, and the six agent roles. | Managed core |
+| `docs/solomonar/` | Shared framework contracts, project-source lookup, the four skills, six agent roles, and their conditional stage/mode/report references. | Managed core |
 | `docs/solomonar/extensions/<name>/` | The store: an installed catalog extension, such as `go`, copied with its `extension.json`; or a project extension you or the `extension-authoring` skill wrote. | Catalog extensions managed, `ext:<name>`; project extensions yours |
 | `docs/decisions.md`, `docs/stack.md` | One approved decision entry per change to a stack group's extensions, and one stack line per change. Written only when a stack extension is chosen, added, or removed. | Entries appended by `init` and `extension add\|remove`; the files are yours |
 | `CLAUDE.md`, `.claude/skills/`, `.claude/agents/` | Claude Code adapter stubs. | Managed runtime files |

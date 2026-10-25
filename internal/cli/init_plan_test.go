@@ -208,14 +208,26 @@ func TestInteractiveInitShowsTheGroupedPlan(t *testing.T) {
 	assert.Equal(t,
 		"  framework "+shipped+"\n"+
 			"    create     docs/solomonar/agents/ (6 roles)\n"+
+			"    create     docs/solomonar/agents/implementer/correction.md\n"+
+			"    create     docs/solomonar/agents/implementer/integration.md\n"+
+			"    create     docs/solomonar/context.md\n"+
 			"    create     docs/solomonar/registry.md\n"+
 			"    create     docs/solomonar/report.md\n"+
+			"    create     docs/solomonar/reports/corrections.md\n"+
+			"    create     docs/solomonar/reports/pr-verification.md\n"+
 			"    create     docs/solomonar/reviewer.md\n"+
 			"    create     docs/solomonar/rules.md\n"+
 			"    create     docs/solomonar/skills/prototype/ (SKILL.md, references/cli.md, references/module.md, references/service.md, references/web.md, template.md)\n"+
-			"    create     docs/solomonar/skills/solomonar/ (SKILL.md)\n"+
-			"    create     docs/solomonar/skills/spec/ (SKILL.md, template.md)\n"+
+			"    create     docs/solomonar/skills/solomonar/ (SKILL.md, references/extensions.md, references/overview.md)\n"+
+			"    create     docs/solomonar/skills/spec/ (SKILL.md, references/discovery.md, references/in-task.md, template.md)\n"+
 			"    create     docs/solomonar/skills/work-spec/ (SKILL.md, template.md)\n"+
+			"    create     docs/solomonar/workflow/decisions.md\n"+
+			"    create     docs/solomonar/workflow/implementation.md\n"+
+			"    create     docs/solomonar/workflow/integration.md\n"+
+			"    create     docs/solomonar/workflow/recovery.md\n"+
+			"    create     docs/solomonar/workflow/reviews.md\n"+
+			"    create     docs/solomonar/workflow/setup.md\n"+
+			"    create     docs/solomonar/workflow/specification.md\n"+
 			"    create     AGENTS.md\n"+
 			"    create     docs/README.md\n"+
 			"  extensions\n"+

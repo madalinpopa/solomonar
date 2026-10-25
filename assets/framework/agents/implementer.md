@@ -7,9 +7,9 @@ description: Implements one managed task's change or its corrections in the task
 
 Framework version: {{ .Version }}
 
-Load `AGENTS.md`, `docs/solomonar/report.md`, the packet, its work spec and relevant references, named extension
-skills (`docs/solomonar/extensions/<name>/SKILL.md`), and affected code/tests. Do not load orchestrator-only
-`docs/solomonar/rules.md`. Unqualified section references mean this file.
+Load `AGENTS.md`, `docs/solomonar/report.md`, the packet, its exact work spec/references, named extension
+skills (`docs/solomonar/extensions/<name>/SKILL.md`), and affected code/tests. Load the assigned mode below
+before acting; do not load orchestrator-only `rules.md`. Section numbers mean this file.
 
 ## 1. Mission and boundaries
 
@@ -133,40 +133,13 @@ Result: the most restrictive of `NEEDS_DECISION` > `INCOMPLETE` > `READY_FOR_REV
 
 ## 6. Correction round
 
-- Apply section 2's preflight and exact spec reference. Require the consolidated list's full
-  `Revision reviewed`; verify `git merge-base --is-ancestor <reviewed-SHA> HEAD`. Account for later commits
-  through packet references and history; do not infer orchestrator ownership from documentation paths.
-- The orchestrator appends the correction round's steps to the plan; commit each as section 5 step 8 describes.
-- Address exactly the consolidated list: resolve every `blocking` entry; apply `suggestion` entries only when
-  compatible with approved specs and decisions; apply each listed approved decision within its scope. Never act
-  on "Rejected" entries or raw reviewer text.
-- A correction that needs a new dependency or architecture change → section 4.
-- A new defect outside the list: report it under `Findings` with ID `IMPL-n` (`report.md` section 5); do not fix it.
-- Use section 5's verification and handoff rules; rerun affected checks and those cited in findings.
-- Report under the same result gates, listing each addressed `W-001/F-n` and its evidence; name suggestions
-  not applied and why. Missing verification never becomes `READY_FOR_REVIEW` merely because a fix was committed.
+For a correction packet, load [implementer/correction.md](implementer/correction.md).
 
 ## 7. Integration delegation
 
-- Apply section 2's preflight. Resolve main from `.solomonar/manifest.json` → `project.main_branch`;
-  use `main` only without a manifest. Record `git rev-parse <main>` as the integration baseline.
-- If `git merge-base --is-ancestor <main-SHA> HEAD` succeeds, no merge commit is needed. Otherwise run
-  `git merge --no-ff -m "chore(<ID>): merge <main> into feature/<ID>" <main-SHA>`. Never amend, rebase, reset,
-  or force-update handed-off history, even at a packet's suggestion.
-- A delegated merge may import main's changes. Manual conflict resolution still follows section 1:
-  orchestrator-owned documents → `INCOMPLETE`, naming the needed owner action; a product/architecture choice
-  → `NEEDS_DECISION`. Preserve unresolved merge state; do not force a checkpoint, claim a candidate, or alter
-  protected documents to finish the merge.
-- For conflicts within your write scope, resolve and stage explicit paths with `git add -- <resolved-paths>`;
-  inspect the complete `git diff --cached`, then finish with
-  `git commit -m "chore(<ID>): merge <main> into feature/<ID>"`. Merge completion commits the whole merge
-  index, unlike section 5's path-only commits; stop if it contains unrelated staged work.
-- Run affected checks and apply section 5's result/handoff gates. Report integration baseline, touched areas,
-  full resulting SHA, and verification limits; the orchestrator decides review reuse and merge readiness.
-- Code changes for an integration or CI failure follow section 5 or 6, as the packet states.
+For a main-merge packet, load [implementer/integration.md](implementer/integration.md).
+Integration/CI code fixes use normal or correction mode as assigned.
 
 ## 8. Never
 
-Apply `AGENTS.md`'s mandatory rules, section 1's write boundaries, and sections 4–7's approval, verification,
-handoff, and history restrictions. `report.md` governs claims and evidence; raw reviewer reports never authorize
-implementation. Report blockers without weakening requirements, hiding failures, or altering unrelated work.
+Every mode preserves section 1's boundaries, scoped approvals, required verification, and clean handoff gates.

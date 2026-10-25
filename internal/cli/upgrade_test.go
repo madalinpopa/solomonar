@@ -25,9 +25,8 @@ const (
 	legacyIntro   = "Installed with `solomonar`; draft project extensions are not active. Load every installed " +
 		"extension skill whose\n\"applies when\" matches your change, before writing or reviewing code, and cite its " +
 		"rules as `<name>/C-n`.\nThe orchestrator names the matching extensions in each packet.\n"
-	currentIntro = "Installed with `solomonar`. Before writing or reviewing code, load the extension skills your " +
-		"packet names; without\na packet, every installed one whose \"applies when\" matches your change. Cite their " +
-		"rules as `<name>/C-n`.\n"
+	currentIntro = "Before code work/review, load packet-named extensions, else matching installed ones.\n" +
+		"Cite `<name>/C-n`; load topic rules by impact. User-invoked skills require explicit invocation.\n"
 )
 
 // legacyRepo rebuilds what v0.1.7 `init --runtime claude,codex --ext go` wrote: the go skill in
@@ -144,7 +143,7 @@ func TestUpgradeMovesLegacyProjectToTheStore(t *testing.T) {
 
 	require.Equal(t, 0, got.exit, got.stderr)
 	assert.Equal(t, "Upgraded solomonar 0.1.7 → 99.0.0 in "+dir+"\n"+
-		"  6 files created, 26 updated, 5 removed, 21 unchanged, 1 skipped\n\n"+
+		"  6 files created, 26 updated, 5 removed, 37 unchanged, 1 skipped\n\n"+
 		"Next:\n"+
 		"  1. git add AGENTS.md .claude .agents .codex .solomonar docs && "+
 		"git commit -m \"chore: upgrade solomonar to 99.0.0\"\n"+
@@ -182,7 +181,7 @@ func TestUpgradeRerunIsNoOp(t *testing.T) {
 	got := upgradeIn(t, repoAssets(t), dir)
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Equal(t, "Already at solomonar "+shipped+"; nothing to do.\n  53 files unchanged, 1 skipped\n", got.stdout)
+	assert.Equal(t, "Already at solomonar "+shipped+"; nothing to do.\n  69 files unchanged, 1 skipped\n", got.stdout)
 	assert.Empty(t, got.stderr)
 	assert.Equal(t, before, tree(t, dir))
 }
@@ -335,7 +334,7 @@ func TestUpgradeDryRunWritesNothing(t *testing.T) {
 	assert.Contains(t, got.stdout, "  remove     "+legacySkill+"\n")
 	assert.Contains(t, got.stdout, "  update     .solomonar/manifest.json\n")
 	assert.True(t, strings.HasSuffix(got.stdout, "Would upgrade solomonar 0.1.7 → "+shipped+" in "+dir+"\n"+
-		"  6 files created, 6 updated, 5 removed, 41 unchanged, 1 skipped\n"), got.stdout)
+		"  6 files created, 6 updated, 5 removed, 57 unchanged, 1 skipped\n"), got.stdout)
 	assertNothingWritten(t, dir, before, tip)
 }
 

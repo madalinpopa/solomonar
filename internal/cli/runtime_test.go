@@ -238,7 +238,7 @@ func TestRuntimeAddFromNone(t *testing.T) {
 
 			require.Equal(t, 0, got.exit, got.stderr)
 			assert.Equal(t, "Added runtime "+tt.name+" in "+dir+"\n"+
-				fmt.Sprintf("  %d files created, 1 updated, 22 unchanged, 1 skipped\n", tt.created)+
+				fmt.Sprintf("  %d files created, 1 updated, 38 unchanged, 1 skipped\n", tt.created)+
 				"\nNext:\n  1. git add "+tt.paths+runtimeCommit("add", tt.name)+"\n"+
 				fmt.Sprintf(tt.session, dir), got.stdout)
 			assert.Empty(t, got.stderr)
@@ -334,7 +334,7 @@ func TestRuntimeAddUpdatesTheModel(t *testing.T) {
 	got := runtimeAddIn(t, dir, "claude", "--adversarial-model", "sonnet", "--yes")
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Contains(t, got.stdout, "  2 files updated, 31 unchanged, 1 skipped\n")
+	assert.Contains(t, got.stdout, "  2 files updated, 47 unchanged, 1 skipped\n")
 	assert.Contains(t, got.stdout, "git add .claude .solomonar"+runtimeCommit("add", "claude"))
 	after := tree(t, dir)
 	assert.Contains(t, after[".claude/agents/adversarial-reviewer.md"], "\nmodel: sonnet\n")
@@ -358,7 +358,7 @@ func TestRuntimeAddRepeatedIsNoOp(t *testing.T) {
 			got := runtimeAddIn(t, dir, args...)
 
 			require.Equal(t, 0, got.exit, got.stderr)
-			assert.Equal(t, "Already installed: claude; nothing to do.\n  33 files unchanged, 1 skipped\n", got.stdout)
+			assert.Equal(t, "Already installed: claude; nothing to do.\n  49 files unchanged, 1 skipped\n", got.stdout)
 			assertNothingWritten(t, dir, before, tip)
 
 			asJSON := runtimeAddIn(t, dir, append(args, "--json")...)
@@ -395,7 +395,7 @@ func TestRuntimeAddDryRun(t *testing.T) {
 	assert.Contains(t, got.stdout, "  create     .github/skills/spec/SKILL.md\n")
 	assert.Contains(t, got.stdout, "  update     .solomonar/manifest.json\n")
 	assert.True(t, strings.HasSuffix(got.stdout, "Would add runtime copilot in "+dir+"\n"+
-		"  9 files created, 1 updated, 22 unchanged, 1 skipped\n"), got.stdout)
+		"  9 files created, 1 updated, 38 unchanged, 1 skipped\n"), got.stdout)
 	assertNothingWritten(t, dir, before, tip)
 
 	asJSON := runtimeAddIn(t, dir, "copilot", "--dry-run", "--json", "--adversarial-model", "gpt-5")

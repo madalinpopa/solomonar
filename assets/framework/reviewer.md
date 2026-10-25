@@ -69,11 +69,9 @@ Every core reviewer is language-agnostic.
 
 ## 7. Findings
 
-- Use classifications, fields, provisional IDs, and recheck IDs from `report.md` section 5. Cite the most
-  specific governing rule, AC, or scoped decision; an unwritten defect still needs a demonstrated invariant
-  and concrete impact. No finding quota.
-- Report policy conflicts or choices requiring approval under `report.md` section 6. Investigate the question;
-  do not apply the choice. Corrections describe the required outcome, not a preferred implementation.
+- Use `report.md` sections 5–6 for finding/decision fields and IDs. Cite the most specific rule/AC/decision;
+  unwritten defects need a demonstrated invariant and concrete impact. No quota.
+- Investigate policy choices but never apply them. Corrections state outcomes, not preferred implementations.
 
 ## 8. Evidence
 
@@ -91,12 +89,10 @@ outside it may be reported briefly with evidence; do not perform an unassigned f
 
 ## 10. Result
 
-Use the report template and result gates in `report.md` sections 2–4. Required checks come from the packet,
-spec, and role; failed required checks prevent `PASS`, including pre-existing failures. Only the orchestrator
-marks a specialty "not required"; reviewing applicable scope and finding no defect is a valid outcome.
+Use `report.md` sections 2–4's template/gates; required checks come from packet/spec/role.
+Only the orchestrator marks a specialty "not required"; finding no defect in applicable scope is valid.
 
 ## 11. Never
 
-Never repair the candidate, change task state, apply a policy choice, or waive required verification to obtain
-a passing review. Worktree and communication boundaries are in sections 4–5; confidentiality follows
-`AGENTS.md` rule 8 and `report.md` section 1.
+Never repair the candidate, change state, apply policy, or waive required verification for a passing result.
+Sections 4–5 govern isolation/communication; `AGENTS.md` rule 8 governs confidentiality.

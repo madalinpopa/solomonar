@@ -2,9 +2,7 @@
 
 Framework version: {{ .Version }}
 
-Delegated agent reports, the consolidated correction list, and the PR Verification section follow this file.
-`rules.md` below means `docs/solomonar/rules.md`, which owns orchestration, routing, arbitration, and state.
-Its references are for the orchestrator; delegated roles do not load it.
+Common contract: sections 1–6; conditional formats: 7–8. `rules.md` references are orchestrator-only.
 
 ## 1. General rules
 
@@ -151,48 +149,8 @@ Entry format (`Status` only on rechecks; classification-specific omissions below
 
 ## 7. Consolidated correction list (orchestrator → implementer)
 
-The single list the implementer receives after consolidation (`rules.md` section 6):
-
-```markdown
-# <Task ID>: Corrections
-Revision reviewed: <full SHA>
-
-## Open findings
-- W-001/F-n `<classification>`: <location>; [violates <rule/AC>;] evidence <ref>; correction: <outcome or verification needed>
-
-## Approved decisions to apply
-- <approved P/D-n or W-001/D-n>: <selected option; approval and scope reference>
-
-## Rejected (do not act)
-- <W-001/F-n or reviewer ID>: <evidence-backed justification>
-```
-
-- The implementer addresses only this list, never raw reviewer reports. It must resolve every `blocking`
-  entry and applies suggestions only within `AGENTS.md`'s authority and the assigned scope. Omit `violates`
-  for suggestions; unverified entries request verification, not speculative code changes. A decision listed
-  here must already be approved within scope; listing it does not grant approval.
-- The next `READY_FOR_REVIEW` report lists each addressed `W-001/F-n` in `Checks and evidence` with the
-  check that shows the correction.
+When consolidating findings or sending/receiving corrections, load [reports/corrections.md](reports/corrections.md).
 
 ## 8. PR Verification section
 
-```markdown
-## Verification
-- Task: W-001
-- Candidate: <full SHA>; integration baseline: <incorporated configured main branch's full SHA>
-- Final specification: <spec_ref: final spec commit:path, written before merge>
-- Acceptance: <AC IDs, outcomes, and evidence>
-- Checks: <section 4 entries, including required checks not run and their reasons>
-- Reviews: tier <0 | 1 | 2> and why; <verdicts, original SHAs, models when known, report references, reuse reasons>
-- Decisions: <scoped approval references relevant to the change>
-- Limits: <unverified behavior or environment limitations, if any>
-```
-
-- The orchestrator writes it in the feature PR description before merge and updates it whenever the
-  candidate changes.
-- Every verdict names its original revision; reused verdicts also name the unaffected scope and reason.
-  List specialties marked "not required" with their reason. Never turn missing results into passing checks
-  or invent a model name. Omit `Limits` only when nothing is unverified; reference check entries to avoid duplication.
-- Report references point to a durable location when one exists; otherwise write `session only (not durable)`.
-- This summary remains after closure; it does not make a lost report durable or replace missing evidence.
-  Resume verification follows `rules.md` section 10. Tier 0: `Reviews` states the tier and "CI only".
+When creating/updating the PR Verification section, load [reports/pr-verification.md](reports/pr-verification.md).

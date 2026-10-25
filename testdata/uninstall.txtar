@@ -25,7 +25,7 @@ stdout '^  update     docs/README\.md +framework index line removed$'
 stdout '^  skip       docs/solomonar/extensions/money  project extension; source kept$'
 stdout '^  remove     \.solomonar/manifest\.json$'
 stdout '^Would uninstall solomonar from .+/repo$'
-stdout '^  2 files updated, 73 removed, 1 skipped$'
+stdout '^  2 files updated, 89 removed, 1 skipped$'
 exec git status --porcelain --untracked-files=all
 ! stdout .
 
@@ -41,7 +41,7 @@ cmp stdout ../edited-status.txt
 # --overwrite removes the edited file; every unkept managed artifact goes, project content stays.
 exec solomonar uninstall --yes --overwrite docs/solomonar/rules.md
 stdout '^Uninstalled solomonar from .+/repo$'
-stdout '^  2 files updated, 73 removed, 1 skipped$'
+stdout '^  2 files updated, 89 removed, 1 skipped$'
 stdout '^  kept: AGENTS\.md, docs/README\.md, docs/solomonar/extensions/money$'
 stdout '^  The registry \(refs/heads/workflow-state\) and other worktrees are unchanged\.$'
 stdout '^  1\. Review the removal with git status, then commit it\.$'
@@ -53,9 +53,9 @@ exec git diff --numstat -- docs/README.md
 stdout '^0\t1\tdocs/README\.md$'
 ! grep 'docs/solomonar/' docs/README.md
 exec git status --porcelain --untracked-files=all
-stdout -count=73 '^ D '
+stdout -count=89 '^ D '
 stdout -count=2 '^ M '
-stdout -count=75 '^.'
+stdout -count=91 '^.'
 exec git diff --exit-code HEAD -- docs/decisions.md docs/stack.md docs/specs docs/solomonar/extensions/money .claude/settings.json .claude/skills/mine .codex/config.toml .github/workflows
 exec git rev-parse refs/heads/workflow-state
 cmp stdout ../tip.txt

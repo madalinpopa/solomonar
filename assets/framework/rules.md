@@ -2,13 +2,13 @@
 
 Framework version: {{ .Version }}
 
-These rules apply to every managed task and to project decisions outside a task (section 3). Orchestrators
-load this file together with `AGENTS.md`. Report format, result values, finding fields, and the PR
-Verification section: `docs/solomonar/report.md`. Registry detail, on demand: `docs/solomonar/registry.md`.
-Role procedures: `docs/solomonar/agents/<role>.md`. Skill procedures: `docs/solomonar/skills/<skill>/SKILL.md`.
+Orchestrators load this shared contract with `AGENTS.md`, then only the current stage/trigger procedure below.
+Project decisions outside a task load section 3's procedure without taking the orchestrator role.
+Load `report.md` before delegation or consuming reports; registry detail is conditional (section 7).
+An unloaded procedure must be read before its governed action. References are not implicit loads.
 
-Here, "main" means the integration branch named by `.solomonar/manifest.json` → `project.main_branch`
-(`main` without a manifest). Substitute it for `<main>` in commands; prefix `task` commands with `solomonar`.
+“Main” is `.solomonar/manifest.json` → `project.main_branch`, or `main` without a manifest.
+Substitute it for `<main>`; prefix `task` commands with `solomonar`. Framework paths are relative to `docs/solomonar/`.
 
 ## 1. Scope and authority
 
@@ -43,104 +43,14 @@ Here, "main" means the integration branch named by `.solomonar/manifest.json` �
 
 ## 3. Approvals and decisions
 
-- Any new architecture decision or dependency change requires user approval, including when a reviewer
-  proposes it as a fix. Applying an approved decision within its recorded scope needs no new approval.
-- The agent that identifies the need may investigate and must prepare a decision request: question,
-  recommended option, alternatives, impact, blocked work. It must not apply the choice before approval.
-- Register each decision and open question at the level it affects:
-  - Project level: it affects or constrains the whole project beyond one task, such as an architecture style,
-    a shared contract, or a dependency other work would use. Decisions take `P/D-n`. Project open questions are
-    the open questions in `docs/specs/*.md` and `docs/ui.md` (`<capability>/Q-n`) plus `pending` `P/D-n` entries.
-  - Task level: it affects or constrains only one task. Decisions take `<ID>/D-n`; open questions take
-    `<ID>/Q-n` in the work spec. A task-level decision never binds another task.
-  - When the level is unclear, propose one with the question and let the user choose. A task-level choice that
-    later must bind other work needs a project decision that supersedes it.
-- Where entries live:
-  - Task entries: in the task worktree. Commit each entry change with the spec updates it requires:
-    `docs(<ID>): record <ID>/D-n`.
-  - Project entries: only on `<main>` in the main checkout, never in a task worktree or on another branch, so
-    every session numbers from the same file. If the main checkout is not on `<main>`, ask the user before
-    switching it. `<n>` is one more than the highest `P/D-<n>` in `docs/decisions.md` and
-    `.solomonar/manifest.json`; never reuse an ID. Commit each entry change alone, right after numbering it:
-    `docs(decisions): record P/D-n`. `Scope` starts with `project; `. Create `docs/decisions.md` with the title
-    `# Decisions` and index it in `docs/README.md` when absent.
-- Orchestrator procedure:
-  1. Assign the decision ID at its level: the next `P/D-n` or the next `W-001/D-n`.
-  2. Record the blocker and next action together:
-     `task block <ID> --as <owner> --kind decision --summary <s> --ref <decision-ID> --next "user:<action>"`.
-     Add `--status blocked` when no independent authorized work can continue. Write the `pending` entry where
-     its level requires. Wait for every running review to report before changing the candidate (section 6
-     Candidate stability).
-  3. Present the decision request.
-  4. Keep the recovery evidence current (section 10) and wait. No response is not approval. Never repeat the question or retry automatically.
-- While waiting, affected and dependent work must wait. Independent authorized work may continue.
-- On approval: set the entry `approved` with the selected option. If it changes behavior, first complete
-  `AGENTS.md` rule 7 through `prototype` in the primary checkout; keep dependent work blocked. A project entry
-  or a prototype handoff reaches the task branch only through main; a handoff on `prototype/<topic>` waits
-  until the user merges it. Once it is on main, delegate the merge to the implementer (packet objective
-  "merge main into `feature/<ID>`", `implementer.md` section 7). Then update affected specs via `spec` in-task
-  mode, and commit before clearing the blocker. Use
-  `task unblock <ID> <blocker-ID> --as <owner> --next "<actor>:<action>"`; when removing the last blocker from
-  a `blocked` task, also pass `--status reserved` at `setup`, otherwise `--status running`. Keep it blocked
-  while other blockers stop all work; paused or cancelled tasks still require explicit resumption (section 10).
-- On rejection: keep the entry `pending` and list the rejected option with its reason in it. Re-delegate the
-  role that identified the need when the revised option needs investigation; otherwise present a listed
-  alternative. Present the revised option under the same decision ID.
-- Entry format: `## <ID>: <question>`, then named bullets `Status`, `Selected option` (once approved),
-  `Rejected options` (`none` when empty), `Scope`, `Rationale`, `Date`, and `References`. Keep the labels exact
-  so the CLI can read the status (`pending` | `approved` | `superseded`); only `approved` authorizes work.
-  References identify any superseded decision and its replacement.
-- Reuse a decision only within its scope. A superseding decision must name the decision it replaces, set
-  that entry's status to `superseded`, and update the affected canonical rules.
-- Outside any task, the user's top-level session, routed by the `solomonar` skill, records project decisions:
-  present the decision request; write nothing until the user explicitly approves an option, then append the
-  entry `approved`. Record it `pending` only when the user defers it. No response is not approval. A decision
-  that changes behavior then completes `AGENTS.md` rule 7 through `prototype` and `spec`. The task that first
-  applies a project decision updates `docs/architecture.md` or `docs/stack.md`.
-- When a session reports project open questions, suggest that the user answer them, blocking first, and wait.
-  Only after the user agrees, ask them per `AGENTS.md` rule 11. Record an approved decision as above; route a
-  behavior answer through `prototype`, then `spec`; leave an unanswered question open.
-- Stack extensions follow the same approval rule; adopting or dropping one is a project decision. When
-  available, the user's `solomonar extension add|remove` records `P/D-n` for each affected group's complete
-  selection, using the entry format above; never hand-write that entry outside a task. The orchestrator instead
-  records the project decision and passes `--decision <approved-ID>`. The CLI updates installed extensions'
-  decision references and supersession links together.
-- Check availability with `solomonar help` (section 11). If extension management is unavailable, report it;
-  never substitute manual edits to the manifest or generated adapters.
+Load [workflow/decisions.md](workflow/decisions.md) before raising/recording decisions, conflicts, or project open-question answers.
+Reuse scoped approvals; never apply a new architecture/dependency choice before approval.
 
 ## 4. Starting a task
 
-The user starts tasks one at a time. Started tasks run in parallel. Work selected from a prototype enters at step 1.
-
-1. Read the registry (`solomonar task show`, section 7) and the task brief or existing spec. Check ownership and
-   dependencies. A complete work spec is not required to reserve.
-2. Run `solomonar task register [<ID>] --title <t> --owner <o>`. It claims the `planned` ID or allocates the
-   next `W-NNN` and records `reserved` / `setup`, branch `feature/<ID>`, and `next_action` (section 7).
-3. The successful `task register` is the registration barrier. Confirm it to the user. Only then may the next
-   task start. A push is not required.
-4. Verify the intended current main baseline. If a prerequisite merged remotely, update it first and verify
-   it contains the prerequisite's recorded `merge_commit`. From the main checkout, run
-   `git worktree add -b feature/<ID> ../<repo>-worktrees/<ID> <main>`.
-5. Run `task move <ID> --as <owner> --status running --stage specification`. It records the task's `base`
-   (the commit it branched from), its worktree path relative to the main checkout, and the confirmation
-   (section 7). Create or refine the work spec in the worktree with `work-spec`. Commit it separately; record it
-   with `task move <ID> --as <owner> --spec <path>`.
-6. When the readiness gate owned by `work-spec` passes, apply its "Spec changes" from the approved prototype
-   with the `spec` skill (in-task mode), commit them as `docs(<ID>): apply spec changes`, and cite the assigned
-   rule IDs in the work spec (`spec(<ID>): refine task specification`).
-7. Present the work spec's implementation plan (section 5 Checkpoints) to the user. On explicit approval of that
-   exact plan, set `Status: Approved` below the title and commit it as `spec(<ID>): approve implementation plan`;
-   reuse an earlier explicit approval that covers the exact plan instead of asking again. Then set stage
-   `implementation` and delegate. The CLI rejects `implementation` without the approved plan committed.
-
-- If `task register` fails, do not create the worktree.
-- If worktree setup fails, keep the registration: blocker kind `environment` (`task block`), status `blocked`,
-  stage `setup`.
-- Each task has its own branch and worktree. Agents must modify only the assigned worktree.
-- When services are shared, assign separate ports and test data. A worktree does not isolate databases or
-  external services.
-- A task that needs another task's code must wait until that code is merged into main (blocker kind `dependency`).
-- Same-file changes on different branches are reconciled at integration.
+Load [workflow/setup.md](workflow/setup.md) for registration/worktree setup, then
+[workflow/specification.md](workflow/specification.md) before specification or plan approval.
+Register before creating a worktree or confirming the next task may start; do not advance without its required gate.
 
 ## 5. Task flow
 
@@ -165,83 +75,13 @@ integration with main → closure commits (section 9) → merge → `task done` 
 
 ### Checkpoints
 
-- The work spec's `## Implementation plan` lists steps `- S-<n>: <type>(<ID>)[!]: <summary>`, each the intended
-  commit subject with enough detail to delimit the work. Its `Status` line is `In review` until the user approves
-  the plan, then `Approved`. Only the orchestrator edits the plan; it is the approved plan, not an execution log.
-- The implementer commits each completed step as its checkpoint: the planned subject, a short body (progress,
-  checks and results, observations needed to continue), and the trailer `Step: <ID>/S-<n>`. Progress lives in
-  these commits only; never duplicate it in the work spec, the registry, or another file.
-- Step IDs are never reused. Changing an approved step's scope gives it a new ID and returns `Status` to
-  `In review` for a new approval. Review corrections within the approved scope are appended as new steps without
-  a new approval. A step that becomes unnecessary or is satisfied by verification alone gets an indented
-  `Outcome: dropped — <reason>` or `Outcome: verified — <reason>`; never create an empty commit for it.
-- A checkpoint preserves only committed content. A commit is not proof of correctness: `task status` reconciles
-  steps with commits (`plan` section) and reviews still verify the change.
-- Leaving `implementation` for review or integration needs the clean branch tip as candidate, every step
-  committed or closed by an outcome, and no reconciliation discrepancy; the CLI enforces it. Review the cumulative
-  change on that one candidate after the complete implementation or correction batch, never per checkpoint.
+Plan format and approval: `skills/work-spec/SKILL.md` section 7. Before delegating implementation, load
+[workflow/implementation.md](workflow/implementation.md#checkpoints). Its checkpoints govern execution progress.
 
 ## 6. Reviews
 
-### Triage and gate
-
-Before launching reviews, record each candidate's risk tier and which specialties apply, with reasons. The tier
-goes into state with `task move --tier` (section 7); specialties and reasons stay in the session, then the PR
-Verification section (`report.md` section 8).
-
-| Tier | Candidate | Agent reviews |
-|---|---|---|
-| 0 | Documentation only, no behavior or requirement change | None; CI only |
-| 1 | Changes outside tiers 0 and 2, including documentation that changes behavior or requirements | The required specialists per the table below |
-| 2 | Persistence, authentication or authorization, concurrency, external integrations, data migration, or any approved architecture or dependency decision in the task | Specialists plus adversarial |
-
-| Priority | Specialty | Role | Focus | Required when |
-|---|---|---|---|---|
-| 1 | Security | `security-reviewer` | Bugs and security defects | Every code change; documentation affecting security requirements or contracts (tier 1, 2) |
-| 2 | Correctness | `correctness-reviewer` | Business logic | Every code change; documentation affecting business rules or contracts (tier 1, 2) |
-| 3 | Spec | `spec-reviewer` | Work spec, canonical documents, `must` rules of applicable extensions | Every tier 1 or 2 change |
-| - | Extension agent | the installed agent | Its specialty | Its `applies_when` matches the change |
-| - | Adversarial | `adversarial-reviewer` | The integrated feature | Tier 2 (see Adversarial ordering) |
-
-- The core reviewers are language-agnostic. Name in each packet the installed extensions whose `applies_when`
-  or `paths` match the change; their `must` rules (`<name>/C-n`) are approved global rules (section 1).
-- All required specialists run in parallel on the same revision. When the runtime cannot run them in
-  parallel, or their checks interfere, run them in priority order.
-- Mark an inapplicable specialty "not required" with a reason. Never fabricate a `PASS`.
-- Use a different model for the adversarial reviewer when the runtime allows; record the model in the
-  Verification section (`report.md` section 8).
-- Every required reviewer must return a valid `PASS` on the current revision before the stage advances,
-  unless its earlier verdict is reused under Candidate stability.
-- A missing result or an important unrun check makes the stage `INCOMPLETE`, not `PASS`.
-
-### Candidate stability
-
-- Code and specs must stay unchanged while a review set runs.
-- Reviewers follow `reviewer.md`'s read-only contract; run interfering checks sequentially.
-- A changed candidate gets a new revision and an explicit assessment of affected checks. Reuse unaffected
-  evidence only with its original revision and a recorded reason. An earlier `PASS` never covers new code.
-- Updating the candidate from main follows section 8: CI always reruns; agent reviews rerun only on its conditions.
-
-### Consolidation
-
-- Deduplicate into stable task-scoped finding IDs (`W-001/F-1`). Clarify contradictions between reviewers.
-- Finding fields and correction-list format: `report.md` sections 5 and 7.
-- Rejecting a finding requires evidence-backed justification.
-- Order the correction list by review priority (Security, Correctness, Spec, then extension agents); within one
-  reviewer, by severity. A merged duplicate takes the highest-priority reviewer's position.
-- Priority orders the list, not the choice between conflicting corrections. Resolve conflicts against evidence
-  and the authority order (section 1) before delegation; conflicting requirements need a user decision (section 3).
-- Classify findings and verification gaps per `report.md` sections 3–5: confirmed defects and mandatory
-  violations block; suggestions do not; missing required verification makes the review incomplete.
-- Disputed defects require reproduction, a test, or precise analysis; record the conclusion. Missing or
-  contradictory policy, unclear product choices, and architecture/dependency changes follow section 3.
-- Severity sets urgency by impact; blocking follows violated rules and acceptance conditions. Specialty labels
-  and vote counts never override evidence. Apply the same arbitration to adversarial findings.
-
-### Adversarial ordering
-
-- Tier 2 only: start adversarial review after specialist blockers are closed.
-- After an adversarial fix: implementer → relevant specialists recheck → adversarial recheck, all on the new revision.
+Before triage, review, consolidation, or verdict reuse, load [workflow/reviews.md](workflow/reviews.md).
+Keep the candidate unchanged while reviews run; missing required reviews/checks prevent advancement.
 
 ## 7. Shared state (registry)
 
@@ -282,89 +122,18 @@ when a command, a CLI rejection, or a record field needs it.
 
 ## 8. PR and merge
 
-- Merge only when all hold: mandatory criteria met; affected specs reflect approved decisions; required
-  reviews complete and valid for the current candidate; no blocking defects or open decisions; mandatory
-  checks and integration with main succeeded; closure commits made (section 9); repository rules satisfied.
-- No extra human merge confirmation by default. Approvals required by the repository stay mandatory. An
-  informal approval message never replaces CI or repository rules.
-- Record every verdict with the revision checked in the PR Verification section.
-- Staleness: before merge the feature branch contains current main (merged by the implementer,
-  `implementer.md` section 7). CI always reruns. Compare main's changes with the candidate, its referenced contracts,
-  dependencies, and requirements. With `<base>` = `git merge-base <reviewed-revision> <main>`, overlapping paths
-  from `git diff --name-only <base>..<reviewed-revision>` and `git diff --name-only <base>..<main>`, merge
-  conflicts, or a changed relevant contract/dependency require the affected reviews to rerun. Disjoint paths
-  alone are not a reuse reason. Reuse a verdict only with its original SHA and a concrete reason why main's
-  changes do not affect its scope; if impact is unclear, rerun that review. A rerun moves tier 1 or 2 back to
-  `specialized_review` and through the required stages to `integration`; tier 0 keeps its CI-only gate.
-- A spec rule ID that collides with one already on main after merging main: renumber the task's rule with the
-  `spec` skill, update the work spec, and treat it as a changed candidate (section 6).
-- Merge only with a merge commit (section 11), never squash or rebase, so the final spec commit survives in main's
-  history. Merge one task at a time. Run `task done` only after the merge is confirmed (section 9).
+Before integration or merge, load [workflow/integration.md](workflow/integration.md).
+Merge only after all required gates pass; merge commits are mandatory. No extra human merge confirmation by default.
 
 ## 9. Closure (orchestrator rule, not a skill)
 
-Before merge, after every required gate passes on the candidate:
-
-1. Canonical documents must reflect approved changes. Never rewrite requirements to match implementation omissions.
-2. The final spec commit must match the spec used for final validation. If the work spec is unchanged since its
-   last `spec(<ID>)` commit inside the reviewed revision, that commit is the final spec commit; no new revision.
-   Only when content changed, commit that file alone as `spec(<ID>): finalize task specification` and treat it
-   as a changed candidate (section 6 Candidate stability). The final spec commit and the work spec path form `spec_ref`;
-   write it on the PR Verification line `Final specification` (`report.md` section 8).
-3. One last commit deletes `docs/work/<ID>-<slug>.md`: `docs(<ID>): remove completed work spec`. It needs no
-   agent review (docs-only deletion of the task spec); CI reruns. A later fix goes on top of it; packets then
-   name `Work spec: <spec_ref>`, read with `git show "<spec_ref>"`. A fix that changes the work spec first
-   reverts the deletion commit (`docs(<ID>): restore work spec`), follows the spec flow, and repeats steps 2–3.
-
-At confirmed merge:
-- Run `task done <ID> --as <owner> --merge <sha> --spec-ref <sha:path> --summary <s>`, with `spec_ref` from the
-  PR's `Final specification` line. It verifies the merge commit is reachable from main and `git show
-  "<spec_ref>"` resolves to the last `spec(<ID>)` commit merged, then writes the compact record
-  (`registry.md` section 4) with `done` / `complete`. `done` is final at merge.
-- If `task done` fails, report the cause and rerun it once fixed. Never revert the merge.
-- Delete a worktree only as a separate deliberate step, after confirming it holds no uncommitted or unmerged work.
-- History lookup: read the compact record first. Run `git show "<spec_ref>"` only for a concrete question.
+Closure procedure: [workflow/integration.md](workflow/integration.md#closure). Load it before finalization/deletion/merge.
+Done is final only after confirmed merge and successful `task done`; cleanup stays separate.
 
 ## 10. Recovery
 
-Before acting on any event, inspect actual state: `task status <ID>` (section 7) reports Git state, worktree, dirty
-files, merge state, and drift; check decisions yourself, and PR and checks when it reports them `unknown`.
-Then reconcile the record with what exists (`task move`). Never duplicate worktrees or PRs. Preserve
-uncommitted changes.
-
-A new session continues a task from its record, approved work spec, checkpoint commits, and preserved working
-files, without the previous conversation:
-
-1. Take the task only through `task handoff` on the user's instruction; it clears the confirmation. Context
-   compaction within the same execution is not a handoff.
-2. Confirm the previous execution stopped, or isolate its access, before replacement work in the same worktree.
-   A recorded owner or a closed conversation is not proof that execution stopped.
-3. Read `task status <ID>`: the `plan` section lists committed, closed, and remaining steps and any discrepancy;
-   load detailed diffs and code only where needed. Inspect dirty files and keep justified partial work.
-4. Past `setup`, run `task confirm <ID> --as <owner>`. Confirmation proves neither plan approval nor review success.
-5. Delegate only the remaining steps, with the partial work to inspect and reuse. With every step committed,
-   proceed to triage and review; repeat verification whose evidence cannot be recovered.
-
-A discrepancy (a commit matching a step only by subject, a wrong trailer, an empty or duplicate checkpoint) needs
-investigation, never a reset, a duplicate worktree, or an assumption that the step succeeded. Commit amendments
-to the plan rather than rewriting checkpoint history.
-
-| Event | Orchestrator behavior |
-|---|---|
-| Pause | Stop delegating; settle or stop active work; `task move <ID> --as <owner> --status paused --next "<actor>:<outstanding work>"`; preserve stage and recorded revision |
-| Unexpected session end | Nothing automatic; the next session follows Resume |
-| Resume | Inspect and reconcile; restore the prior status at the preserved stage (section 7), subject to remaining blockers; reuse the worktree and PR. If merged, reconcile to `running` / `integration` and run `task done` (section 9) with `spec_ref` from the PR, without reimplementing |
-| Ownership handoff | Only on explicit user instruction; stop or confirm the previous execution stopped; `task handoff` before any further write, then inspect and `task confirm`; the previous owner stops writing |
-| Cancel | Stop execution; `task move <ID> --as <owner> --status cancelled --next "<actor>:<reason and remaining work>"`; keep branch, worktree, and PR untouched |
-| Regression or revert after merge | Keep the merged task `done`; register a new task linked via `related_task` |
-
-- Recovery evidence = the task's state record + its approved work spec + its checkpoint commits + its worktree.
-  A brief note of uncommitted work may go in `next_action`; ignored files are never preserved automatically.
-  Approvals persist within their recorded scope.
-- Set a new `revision` only for a committed candidate when the current or resulting stage is `implementation`
-  or `integration`; pausing or cancelling alone does not require one. Earlier stages keep their existing fields.
-- No heartbeats, no time-based ownership takeover, no automatic destructive cleanup.
-- A report lost on resume without a durable reference counts as unverified. Repeat the verification.
+Load [workflow/recovery.md](workflow/recovery.md) for resumed executions, handoff, pause/cancel, or drift.
+Preserve dirty work; an old record proves neither liveness nor takeover/resumption authority. Never duplicate worktrees or PRs.
 
 ## 11. Bootstrap and runtime assumptions
 
