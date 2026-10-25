@@ -5,7 +5,7 @@ description: Researches, authors, and validates Solomonar extension skills, rule
 
 # Extension authoring skill
 
-Framework version: 0.3.4
+Framework version: 0.3.5
 
 ## 1. Purpose and boundaries
 

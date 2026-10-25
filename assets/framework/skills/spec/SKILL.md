@@ -5,7 +5,7 @@ description: Extracts approved prototype behavior into capability specifications
 
 # Spec skill
 
-Framework version: 0.3.4
+Framework version: 0.3.5
 
 ## 1. Purpose and boundaries
 

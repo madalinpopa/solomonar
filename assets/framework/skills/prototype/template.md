@@ -1,6 +1,6 @@
 # Prototype
 
-<!-- Framework version: 0.3.4. Fill in English. Delete empty optional sections and all hint comments; never
+<!-- Framework version: 0.3.5. Fill in English. Delete empty optional sections and all hint comments; never
 leave placeholders. -->
 
 Objective: <one line, or "see `docs/README.md`">

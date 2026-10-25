@@ -1,6 +1,6 @@
 # CLI prototypes
 
-Framework version: 0.3.4
+Framework version: 0.3.5
 
 - Use the target language's standard argument parser when sufficient; for example Python `argparse` or
   Node.js `util.parseArgs`. Preserve required argument/flag semantics when choosing a parser.
