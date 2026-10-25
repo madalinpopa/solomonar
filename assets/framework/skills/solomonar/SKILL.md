@@ -14,8 +14,8 @@ Framework version: 0.3.6
   read-only commands: `solomonar help`, `solomonar task show`, `solomonar task status`, and, if available,
   `solomonar extension list`.
 - Never answer, approve, or record a decision on the user's behalf, or relay it to another session as approval.
-- Load only the routed file and the files it requires. Once selected, that skill or role governs its procedure
-  and write scope; this router adds no further instructions.
+- Load only the routed file and the files it requires. Once selected, that skill, role, or `rules.md`
+  procedure governs its procedure and write scope; this router adds no further instructions.
 
 ## 2. Route
 
@@ -29,8 +29,9 @@ task/session context to resolve overlapping routes. Ask one question only if the
 | Start a product; explore, demonstrate, or change CLI, web, module/library, or service behavior | Load `docs/solomonar/skills/prototype/SKILL.md`; for an owned task, its orchestrator coordinates the handoff under `AGENTS.md` rule 9 |
 | Approved prototype handoff references or flows ready for spec | Load `docs/solomonar/skills/spec/SKILL.md`, discovery mode, in the main checkout |
 | A new task, starting `planned` work, or resume, pause, or cancel a task | Take the orchestrator role (section 4) |
-| Task requirements, an answer to `W-NNN/D-n`, or a scope or AC change | Continue in this session if it owns the task; otherwise direct the user to the owning session. An explicit request to resume here follows section 4 |
+| Task requirements, an answer to `W-NNN/D-n` or to a `P/D-n` a task raised, or a scope or AC change | Continue in this session if it owns the task; otherwise direct the user to the owning session. An explicit request to resume here follows section 4 |
 | Adopt or drop a language, library, or practice | In-task: owning orchestrator. Otherwise check `solomonar help`; if it lists `extension`, show `solomonar extension list` and propose `solomonar extension add\|remove <name>` for the user to run. Otherwise report that extension management is unsupported by this CLI and stop |
+| Any other architecture, dependency, or practice decision for the whole project, or answering project open questions, outside any task | In-task: owning orchestrator. Otherwise load `docs/solomonar/rules.md` section 3 and follow its project-decision and project open-question procedures in this session |
 | A product code change outside any task | Propose a managed task: `solomonar task plan --title <t>` for later, or take the orchestrator role now. Work outside the process only if the user says so |
 | A question about the project or the process | Answer it from `AGENTS.md` context routes; no route needed |
 
@@ -42,7 +43,12 @@ task/session context to resolve overlapping routes. Ask one question only if the
    and `reserved` tasks with owner, stage, and blockers; `paused` tasks with owner and next action; `planned`
    tasks; counts of `done` and `cancelled` tasks. Records show what orchestrators last wrote, not whether
    their sessions are alive; use `solomonar task status <ID>` when actual Git facts are needed.
-3. End with at most two next steps consistent with ownership and dependencies. Name the task and owning
+3. Find project open questions (`rules.md` section 3) without loading whole documents:
+   `grep -nE '^- [a-z0-9-]+/Q-[0-9]+ ·' docs/specs/*.md docs/ui.md` and
+   `awk '/^## /{h=$0} /^- Status: pending/ && h ~ /^## P\/D-/{print h}' docs/decisions.md`.
+   List them, blocking first, and suggest that the user answer them; answering follows the project
+   open-question route.
+4. End with at most two next steps consistent with ownership and dependencies. Name the task and owning
    session where applicable. Do not treat an overview request as permission to resume paused or cancelled work.
 
 ## 4. Taking the orchestrator role

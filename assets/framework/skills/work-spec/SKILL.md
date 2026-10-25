@@ -63,17 +63,16 @@ assigned worktree on `feature/<ID>`. Stop on mismatch; preserve unrelated edits.
    implementation. `needs decision: yes` = an architecture or dependency decision, routed by the orchestrator.
    A conflict with an **Agreed** rule or an approved decision is blocking, cites both, and is routed by the
    orchestrator (`rules.md` sections 1 and 3); never resolve it in the work spec. Unknowns outside the scope stay
-   in the canonical specs.
+   in the canonical specs. A question whose answer affects the whole project is a project question
+   (`rules.md` section 3): cite its canonical ID, or report it to the orchestrator; never list it as `W-001/Q-n`.
 7. Ask the user only the blocking questions that need no architecture or dependency decision and are not
-   conflicts, one at a time through the harness's ask-user tool when available, offering known options and a
-   recommended answer; otherwise ask in chat. Wait for each answer. Fold answers into the spec and remove
-   resolved questions there. Technical clarifications can stay task-local; product behavior answers enter
+   conflicts, per `AGENTS.md` rule 14. Fold answers into the spec and remove resolved questions there. Technical clarifications can stay task-local; product behavior answers enter
    "Spec changes" (section 4). Product answers changing demonstrated behavior require a prototype update and
    approval before entering "Spec changes"; leave that part blocked until its handoff arrives. Report resolved
    canonical question IDs and their answer/prototype sources for the orchestrator's `spec` update.
    Once an applicable approved decision exists, cite its ID and remove the question it resolves.
-8. When the readiness gate (section 5) passes, write the implementation plan (section 7) with `Status: In review`.
-   Validate the document (section 6), then evaluate the readiness gate.
+8. Validate the document (section 6) and evaluate the readiness gate (section 5). When it passes, write the
+   implementation plan (section 7) with `Status: In review` and validate it.
 9. Commit only the work spec: `git add -- <path>`, inspect `git diff --cached -- <path>`, then
    `git commit --only -m "spec(<ID>): draft task specification" -- <path>`; later revisions use
    `spec(<ID>): refine task specification`. Preserve unrelated staged changes; skip unchanged commits. Never

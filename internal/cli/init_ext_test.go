@@ -42,7 +42,7 @@ func TestInitUC2WithGo(t *testing.T) {
 	got := runInRepo(t, dir, goArgs()...)
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Contains(t, got.stdout, "  31 files created\n")
+	assert.Contains(t, got.stdout, "  32 files created\n")
 	assert.Contains(t, got.stdout, "\nNext:\n"+commitStep("AGENTS.md .solomonar docs"))
 	files := tree(t, dir)
 	for _, file := range []string{"SKILL.md", "extension.json"} {
@@ -298,7 +298,7 @@ func TestInitRerunWithGoIsNoOp(t *testing.T) {
 
 			require.Equal(t, 0, got.exit, got.stderr)
 			assert.Contains(t, got.stdout, "Already initialized with solomonar "+shipped+"; nothing to do.\n"+
-				"  30 files unchanged, 1 skipped · registry")
+				"  31 files unchanged, 1 skipped · registry")
 			assertNothingWritten(t, dir, before, tip)
 		})
 	}
@@ -354,7 +354,7 @@ func TestInitAppendsToExistingDecisions(t *testing.T) {
 	got := runInRepo(t, dir, goArgs()...)
 
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Contains(t, got.stdout, "  30 files created, 1 updated\n")
+	assert.Contains(t, got.stdout, "  31 files created, 1 updated\n")
 	decisions := tree(t, dir)["docs/decisions.md"]
 	assert.True(t, strings.HasPrefix(decisions,
 		"# Decisions\n\n## P/D-3: Storage\n\n- Status: approved\n\n## P/D-4: Programming languages\n"), decisions)

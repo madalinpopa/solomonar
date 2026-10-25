@@ -208,6 +208,7 @@ func TestInteractiveInitShowsTheGroupedPlan(t *testing.T) {
 	assert.Equal(t,
 		"  framework "+shipped+"\n"+
 			"    create     docs/solomonar/agents/ (6 roles)\n"+
+			"    create     docs/solomonar/registry.md\n"+
 			"    create     docs/solomonar/report.md\n"+
 			"    create     docs/solomonar/reviewer.md\n"+
 			"    create     docs/solomonar/rules.md\n"+

@@ -100,7 +100,7 @@ A project already at the CLI's version is a no-op and needs no confirmation:
 
 ```text
 Already at solomonar 0.3.6; nothing to do.
-  48 files unchanged, 1 skipped
+  49 files unchanged, 1 skipped
 ```
 
 ### Refresh at the same version

@@ -147,7 +147,7 @@ solomonar extension add <name>... [--decision <ID>] [--rationale <text>] [--keep
 | Flag | Meaning |
 | --- | --- |
 | `<name>` | Required. Catalog or project extension names; several are allowed. |
-| `--decision` | An approved entry in `docs/decisions.md` that adopts the extension, such as `W-002/D-1`. Stack groups only. |
+| `--decision` | An approved entry in `docs/decisions.md` that adopts the extension, such as `P/D-3`. Stack groups only. |
 | `--rationale` | The rationale recorded with the new `P/D-n`. Stack groups only. |
 | `--keep`, `--overwrite` | Resolve one conflicting file; one path per flag. |
 | `-y`, `--yes` | Accept the plan without prompts. Required without a terminal. |
@@ -186,7 +186,7 @@ Plan
 Proceed? [Y/n] y
 
 Added extension extension-authoring (workflow skill, catalog) in /work/ledger
-  9 files created, 2 updated, 50 unchanged, 1 skipped
+  9 files created, 2 updated, 51 unchanged, 1 skipped
 
 Next:
   1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: add solomonar extension extension-authoring"
@@ -221,7 +221,7 @@ solomonar extension add money-reviewer --yes
 
 ```text
 Added extension money-reviewer (review agent, project) in /work/ledger
-  2 files created, 2 updated, 59 unchanged, 1 skipped
+  2 files created, 2 updated, 60 unchanged, 1 skipped
 
 Next:
   1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: add solomonar extension money-reviewer"
@@ -242,24 +242,24 @@ Adding an extension that is already installed changes nothing:
 
 ```text
 Already installed: go; nothing to do.
-  63 files unchanged, 1 skipped
+  64 files unchanged, 1 skipped
 ```
 
-In a project that has dropped Go (see [`extension remove`](#solomonar-extension-remove)), an orchestrator applying a task decision that adopts it again passes `--decision`; the CLI checks that the entry is approved and edits no entry itself:
+In a project that has dropped Go (see [`extension remove`](#solomonar-extension-remove)), an orchestrator applying the project decision that adopts it again passes `--decision`; the CLI checks that the entry is approved and edits no entry itself:
 
 ```sh
-solomonar extension add go --decision W-002/D-1
+solomonar extension add go --decision P/D-3
 ```
 
 ```text
 error: extension add rejected (decision_not_approved)
   check: --decision must name an approved entry in docs/decisions.md
-  found: W-002/D-1 has status pending
+  found: P/D-3 has status pending
   fix:   wait for the user's approval (rules section 3), then rerun
 nothing was written
 ```
 
-Once you approve `W-002/D-1`, the same command with `--yes` installs `go` under it and appends `- language: go (W-002/D-1)` to `docs/stack.md`.
+Once you approve `P/D-3`, the same command with `--yes` installs `go` under it and appends `- language: go (P/D-3)` to `docs/stack.md`.
 
 Other rejections: `unknown_extension` (exit 2) for a name in neither the catalog nor the store, `invalid_value` (exit 2) for a project extension that fails the checks, `name_collision` (exit 3) for a store directory that reuses a catalog name, and `extension_requires` or `extension_conflict` (exit 3) for an unmet `requires` or `conflicts`.
 
@@ -314,7 +314,7 @@ Plan
 Proceed? [Y/n] y
 
 Removed extension money-reviewer (review agent, project) in /work/ledger
-  2 files updated, 2 removed, 59 unchanged, 1 skipped
+  2 files updated, 2 removed, 60 unchanged, 1 skipped
 
 Next:
   1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: remove solomonar extension money-reviewer"
@@ -347,7 +347,7 @@ Plan
 Proceed? [Y/n] y
 
 Removed extension go (language skill, catalog, under P/D-2) in /work/ledger
-  4 files updated, 8 removed, 49 unchanged, 1 skipped
+  4 files updated, 8 removed, 50 unchanged, 1 skipped
 
 Next:
   1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: remove solomonar extension go"

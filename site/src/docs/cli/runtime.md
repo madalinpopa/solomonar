@@ -111,7 +111,7 @@ Plan
   create     .github/agents/spec-reviewer.agent.md
   update     .solomonar/manifest.json
 Would add runtime copilot in /work/ledger
-  9 files created, 1 updated, 21 unchanged, 1 skipped
+  9 files created, 1 updated, 22 unchanged, 1 skipped
 ```
 
 ```sh
@@ -120,7 +120,7 @@ solomonar runtime add copilot --yes
 
 ```text
 Added runtime copilot in /work/ledger
-  9 files created, 1 updated, 21 unchanged, 1 skipped
+  9 files created, 1 updated, 22 unchanged, 1 skipped
 
 Next:
   1. git add .github/skills/prototype/SKILL.md .github/skills/solomonar/SKILL.md .github/skills/spec/SKILL.md .github/skills/work-spec/SKILL.md .github/agents/adversarial-reviewer.agent.md .github/agents/correctness-reviewer.agent.md .github/agents/implementer.agent.md .github/agents/security-reviewer.agent.md .github/agents/spec-reviewer.agent.md .solomonar && git commit -m "chore: add solomonar runtime copilot"
@@ -134,7 +134,7 @@ Running the same command again changes nothing:
 
 ```text
 Already installed: copilot; nothing to do.
-  31 files unchanged, 1 skipped
+  32 files unchanged, 1 skipped
 ```
 
 To change an installed runtime's model:

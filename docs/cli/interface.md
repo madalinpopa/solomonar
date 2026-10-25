@@ -2,8 +2,8 @@
 
 Status: design candidate, 2026-10-20. Phase 2 reference for the `solomonar` command-line interface: every command,
 its arguments, its interaction, and its output, written as use cases. Behavior that the framework already fixes
-(`assets/framework/rules.md` section 7, register sections G and J) is restated here only as interface; when the two differ,
-`rules.md` wins. Example SHAs, hashes, and paths are illustrative but have their real
+(`assets/framework/rules.md` section 7 and `registry.md`, register sections G and J) is restated here only as
+interface; when they differ, the framework files win. Example SHAs, hashes, and paths are illustrative but have their real
 length and shape.
 
 Increment 1 (section 10) is implemented and released as v0.1.0; this spec keeps the final v0.1 behavior. The
@@ -248,7 +248,7 @@ present.
 
 | Part | Contains | Installed |
 |---|---|---|
-| Core: the process | `docs/solomonar/rules.md`, `report.md`, `reviewer.md`; the process roles `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`; the process skills `solomonar` (user entry point, CLI-D15), `prototype`, `spec`, `work-spec`; `AGENTS.md`; `docs/README.md`; the empty registry on `refs/heads/workflow-state`; `.solomonar/manifest.json` | always; no part can be removed while the framework stays installed (`extension remove` rejects a core item with `core_item`); only `uninstall` removes the core, together with the whole installation (UC-27, CLI-D32), and it keeps the registry |
+| Core: the process | `docs/solomonar/rules.md`, `registry.md`, `report.md`, `reviewer.md`; the process roles `orchestrator`, `implementer`, `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, `adversarial-reviewer`; the process skills `solomonar` (user entry point, CLI-D15), `prototype`, `spec`, `work-spec`; `AGENTS.md`; `docs/README.md`; the empty registry on `refs/heads/workflow-state`; `.solomonar/manifest.json` | always; no part can be removed while the framework stays installed (`extension remove` rejects a core item with `core_item`); only `uninstall` removes the core, together with the whole installation (UC-27, CLI-D32), and it keeps the registry |
 | Runtimes | Adapter files for `claude`, `codex`, `copilot` (4.2) | zero or more; default: those found on `PATH` |
 | Extensions | Skills (knowledge of a language, library, or practice; or a supporting procedure) and agents (extra specialist reviewers), grouped by decision type (4.3) | zero or more; default at `init`: the catalog extensions marked `default` or detected in the repository (4.3) |
 
@@ -586,8 +586,8 @@ entry:
 
 - With `--decision <ID>`, the CLI checks that `docs/decisions.md` contains that entry with status `approved`
   (`decision_not_found`, `decision_not_approved`, exit 3), and records the ID with the extensions. This is the path
-  for an orchestrator applying a task decision such as `W-002/D-1`; the CLI edits no entry, and the named decision
-  records any supersession itself (rules section 3).
+  for an orchestrator applying the project decision it recorded, such as `P/D-3`, or an earlier task decision such
+  as `W-002/D-1`; the CLI edits no entry, and the named decision records any supersession itself (rules section 3).
 - Without it, the user's command is the decision: the CLI appends a project-scoped entry `P/D-n` per affected group
   with status `approved`, in table order, `<n>` counting on from the highest `<n>` of a line starting exactly
   `## P/D-`, digits, `:` in `docs/decisions.md` and of a `P/D-<n>` the manifest records (an extension `decision` or a
@@ -967,6 +967,7 @@ Workflow:
 Plan
   framework 0.3.6
     create     docs/solomonar/agents/ (6 roles)
+    create     docs/solomonar/registry.md
     create     docs/solomonar/report.md
     create     docs/solomonar/reviewer.md
     create     docs/solomonar/rules.md
@@ -996,7 +997,7 @@ Plan
 Proceed? [Y/n] y
 
 Initialized solomonar 0.3.6 in /work/ledger
-  62 files created
+  63 files created
   registry  refs/heads/workflow-state @ 3a5c0d7e9f1b2a4c6d8e0f1a3b5c7d9e1f2a4b6c
   pushed    origin/workflow-state
 
@@ -1188,7 +1189,7 @@ Same choices, identical files: a no-op.
 ```
 $ solomonar init --yes
 Already initialized with solomonar 0.3.6; nothing to do.
-  63 files unchanged, 1 skipped · registry refs/heads/workflow-state unchanged
+  64 files unchanged, 1 skipped · registry refs/heads/workflow-state unchanged
   Change choices with `solomonar runtime|extension add|remove`; move versions with `solomonar upgrade`.
 ```
 
@@ -1516,7 +1517,7 @@ command is a no-op that needs no confirmation and exits 0:
 ```
 $ solomonar extension add go
 Already installed: go; nothing to do.
-  61 files unchanged, 1 skipped
+  62 files unchanged, 1 skipped
 ```
 
 **`extension remove`** deactivates installed extensions. Checks, in order after the manifest and
@@ -1542,7 +1543,7 @@ still uses a technology. Removing `go` from the UC-1 project:
 ```
 $ solomonar extension remove go --yes
 Removed extension go (language skill, catalog, under P/D-2) in /work/ledger
-  4 files updated, 8 removed, 49 unchanged, 1 skipped
+  4 files updated, 8 removed, 50 unchanged, 1 skipped
 
 Next:
   1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: remove solomonar extension go"
@@ -1589,7 +1590,7 @@ Plan
 Proceed? [Y/n] y
 
 Added extension templ (frontend skill, catalog, under P/D-3) in /work/ledger
-  4 files created, 4 updated, 61 unchanged, 1 skipped
+  4 files created, 4 updated, 62 unchanged, 1 skipped
 
 Next:
   1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: add solomonar extension templ"
@@ -1629,7 +1630,7 @@ extension in a stack group records one as in UC-6. Adding the `review` agent `mo
 ```
 $ solomonar extension add money-reviewer --yes
 Added extension money-reviewer (review agent, project) in /work/ledger
-  2 files created, 2 updated, 59 unchanged, 1 skipped
+  2 files created, 2 updated, 60 unchanged, 1 skipped
 
 Next:
   1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: add solomonar extension money-reviewer"
@@ -1700,7 +1701,7 @@ confirmation:
 ```
 $ solomonar upgrade
 Already at solomonar 0.3.6; nothing to do.
-  52 files unchanged, 1 skipped
+  53 files unchanged, 1 skipped
 ```
 
 Moving a 0.1.7 project with `go` and the claude and codex runtimes to the store layout of the next release
@@ -2120,7 +2121,7 @@ before the header, then the detail lines and the subject, with no registry line;
 without `commit` and `pushed`, with `"dry_run": true`.
 
 Rules: blocker IDs are `B-n`, stable within the task, never reused (the record's `last_blocker` holds the
-highest `n` issued); `--kind decision` requires `--ref <ID>/D-n`; `--summary` is at most 80 characters;
+highest `n` issued); `--kind decision` requires `--ref P/D-n` or `--ref <ID>/D-n`; `--summary` is at most 80 characters;
 `block --status` accepts only `blocked` (anything else is `invalid_value`, fix `pass --status blocked, or use task
 move`); `--status blocked` requires at least one open blocker after the write; `unblock --status` accepts only the
 prior status (8.1); unblocking the last open blocker of a `blocked` task without `--status`, or with `--status

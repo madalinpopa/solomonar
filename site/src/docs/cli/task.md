@@ -184,13 +184,13 @@ solomonar task show W-001
       "id": "B-1",
       "kind": "decision",
       "summary": "Choose local storage for expenses",
-      "ref": "W-001/D-1"
+      "ref": "P/D-2"
     }
   ],
   "last_blocker": 1,
   "next_action": {
     "actor": "user",
-    "action": "Approve a storage option for W-001/D-1"
+    "action": "Approve a storage option for P/D-2"
   },
   "updated_at": "2026-10-22T17:21:20Z"
 }
@@ -390,7 +390,7 @@ solomonar task block <ID> --kind <decision|dependency|check|environment> --summa
 | --- | --- |
 | `--kind` | Required. `decision`, `dependency`, `check`, or `environment`. |
 | `--summary` | Required. What blocks the task. |
-| `--ref` | A reference for the blocker. Required with `--kind decision`, as `<ID>/D-n`. |
+| `--ref` | A reference for the blocker. Required with `--kind decision`, as `P/D-n` for a project decision or `<ID>/D-n` for a task decision. |
 | `--status blocked` | Also set the status to `blocked`. |
 | `--next` | Also set the next action, typically `user:<decision to make>`. |
 
@@ -399,15 +399,15 @@ solomonar task block <ID> --kind <decision|dependency|check|environment> --summa
 Stop for a storage decision:
 
 ```sh
-solomonar task block W-001 --as orchestrator-1 --kind decision --ref W-001/D-1 \
+solomonar task block W-001 --as orchestrator-1 --kind decision --ref P/D-2 \
   --summary "Choose local storage for expenses" --status blocked \
-  --next "user:Approve a storage option for W-001/D-1"
+  --next "user:Approve a storage option for P/D-2"
 ```
 
 ```text
 W-001  running/implementation → blocked/implementation
-  blocker  B-1 decision: Choose local storage for expenses (W-001/D-1)
-  next     user: Approve a storage option for W-001/D-1
+  blocker  B-1 decision: Choose local storage for expenses (P/D-2)
+  next     user: Approve a storage option for P/D-2
   state(W-001): blocked/implementation, block B-1 decision
   registry @ 823582e8c0085952f9fbf2777fb4bbb901dc0be6 · pushed origin/workflow-state
 ```
@@ -433,7 +433,7 @@ solomonar task unblock <ID> <blocker-id> [--status <prior status>] [--next <acto
 
 ### Example
 
-You approved SQLite for `W-001/D-1`:
+You approved SQLite for `P/D-2`:
 
 ```sh
 solomonar task unblock W-001 B-1 --as orchestrator-1 --status running \

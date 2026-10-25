@@ -194,6 +194,7 @@ func TestNewBlocker(t *testing.T) {
 		code               string
 	}{
 		{name: "decision", kind: "decision", summary: "Session storage", ref: "W-001/D-1", want: Blocker{Kind: BlockerDecision, Summary: "Session storage", Ref: "W-001/D-1"}},
+		{name: "project decision", kind: "decision", summary: "Session storage", ref: "P/D-2", want: Blocker{Kind: BlockerDecision, Summary: "Session storage", Ref: "P/D-2"}},
 		{name: "check without ref", kind: "check", summary: "CI red", want: Blocker{Kind: BlockerCheck, Summary: "CI red"}},
 		{name: "dependency with ref", kind: "dependency", summary: "Needs W-002", ref: "W-002", want: Blocker{Kind: BlockerDependency, Summary: "Needs W-002", Ref: "W-002"}},
 		{name: "80 runes", kind: "environment", summary: strings.Repeat("é", 80), want: Blocker{Kind: BlockerEnvironment, Summary: strings.Repeat("é", 80)}},
@@ -203,6 +204,7 @@ func TestNewBlocker(t *testing.T) {
 		{name: "decision without ref", kind: "decision", summary: "Session storage", code: "invalid_value"},
 		{name: "decision ref without decision", kind: "decision", summary: "Session storage", ref: "W-001", code: "invalid_value"},
 		{name: "decision ref with bad task", kind: "decision", summary: "Session storage", ref: "W-1/D-1", code: "invalid_value"},
+		{name: "decision ref with bad project", kind: "decision", summary: "Session storage", ref: "P/D-", code: "invalid_value"},
 		{name: "decision ref with bad number", kind: "decision", summary: "Session storage", ref: "W-001/D-x", code: "invalid_value"},
 	}
 	for _, tt := range tests {
@@ -224,8 +226,8 @@ func TestNewBlockerGuidance(t *testing.T) {
 
 	rejection := rejectionOf(t, err)
 
-	assert.Equal(t, "--kind decision needs --ref <task ID>/D-<n>", rejection.Check)
-	assert.Equal(t, "pass --ref W-001/D-1", rejection.Fix)
+	assert.Equal(t, "--kind decision needs --ref P/D-<n> or <task ID>/D-<n>", rejection.Check)
+	assert.Equal(t, "pass --ref P/D-1 or --ref W-001/D-1", rejection.Fix)
 }
 
 func TestCheckTaskID(t *testing.T) {

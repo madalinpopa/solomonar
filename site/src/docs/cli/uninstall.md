@@ -83,7 +83,7 @@ Plan
   remove     docs/solomonar/skills/work-spec/template.md
   remove     .solomonar/manifest.json
 Would uninstall solomonar from /work/ledger
-  2 files updated, 51 removed, 1 skipped
+  2 files updated, 52 removed, 1 skipped
 ```
 
 In a terminal, `uninstall` shows the grouped plan on stderr and asks before it writes. Answering `n` prints `Cancelled; nothing was written.` and exits 0:
@@ -98,6 +98,7 @@ Plan
     update     AGENTS.md       managed part removed; project notes kept
     update     docs/README.md  framework index line removed
     remove     docs/solomonar/agents/ (6 roles)
+    remove     docs/solomonar/registry.md
     remove     docs/solomonar/report.md
     remove     docs/solomonar/reviewer.md
     remove     docs/solomonar/rules.md
@@ -152,7 +153,7 @@ solomonar uninstall --keep docs/solomonar/rules.md --yes
 
 ```text
 Uninstalled solomonar from /work/ledger
-  2 files updated, 50 removed, 1 kept, 1 skipped
+  2 files updated, 51 removed, 1 kept, 1 skipped
   kept: AGENTS.md, docs/README.md, docs/solomonar/extensions/money, docs/solomonar/rules.md
   The registry (refs/heads/workflow-state) and other worktrees are unchanged.
 
@@ -161,7 +162,7 @@ Next:
 warning: docs/solomonar/rules.md is kept and no longer managed; remove it by hand if unneeded
 ```
 
-`--overwrite docs/solomonar/rules.md` deletes the edited file instead, and the result reads `2 files updated, 51 removed, 1 skipped`. If `AGENTS.md` has lost its `## Project notes` heading, `--overwrite AGENTS.md` is refused so that your notes are never discarded: restore the heading, or keep the file.
+`--overwrite docs/solomonar/rules.md` deletes the edited file instead, and the result reads `2 files updated, 52 removed, 1 skipped`. If `AGENTS.md` has lost its `## Project notes` heading, `--overwrite AGENTS.md` is refused so that your notes are never discarded: restore the heading, or keep the file.
 
 A file that became a symlink, directory, or other non-regular file is never followed or removed; keep it with `--keep` and remove it by hand. A record outside the paths `uninstall` removes can only be kept.
 

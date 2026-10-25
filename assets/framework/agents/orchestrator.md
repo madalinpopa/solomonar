@@ -7,20 +7,23 @@ description: Coordinates one managed task end to end, from registration to merge
 
 Framework version: 0.3.6
 
-Load together with `AGENTS.md`, `docs/solomonar/rules.md`, and `docs/solomonar/report.md`. This file is the
-operating procedure; the governing rules live in those files. Policy references name `rules.md`; unqualified
-section references mean this file. Paths starting with `agents/` or `skills/` are relative to `docs/solomonar/`.
-"Main" means the configured integration branch defined in `rules.md`.
+Load together with `AGENTS.md`, `docs/solomonar/rules.md`, and `docs/solomonar/report.md`; load
+`docs/solomonar/registry.md` only per `rules.md` section 7. This file is the operating procedure; the governing
+rules live in those files. Policy references name `rules.md`; unqualified section references mean this file.
+Paths starting with `agents/` or `skills/` are relative to `docs/solomonar/`. "Main" means the configured
+integration branch defined in `rules.md`.
 
 ## 1. Mission and boundaries
 
 - Own exactly one task per top-level session, from registration to closure (`rules.md` section 9). The user
   starts the session, usually through `solomonar`; you are never a delegated subagent.
 - Coordinate only: you must not implement, review, edit product code or tests, or approve for the user.
-- File edits stay in the assigned task worktree; setup may create it (`rules.md` section 4).
+- File edits stay in the assigned task worktree; setup may create it (`rules.md` section 4). Project decision
+  entries are the exception: write them in the main checkout (`rules.md` section 3).
 - Write only: your task record through `solomonar task`; the work spec via `work-spec`, including its
   implementation plan and approval status, which only you edit; your task's entries
-  in `docs/decisions.md` and the `superseded` status of entries they replace; affected `docs/specs/*.md` and
+  in `docs/decisions.md`, the project entries (`P/D-n`) your task raises, and the `superseded` status of entries
+  they replace; affected `docs/specs/*.md` and
   `docs/ui.md` via `spec` in-task mode; `docs/README.md` index entries when creating decisions or canonical
   documents; closure commits (`rules.md` section 9); and the PR description. Decisions and canonical edits
   require the sources in `rules.md` sections 3–4.
@@ -44,8 +47,8 @@ section references mean this file. Paths starting with `agents/` or `skills/` ar
 - Resume inspection: `solomonar task status <ID>`; relevant `docs/decisions.md` entries; PR and checks when
   reported `unknown`. Preserve dirty files; reuse the existing worktree and PR. Confirm ownership and resume
   authority before reconciling state. A new session follows `rules.md` section 10's recovery steps: handoff on the
-  user's instruction, inspect the `plan` section and dirty files, then `task confirm <ID> --as <owner>` before any
-  stage change. If already merged, follow `rules.md` sections 9–10 without reimplementing.
+  user's instruction, inspect the `plan` section and dirty files, then, past `setup`, `task confirm <ID> --as <owner>`
+  before any stage change. If already merged, follow `rules.md` sections 9–10 without reimplementing.
 - Recorded `active_agents` do not establish liveness. Inspect available runtime evidence and settle or confirm
   prior execution stopped before replacement delegation. Reports without durable references are unverified;
   repeat verification per `rules.md` section 10.
@@ -57,7 +60,7 @@ section references mean this file. Paths starting with `agents/` or `skills/` ar
 ## 3. Stage procedure
 
 `task` below means `solomonar task`. Pass the task ID and `--as <owner>` on every `move`, `block`, `unblock`,
-and `done`, including suggested commands. Unchanged moves create no commit (`rules.md` section 7).
+and `done`, including suggested commands. Unchanged moves create no commit (`registry.md` section 1).
 
 - Combine related state changes; advance only after the required update succeeds. At delegation and report
   completion, replace the complete `active_agents` set with repeated `--agent <id>:<role>` flags; use
@@ -68,8 +71,9 @@ and `done`, including suggested commands. Unchanged moves create no commit (`rul
   unblocking. Load `skills/spec/SKILL.md` for those changes; list approved decision IDs in the next packet.
 - For new/changed behavior or a prototype/spec conflict, enforce `AGENTS.md` rule 9 at any stage. Route the
   affected flow to `prototype` in the primary checkout and wait for its approved committed handoff; do not edit
-  `prototype/` from the task worktree. Bring that snapshot into the task branch, apply `spec`, and refresh the
-  work spec and packet references before delegating dependent implementation or corrections.
+  `prototype/` from the task worktree. Once the snapshot is on main (`rules.md` section 3), delegate the merge
+  of main into the task branch (section 4), apply `spec`, and refresh the work spec and packet references
+  before delegating dependent implementation or corrections.
 - Retry an incomplete review on the same revision only when closing the gap leaves the candidate unchanged.
   Changes to resolve review results return to `implementation` for a new revision, triage, and affected
   reviews. Wait for running reviews before editing. Reuse only valid `PASS` verdicts under `rules.md`
@@ -77,7 +81,7 @@ and `done`, including suggested commands. Unchanged moves create no commit (`rul
 
 ### `setup`
 - **Entry:** selected new/planned work, or an owned task resuming at `setup`. **Delegate:** none.
-- **Do:** check registry, ownership, and dependencies; register and confirm new/planned work (`rules.md`
+- **Do:** check registry, ownership, and dependencies; register new/planned work and confirm the registration to the user (`rules.md`
   section 4 steps 1–3). Verify the baseline and create the worktree per step 4. On resume, reuse completed
   setup; never re-register the task or duplicate its worktree.
 - **State:** registration → `reserved` / `setup`; after worktree verification,
@@ -92,7 +96,7 @@ and `done`, including suggested commands. Unchanged moves create no commit (`rul
   references, if any. It owns questions, readiness, and isolated spec commits; consume its path, verdict,
   resolved canonical questions, and remaining blockers. Route decision needs/conflicts through `rules.md`
   section 3. When ready, load `skills/spec/SKILL.md` for approved canonical changes; commit them and refine
-  the work spec with final rule IDs per `rules.md` section 4 step 6. Skip unchanged commits. Then write the
+  the work spec with final rule IDs per `rules.md` section 4 step 6. Skip unchanged commits. Then present the
   implementation plan (`work-spec` section 7) and obtain the user's explicit approval per `rules.md` section 4
   step 7.
 - **State:** record `--spec <worktree-relative path>` with `task move`; keep blocker and next-action state
@@ -164,7 +168,7 @@ and `done`, including suggested commands. Unchanged moves create no commit (`rul
 Task: W-001, <title>           Role: implementer; follow docs/solomonar/agents/implementer.md
 Worktree: <path> on feature/W-001; modify nothing outside it
 Objective: <outcome to deliver>
-Work spec: <worktree-relative path>    References: <spec sections, AC IDs, W-001/D-n, contracts>
+Work spec: <worktree-relative path>    References: <spec sections, AC IDs, P/D-n or W-001/D-n, contracts>
 Plan steps: <remaining S-n IDs, in order>; partial work to inspect: <dirty paths or none>
 Area of responsibility: <packages, files, flows>
 Extensions: <applicable installed extensions; or none>
@@ -237,7 +241,8 @@ from the record alone. Keep messages compact:
 4. Resolve conflicting corrections against evidence and authority before delegation (`rules.md` section 6);
    priority orders the list, not the decision.
 5. Apply finding classifications and verification gaps per `report.md` sections 3–5; required gaps block advancement.
-6. Decision needs: assign `W-001/D-n` and follow `rules.md` section 3; hold only the corrections that depend on them.
+6. Decision needs: assign the ID at its level (`P/D-n` or `W-001/D-n`) and follow `rules.md` section 3;
+   hold only the corrections that depend on them.
 7. Put rejected findings under "Rejected" with evidence-backed justification; produce one correction list
    (`report.md` section 7); keep the triage for the PR Verification section.
 

@@ -41,7 +41,7 @@ Plan
   create     .solomonar/manifest.json
   registry   create refs/heads/workflow-state with an empty registry
 Would initialize solomonar 0.3.6 in /work/ledger
-  52 files created
+  53 files created
 ```
 
 Choose `--runtime claude`, `--runtime codex`, `--runtime copilot`, any combination, or `--runtime none` alone. Without the flag, a new project's defaults select the runtimes found on your `PATH`. Explicit selection does not require the executable installed; a rerun preserves the manifest's choices.
@@ -74,7 +74,7 @@ solomonar init --git-init --runtime claude --runtime codex \
 
 ```text
 Initialized solomonar 0.3.6 in /work/ledger
-  52 files created
+  53 files created
   registry  refs/heads/workflow-state @ e8f817f0693ebfb7967375390242914ae750a2dd
 
 Next:

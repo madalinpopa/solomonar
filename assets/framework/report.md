@@ -145,8 +145,8 @@ Entry format (`Status` only on rechecks; classification-specific omissions below
   - Waiting: <work awaiting the decision>; Independent: <work that can continue>
 ```
 
-- IDs: provisional `D-1`, `D-2`, … within the report. The orchestrator assigns `W-001/D-n`; later reports
-  reference that ID.
+- IDs: provisional `D-1`, `D-2`, … within the report. The orchestrator assigns `P/D-n` or `W-001/D-n` by the
+  level the decision affects; later reports reference that ID.
 - The reporting agent may investigate but must not apply the choice.
 
 ## 7. Consolidated correction list (orchestrator → implementer)

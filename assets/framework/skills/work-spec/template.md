@@ -16,11 +16,11 @@ plan; the orchestrator then sets "Approved". -->
 - <Affected contracts/code, if they exist.>
 - Prototype: `<full SHA>:prototype/<entry file>, flow <flow-id>`
 - Spec changes: <rule ID or capability/new> → <target statement or label>;
-  source: <user YYYY-MM-DD or approved decision ID>; ACs: <AC IDs>.
+  source: <user YYYY-MM-DD or approved decision ID>, plus the approved prototype reference; ACs: <AC IDs>.
 
 ## Acceptance criteria
 <!-- Rules: <capability>/R-n or <capability>/new; none for purely technical outcomes.
-Observed rule confirmation: (<rule ID>, confirmed user YYYY-MM-DD). -->
+An AC relying on an Observed rule stays blocked until an approved prototype flow covers it. -->
 
 - AC-1: <condition> → <observable result> (<rule IDs or none>).
 

@@ -31,7 +31,8 @@ Bare framework paths below are relative to `docs/solomonar/`. Load the routed fi
 | Review an assigned packet | `agents/<role>.md`: `security-reviewer`, `correctness-reviewer`, `spec-reviewer`, or `adversarial-reviewer` |
 
 Routing exceptions: `skills/solomonar/SKILL.md` section 2. Without a work spec, start with `docs/README.md` and the
-user's outcome. Every role loads `report.md`; reviewers add `reviewer.md`; only orchestrators load `rules.md`.
+user's outcome. Every role loads `report.md`; reviewers add `reviewer.md`; only orchestrators and the
+project-decision route load `rules.md`.
 Load packet-named extension skills; without a packet, use Extensions below.
 
 ## Extensions
@@ -66,7 +67,8 @@ Cite a rule as `AGENTS.md rule n`.
    Approved prototypes define represented behavior; **Agreed** specs express it for implementation. Code and
    unapproved observations establish no requirements. Prototype choices never approve production architecture.
 2. New architecture/dependency changes require user approval; investigate first, then follow your role's
-   decision procedure. Scoped approvals persist; silence approves nothing.
+   decision procedure. Register decisions and open questions at the level they affect, project or task
+   (`rules.md` section 3). Scoped approvals persist; silence approves nothing.
 3. Only `solomonar task` writes the registry: orchestrators own their task records; the user owns `task plan`.
    Never directly edit, commit, or check out the registry files on `workflow-state`.
 4. Run `solomonar task register` before creating the feature worktree; setup: `rules.md` section 4.
@@ -82,6 +84,8 @@ Cite a rule as `AGENTS.md rule n`.
 11. Never commit or report secrets, credentials, or real personal data.
 12. Commit messages: `<type>(<scope>): <summary>`; role/skill defines type and scope.
 13. Tests/comments cite `<capability>/R-n`, never task/AC IDs removed at closure.
+14. Ask the user one question at a time through the harness's ask-user tool when available, offering known
+    options with the recommended answer first; otherwise ask in chat. Wait for each answer.
 
 Never hand-edit `.solomonar/manifest.json`, generated runtime stubs, or generated product files; change their
 source through the owning procedure. Preserve unrelated edits. Project-specific guidance belongs under Project notes.

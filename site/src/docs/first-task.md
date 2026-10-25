@@ -106,10 +106,10 @@ Both commands only read. Agents write the record through the CLI, which refuses 
 
 ## Answer decisions
 
-When the work needs a choice that has not been approved, such as how to store expenses, the orchestrator stops that part of the work and asks you. Each decision has an ID like `W-001/D-1`:
+When the work needs a choice that has not been approved, the orchestrator stops that part of the work and asks you. A choice that affects the whole project, such as how to store expenses, has a project ID like `P/D-2`; a choice that constrains only this task has a task ID like `W-001/D-1`:
 
 ```text
-For W-001/D-1, I approve SQLite for local storage.
+For P/D-2, I approve SQLite for local storage.
 Keep cloud sync outside this task.
 ```
 

@@ -32,7 +32,7 @@ func initPaths() []string {
 	framework := []string{
 		"agents/adversarial-reviewer.md", "agents/correctness-reviewer.md", "agents/implementer.md",
 		"agents/orchestrator.md", "agents/security-reviewer.md", "agents/spec-reviewer.md",
-		"report.md", "reviewer.md", "rules.md",
+		"registry.md", "report.md", "reviewer.md", "rules.md",
 		"skills/prototype/SKILL.md", "skills/prototype/references/cli.md", "skills/prototype/references/module.md",
 		"skills/prototype/references/service.md", "skills/prototype/references/web.md",
 		"skills/prototype/template.md", "skills/solomonar/SKILL.md",
@@ -147,7 +147,7 @@ func TestInitUC2CoreOnly(t *testing.T) {
 	require.Equal(t, 0, got.exit, got.stderr)
 	tip := refTip(t, dir)
 	assert.Equal(t, "Initialized solomonar "+shipped+" in "+dir+"\n"+
-		"  23 files created\n"+
+		"  24 files created\n"+
 		"  registry  refs/heads/workflow-state @ "+tip+"\n"+
 		"  pushed    origin/workflow-state\n"+nextBlock(dir), got.stdout)
 	assert.Empty(t, got.stderr)
@@ -176,7 +176,7 @@ func TestInitWithoutRemoteWarns(t *testing.T) {
 
 	require.Equal(t, 0, got.exit, got.stderr)
 	assert.Equal(t, "Initialized solomonar "+shipped+" in "+dir+"\n"+
-		"  23 files created\n"+
+		"  24 files created\n"+
 		"  registry  refs/heads/workflow-state @ "+refTip(t, dir)+"\n"+nextBlock(dir), got.stdout)
 	assert.Equal(t, "warning: no remote \"origin\"; the registry stays local\n", got.stderr)
 }
@@ -229,7 +229,7 @@ func TestInitRerunIsNoOp(t *testing.T) {
 
 			require.Equal(t, 0, got.exit, got.stderr)
 			assert.Equal(t, "Already initialized with solomonar "+shipped+"; nothing to do.\n"+
-				"  22 files unchanged, 1 skipped · registry refs/heads/workflow-state unchanged\n"+
+				"  23 files unchanged, 1 skipped · registry refs/heads/workflow-state unchanged\n"+
 				"  Change choices with `solomonar runtime|extension add|remove`; move versions with `solomonar upgrade`.\n",
 				got.stdout)
 			assert.Empty(t, got.stderr)
@@ -289,7 +289,7 @@ func TestInitCompletesInterruptedInit(t *testing.T) {
 	assert.Contains(t, plan.stdout, fmt.Sprintf("  unchanged  %-53s  adopted\n", "AGENTS.md"))
 	assert.Contains(t, plan.stdout, "  skip       docs/README.md\n")
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Contains(t, got.stdout, "  1 file created, 21 unchanged, 1 skipped\n")
+	assert.Contains(t, got.stdout, "  1 file created, 22 unchanged, 1 skipped\n")
 	assert.NotEmpty(t, refTip(t, dir))
 	assert.FileExists(t, filepath.Join(dir, project.ManifestPath))
 }
@@ -304,7 +304,7 @@ func TestInitKeepsExistingRegistry(t *testing.T) {
 
 	require.Equal(t, 0, got.exit, got.stderr)
 	assert.Equal(t, "Initialized solomonar "+shipped+" in "+dir+"\n"+
-		"  23 files created\n"+
+		"  24 files created\n"+
 		"  registry  refs/heads/workflow-state @ "+tip+" unchanged\n"+nextBlock(dir), got.stdout)
 	assert.Empty(t, got.stderr)
 	assert.Equal(t, tip, refTip(t, dir))
@@ -323,7 +323,7 @@ func TestInitKeepsLocallyEditedFile(t *testing.T) {
 	require.Equal(t, 0, plan.exit, plan.stderr)
 	assert.Contains(t, plan.stdout, "  keep       docs/solomonar/rules.md\n")
 	require.Equal(t, 0, got.exit, got.stderr)
-	assert.Contains(t, got.stdout, "  1 file kept, 21 unchanged, 1 skipped · registry")
+	assert.Contains(t, got.stdout, "  1 file kept, 22 unchanged, 1 skipped · registry")
 	assertNothingWritten(t, dir, before, tip)
 }
 
@@ -417,7 +417,7 @@ func TestInitDryRunWritesNothing(t *testing.T) {
 		want.WriteString("  create     " + p + "\n")
 	}
 	want.WriteString("  registry   create refs/heads/workflow-state with an empty registry\n" +
-		"Would initialize solomonar " + shipped + " in " + dir + "\n  23 files created\n")
+		"Would initialize solomonar " + shipped + " in " + dir + "\n  24 files created\n")
 	require.Equal(t, 0, human.exit, human.stderr)
 	assert.Equal(t, want.String(), human.stdout)
 	assert.Empty(t, human.stderr)
@@ -619,7 +619,7 @@ func TestInitGitInitCreatesRepository(t *testing.T) {
 
 			require.Equal(t, 0, got.exit, got.stderr)
 			assert.Equal(t, "Initialized solomonar "+shipped+" in "+dir+"\n"+
-				"  23 files created\n"+
+				"  24 files created\n"+
 				"  registry  refs/heads/workflow-state @ "+refTip(t, dir)+"\n"+nextBlock(dir), got.stdout)
 			assert.Equal(t, "warning: no remote \"origin\"; the registry stays local\n", got.stderr)
 			assert.Equal(t, "refs/heads/"+tt.branch, gittest.Git(t, dir, "symbolic-ref", "HEAD"))
@@ -885,7 +885,7 @@ func TestInitUC2WithClaude(t *testing.T) {
 
 	require.Equal(t, 0, got.exit, got.stderr)
 	assert.Equal(t, "Initialized solomonar "+shipped+" in "+dir+"\n"+
-		"  33 files created\n"+
+		"  34 files created\n"+
 		"  registry  refs/heads/workflow-state @ "+refTip(t, dir)+"\n"+
 		"\nNext:\n"+commitStep("AGENTS.md CLAUDE.md .claude .solomonar docs")+
 		"  2. Start a top-level Claude Code session in "+dir+":\n"+
@@ -924,7 +924,7 @@ func TestInitWithBothRuntimes(t *testing.T) {
 	data := runInRepo(t, asJSON, append(args, "--json")...)
 
 	require.Equal(t, 0, text.exit, text.stderr)
-	assert.Contains(t, text.stdout, "  43 files created\n")
+	assert.Contains(t, text.stdout, "  44 files created\n")
 	assert.True(t, strings.HasSuffix(text.stdout, "\nNext:\n"+commitStep(paths)+
 		"  2. Start a top-level session in "+human+" with your selected outcome:\n"+
 		"       Claude Code: /solomonar Explore the next useful flow.\n"+
@@ -1030,7 +1030,7 @@ func TestInitRerunWithRuntimesIsNoOp(t *testing.T) {
 
 			require.Equal(t, 0, got.exit, got.stderr)
 			assert.Contains(t, got.stdout, "Already initialized with solomonar "+shipped+"; nothing to do.\n"+
-				"  32 files unchanged, 1 skipped · registry")
+				"  33 files unchanged, 1 skipped · registry")
 			assertNothingWritten(t, dir, before, tip)
 		})
 	}

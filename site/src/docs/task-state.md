@@ -7,6 +7,7 @@ group: Learn the framework
 order: 7
 sources:
   - assets/framework/rules.md
+  - assets/framework/registry.md
   - docs/cli/interface.md
   - internal/task/transition.go
   - internal/task/checkpoints.go
@@ -83,7 +84,7 @@ The new session reads progress from Git, not from the earlier conversation, so i
 
 Blocker kinds are `decision`, `dependency`, `check`, and `environment`. IDs such as `B-1` stay stable within the task and are never reused.
 
-A decision blocker needs a scoped decision reference such as `W-001/D-1`. Setting a task to `blocked` requires an open blocker. Clearing the last blocker of a blocked task must also name the prior status; the CLI does not choose it for the owner.
+A decision blocker needs a decision reference: `P/D-2` for a project decision or `W-001/D-1` for a task decision. Setting a task to `blocked` requires an open blocker. Clearing the last blocker of a blocked task must also name the prior status; the CLI does not choose it for the owner.
 
 ## Closure and history
 

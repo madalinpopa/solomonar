@@ -119,7 +119,8 @@ func newBlocker(kind, summary, ref string) (Blocker, error) {
 			"shorten the summary; put details in the referenced decision")
 	}
 	if blockerKind == BlockerDecision && !decisionRef(ref) {
-		return Blocker{}, invalidValue("--kind decision needs --ref <task ID>/D-<n>", ref, "pass --ref W-001/D-1")
+		return Blocker{}, invalidValue("--kind decision needs --ref P/D-<n> or <task ID>/D-<n>", ref,
+			"pass --ref P/D-1 or --ref W-001/D-1")
 	}
 	return Blocker{Kind: blockerKind, Summary: summary, Ref: ref}, nil
 }
@@ -127,7 +128,7 @@ func newBlocker(kind, summary, ref string) (Blocker, error) {
 func decisionRef(ref string) bool {
 	id, decision, _ := strings.Cut(ref, "/")
 	digits, ok := strings.CutPrefix(decision, "D-")
-	return validTaskID(id) && ok && digits != "" && allDigits(digits)
+	return (id == "P" || validTaskID(id)) && ok && digits != "" && allDigits(digits)
 }
 
 func checkTaskID(value string) error {

@@ -25,7 +25,7 @@ packages · 6 Key types · 7 Execution flow · 8 Errors, cancellation, and file 
 
 ## 1. Scope
 
-Requirements come from the interface spec and `assets/framework/rules.md` section 7, section 11. Nothing is added here.
+Requirements come from the interface spec and `assets/framework/rules.md` sections 7 and 11 and `assets/framework/registry.md`. Nothing is added here.
 
 | Requirement | Source | Consequence for the architecture |
 |---|---|---|

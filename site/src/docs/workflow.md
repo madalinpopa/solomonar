@@ -52,6 +52,12 @@ Corrections are appended to the plan as new steps, so the plan stays complete wi
 
 New architecture and dependency decisions go back to the user through the orchestrator. A decision blocker names the pending choice and the next actor. Dependent work waits; independent authorized work may continue.
 
+Each decision and open question is registered at the level it affects. A choice that affects or constrains the whole project, such as an architecture style, a shared contract, or a dependency, is a project decision `P/D-n`. A choice that affects only one task is a task decision such as `W-001/D-1`, and its open questions stay in that task's work spec. A task decision never binds another task.
+
+Project entries are written only on `main` in the main checkout, so parallel tasks never take the same ID. A task that raises one waits until you approve it and then merges `main`. Outside a task, the `solomonar` skill records a project decision after you approve an option; stack extensions record theirs through `solomonar extension add|remove`. The first task that applies a project decision updates `docs/architecture.md` or `docs/stack.md`.
+
+Project open questions are the open items in the specifications and the pending `P/D-n` entries. When they exist, the agent suggests answering them; once you agree, it goes through them one at a time with your runtime's question prompt, recommended option first.
+
 If a decision or review changes behavior, the orchestrator first routes it through the prototype in the primary checkout, waits for the approved committed handoff, and brings its updated references into the task branch. Specs and the work spec are updated before dependent production work resumes. Approval of a task decision or plan cannot replace that prototype review.
 
 Review results have precise meanings:

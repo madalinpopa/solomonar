@@ -287,8 +287,8 @@ func TestTaskBlockAndUnblockRejections(t *testing.T) {
 			name: "decision without ref", record: implementationTask(), exit: 2,
 			args: []string{"block", "W-001", "--as", "orchestrator-1", "--kind", "decision", "--summary", "Session storage"},
 			stderr: "error: task block W-001 rejected (invalid_value)\n" +
-				"  check: --kind decision needs --ref <task ID>/D-<n>\n" +
-				"  fix:   pass --ref W-001/D-1\n" +
+				"  check: --kind decision needs --ref P/D-<n> or <task ID>/D-<n>\n" +
+				"  fix:   pass --ref P/D-1 or --ref W-001/D-1\n" +
 				"nothing was written\n",
 		},
 		{

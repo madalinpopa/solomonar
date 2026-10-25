@@ -148,18 +148,32 @@ solomonar task plan --title "Export expenses as CSV" --depends-on W-001
 
 **Situation:** an implementation needs a storage choice that has not been approved.
 
-The orchestrator presents the options and records a decision such as `W-001/D-1`, a blocker, and the next action for you. Dependent work waits; independent authorized work can continue.
+Local storage affects the whole project, so the orchestrator records a project decision such as `P/D-2` in the main checkout, plus a blocker and the next action for you. A choice that constrains only this task would be a task decision such as `W-001/D-1`. Dependent work waits; independent authorized work can continue.
 
 **Agent prompt, in the session that requested the decision:**
 
 ```text
-For W-001/D-1, I approve the proposed SQLite option for local persistence.
+For P/D-2, I approve the proposed SQLite option for local persistence.
 Keep cloud synchronization outside this task.
 ```
 
 This is an illustrative answer: use the option and decision ID actually presented to you. The owning orchestrator records the approval, updates the affected documents, and resumes the dependent work. If its session ended, resume it before answering.
 
 **You leave with:** a durable decision with clear scope. Silence, a prototype's simulated storage, and an answer sent to another task do not approve the choice. Existing approvals remain valid within their recorded scope.
+
+## Answer the project's open questions
+
+**Situation:** `spec` or the status overview reports open questions that affect the whole project, such as how every service reports errors to its clients.
+
+**Agent prompt, in the main checkout:**
+
+```text
+Use the solomonar skill. Go through the project's open questions.
+```
+
+The session lists them, blocking first, and goes through them one at a time with your runtime's question prompt, the recommended option first. Each approved choice becomes a `P/D-n` entry in `docs/decisions.md`, committed as `docs(decisions): record P/D-n`. An answer about behavior goes to the prototype first. Choosing or dropping a stack extension, such as `go`, goes through [`solomonar extension add` and `remove`]({{ '/docs/cli/extension/' | url }}) instead.
+
+**You leave with:** project decisions that every later task cites, and only the questions you left open. Running tasks apply new decisions when they next merge `main`; the first task that applies one updates `docs/architecture.md` or `docs/stack.md`.
 
 ## Recheck a change when main moves
 
