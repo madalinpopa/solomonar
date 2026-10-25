@@ -10,8 +10,8 @@ Increment 1 (section 10) is implemented and released as v0.1.0; this spec keeps 
 accepted workflow-audit corrections are applied to these contracts and the framework assets on 2026-10-21. Runtime and fault-injection acceptance tests remain implementation work.
 
 The Copilot CLI contract was added on 2026-10-23 (acceptance record: [section 10](#copilot-runtime-acceptance)):
-adapter generation, manifest tracking, and `init --runtime copilot` are implemented. Live Copilot acceptance and
-the minimum supported runtime version remain pending. Runtime management is a separate delivery (UC-5), now
+adapter generation, manifest tracking, and `init --runtime copilot` are implemented. The live Copilot workflow was
+confirmed on 2026-10-25; the minimum supported runtime version is not established. Runtime management is a separate delivery (UC-5), now
 implemented, and hooks remain deferred; this addition defines no Copilot guard hook. Existing Claude and Codex contracts are unchanged.
 
 The extension store, the minimal `upgrade`, and `extension list|add|remove` were specified on 2026-10-24 (CLI-D27
@@ -2902,8 +2902,8 @@ Copilot hook is specified by this addition. Support is established only after au
 test, including a feature worktree and coexistence with the other adapters. Adapter generation, manifest tracking,
 and CLI initialization are implemented. The Copilot installation transcript passes, and CLI 1.0.85 discovers
 instructions and core skills in main and feature worktrees with all three adapters installed. CLI 1.0.103
-sessions run, but prompt mode cannot invoke the entry skill; delegation, tool behavior, model selection, and the
-minimum supported version remain unverified. See [the acceptance record](#copilot-runtime-acceptance).
+sessions run, but prompt mode cannot invoke the entry skill. The live interactive workflow was confirmed on
+2026-10-25; the minimum supported version is not established. See [the acceptance record](#copilot-runtime-acceptance).
 
 ### Copilot runtime acceptance
 
@@ -2928,10 +2928,8 @@ Live checks on 2026-10-23, in disposable repositories initialized with all three
 
 Decision 2026-10-23 (user): keep `disable-model-invocation: true` on the Copilot entry stub. Interactive
 `/solomonar` is the supported entry; prompt-mode sessions ask Copilot to load
-`docs/solomonar/skills/solomonar/SKILL.md`. Claude Code is the focus runtime, so these checks stay open with no
-work scheduled: interactive entry, delegation and repository-instruction loading in delegated roles, reviewer
-tool restrictions, adversarial-model selection (account access suggests `claude-haiku-5.5` may be unavailable),
-and the minimum supported Copilot version. Version 1.0.85 is a discovery baseline, not a supported floor.
+`docs/solomonar/skills/solomonar/SKILL.md`. Confirmation 2026-10-25 (user): the live interactive Copilot workflow is confirmed. The minimum supported Copilot
+version remains open; version 1.0.85 is a discovery baseline, not a supported floor.
 
 ## 11. Open decisions
 

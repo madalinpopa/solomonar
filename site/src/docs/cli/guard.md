@@ -12,7 +12,7 @@ sources:
 
 > This command is in development and not in the current build. This page describes the planned behavior; the final output may differ in detail.
 
-The hook contract below covers Claude Code and Codex. The Copilot CLI adapter installs no guard hook; `guard --runtime copilot` is not specified by this delivery.
+The hook contract below covers Claude Code and Codex. The Copilot CLI adapter installs no guard hook.
 
 Reads a tool call from stdin and answers in the runtime's hook format. It denies:
 

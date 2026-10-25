@@ -76,7 +76,7 @@ The Copilot CLI adapter uses the following format. These fields follow GitHub's 
 
 Copilot stubs cover core skills and delegated roles plus installed extension skills and reviewers. The orchestrator stays in the top-level session. Metadata is quoted as YAML strings so descriptions and model values preserve punctuation and cannot introduce extra fields. Portable instruction bodies remain in `docs/solomonar/`.
 
-Reviewer tool restrictions exclude direct editing tools, but shell commands can still write. Reviewers must follow the portable read-only contract, including running checks that write files in an external temporary directory. No Copilot guard hook is generated, and IDE/cloud-agent support is outside this delivery.
+Reviewer tool restrictions exclude direct editing tools, but shell commands can still write. Reviewers must follow the portable read-only contract, including running checks that write files in an external temporary directory. No Copilot guard hook is generated, and the Copilot IDE extensions and cloud agent are not supported.
 
 The `solomonar` entry skill is invoked only by you, never by the model on its own. A portable request is “Use the solomonar skill.” The orchestrator has no adapter file: it is always the top-level session, because it must delegate the implementer and reviewers itself.
 

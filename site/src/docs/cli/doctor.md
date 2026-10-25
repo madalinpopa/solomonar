@@ -34,7 +34,7 @@ solomonar doctor [--json]
 | forge | A repository that does not allow merge commits | `gh` missing or not authenticated, squash or rebase merges also allowed |
 | project | - | Commands in `docs/README.md` not established |
 
-Copilot has no expected guard hook in this delivery. Its absence is not a warning or failure; check its instruction, skill, and role adapters instead. `doctor` remains unavailable in the current build.
+Copilot has no expected guard hook. Its absence is not a warning or failure; check its instruction, skill, and role adapters instead. `doctor` remains unavailable in the current build.
 
 ## Example
 
