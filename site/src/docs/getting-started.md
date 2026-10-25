@@ -41,7 +41,7 @@ Read these in order. Each step ends where the next one starts.
 3. [Run your first task]({{ '/docs/first-task/' | url }}): start an agent session, prototype a flow, and take one task from specification to merge.
 4. [How the framework works]({{ '/docs/framework/' | url }}): the ideas behind what you just did.
 
-After that, use the [workflow examples]({{ '/docs/use-cases/' | url }}) for everyday situations and the [CLI reference]({{ '/docs/cli/' | url }}) when you need a flag.
+After that, use the guides for everyday work: [Prototype workflow]({{ '/docs/prototype/' | url }}) covers discovery, execution, and behavioral approval; [Task workflow]({{ '/docs/use-cases/' | url }}) covers implementation through review, merge, and recovery. Use the [CLI reference]({{ '/docs/cli/' | url }}) when you need a flag.
 
 ## What works today
 

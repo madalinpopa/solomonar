@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" class="dg" width="960" height="415" viewBox="0 0 960 415" role="img" aria-label="The Solomonar cycle: prototype and spec discover the product, solomonar task register and work-spec prepare the task and the user approves its implementation plan, then implementation, tiered reviews, PR with merge, and solomonar task done; CHANGES_REQUIRED sends the task back to implementation.">
+<svg xmlns="http://www.w3.org/2000/svg" class="dg" width="960" height="415" viewBox="0 0 960 415" role="img" aria-label="The Solomonar cycle: demonstrate prototype behavior, obtain human approval, then extract specifications. solomonar task register and work-spec prepare the task and the user approves its implementation plan, followed by implementation, tiered reviews, PR with merge, and solomonar task done. Behavior changes return to the prototype for approval; CHANGES_REQUIRED corrections restoring agreed behavior return to implementation.">
 <style>
 svg {
   --bg: #F2F4F1; --surface: #FFFFFF; --ink: #18211E; --muted: #56625D; --line: #9AA7A1; --grid: #DDE3DF;
@@ -52,13 +52,13 @@ svg { font-family: var(--sans); }
         <marker id="f1a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="mk"/></marker>
         <marker id="f1w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="mk-warn"/></marker>
       </defs>
-      <text class="ph" x="45" y="24">DISCOVERY</text>
+      <text class="ph" x="45" y="24">BEHAVIOR AGREEMENT</text>
       <line class="rule" x1="45" y1="32" x2="435" y2="32"/>
       <text class="ph" x="525" y="24">PREPARATION · ONE TASK AT A TIME</text>
       <line class="rule" x1="525" y1="32" x2="915" y2="32"/>
 
       <path class="e dash" d="M360 90 C360 50 120 50 120 88" marker-end="url(#f1a)"/>
-      <text class="lbl" x="240" y="81" text-anchor="middle">open questions</text>
+      <text class="lbl" x="240" y="81" text-anchor="middle">questions / changes</text>
 
       <rect class="box-acc" x="45" y="90" width="150" height="70" rx="4"/>
       <text class="t" x="120" y="121" text-anchor="middle">Prototype</text>
@@ -77,7 +77,8 @@ svg { font-family: var(--sans); }
       <text class="s" x="840" y="142" text-anchor="middle">docs/work/W-001-*.md</text>
 
       <path class="e" d="M195 125 H283" marker-end="url(#f1a)"/>
-      <text class="lbl" x="240" y="116" text-anchor="middle">tested flow</text>
+      <text class="lbl" x="240" y="103" text-anchor="middle">human</text>
+      <text class="lbl" x="240" y="116" text-anchor="middle">approval</text>
       <path class="e" d="M435 125 H523" marker-end="url(#f1a)"/>
       <text class="lbl" x="480" y="116" text-anchor="middle">task selected</text>
       <path class="e" d="M675 125 H763" marker-end="url(#f1a)"/>

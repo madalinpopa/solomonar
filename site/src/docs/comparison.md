@@ -19,7 +19,7 @@ sources:
 | Form | Framework files and a checking CLI | Templates, agent commands, and a scaffolding CLI | IDE and CLI from AWS | Agent commands and a validating CLI | Agent personas, skills, and workflows |
 | Agent runtimes | Claude Code, Codex, and a Copilot CLI adapter (live acceptance pending) | Dozens of coding agents | Kiro itself | 30+ coding agents | Several coding agents, including Claude Code, Codex, and Cursor |
 | Calls a model itself | No | No; the agent runs the steps | Yes | No; the agent runs the steps | No; the agent runs the steps |
-| Specification flow | Optional prototype, then agreed specs and one work spec per task | Constitution, specify, plan, tasks, implement | `requirements.md` in EARS notation, `design.md`, `tasks.md` | Change proposals with delta specs, archived into living specs | Product brief, PRD, architecture, epics and stories |
+| Specification flow | Prototype, human approval, agreed specs, then one work spec per task for new/changed behavior | Constitution, specify, plan, tasks, implement | `requirements.md` in EARS notation, `design.md`, `tasks.md` | Change proposals with delta specs, archived into living specs | Product brief, PRD, architecture, epics and stories |
 | Parallel work | A worktree per task, by rule | Branches through an optional extension; worktrees through community extensions | Parallel subagents and tasks | Not covered | Worktrees recommended in its guides |
 | Review | Risk-tiered specialist reviewers, then adversarial review for tier 2 | Consistency analysis across artifacts | Requirements analysis and property-based tests | A verify step against the change | A multi-lens review command, including an adversarial lens |
 | Task state | Git ref outside the working branch, compare-and-swap writes | Files under `specs/` | Files under `.kiro/` | Files under `openspec/`, or a separate store (beta) | Files in the repository, or a separate ticket repository |
@@ -48,9 +48,9 @@ Elsewhere, checking is mostly a command you choose to run: Spec Kit analyzes con
 - Risky changes, such as persistence, authentication, concurrency, or migrations, then get an adversarial review, on a different model when the runtime allows.
 - Any new commit is a new revision. An earlier `PASS` never covers new code.
 
-### Evidence before requirements
+### Behavior before requirements
 
-An optional `prototype` skill builds a static flow you can click through before anything is specified. The `spec` skill then keeps what was observed apart from what was agreed, so an accidental prototype detail never becomes a requirement without your decision.
+New or changed behavior is demonstrated in a runnable prototype and explicitly approved before specification and production implementation. A prototype can cover a CLI, web flow, module/library, or service. The approved scenarios define behavior; prototype implementation choices do not select production architecture. The `spec` skill extracts that agreement and keeps unapproved observations separate. See [Prototype workflow]({{ '/docs/prototype/' | url }}) for practical examples.
 
 ### Specifications that stay small
 

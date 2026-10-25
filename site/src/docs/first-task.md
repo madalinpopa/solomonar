@@ -43,6 +43,8 @@ The `prototype` skill builds an independently runnable flow under `prototype/`. 
 
 A prototype can cover just one function, component, or module. Independent parts can live under `prototype/cli/`, `prototype/web/`, `prototype/module/`, or `prototype/service/`. Each part has an exact run command and tests or inspection scenarios with expected results; a small harness runs code that has no entry point.
 
+See [Prototype workflow]({{ '/docs/prototype/' | url }}) for example layouts, commands, review records, and the handoff into specifications.
+
 Try it and say what should change. Intentional changes are recorded; accidental defects are fixed. The prototype never decides your stack or architecture.
 
 An existing prototype follows the same loop: update it, review and approve the behavior, update specs, then implement. Task or implementation-plan approval cannot replace prototype approval.
@@ -141,4 +143,4 @@ The new session takes the task over on your instruction, reads the record, the a
 
 ## Next
 
-You have seen the whole loop once. [How the framework works]({{ '/docs/framework/' | url }}) explains why it is shaped this way, and the [workflow examples]({{ '/docs/use-cases/' | url }}) cover bug fixes, parallel tasks, and recovery.
+You have seen the whole loop once. [How the framework works]({{ '/docs/framework/' | url }}) explains why it is shaped this way. Use [Prototype workflow]({{ '/docs/prototype/' | url }}) for runnable behavior examples and [Task workflow]({{ '/docs/use-cases/' | url }}) for implementation, bug fixes, parallel tasks, and recovery.

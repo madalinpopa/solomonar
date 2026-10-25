@@ -12,37 +12,29 @@ sources:
   - docs/cli/interface.md
 ---
 
-This page explains each stage of a managed task and the rule behind it. For a hands-on walk through the same path, start with [Run your first task]({{ '/docs/first-task/' | url }}).
+This page explains the stages of a managed task and the gates between them. For concrete prompts and terminal examples, use [Task workflow]({{ '/docs/use-cases/' | url }}); for discovery and approval, use [Prototype workflow]({{ '/docs/prototype/' | url }}).
 
-## Start with one useful outcome
+## Behavioral agreement
 
 For new or changed behavior, use `prototype`, obtain human approval of the demonstrated flow, then use `spec` before production implementation. Update an existing prototype through the same loop. CLI commands, modules/libraries, and services use executable commands, consumers, or requests instead of a browser UI. Technical work preserving existing behavior and defect fixes restoring approved behavior reuse that agreement.
 
-A useful task prompt names the outcome and the boundaries that matter. For example:
+Behavioral approval establishes what the selected part does. Implementation-plan approval establishes the approach to building it. Neither substitutes for the other or selects production architecture by implication.
 
-```text
-Use the solomonar skill. Add CSV export to the existing CLI.
-First demonstrate the export command, help, and success/failure output in the CLI
-prototype for my review. Keep the current text output unchanged.
-```
-
-This is an example of a request, not a built-in export feature.
-
-## Register, then isolate
+## Task ownership and isolation
 
 The orchestrator reads the registry and checks ownership and dependencies. It reserves a task with `task register`; successful local registration is the barrier before creating its branch and worktree.
 
 The user starts tasks one at a time. Once registered, independent tasks can run in parallel in separate worktrees. Separate ports and test data still need explicit care; worktrees isolate files, not shared services.
 
-## Agree the work before implementation
+## Specification and plan approval
 
-In the task worktree, `work-spec` prepares the selected outcome, scope, acceptance criteria, relevant references, constraints, and checks. User-confirmed changes to canonical behavior go into the relevant specifications before code is written.
+In the task worktree, `work-spec` prepares the selected outcome, scope, acceptance criteria, relevant references, constraints, and checks. New or changed behavior must be represented in an approved prototype; canonical behavior changes go into the relevant specifications before code is written.
 
-The work spec ends with an implementation plan: each step is the commit it will become, such as `S-1: feat(W-001): store expenses`. The orchestrator shows you the plan; implementation starts only after you approve it explicitly, the orchestrator records `Status: Approved`, and commits it. An approval you already gave for the exact plan is reused, never asked twice.
+The work spec ends with an implementation plan whose steps correspond to coherent, verifiable commits. Implementation requires explicit approval of that plan, recorded as a committed `Status: Approved`. Approval already covering the exact plan remains valid within its scope.
 
-Implementation can start when the outcome is authorized, the scope is understandable, the criteria can be verified, no unresolved decision blocks the chosen approach, and the plan is approved. Existing approvals apply within their recorded scope.
+Implementation can start when the outcome is authorized, the scope is understandable, the criteria can be verified, approved prototype coverage exists for changed behavior, no unresolved decision blocks the chosen approach, and the plan is approved. Existing approvals apply within their recorded scope.
 
-## Implement and review one candidate
+## Candidates and review tiers
 
 The implementer follows the approved plan and commits each step as a checkpoint with its planned subject and a `Step:` trailer. It returns `READY_FOR_REVIEW` once every step is committed, with the branch tip as the candidate. The orchestrator records the candidate and triages its risk. Reviews cover the whole change on that candidate, never one checkpoint at a time.
 
@@ -56,9 +48,11 @@ Required specialists inspect the same stable revision in parallel. The orchestra
 
 Corrections are appended to the plan as new steps, so the plan stays complete without a new approval while they stay within the approved scope. A code change creates a new candidate. An earlier review covers it only when its original revision and a specific reason for reusing unaffected evidence are recorded.
 
-## Handle a decision or a failed check
+## Decisions and blockers
 
 New architecture and dependency decisions go back to the user through the orchestrator. A decision blocker names the pending choice and the next actor. Dependent work waits; independent authorized work may continue.
+
+If a decision or review changes behavior, the orchestrator first routes it through the prototype in the primary checkout, waits for the approved committed handoff, and brings its updated references into the task branch. Specs and the work spec are updated before dependent production work resumes. Approval of a task decision or plan cannot replace that prototype review.
 
 Review results have precise meanings:
 
@@ -70,9 +64,9 @@ Review results have precise meanings:
 | `NEEDS_DECISION` | Dependent work waits for a user decision. |
 | `INCOMPLETE` | Evidence or an important check is missing. |
 
-No response is approval. After two rounds that leave the same blocker unchanged or reintroduce it, the orchestrator stops the loop, explains the cause, and brings options to the user.
+Silence never grants approval. After two rounds that leave the same blocker unchanged or reintroduce it, the orchestrator stops the loop, explains the cause, and brings options to the user.
 
-## Integrate and preserve the final specification
+## Integration and specification history
 
 Before merging, required checks and reviews must pass, canonical documents must reflect approved changes, blockers must be closed, and compatibility with current `main` must be checked.
 
@@ -80,8 +74,8 @@ The final task specification has its own `spec(<ID>):` commit. A separate final 
 
 After the merge is confirmed, `task done` verifies the merge and the final `spec_ref`, then writes the compact `done / complete` record. A merge failure or missing check never counts as completion.
 
-## Resume from evidence
+## Recovery from recorded evidence
 
-On restart, inspect the stored record and actual Git, worktree, PR, and check state before repeating an action. Preserve uncommitted changes. Continue the same task rather than creating another worktree or PR. A new session takes the task with `task handoff` on your instruction, confirms it with `task confirm` after inspection, and continues with the remaining plan steps; completed steps are never repeated.
+Recovery reconciles the stored record with actual Git, worktree, PR, and check state. Uncommitted work is preserved, and the task retains its worktree and PR. Ownership transfers only on explicit user instruction; confirmation follows inspection, and only the remaining plan steps continue. Completed steps are never repeated.
 
-`solomonar task status <ID>` shows those facts, the plan's committed and remaining steps, any drift from the record, and the commands valid next. It does not infer whether an agent is alive from its last reported assignment. See [task state]({{ '/docs/task-state/' | url }}).
+The CLI can compare recorded ownership and progress with current facts; it cannot infer whether an agent is alive from its last reported assignment. See [task state]({{ '/docs/task-state/' | url }}) for the model and [Task workflow]({{ '/docs/use-cases/#pause-resume-or-hand-work-to-another-session' | url }}) for recovery examples.

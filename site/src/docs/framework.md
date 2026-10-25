@@ -27,7 +27,7 @@ Runtime adapters are generated stubs that load the portable framework in `docs/s
 
 {% diagram "cycle" %}
 
-Discovery and task preparation lead into implementation, risk-based reviews, integration, and confirmed closure. Corrections return to implementation; they do not create another task.
+Prototype review and approval, specifications, and task preparation lead into implementation, risk-based reviews, integration, and confirmed closure. Corrections restoring agreed behavior return to implementation; a behavior change first returns to the prototype. Neither creates another task automatically.
 
 ## The book: specifications
 
@@ -42,6 +42,8 @@ The `spec` skill distinguishes three kinds of information:
 The `work-spec` skill prepares one task's outcome, boundaries, criteria, context, and checks. It does not rewrite the whole application's specification.
 
 New or changed behavior follows **prototype → human review and approval → specifications → production implementation**, including when a prototype already exists. The approved prototype defines represented behavior; it does not choose production architecture. Resolve prototype/spec conflicts in the prototype before updating requirements or code. Defect fixes restoring approved behavior and technical changes preserving it reuse the existing agreement.
+
+[Prototype workflow]({{ '/docs/prototype/' | url }}) shows what the skill produces, how to run and check each application type, and how approval reaches specifications and managed tasks.
 
 ## The spells: skills
 

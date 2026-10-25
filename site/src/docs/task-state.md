@@ -61,16 +61,7 @@ Agent assignments are last reported information, not proof of liveness. A review
 
 ## Plans and checkpoints
 
-The work specification's line below the title is `Status: In review` until you approve its implementation plan, then `Status: Approved`. The plan lists the intended commits:
-
-```markdown
-## Implementation plan
-
-- S-1: feat(W-001): store expenses
-  The expense type and its storage; AC-1.
-- S-2: feat(W-001): split an expense equally
-  The equal split and its tests; AC-1.
-```
+The implementation plan carries `Status: In review` until the user approves it, then `Status: Approved`. Its steps name intended commits and connect their scope to acceptance criteria and checks. [Task workflow]({{ '/docs/use-cases/#build-the-first-useful-slice' | url }}) shows a concrete plan and approval prompt.
 
 The implementer commits each step as a checkpoint with the planned subject and a `Step: W-001/S-1` trailer. Those commits are the only progress record. `task status` reconciles the plan with the task branch's own commits since the base and reports committed and remaining steps, plus any commit that claims a step without matching it.
 

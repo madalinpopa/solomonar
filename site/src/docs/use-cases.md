@@ -1,10 +1,10 @@
 ---
-title: AI coding agent workflow examples
-navTitle: Workflow examples
-description: Explore ten Solomonar workflow examples with agent prompts for product discovery, specifications, bug fixes, parallel tasks, reviews, and recovery.
-kind: How-to examples
+title: Task workflow
+navTitle: Task workflow
+description: Use Solomonar task prompts to implement approved behavior, fix bugs, handle decisions, coordinate reviews, and recover work through verified merge.
+kind: Workflow guide
 group: Guides
-order: 9
+order: 9.5
 sources:
   - assets/framework/skills/solomonar/SKILL.md
   - assets/framework/skills/prototype/SKILL.md
@@ -18,47 +18,11 @@ sources:
 
 These examples follow **Ledger**, a fictional shared-expenses project. Its expense screens and CSV export are example product features, not features built into Solomonar. Start with the situation that matches your work.
 
+For new or changed behavior, complete [Prototype workflow]({{ '/docs/prototype/' | url }}) first: demonstrate it, obtain human approval, and extract the agreed specifications. This guide starts from that agreement and covers managed tasks. A task decision that changes behavior returns to the prototype before dependent implementation resumes.
+
 > **Before you try them:** the prompts assume a project prepared with `solomonar init`. If you have not done that yet, follow [Set up a project]({{ '/docs/set-up-a-project/' | url }}). Task IDs below are illustrative.
 
 Paste **agent prompts** into a top-level agent session. The portable wording is “Use the solomonar skill.” Codex also accepts `$solomonar`; Claude Code uses `/solomonar`. **Terminal commands** go in your shell. The binary checks and records work; the agent session coordinates it.
-
-## Explore an idea before choosing a stack
-
-**Situation:** you know the problem, but have not decided how adding an expense should feel.
-
-**Agent prompt:**
-
-```text
-Use the solomonar skill. Prototype adding a shared expense to Ledger.
-Let me try the empty list, a valid expense, and an invalid amount.
-Use fictional data; do not choose a production stack yet.
-```
-
-The entry skill routes to `prototype`. It builds a small, clickable flow under `prototype/` that opens directly from the file system. Storage and external services are simulated and documented.
-
-**Try it:** open the supplied entry file, add an expense, submit an invalid amount, and describe what should change. An accidental defect is fixed; an intentional change is recorded. When you confirm the flow is ready, the handoff gives its flow ID and a committed `SHA:path` reference.
-
-**You leave with:** a flow you have tried and a durable handoff to `spec`. The prototype has not approved a database, library, or production architecture.
-
-## Turn a confirmed flow into product rules
-
-**Situation:** the add-expense flow is ready, and you want its behavior to survive beyond the prototype.
-
-Paste the real handoff reference in place of `<full-SHA>` and `<entry-file>`, and use the flow ID returned by your prototype handoff.
-
-**Agent prompt:**
-
-```text
-Use the spec skill with <full-SHA>:prototype/<entry-file>, flow add-expense.
-Record what the flow demonstrates. I confirm that an invalid amount must
-show an error and must not add an expense. Keep undecided behavior open.
-```
-
-The `spec` skill reads the committed flow and its handoff notes. It separates **Observed** behavior from **Agreed** rules and **Open** questions. Your confirmation supplies evidence for the agreed validation rule; it does not approve unrelated observations.
-
-**You leave with:** capability rules with stable IDs and sources, plus unresolved questions. For example, expense behavior may belong in `docs/specs/expenses.md`; storage remains a separate decision. See [the book: specifications]({{ '/docs/framework/#the-book-specifications' | url }}).
-
-Already know the behavior of an API or CLI? Give `spec` the decided rules directly. A UI prototype is optional.
 
 ## Build the first useful slice
 
@@ -76,7 +40,38 @@ reloading. Exclude accounts, payments, and recurring expenses.
 2. `work-spec` defines the outcome, boundaries, acceptance criteria, and checks. Only the minimum runnable baseline needed for this slice enters scope. Necessary architecture or dependency choices go to you for a decision.
 3. Once readiness passes and canonical changes are applied, the orchestrator presents the implementation plan. After you explicitly approve that exact plan, it commits `Status: Approved` before delegating. The implementer follows the plan and returns a committed candidate. Persistence makes this a tier 2 change: required specialists review it, followed by adversarial review.
 
+An implementation plan might contain:
+
+```markdown
+## Implementation plan
+Status: In review
+
+- S-1: feat(W-001): store expenses
+  The expense type and its storage; AC-1.
+- S-2: feat(W-001): validate expense input
+  The approved invalid-amount error and unchanged state; AC-2.
+```
+
+Approve the actual plan presented to you, using its real task ID:
+
+```text
+I approve the implementation plan for W-001 as presented.
+```
+
+This approves the approach to the task. It does not authorize behavior absent from the approved prototype or a new architecture/dependency choice outside an existing scoped decision.
+
 **You leave with:** a bounded implementation tied to observable checks. A useful criterion here is: after saving a valid expense and reloading, that expense is still listed. A passing implementation handoff alone does not complete the task.
+
+## Inspect progress and the next action
+
+In the initialized project, use the task's real ID:
+
+```sh
+solomonar task show W-001
+solomonar task status W-001
+```
+
+`show` reads the stored record, including its owner, blockers, and next actor/action. `status` compares that record with Git and the forge: the worktree, current revision, plan approval, committed and remaining steps, and PR/check facts. The output names commands valid next; it does not start or resume work by itself. [Task state]({{ '/docs/task-state/' | url }}) explains the distinction between recorded state and derived facts.
 
 ## Fix a bug in an existing product
 
@@ -91,7 +86,7 @@ Keep the existing columns and ordering. Add a regression check.
 Use the current application and its existing build tools.
 ```
 
-The orchestrator prepares a bug-fix task. `work-spec` reads the affected code and relevant rules, captures the reproduction and expected result, and names a regression check. If the expected behavior was never agreed, it is clarified and recorded before implementation.
+The orchestrator prepares a bug-fix task. `work-spec` reads the affected code and relevant rules, captures the reproduction and expected result, and names a regression check. Restoring represented approved behavior reuses its prototype approval. If that behavior is missing or ambiguous, demonstrate and approve it in the prototype before updating specifications and implementing the correction.
 
 Missing run instructions do not mean the application is missing. Commands are discovered from repository scripts, manifests, and existing instructions. Existing failures are distinguished from regressions introduced by the change.
 
@@ -182,7 +177,7 @@ The implementer merges current `main` into the task branch. CI reruns. The orche
 
 Required reviewers examine the same stable candidate. A correction creates a new candidate and the affected checks run again. A reused verdict retains its original SHA and a concrete reason why its scope is unaffected; unclear impact requires a rerun.
 
-**You leave with:** evidence for the integrated revision. A conflict-free merge or a passing smoke test alone does not prove the exporter still handles the policy result correctly. See [review and integration]({{ '/docs/workflow/#implement-and-review-one-candidate' | url }}).
+**You leave with:** evidence for the integrated revision. A conflict-free merge or a passing smoke test alone does not prove the exporter still handles the policy result correctly. See [candidates and review tiers]({{ '/docs/workflow/#candidates-and-review-tiers' | url }}).
 
 ## Pause, resume, or hand work to another session
 
@@ -244,7 +239,7 @@ If the merged feature later regresses, create related work using its real task I
 solomonar task plan --title "Fix CSV quoting regression" --related W-001
 ```
 
-**You leave with:** preserved agreement and a separate regression task. The merged task stays `done`; a later defect does not erase its history. Read [closure and recovery]({{ '/docs/workflow/#integrate-and-preserve-the-final-specification' | url }}) for the complete gates.
+**You leave with:** preserved agreement and a separate regression task. The merged task stays `done`; a later defect does not erase its history. Read [integration and specification history]({{ '/docs/workflow/#integration-and-specification-history' | url }}) for the governing concepts and gates.
 
 ---
 

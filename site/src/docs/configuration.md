@@ -40,13 +40,16 @@ The skills and roles create these as the project grows. A small project does not
 
 | Path | Owns |
 | --- | --- |
-| `prototype/` | Clickable discovery flows; evidence, never approved requirements. |
+| `prototype/` | Independently runnable behavioral references for CLI, web, module/library, or service flows; approved scenarios define behavior. |
+| `prototype/README.md` | Per-part run/check/reset instructions, stable flow IDs, scenario results, scoped approvals, and simulation limits. |
 | `docs/specs/` | Current capability behavior: agreed rules, observations, and open questions. |
 | `docs/work/` | Active task specifications; completed specs remain in Git history. |
 | `docs/architecture.md` | Approved structure, boundaries, and shared contracts. |
 | `docs/stack.md` | Chosen technologies and rationale; manifests hold versions. |
 | `docs/decisions.md` | Scoped approved, pending, and superseded decisions. |
 | `docs/ui.md` | Shared UI and interaction rules when useful. |
+
+New prototype parts can be grouped by type under `prototype/cli/`, `web/`, `module/`, or `service/`; create only what the selected behavior needs. See [Prototype workflow]({{ '/docs/prototype/' | url }}) for outputs and examples. These project-owned artifacts are created through the skill, not by `init`, and are kept for future inspection.
 
 ## Runtime adapters
 

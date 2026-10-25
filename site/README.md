@@ -66,7 +66,11 @@ The workflow has `packages: write`; no registry password secret is needed for pu
 - `src/assets/site.css` and `site.js`: themes, animation, responsive layout, and progressive enhancement.
 - `eleventy.config.js`: rendering, heading anchors, collections, logo reuse, diagram embedding, and the `cliUsage` shortcode.
 
-`assets/framework/` owns framework behavior. The pages in `src/docs/cli/` own each command's synopsis, flags, and output; `docs/cli/interface.md` owns the contract beneath them and does not repeat the pages. `internal/cli/run.go` establishes command availability. Update the site availability tables with implementation changes, and the root README after the site. The notes in `docs/design/` are historical records and are not updated.
+Keep **Learn the framework** focused on concepts, responsibilities, and gates. Put practical steps, prompts,
+run commands, and examples in **Guides**: `prototype.md` owns Prototype workflow; `use-cases.md` owns Task
+workflow. Link between the conceptual explanations and their guides instead of copying procedures into both.
+
+`assets/framework/` owns framework behavior. The pages in `src/docs/cli/` own each command's synopsis, flags, and output; `docs/cli/interface.md` owns the contract beneath them and does not repeat the pages. `internal/cli/run.go` establishes command availability. Update the site availability tables with implementation changes, and the root README after the site. Preserve historical design notes; record later design changes in an addendum, such as [`docs/design/prototype-workflow.md`](../docs/design/prototype-workflow.md), while keeping the current rules in `assets/framework/`.
 
 The framework diagrams are embedded directly from `docs/images/`, preserving their geometry and labels. The site replaces their embedded palette/font styles with scoped theme tokens; manual light/dark selection updates the diagrams immediately. Original source files are not rewritten. Diagrams scroll horizontally at small widths so their labels remain readable.
 
@@ -89,7 +93,7 @@ A container built with a subpath needs a matching proxy mount; the supplied Ngin
 
 ## Search and social previews
 
-The homepage focuses on **spec-driven development for AI coding agents**. Documentation pages cover distinct tasks: getting started, installation, project setup, a first task, the framework, the task lifecycle, state tracking, the name's origin, workflow examples, troubleshooting, CLI commands, and project files. Keep each page's front matter title and description specific to its content. Shared metadata lives in `src/_includes/base.njk` and `src/_data/site.js`.
+The homepage focuses on **spec-driven development for AI coding agents**. Documentation pages cover distinct tasks: getting started, installation, project setup, a first task, framework concepts, the task lifecycle, state tracking, the name's origin, prototype and task workflow guides, troubleshooting, CLI commands, and project files. Keep each page's front matter title and description specific to its content. Shared metadata lives in `src/_includes/base.njk` and `src/_data/site.js`.
 
 Open Graph and X large-image cards use each page's title, description, and canonical URL, plus the shared `src/assets/social-card.png`. The card is a 1200 × 630 PNG under 300 KB: the cross-stitch solomonar centered on the artwork's dark background (`#191614`). Keep those dimensions when replacing it. The PNG is referenced in HTML metadata and adds no image request to normal page loads.
 

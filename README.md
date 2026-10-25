@@ -128,15 +128,17 @@ solomonar task status W-001
 
 [Set up a project](https://solomonar.dev/docs/set-up-a-project/) covers existing repositories and file conflicts. [Run your first task](https://solomonar.dev/docs/first-task/) follows one feature from prototype to merge.
 
+[Prototype workflow](https://solomonar.dev/docs/prototype/) covers runnable CLI, web, module, and service examples, human approval, and the handoff into specifications and implementation.
+
 ## Documentation
 
 The website at [solomonar.dev](https://solomonar.dev) is the user documentation:
 
 | Start here | Learn the framework | Guides | Reference |
 | --- | --- | --- | --- |
-| [Get started](https://solomonar.dev/docs/getting-started/) | [How it works](https://solomonar.dev/docs/framework/) | [Workflow examples](https://solomonar.dev/docs/use-cases/) | [CLI commands](https://solomonar.dev/docs/cli/) |
-| [Install the CLI](https://solomonar.dev/docs/install/) | [The task lifecycle](https://solomonar.dev/docs/workflow/) | [Troubleshooting](https://solomonar.dev/docs/troubleshooting/) | [Project files](https://solomonar.dev/docs/configuration/) |
-| [Set up a project](https://solomonar.dev/docs/set-up-a-project/) | [Task state](https://solomonar.dev/docs/task-state/) | | |
+| [Get started](https://solomonar.dev/docs/getting-started/) | [How it works](https://solomonar.dev/docs/framework/) | [Prototype workflow](https://solomonar.dev/docs/prototype/) | [CLI commands](https://solomonar.dev/docs/cli/) |
+| [Install the CLI](https://solomonar.dev/docs/install/) | [The task lifecycle](https://solomonar.dev/docs/workflow/) | [Task workflow](https://solomonar.dev/docs/use-cases/) | [Project files](https://solomonar.dev/docs/configuration/) |
+| [Set up a project](https://solomonar.dev/docs/set-up-a-project/) | [Task state](https://solomonar.dev/docs/task-state/) | [Troubleshooting](https://solomonar.dev/docs/troubleshooting/) | |
 | [Run your first task](https://solomonar.dev/docs/first-task/) | [The story](https://solomonar.dev/docs/story/) | | |
 
 ## Development
