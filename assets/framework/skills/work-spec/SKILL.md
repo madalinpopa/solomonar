@@ -5,7 +5,7 @@ description: Prepares or refines one registered task's work specification in `do
 
 # Work-spec skill
 
-Framework version: 0.3.7
+Framework version: {{ .Version }}
 
 ## 1. Purpose and boundaries
 

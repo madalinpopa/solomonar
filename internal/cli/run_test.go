@@ -10,6 +10,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/madalinpopa/solomonar/internal/release"
 )
 
 type result struct {
@@ -38,19 +40,13 @@ func runCLIWithEnv(t *testing.T, assets fs.FS, getenv func(string) string, args 
 	return result{exit: exit, stdout: stdout.String(), stderr: stderr.String()}
 }
 
+// shipped is the release the tests render into the repository assets.
+const shipped = "0.9.0"
+
 func repoAssets(t *testing.T) fs.FS {
 	t.Helper()
-	return os.DirFS("../../assets")
+	return release.Assets(os.DirFS("../../assets"), shipped)
 }
-
-// shipped is the version embedded in the repository assets.
-var shipped = func() string { //nolint:gochecknoglobals // read once, shared by every expected output
-	version, err := frameworkVersion(os.DirFS("../../assets"))
-	if err != nil {
-		panic(err) //nolint:forbidigo // no test can run without the assets
-	}
-	return version
-}()
 
 func TestVersionPrintsTheRelease(t *testing.T) {
 	t.Parallel()

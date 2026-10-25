@@ -58,11 +58,11 @@ solomonar version
 ```
 
 ```text
-solomonar 0.3.7
+solomonar {{ release.number }}
 project   not initialized
 ```
 
-A build from a Git checkout between releases shows the last release version. Outside an initialized project, the project line reads `not initialized`.
+A build from a Git checkout between releases shows the last release version; one without Git information, such as `go run`, shows `0.0.0`. Outside an initialized project, the project line reads `not initialized`.
 
 List the commands this build supports:
 

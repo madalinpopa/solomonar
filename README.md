@@ -96,7 +96,7 @@ Make the first commit, because task worktrees branch from `main`. `init` prints 
 
 ```sh
 git add AGENTS.md CLAUDE.md .claude .solomonar docs
-git commit -m "chore: initialize solomonar 0.3.7"
+git commit -m "chore: initialize solomonar X.Y.Z"
 ```
 
 Open a top-level agent session in the project and start every request with the `solomonar` skill:
@@ -155,7 +155,7 @@ task check        # lint, tests with the race detector, and govulncheck, as CI r
 | Task | Purpose |
 | --- | --- |
 | `task build` | Build `bin/solomonar`. |
-| `task run -- <args>` | Run the CLI from source, for example `task run -- task show`. |
+| `task run -- <args>` | Build and run the CLI, for example `task run -- task show`. |
 | `task test` | Run all tests with the race detector. |
 | `task cover` | Run the tests and print total coverage. |
 | `task fmt` | Format the code. |

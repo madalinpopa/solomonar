@@ -328,8 +328,9 @@ func TestExtensionAddCopiesACatalogWorkflowExtension(t *testing.T) {
 		}
 	}
 	assert.Len(t, stored, 6)
-	assert.Equal(t, readTestFile(t, "../../assets", "extensions/workflow/extension-authoring/SKILL.md"),
-		readTestFile(t, dir, "docs/solomonar/extensions/extension-authoring/SKILL.md"))
+	want, err := fs.ReadFile(repoAssets(t), "extensions/workflow/extension-authoring/SKILL.md")
+	require.NoError(t, err)
+	assert.Equal(t, string(want), readTestFile(t, dir, "docs/solomonar/extensions/extension-authoring/SKILL.md"))
 	assert.Contains(t, readTestFile(t, dir, ".agents/skills/extension-authoring/agents/openai.yaml"),
 		"allow_implicit_invocation: false")
 }

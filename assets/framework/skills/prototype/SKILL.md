@@ -5,7 +5,7 @@ description: Builds and updates independently runnable behavioral prototypes in 
 
 # Prototype skill
 
-Framework version: 0.3.7
+Framework version: {{ .Version }}
 
 ## 1. Purpose and boundaries
 

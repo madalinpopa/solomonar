@@ -14,5 +14,5 @@ function latestTag() {
 export default function () {
   const version = process.env.SITE_VERSION || latestTag();
   if (version !== "dev" && !tag.test(version)) throw new Error(`SITE_VERSION must be vX.Y.Z or dev, got "${version}"`);
-  return { version };
+  return { version, number: version.replace(/^v/, "") };
 }

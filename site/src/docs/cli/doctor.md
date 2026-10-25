@@ -53,7 +53,7 @@ registry
   ok    refs/heads/workflow-state @ 3a5c0d7, schema_version 2, 4 tasks valid
   ok    origin/workflow-state matches local
 files
-  ok    framework 0.3.7, manifest valid
+  ok    framework {{ release.number }}, manifest valid
   fail  4 framework paths not committed on main: AGENTS.md, CLAUDE.md, .claude/, .solomonar/
   warn  docs/solomonar/skills/spec/template.md modified since installation (kept by upgrades)
 extensions

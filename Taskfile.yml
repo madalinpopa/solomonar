@@ -25,8 +25,9 @@ tasks:
     cmd: go install -trimpath {{.MAIN}}
 
   run:
-    desc: 'Run the CLI from source, e.g. task run -- task show'
-    cmd: go run {{.MAIN}} {{.CLI_ARGS}}
+    desc: 'Build and run the CLI, e.g. task run -- task show'
+    deps: [build]
+    cmd: '{{.BIN}}/solomonar {{.CLI_ARGS}}'
 
   test:
     desc: Run all tests with the race detector
@@ -82,11 +83,6 @@ tasks:
     desc: Remove build outputs and coverage
     cmd: rm -rf {{.BIN}} coverage.out
 
-  version:set:
-    desc: 'Set current release headers and examples, preserving historical versions'
-    requires: {vars: [VERSION]}
-    cmd: perl scripts/set-version.pl '{{.VERSION}}'
-
   release:next:
     desc: Tag and push the next patch release
     cmds:
@@ -131,12 +127,8 @@ tasks:
         msg: Tag {{.NEXT}} already exists.
       - sh: git diff --quiet HEAD
         msg: The worktree has uncommitted changes; commit or discard them first.
-    prompt: Set the version to {{.NEXT}}, commit and push it to main, then tag {{.LATEST | default "no release"}} -> {{.NEXT}} and push the tag?
+    prompt: Tag {{.LATEST | default "no release"}} -> {{.NEXT}} and push the tag?
     cmds:
-      - task: version:set
-        vars: {VERSION: '{{trimPrefix "v" .NEXT}}'}
-      - 'git diff --quiet || git commit -aqm "chore(release): {{.NEXT}}"'
-      - git push origin HEAD:main
       - git tag -a {{.NEXT}} -m "Release {{.NEXT}}"
       - git push origin {{.NEXT}}
       - echo "Pushed {{.NEXT}}; the release workflow runs on GitHub Actions."

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"os"
 	"os/exec"
@@ -12,10 +13,14 @@ import (
 	"github.com/rogpeppe/go-internal/testscript"
 
 	"github.com/madalinpopa/solomonar/internal/git"
+	"github.com/madalinpopa/solomonar/internal/release"
 )
 
+// shipped is the release the transcripts run as; a test binary has no VCS stamp.
+const shipped = "0.9.0"
+
 func TestMain(m *testing.M) {
-	testscript.Main(m, map[string]func(){"solomonar": main})
+	testscript.Main(m, map[string]func(){"solomonar": func() { os.Exit(run(context.Background(), shipped)) }})
 }
 
 func TestScript(t *testing.T) {
@@ -25,9 +30,9 @@ func TestScript(t *testing.T) {
 	if _, err := git.Version(t.Context(), nil); err != nil {
 		t.Fatalf("tests need git 2.40 or newer on PATH: %v", err)
 	}
-	assets, err := filepath.Abs("assets")
-	if err != nil {
-		t.Fatalf("locate assets: %v", err)
+	assets := filepath.Join(t.TempDir(), "assets")
+	if err := os.CopyFS(assets, release.Assets(os.DirFS("assets"), shipped)); err != nil {
+		t.Fatalf("render assets: %v", err)
 	}
 	testscript.Run(t, testscript.Params{
 		Dir: "testdata",

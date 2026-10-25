@@ -40,7 +40,7 @@ Plan
   create     .codex/agents/spec-reviewer.toml
   create     .solomonar/manifest.json
   registry   create refs/heads/workflow-state with an empty registry
-Would initialize solomonar 0.3.7 in /work/ledger
+Would initialize solomonar {{ release.number }} in /work/ledger
   53 files created
 ```
 
@@ -73,13 +73,13 @@ solomonar init --git-init --runtime claude --runtime codex \
 ```
 
 ```text
-Initialized solomonar 0.3.7 in /work/ledger
+Initialized solomonar {{ release.number }} in /work/ledger
   53 files created
   registry  refs/heads/workflow-state @ e8f817f0693ebfb7967375390242914ae750a2dd
 
 Next:
   1. First commit required before task worktrees:
-       git add AGENTS.md CLAUDE.md .claude .agents .codex .solomonar docs && git commit -m "chore: initialize solomonar 0.3.7"
+       git add AGENTS.md CLAUDE.md .claude .agents .codex .solomonar docs && git commit -m "chore: initialize solomonar {{ release.number }}"
   2. Start a top-level session in /work/ledger with your selected outcome:
        Claude Code: /solomonar Explore the next useful flow.
        Codex:       $solomonar Explore the next useful flow.
@@ -95,7 +95,7 @@ Task worktrees branch from `main`, so `main` needs a commit. Run the command fro
 
 ```sh
 git add AGENTS.md CLAUDE.md .claude .agents .codex .solomonar docs
-git commit -m "chore: initialize solomonar 0.3.7"
+git commit -m "chore: initialize solomonar {{ release.number }}"
 ```
 
 For a Copilot selection, use the printed command: it names each generated adapter file under `.github/skills/` and `.github/agents/`. Do not substitute `git add .github`, which can stage unrelated project files.
@@ -136,7 +136,7 @@ If the repository already has an application, agents discover its build and test
 `init` is safe to repeat. With the same choices and unchanged files, it does nothing:
 
 ```text
-Already initialized with solomonar 0.3.7; nothing to do.
+Already initialized with solomonar {{ release.number }}; nothing to do.
 ```
 
 It never changes a recorded choice, such as the runtimes or the extensions. Change extensions with [`extension add` and `extension remove`]({{ '/docs/cli/extension/' | url }}); after a CLI update, move the framework with [`upgrade`]({{ '/docs/cli/upgrade/' | url }}). Change runtimes with [`runtime add` and `runtime remove`]({{ '/docs/cli/runtime/' | url }}); do not edit the manifest or pass different runtimes to `init`. For example, to add Copilot to a project initialized for Claude Code and Codex, or drop it again:

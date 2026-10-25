@@ -41,7 +41,7 @@ task check        # lint, tests with the race detector, and govulncheck, as CI r
 | Task | Purpose |
 | --- | --- |
 | `task build` | Build `bin/solomonar`. |
-| `task run -- <args>` | Run the CLI from source, for example `task run -- task show`. |
+| `task run -- <args>` | Build and run the CLI, for example `task run -- task show`. |
 | `task test` | Run all tests with the race detector. |
 | `task test:integration` | Run all tests, including the transcript tests in `testdata/`. |
 | `task fmt` | Format the code. |
@@ -440,10 +440,9 @@ never gets an adapter, because it runs as the top-level session.
 - Add or update tests for every behavior change, and run `task check` until it passes.
 - In the pull request, link the issue, summarize the behavior change, and list the documents you updated. For a
   framework change, describe how you verified it.
-- Do not edit current-release version strings by hand; maintainers set them at release with
-  `task version:set VERSION=X.Y.Z`. Its Perl script updates framework headers and current-build examples;
-  keep historical delivery versions and compatibility boundaries fixed. When introducing a new version-bearing
-  example format, update `scripts/set-version.pl` and `testdata/release_version.txtar` together.
+- Do not write the current release version in the tree; the release tag sets it (AD-10). Framework and extension
+  Markdown files write `{{ .Version }}`, site pages `{{ release.number }}`, and the specs and `README.md`
+  `X.Y.Z`. Keep historical delivery versions and compatibility boundaries as literal versions.
 
 ## Reporting problems
 

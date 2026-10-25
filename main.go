@@ -7,12 +7,14 @@ import (
 	"io/fs"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 	"time"
 
 	"golang.org/x/term"
 
 	"github.com/madalinpopa/solomonar/internal/cli"
+	"github.com/madalinpopa/solomonar/internal/release"
 )
 
 //go:embed assets
@@ -22,17 +24,27 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	// Restoring the default handlers on the first signal lets a second one end the process (CLI-D18).
 	context.AfterFunc(ctx, stop)
-	code := run(ctx)
+	code := run(ctx, release.Version(buildVersion()))
 	stop()
 	os.Exit(code)
 }
 
-func run(ctx context.Context) int {
-	assets, err := fs.Sub(embedded, "assets")
+// buildVersion is the module version Go stamped from the VCS tag, or "" without build information.
+func buildVersion() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return ""
+	}
+	return info.Main.Version
+}
+
+func run(ctx context.Context, version string) int {
+	sub, err := fs.Sub(embedded, "assets")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: open embedded assets: %v\n", err)
 		return 1
 	}
+	assets := release.Assets(sub, version)
 	return cli.Run(ctx, cli.Env{
 		Args:        os.Args[1:],
 		Stdin:       os.Stdin,
