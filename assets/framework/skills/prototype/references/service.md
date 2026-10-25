@@ -1,6 +1,6 @@
 # Standalone service and API prototypes
 
-Framework version: 0.3.2
+Framework version: 0.3.3
 
 - Expose only endpoints needed for agreed use cases, using a runtime's built-in HTTP server when sufficient
   (for example Node.js `node:http`). Keep external services and persistence in memory or local JSON files.

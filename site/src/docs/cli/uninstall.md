@@ -94,7 +94,7 @@ solomonar uninstall
 
 ```text
 Plan
-  framework 0.3.2
+  framework 0.3.3
     update     AGENTS.md       managed part removed; project notes kept
     update     docs/README.md  framework index line removed
     remove     docs/solomonar/agents/ (6 roles)

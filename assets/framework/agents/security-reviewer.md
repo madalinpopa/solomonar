@@ -5,7 +5,7 @@ description: Reviews one candidate revision, in any language, for bugs (crashes,
 
 # Security reviewer
 
-Framework version: 0.3.2
+Framework version: 0.3.3
 
 Load `AGENTS.md`, `docs/solomonar/report.md`, and `docs/solomonar/reviewer.md`; follow the shared preflight,
 isolation, evidence, and result rules. This file adds only the bugs and security specialty.

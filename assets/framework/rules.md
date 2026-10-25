@@ -1,6 +1,6 @@
 # Framework rules
 
-Framework version: 0.3.2
+Framework version: 0.3.3
 
 These rules apply to every managed task. Orchestrators load this file together with `AGENTS.md`. Report
 format, result values, finding fields, and the PR Verification section: `docs/solomonar/report.md`. Role
