@@ -5,7 +5,7 @@ description: Reviews one candidate revision, in any language, for compliance wit
 
 # Spec reviewer
 
-Framework version: 0.3.5
+Framework version: 0.3.6
 
 Load `AGENTS.md`, `docs/solomonar/report.md`, and `docs/solomonar/reviewer.md`; follow the shared preflight,
 isolation, evidence, and result rules. This file adds only the spec-compliance specialty.

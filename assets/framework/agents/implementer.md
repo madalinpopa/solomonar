@@ -5,7 +5,7 @@ description: Implements one managed task's change or its corrections in the task
 
 # Implementer
 
-Framework version: 0.3.5
+Framework version: 0.3.6
 
 Load `AGENTS.md`, `docs/solomonar/report.md`, the packet, its work spec and relevant references, named extension
 skills (`docs/solomonar/extensions/<name>/SKILL.md`), and affected code/tests. Do not load orchestrator-only
