@@ -173,7 +173,7 @@ solomonar extension add extension-authoring
 
 ```text
 Plan
-  framework 0.3.6
+  framework 0.3.7
     update     AGENTS.md
   extensions
     create     docs/solomonar/extensions/extension-authoring/ (6 files)
@@ -303,7 +303,7 @@ solomonar extension remove money-reviewer
 
 ```text
 Plan
-  framework 0.3.6
+  framework 0.3.7
     update     AGENTS.md
   runtime claude
     remove     .claude/agents/ (1 role stub: 0 core, 1 extension)
@@ -331,7 +331,7 @@ solomonar extension remove go --rationale "The ledger moves to a hosted spreadsh
 
 ```text
 Plan
-  framework 0.3.6
+  framework 0.3.7
     update     AGENTS.md
   extensions
     remove     docs/solomonar/extensions/go/ (6 files)

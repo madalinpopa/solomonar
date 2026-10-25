@@ -1,6 +1,6 @@
 # Framework rules
 
-Framework version: 0.3.6
+Framework version: 0.3.7
 
 These rules apply to every managed task and to project decisions outside a task (section 3). Orchestrators
 load this file together with `AGENTS.md`. Report format, result values, finding fields, and the PR

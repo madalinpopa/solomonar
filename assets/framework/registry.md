@@ -1,6 +1,6 @@
 # Registry reference
 
-Framework version: 0.3.6
+Framework version: 0.3.7
 
 Detail for `rules.md` section 7, loaded only when a command, a CLI rejection, or a record field needs it. The
 CLI enforces what this file describes; `rules.md` wins on conflict.
