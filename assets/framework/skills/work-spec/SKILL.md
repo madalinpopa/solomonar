@@ -65,11 +65,12 @@ assigned worktree on `feature/<ID>`. Stop on mismatch; preserve unrelated edits.
    orchestrator (`rules.md` sections 1 and 3); never resolve it in the work spec. Unknowns outside the scope stay
    in the canonical specs.
 7. Ask the user only the blocking questions that need no architecture or dependency decision and are not
-   conflicts, one per message; wait for each answer. Fold answers into the spec and remove resolved questions
-   there. Technical clarifications can stay task-local; product behavior answers enter "Spec changes" (section 4).
-   Product answers changing demonstrated behavior require a prototype update and approval before entering
-   "Spec changes"; leave that part blocked until its handoff arrives. Report resolved canonical question IDs
-   and their answer/prototype sources for the orchestrator's `spec` update.
+   conflicts, one at a time through the harness's ask-user tool when available, offering known options and a
+   recommended answer; otherwise ask in chat. Wait for each answer. Fold answers into the spec and remove
+   resolved questions there. Technical clarifications can stay task-local; product behavior answers enter
+   "Spec changes" (section 4). Product answers changing demonstrated behavior require a prototype update and
+   approval before entering "Spec changes"; leave that part blocked until its handoff arrives. Report resolved
+   canonical question IDs and their answer/prototype sources for the orchestrator's `spec` update.
    Once an applicable approved decision exists, cite its ID and remove the question it resolves.
 8. When the readiness gate (section 5) passes, write the implementation plan (section 7) with `Status: In review`.
    Validate the document (section 6), then evaluate the readiness gate.

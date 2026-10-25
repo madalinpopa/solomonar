@@ -20,8 +20,10 @@ Framework version: 0.3.5
 - Edit only `prototype/**` and these parts of `docs/README.md`: an unset Current objective; user-confirmed
   Mission and Intended users; the Documents entry for `prototype/README.md`. Do not edit specs, production code,
   or task state. An in-task request returns here in the primary checkout; the orchestrator owns task coordination.
-- Reuse existing answers and scoped approvals; ask only the next necessary question. A defect fix restoring
-  already approved prototype behavior or an internal refactor needs verification, not renewed behavioral approval.
+- Reuse existing answers and scoped approvals; ask only the next necessary question. Ask through the harness's
+  ask-user tool when one is available, offering known options and a recommended answer; otherwise ask in chat.
+  Wait for each answer. A defect fix restoring already approved prototype behavior or an internal refactor needs
+  verification, not renewed behavioral approval.
 
 ## 2. Start and select guidance
 
@@ -80,8 +82,9 @@ Framework version: 0.3.5
    production testing infrastructure. Fix introduced defects; report exact checks and execution limits.
 3. Present the runnable result with flow IDs, numbered inspection steps, expected results, and alternate/failure
    triggers. Collect human feedback; never treat silence, a successful check, or a commit as approval.
-4. Apply feedback and repeat verification. Resolve blocking questions before handoff; keep unrelated ideas and
-   non-blocking unknowns under Open questions. Set `ready for spec` only after explicit approval covering the
+4. Apply feedback and repeat verification. Before handoff, ask each blocking open question, one at a time, through
+   the ask-user tool (section 1); fold answers into the prototype and remove resolved questions. Keep unrelated
+   ideas and non-blocking unknowns under Open questions. Set `ready for spec` only after explicit approval covering the
    demonstrated behavior; record `user YYYY-MM-DD` and its scope per flow. Later behavioral edits invalidate it.
 5. Commit checkpoints: the first runnable flow, an accepted feedback round, or when requested. Use
    `prototype(<flow-id>): <summary>`; README-only/multi-flow: `prototype: <summary>`. Select only allowed paths,

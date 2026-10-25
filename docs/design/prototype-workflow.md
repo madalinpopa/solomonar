@@ -35,6 +35,8 @@ conditional references illustrate execution options; they do not select a projec
 - Preserve stable flow IDs, `draft` / `ready for spec` / `superseded` statuses, and committed SHA:path handoffs.
   Approval is scoped to demonstrated scenarios. Behavioral edits invalidate affected readiness; preserve earlier
   approved revisions for inspection. A defect restoration can reuse an existing approved prototype.
+- Ask the user the next necessary question, including each blocking open question before handoff, through the
+  harness's ask-user tool when available, with known options and a recommendation; otherwise ask in chat.
 - Run prototype work in the primary checkout. Keep canonical extraction in `spec`, task preparation in the
   owning orchestrator's feature worktree through `work-spec`, and production edits with the implementer.
 - When an active task needs different behavior, hold dependent work for the approved prototype handoff, bring

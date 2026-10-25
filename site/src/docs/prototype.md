@@ -46,7 +46,7 @@ Demonstrate invalid inputs through a runnable consumer. Keep this limited
 to the module, and document how I run and check each scenario.
 ```
 
-The entry skill routes this request to `prototype`. It asks only the next necessary question and builds a draft for you to try. You do not need to settle the production stack first.
+The entry skill routes this request to `prototype`. It asks only the next necessary question, through your agent's question prompt when the harness provides one, and builds a draft for you to try. You do not need to settle the production stack first.
 
 ## What the prototype produces
 

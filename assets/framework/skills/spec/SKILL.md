@@ -74,7 +74,9 @@ Framework version: 0.3.5
    `SIMULATED:` step yields only its observable outcome (e.g. "a placed order is still listed after reload"); the
    mechanism (e.g. `localStorage`) stays evidence, subject to section 1's decision boundary.
 4. Map items to capabilities: reuse existing files; create a file only for an independently loadable area; put
-   cross-capability layout and interaction rules in `docs/ui.md`. When the split is unclear, propose one and ask.
+   cross-capability layout and interaction rules in `docs/ui.md`. When the split is unclear, propose one and ask
+   through the harness's ask-user tool when available, with the proposal as the recommended option; otherwise
+   ask in chat and wait for the answer.
 5. Mark faithfully extracted approved behavior **Agreed**, citing its approval and prototype reference. Keep
    existing unconfirmed observations **Observed**; promote them only after representation and prototype approval.
    A readiness label or intentional-change entry alone does not approve inferred rules or additional behavior.

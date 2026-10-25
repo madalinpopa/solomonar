@@ -72,7 +72,7 @@ Exclude accounts and payments.
 
 This session now takes the **orchestrator** role for one task. It registers the task, tells you **Registration confirmed**, and creates a branch and a separate worktree at `../ledger-worktrees/W-001`. You can open another session for an independent task once you see that confirmation.
 
-In the worktree, the `work-spec` skill writes the task's outcome, scope, acceptance criteria, and checks to `docs/work/`. It asks only the questions that block the work.
+In the worktree, the `work-spec` skill writes the task's outcome, scope, acceptance criteria, and checks to `docs/work/`. It asks only the questions that block the work, through your agent's question prompt when the harness provides one.
 
 The work spec ends with an implementation plan, one line per intended commit, such as `S-1: feat(W-001): store expenses`. The orchestrator shows it to you and waits:
 
