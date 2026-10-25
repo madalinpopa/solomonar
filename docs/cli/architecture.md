@@ -535,7 +535,7 @@ the name, at most 100 characters per line), and nothing requires one (revive `ex
 | `task fmt` | `golangci-lint fmt` (gofumpt, goimports with the module as local prefix). |
 | `task lint` | `go mod tidy -diff`, then `golangci-lint run` (includes `go vet`, `gosec`, format checks). |
 | `task security` | `govulncheck ./...`. |
-| `task check` | `lint`, `test`, `security`: the commands CI runs. |
+| `task check` | `lint`, `test:integration`, `security`: the commands CI runs. |
 | `task tools` | Installs golangci-lint v2.15.0 and govulncheck v1.9.0 into `.bin/`; skipped when the pinned versions are there. `task tools --force` rebuilds after a Go upgrade. |
 | `task clean` | Removes `bin/` and coverage output. |
 | `task release:patch`, `release:minor`, `release:major` | Fetch the tags, bump the latest stable `vX.Y.Z` (none counts as `v0.0.0`; prerelease tags are ignored), and after a confirmation tag `HEAD` and push the tag, which starts the release workflow; the tag is the version (AD-10). They refuse when `HEAD` is not on `origin/main`, the worktree has uncommitted changes, or the tag exists. `release:next` is `release:patch`. |
@@ -574,7 +574,7 @@ Actions are pinned to commit SHAs; Dependabot updates them and the Go modules we
 
 | Workflow | Trigger | Jobs |
 |---|---|---|
-| `ci-solomonar.yml` | pull request, push to `main`, manual, called by release | In parallel: `lint` (`go mod tidy -diff`, golangci-lint), `test` (`go test -race` with coverage), `vulncheck` (govulncheck), `build` (`goreleaser release --snapshot` for every target, then `version` and `help` on linux/amd64). |
+| `ci-solomonar.yml` | pull request, push to `main`, manual, called by release | In parallel: `lint` (`go mod tidy -diff`, golangci-lint), `test` (`go test -race` with coverage and `INTEGRATION=true`, so the transcripts run too), `vulncheck` (govulncheck), `build` (`goreleaser release --snapshot` for every target, then `version` and `help` on linux/amd64). |
 | `ci-solomonar.yml` | weekly schedule | `vulncheck` only. |
 | `ci-release-solomonar.yml` | push of a `v*.*.*` tag | `ci` reruns every check on the tagged commit; `verify` requires a semver tag, a commit on `main`, and no existing release; then `release` runs GoReleaser. |
 

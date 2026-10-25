@@ -48,6 +48,8 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
       - run: go test -race -coverprofile=coverage.out ./...
+        env:
+          INTEGRATION: "true"
       - run: go tool cover -func=coverage.out | tail -n 1 >> "$GITHUB_STEP_SUMMARY"
 
   vulncheck:

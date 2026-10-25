@@ -63,10 +63,10 @@ tasks:
     cmd: '{{.TOOLS}}/govulncheck ./...'
 
   check:
-    desc: Run lint, tests, and security checks, as CI does
+    desc: Run lint, all tests with the transcripts, and security checks, as CI does
     cmds:
       - task: lint
-      - task: test
+      - task: test:integration
       - task: security
 
   tools:

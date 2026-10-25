@@ -161,7 +161,7 @@ task check        # lint, tests with the race detector, and govulncheck, as CI r
 | `task fmt` | Format the code. |
 | `task lint` | Check that `go.mod` is tidy and run golangci-lint. |
 | `task security` | Report known vulnerabilities reachable from the code. |
-| `task check` | Run lint, tests, and security checks. |
+| `task check` | Run lint, all tests including the transcripts, and security checks. |
 
 Without Task, `go build -trimpath -o bin/solomonar .` and `go test -race ./...` work directly.
 

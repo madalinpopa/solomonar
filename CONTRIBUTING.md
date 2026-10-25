@@ -45,7 +45,7 @@ task check        # lint, tests with the race detector, and govulncheck, as CI r
 | `task test` | Run all tests with the race detector. |
 | `task test:integration` | Run all tests, including the transcript tests in `testdata/`. |
 | `task fmt` | Format the code. |
-| `task check` | Run lint, tests, and security checks. |
+| `task check` | Run lint, all tests including the transcripts, and security checks. |
 
 The documentation website lives in `site/`. Its setup and checks are in [`site/README.md`](site/README.md).
 
@@ -413,7 +413,7 @@ never gets an adapter, because it runs as the top-level session.
 
 ### Verify a framework change
 
-1. Run `task check`, then `task test:integration`. The tests read the embedded catalog and fail on a malformed
+1. Run `task check`; it includes the transcript tests. The tests read the embedded catalog and fail on a malformed
    `extension.json`, a missing `SKILL.md` or agent file, or frontmatter without `name` and `description`.
 2. Install the change into a scratch project and read what an agent will read:
 
