@@ -20,7 +20,7 @@ Framework version: {{ .Version }}
 - Edit only `prototype/**` and these parts of `docs/README.md`: an unset Current objective; user-confirmed
   Mission and Intended users; the Documents entry for `prototype/README.md`. Do not edit specs, production code,
   or task state. An in-task request returns here in the primary checkout; the orchestrator owns task coordination.
-- Reuse existing answers and scoped approvals; ask only the next necessary question, per `AGENTS.md` rule 14.
+- Reuse existing answers and scoped approvals; ask only the next necessary question, per `AGENTS.md` rule 11.
   A defect fix restoring already approved prototype behavior or an internal refactor needs verification, not
   renewed behavioral approval.
 
@@ -82,7 +82,7 @@ Framework version: {{ .Version }}
 3. Present the runnable result with flow IDs, numbered inspection steps, expected results, and alternate/failure
    triggers. Collect human feedback; never treat silence, a successful check, or a commit as approval.
 4. Apply feedback and repeat verification. Before handoff, ask each blocking open question (`AGENTS.md`
-   rule 14); fold answers into the prototype and remove resolved questions. Keep unrelated
+   rule 11); fold answers into the prototype and remove resolved questions. Keep unrelated
    ideas and non-blocking unknowns under Open questions. Set `ready for spec` only after explicit approval covering the
    demonstrated behavior; record `user YYYY-MM-DD` and its scope per flow. Later behavioral edits invalidate it.
 5. Commit checkpoints: the first runnable flow, an accepted feedback round, or when requested. Use

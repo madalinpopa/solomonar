@@ -25,9 +25,9 @@ const (
 	legacyIntro   = "Installed with `solomonar`; draft project extensions are not active. Load every installed " +
 		"extension skill whose\n\"applies when\" matches your change, before writing or reviewing code, and cite its " +
 		"rules as `<name>/C-n`.\nThe orchestrator names the matching extensions in each packet.\n"
-	currentIntro = "Installed with `solomonar`. Load every installed extension skill whose \"applies when\" matches " +
-		"your change, before\nwriting or reviewing code, and cite its rules as `<name>/C-n`. The orchestrator names " +
-		"the matching extensions in\neach packet.\n"
+	currentIntro = "Installed with `solomonar`. Before writing or reviewing code, load the extension skills your " +
+		"packet names; without\na packet, every installed one whose \"applies when\" matches your change. Cite their " +
+		"rules as `<name>/C-n`.\n"
 )
 
 // legacyRepo rebuilds what v0.1.7 `init --runtime claude,codex --ext go` wrote: the go skill in

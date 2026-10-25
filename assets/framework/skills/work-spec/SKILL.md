@@ -14,7 +14,7 @@ Framework version: {{ .Version }}
   revisions, verdicts) and execution progress stay out of this document; progress lives in checkpoint commits.
 - Only the owning orchestrator uses this skill, for a registered task in its assigned `feature/<ID>` worktree.
   Registration, lifecycle transitions, and review stability remain its responsibility outside this skill.
-- Apply `AGENTS.md` rule 9 before specifying new or changed behavior. Inspect `prototype/README.md` if present;
+- Apply `AGENTS.md` rule 7 before specifying new or changed behavior. Inspect `prototype/README.md` if present;
   require approved flow references covering that behavior. Missing coverage returns to `prototype` through the
   orchestrator, even for an existing prototype; a task brief or decision cannot replace this handoff.
 - You may edit only `docs/work/<ID>-<slug>.md` in that worktree. You must not edit `docs/specs/`, `docs/ui.md`,
@@ -66,7 +66,7 @@ assigned worktree on `feature/<ID>`. Stop on mismatch; preserve unrelated edits.
    in the canonical specs. A question whose answer affects the whole project is a project question
    (`rules.md` section 3): cite its canonical ID, or report it to the orchestrator; never list it as `W-001/Q-n`.
 7. Ask the user only the blocking questions that need no architecture or dependency decision and are not
-   conflicts, per `AGENTS.md` rule 14. Fold answers into the spec and remove resolved questions there. Technical clarifications can stay task-local; product behavior answers enter
+   conflicts, per `AGENTS.md` rule 11. Fold answers into the spec and remove resolved questions there. Technical clarifications can stay task-local; product behavior answers enter
    "Spec changes" (section 4). Product answers changing demonstrated behavior require a prototype update and
    approval before entering "Spec changes"; leave that part blocked until its handoff arrives. Report resolved
    canonical question IDs and their answer/prototype sources for the orchestrator's `spec` update.
@@ -152,7 +152,7 @@ Before the verdict and commit, check:
   and to a named check with any verification limit.
 - Question markers match their impact; unresolved blockers remain visible. Behavior answers appear in "Spec
   changes"; resolved canonical questions are reported for the orchestrator to update.
-- `Status:` is `In review` or `Approved`; plan steps are `- S-<n>: <type>(<ID>): <summary>` with unique,
+- `Status:` is `In review` or `Approved`; plan steps are `- S-<n>: <type>(<ID>)[!]: <summary>` with unique,
   never-reused IDs, and outcomes carry a reason.
 - No copied unchanged canonical rules, execution state, template hints, or unused placeholders remain. Pending
   `<capability>/new` entries remain explicit until the orchestrator replaces them.
@@ -162,7 +162,7 @@ apply section 5's gate without editing files outside the work spec.
 
 ## 7. Implementation plan and approval
 
-- Under `## Implementation plan`, list the intended commits in order: `- S-<n>: <type>(<ID>): <summary>`, the
+- Under `## Implementation plan`, list the intended commits in order: `- S-<n>: <type>(<ID>)[!]: <summary>`, the
   exact checkpoint commit subject (type ∈ `feat`, `fix`, `refactor`, `test`, `docs`, `build`, `chore`, `perf`).
   Indented lines below a step delimit its work: files or areas, the ACs it serves, its checks. Each step is one
   coherent, independently checkable change; no step only records progress.

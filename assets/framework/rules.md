@@ -21,7 +21,7 @@ Here, "main" means the integration branch named by `.solomonar/manifest.json` â†
      Preferences stay suggestions.
 - Two approved requirements that contradict each other require a user decision (section 3).
 - Flag every conflict between a global spec and the work spec. Never silently drop an acceptance criterion.
-- Apply `AGENTS.md` rule 9 before changing requirements or production behavior. The approved prototype defines
+- Apply `AGENTS.md` rule 7 before changing requirements or production behavior. The approved prototype defines
   represented behavior; **Agreed** spec rules express it for implementation. Pause conflicting work rather than
   choosing either artifact silently. **Observed** rules and code do not approve behavior; prototype libraries
   and simulation mechanisms do not approve production architecture or dependencies.
@@ -75,7 +75,7 @@ Here, "main" means the integration branch named by `.solomonar/manifest.json` â†
   4. Keep the recovery evidence current (section 10) and wait. No response is not approval. Never repeat the question or retry automatically.
 - While waiting, affected and dependent work must wait. Independent authorized work may continue.
 - On approval: set the entry `approved` with the selected option. If it changes behavior, first complete
-  `AGENTS.md` rule 9 through `prototype` in the primary checkout; keep dependent work blocked. A project entry
+  `AGENTS.md` rule 7 through `prototype` in the primary checkout; keep dependent work blocked. A project entry
   or a prototype handoff reaches the task branch only through main; a handoff on `prototype/<topic>` waits
   until the user merges it. Once it is on main, delegate the merge to the implementer (packet objective
   "merge main into `feature/<ID>`", `implementer.md` section 7). Then update affected specs via `spec` in-task
@@ -95,10 +95,10 @@ Here, "main" means the integration branch named by `.solomonar/manifest.json` â†
 - Outside any task, the user's top-level session, routed by the `solomonar` skill, records project decisions:
   present the decision request; write nothing until the user explicitly approves an option, then append the
   entry `approved`. Record it `pending` only when the user defers it. No response is not approval. A decision
-  that changes behavior then completes `AGENTS.md` rule 9 through `prototype` and `spec`. The task that first
+  that changes behavior then completes `AGENTS.md` rule 7 through `prototype` and `spec`. The task that first
   applies a project decision updates `docs/architecture.md` or `docs/stack.md`.
 - When a session reports project open questions, suggest that the user answer them, blocking first, and wait.
-  Only after the user agrees, ask them per `AGENTS.md` rule 14. Record an approved decision as above; route a
+  Only after the user agrees, ask them per `AGENTS.md` rule 11. Record an approved decision as above; route a
   behavior answer through `prototype`, then `spec`; leave an unanswered question open.
 - Stack extensions follow the same approval rule; adopting or dropping one is a project decision. When
   available, the user's `solomonar extension add|remove` records `P/D-n` for each affected group's complete
@@ -165,7 +165,7 @@ integration with main â†’ closure commits (section 9) â†’ merge â†’ `task done` 
 
 ### Checkpoints
 
-- The work spec's `## Implementation plan` lists steps `- S-<n>: <type>(<ID>): <summary>`, each the intended
+- The work spec's `## Implementation plan` lists steps `- S-<n>: <type>(<ID>)[!]: <summary>`, each the intended
   commit subject with enough detail to delimit the work. Its `Status` line is `In review` until the user approves
   the plan, then `Approved`. Only the orchestrator edits the plan; it is the approved plan, not an execution log.
 - The implementer commits each completed step as its checkpoint: the planned subject, a short body (progress,

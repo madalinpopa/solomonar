@@ -82,9 +82,9 @@ func TestCoreWantsEmbeddedAssets(t *testing.T) {
 	assert.Equal(t, []string{"core"}, compactOwners(owners[:len(owners)-2]))
 	agents := string(wants[len(wants)-2].Content)
 	assert.Contains(t, agents, "Framework version: 9.8.7.")
-	assert.Contains(t, agents, "## Extensions\n\nInstalled with `solomonar`. Load every installed extension skill whose "+
-		"\"applies when\" matches your change, before\nwriting or reviewing code, and cite its rules as `<name>/C-n`. "+
-		"The orchestrator names the matching extensions in\neach packet.\n\n"+noExtensions+"\n\n## Context routes")
+	assert.Contains(t, agents, "## Extensions\n\nInstalled with `solomonar`. Before writing or reviewing code, load the "+
+		"extension skills your packet names; without\na packet, every installed one whose \"applies when\" matches your "+
+		"change. Cite their rules as `<name>/C-n`.\n\n"+noExtensions+"\n\n## Context routes")
 	assert.Contains(t, agents, "\n## Project notes\n")
 	readme := string(wants[len(wants)-1].Content)
 	assert.True(t, strings.HasPrefix(readme, "# ledger\n"))

@@ -432,9 +432,11 @@ never gets an adapter, because it runs as the top-level session.
 
 ## Commits and pull requests
 
-- Write commit messages in [Conventional Commits](https://www.conventionalcommits.org/) form, with the area as the
-  scope: `feat(cli): ...`, `fix(task): ...`, `feat(agents): ...`, `feat(go): ...`, `docs(site): ...`,
-  `docs(research): ...`.
+- Write commit messages in [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) form,
+  with the area as the scope: `feat(cli): ...`, `fix(task): ...`, `feat(agents): ...`, `feat(go): ...`,
+  `docs(site): ...`, `docs(research): ...`.
+- Never credit an AI tool, agent, or model in commits or pull requests: no `Co-authored-by` trailer or
+  "Generated with" line.
 - Keep one logical change per commit. A rule change and the documents it updates may share a commit; unrelated
   edits may not.
 - Add or update tests for every behavior change, and run `task check` until it passes.

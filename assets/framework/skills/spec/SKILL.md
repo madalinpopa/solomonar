@@ -9,7 +9,7 @@ Framework version: {{ .Version }}
 
 ## 1. Purpose and boundaries
 
-- Express approved prototype behavior as requirements under `AGENTS.md` rule 9. Never finalize new or changed
+- Express approved prototype behavior as requirements under `AGENTS.md` rule 7. Never finalize new or changed
   behavior from user statements, task decisions, code, or draft prototype changes alone.
 - You may edit only `docs/specs/*.md`, `docs/ui.md`, and the document index in `docs/README.md`.
 - You must not edit `docs/work/`, `docs/decisions.md`, `docs/architecture.md`, `docs/stack.md`, `prototype/`,
@@ -75,7 +75,7 @@ Framework version: {{ .Version }}
    mechanism (e.g. `localStorage`) stays evidence, subject to section 1's decision boundary.
 4. Map items to capabilities: reuse existing files; create a file only for an independently loadable area; put
    cross-capability layout and interaction rules in `docs/ui.md`. When the split is unclear, propose one and ask
-   per `AGENTS.md` rule 14, with the proposal as the recommended option.
+   per `AGENTS.md` rule 11, with the proposal as the recommended option.
 5. Mark faithfully extracted approved behavior **Agreed**, citing its approval and prototype reference. Keep
    existing unconfirmed observations **Observed**; promote them only after representation and prototype approval.
    A readiness label or intentional-change entry alone does not approve inferred rules or additional behavior.

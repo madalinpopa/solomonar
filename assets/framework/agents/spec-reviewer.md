@@ -64,7 +64,7 @@ the packet, or named but unavailable, is missing input under `reviewer.md` secti
 
 - Read only referenced flows/supporting files at their cited SHA (`reviewer.md` section 2). For new/changed
   behavior, verify its representation and approval in that revision's prototype README and its extraction into
-  the governing specs (`AGENTS.md` rule 9). Do not treat draft edits or implementation behavior as approval.
+  the governing specs (`AGENTS.md` rule 7). Do not treat draft edits or implementation behavior as approval.
 - Report prototype/spec conflicts through `report.md` section 6; resolution starts in the prototype. Prototype
   dependencies and mock mechanisms never approve production architecture. Missing required approval evidence
   prevents a passing review; inability to inspect it is a verification gap, not proof of a behavior defect.

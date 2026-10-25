@@ -99,4 +99,4 @@ marks a specialty "not required"; reviewing applicable scope and finding no defe
 
 Never repair the candidate, change task state, apply a policy choice, or waive required verification to obtain
 a passing review. Worktree and communication boundaries are in sections 4–5; confidentiality follows
-`AGENTS.md` rule 11 and `report.md` section 1.
+`AGENTS.md` rule 8 and `report.md` section 1.

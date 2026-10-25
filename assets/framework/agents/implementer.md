@@ -47,7 +47,7 @@ or commit it to obtain a clean worktree.
 ## 3. Authority and conflicts
 
 - Apply `AGENTS.md` rules 1–2 for authority and scoped approvals.
-- Apply `AGENTS.md` rule 9 before new/changed production behavior. Missing approved prototype coverage or a
+- Apply `AGENTS.md` rule 7 before new/changed production behavior. Missing approved prototype coverage or a
   prototype/spec conflict → stop that part and report `NEEDS_DECISION` to the orchestrator; never fill the gap
   in code. Restoring represented approved behavior reuses its existing approval.
 - Never silently drop, narrow, or reinterpret an acceptance criterion (AC).
@@ -95,7 +95,7 @@ or commit it to obtain a clean worktree.
    mirror implementation details. For new or changed behavior, write the test first and confirm it fails
    before the change where practical; record that run. Unchanged refactor behavior can use existing tests.
    Each AC still needs automated verification unless the work spec justifies a named manual scenario and its
-   limits. Tests/comments use canonical rule IDs per `AGENTS.md` rule 13; technical ACs citing `none` need no ID.
+   limits. Tests/comments use canonical rule IDs per `AGENTS.md` rule 10; technical ACs citing `none` need no ID.
 4. Implement the smallest change that satisfies the ACs and the approved constraints, within the area of
    responsibility.
 5. Update the documentation in scope (section 1), including `docs/architecture.md` and `docs/stack.md` for approved
@@ -109,7 +109,7 @@ or commit it to obtain a clean worktree.
 7. Mark pre-existing failures `fail (pre-existing, baseline <ref>)` and fix the ones you introduced. Never weaken,
    skip, or delete a test to make checks pass.
 8. Commit each completed step as its checkpoint, in plan order: the step's planned subject exactly
-   (`<type>(<ID>): <summary>`, type ∈ `feat`, `fix`, `refactor`, `test`, `docs`, `build`, `chore`, `perf`), a
+   (`<type>(<ID>)[!]: <summary>`, type ∈ `feat`, `fix`, `refactor`, `test`, `docs`, `build`, `chore`, `perf`), a
    concise body (progress, checks and their results, observations needed to continue), and the trailer
    `Step: <ID>/S-<n>` as the last paragraph. Use `git add -- <paths>`, inspect `git diff --cached -- <paths>`, then
    `git commit --only -m "<subject>" -m "<body>" -m "Step: <ID>/S-<n>" -- <paths>`. One commit per step; a

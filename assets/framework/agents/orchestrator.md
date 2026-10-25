@@ -69,7 +69,7 @@ and `done`, including suggested commands. Unchanged moves create no commit (`reg
 - Route reports and apply the loop stop per `rules.md` sections 2 and 5. Decisions follow `rules.md` section 3,
   including atomic blocker/status/next-action updates and committing approvals and spec changes before
   unblocking. Load `skills/spec/SKILL.md` for those changes; list approved decision IDs in the next packet.
-- For new/changed behavior or a prototype/spec conflict, enforce `AGENTS.md` rule 9 at any stage. Route the
+- For new/changed behavior or a prototype/spec conflict, enforce `AGENTS.md` rule 7 at any stage. Route the
   affected flow to `prototype` in the primary checkout and wait for its approved committed handoff; do not edit
   `prototype/` from the task worktree. Once the snapshot is on main (`rules.md` section 3), delegate the merge
   of main into the task branch (section 4), apply `spec`, and refresh the work spec and packet references
