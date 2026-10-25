@@ -18,9 +18,9 @@ A runtime is the agent product that runs sessions: Claude Code (`claude`), Codex
 
 The three commands manage adapter files and the manifest's runtime choices only. None installs, merges, or removes a guard hook, touches a runtime's settings or hook files, runs the runtime, or checks provider access. `solomonar guard` and its hooks remain deferred.
 
-Copilot targets the CLI only. It reads `AGENTS.md` natively and gets `.github/skills/<skill>/SKILL.md` and `.github/agents/<role>.agent.md` stubs, tracked as `runtime:copilot`. Its entry skill is user-invoked with `/solomonar`; delegated roles load the portable role and repository instructions. IDE and cloud-agent compatibility are outside this delivery.
+Copilot targets the CLI only. It reads `AGENTS.md` natively and gets `.github/skills/<skill>/SKILL.md` and `.github/agents/<role>.agent.md` stubs, tracked as `runtime:copilot`. Its entry skill is user-invoked with `/solomonar`; delegated roles load the portable role and repository instructions. IDE extensions and the cloud agent are not supported.
 
-The adapter follows GitHub's [CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference) and [custom-agent documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/create-custom-agents-for-cli), checked on 2026-10-23. Copilot 1.0.85 passed local instruction and skill discovery checks; 1.0.103 sessions run, but prompt mode cannot invoke the entry skill. Delegation, model selection, and the minimum supported version remain unverified; see the [acceptance record]({{ 'docs/cli/interface.md' | source }}#copilot-runtime-acceptance).
+The adapter follows GitHub's [CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference) and [custom-agent documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/create-custom-agents-for-cli). Prompt mode (`copilot -p`) cannot load the entry skill; invoke `/solomonar` in an interactive session.
 
 ## solomonar runtime list
 

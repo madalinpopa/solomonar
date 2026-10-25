@@ -206,9 +206,6 @@ h2 { font-size: clamp(2.5rem, 4.2vw, 3.6rem); line-height: 1.12; letter-spacing:
 .doc-content figure { margin: 32px 0; }
 .doc-content figure img { display: block; width: 100%; background: var(--bg); }
 .doc-content figcaption { font-size: 12px; color: var(--quiet); margin-top: 12px; }
-.doc-sources { border-top: 1px solid var(--line); margin-top: 50px; padding-top: 18px; font: 11px/1.7 var(--mono); color: var(--quiet); }
-.doc-sources > span { display: block; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 8px; }
-.doc-sources a { display: block; overflow-wrap: anywhere; padding: 5px 0; }
 .doc-pagination { display: flex; justify-content: space-between; gap: 24px; padding-top: 30px; }
 .doc-pagination a { text-decoration: none; font-size: 24px; }
 .doc-pagination span { display: block; font: 10px var(--mono); text-transform: uppercase; color: var(--quiet); letter-spacing: .12em; margin-bottom: 8px; }

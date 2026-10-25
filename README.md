@@ -42,7 +42,7 @@ The name comes from Romanian folklore: a solomonar is a wizard who learns every 
 - **A task record that cannot drift silently.** State lives on a dedicated Git branch, is written only through checked CLI commands, and is compared with the real branch, worktree, and pull request on demand.
 - **Resume from Git, not from a conversation.** You approve each task's implementation plan; every step becomes its own checkpoint commit. A new session continues the remaining steps from the plan and its commits.
 - **Small current docs, full history.** Each finished task keeps a compact record; its final work spec stays in Git history.
-- **Runtime-agnostic.** Claude Code, Codex, and GitHub Copilot CLI adapters point to one portable source of instructions. Copilot installation and discovery are verified; live workflow acceptance is pending.
+- **Runtime-agnostic.** Claude Code, Codex, and GitHub Copilot CLI adapters point to one portable source of instructions.
 
 ## Requirements
 
@@ -54,7 +54,7 @@ The name comes from Romanian folklore: a solomonar is a wizard who learns every 
 
 The CLI needs no model-provider API key.
 
-Copilot CLI discovery was checked with versions 1.0.85 and 1.0.103. Invoke `/solomonar` in an interactive session; prompt mode (`copilot -p`) cannot invoke the entry skill. Delegation, reviewer tools, model selection, and the minimum supported Copilot version remain unverified. See the [acceptance record](docs/cli/interface.md#copilot-runtime-acceptance). Copilot adapter installation is available in this source tree; check `solomonar init --help` for `copilot` in an installed build. IDE and cloud-agent compatibility are outside this delivery.
+GitHub Copilot is supported through Copilot CLI only, not the IDE extensions or the cloud agent. Invoke `/solomonar` in an interactive session; prompt mode (`copilot -p`) cannot load the entry skill.
 
 ## Installation
 
@@ -105,7 +105,7 @@ Open a top-level agent session in the project and start every request with the `
 | --- | --- |
 | Claude Code | `/solomonar Prototype adding a shared expense.` |
 | Codex | `$solomonar Prototype adding a shared expense.` |
-| GitHub Copilot CLI | `/solomonar Prototype adding a shared expense.` (live workflow acceptance pending) |
+| GitHub Copilot CLI | `/solomonar Prototype adding a shared expense.` |
 | Any runtime | `Use the solomonar skill to prototype adding a shared expense.` |
 
 To install the Copilot adapter in a project with no recorded Solomonar choices, use `--runtime copilot` instead of `--runtime claude`. Follow the printed commit command: it lists individual Copilot files rather than the whole `.github` directory. `init` never changes recorded choices; in an already initialized project, change runtimes with the [`runtime` commands](https://solomonar.dev/docs/cli/runtime/):

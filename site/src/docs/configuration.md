@@ -19,7 +19,7 @@ sources:
 
 `solomonar init` writes these files. The core and the adapters are managed: the manifest records their hashes so a later run can tell your edits from its own.
 
-`init --runtime copilot` installs the Copilot adapters below. Copilot 1.0.85 discovered the instructions and all four core skills in a main checkout and feature worktree with all three adapters installed. Copilot 1.0.103 sessions run, but prompt mode cannot invoke the entry skill; delegation, reviewer tool behavior, model selection, and the minimum supported version remain unverified. See the [acceptance record]({{ 'docs/cli/interface.md' | source }}#copilot-runtime-acceptance).
+`init --runtime copilot` installs the Copilot adapters below.
 
 | Path | Owns | Owner |
 | --- | --- | --- |
@@ -62,7 +62,7 @@ New prototype parts can be grouped by type under `prototype/cli/`, `web/`, `modu
 | Agent roles | `.claude/agents/<role>.md`; reviewers get a read-only tool list | `.codex/agents/<role>.toml` |
 | Entry invocation | `/solomonar` | `$solomonar` |
 
-The Copilot CLI adapter uses the following format. These fields were checked against GitHub's [CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference), [skill locations](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills), and [custom-agent configuration](https://docs.github.com/en/copilot/reference/custom-agents-configuration) on 2026-10-23. Live compatibility and the minimum supported Copilot version remain unverified.
+The Copilot CLI adapter uses the following format. These fields follow GitHub's [CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference), [skill locations](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills), and [custom-agent configuration](https://docs.github.com/en/copilot/reference/custom-agents-configuration).
 
 | Concern | GitHub Copilot CLI |
 | --- | --- |

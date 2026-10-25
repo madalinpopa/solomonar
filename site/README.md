@@ -60,7 +60,7 @@ The workflow has `packages: write`; no registry password secret is needed for pu
 ## Content and sources
 
 - `src/index.njk`: the illustrated story in four chapters, then the same chapters retold beside real repository artifacts (a spec, a prompt, the agent roster, a CLI rejection) and the `init` call to action. Keep those artifacts matching actual CLI output.
-- `src/docs/*.md`: documentation pages. `group` and `order` set the sidebar and reading order (Start here, Learn the framework, Guides, Reference, Commands, In development, as listed in `site.groups`); `navTitle` is the short sidebar label.
+- `src/docs/*.md`: documentation pages. `group` and `order` set the sidebar and reading order (Start here, Learn the framework, Guides, Reference, Commands, In development, as listed in `site.groups`); `navTitle` is the short sidebar label. `sources` lists the repository files a page tracks, for maintainers; it is not rendered.
 - `src/docs/cli/*.md`: one page per CLI command. `inDevelopment: true` marks a specified command that is not in the build yet; its page belongs to the "In development" group and shows a label beside its title. The `cliUsage` shortcode renders a command's "When to use it" and "Who runs it" panel.
 - `src/_includes/`: shared layouts; `src/_data/site.js`: shared navigation and metadata.
 - `src/assets/site.css` and `site.js`: themes, animation, responsive layout, and progressive enhancement.

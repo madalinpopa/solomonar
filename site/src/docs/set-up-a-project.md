@@ -100,7 +100,7 @@ git commit -m "chore: initialize solomonar 0.3.3"
 
 For a Copilot selection, use the printed command: it names each generated adapter file under `.github/skills/` and `.github/agents/`. Do not substitute `git add .github`, which can stage unrelated project files.
 
-Start your selected runtime at the repository root. For Copilot CLI, run `copilot`, then enter `/solomonar Explore the next useful flow.` in its top-level session. The entry skill stays user-invoked; the orchestrator is intended to continue in that session and delegate the other roles. Copilot 1.0.85 passed local discovery checks; 1.0.103 sessions run, but prompt mode (`copilot -p`) cannot invoke the entry skill. Delegation and the minimum supported version remain unverified. See the [acceptance record]({{ 'docs/cli/interface.md' | source }}#copilot-runtime-acceptance) and the [official CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference).
+Start your selected runtime at the repository root. For Copilot CLI, run `copilot`, then enter `/solomonar Explore the next useful flow.` in its top-level session. The entry skill stays user-invoked; the orchestrator is intended to continue in that session and delegate the other roles. Prompt mode (`copilot -p`) cannot load the entry skill, so use an interactive session. See the [official CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference).
 
 ## What init created
 

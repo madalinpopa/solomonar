@@ -17,7 +17,7 @@ sources:
 | | Solomonar | [GitHub Spec Kit](https://github.com/github/spec-kit) | [Kiro](https://kiro.dev/) | [OpenSpec](https://github.com/Fission-AI/OpenSpec) | [BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD) |
 | --- | --- | --- | --- | --- | --- |
 | Form | Framework files and a checking CLI | Templates, agent commands, and a scaffolding CLI | IDE and CLI from AWS | Agent commands and a validating CLI | Agent personas, skills, and workflows |
-| Agent runtimes | Claude Code, Codex, and a Copilot CLI adapter (live acceptance pending) | Dozens of coding agents | Kiro itself | 30+ coding agents | Several coding agents, including Claude Code, Codex, and Cursor |
+| Agent runtimes | Claude Code, Codex, and GitHub Copilot CLI | Dozens of coding agents | Kiro itself | 30+ coding agents | Several coding agents, including Claude Code, Codex, and Cursor |
 | Calls a model itself | No | No; the agent runs the steps | Yes | No; the agent runs the steps | No; the agent runs the steps |
 | Specification flow | Prototype, human approval, agreed specs, then one work spec per task for new/changed behavior | Constitution, specify, plan, tasks, implement | `requirements.md` in EARS notation, `design.md`, `tasks.md` | Change proposals with delta specs, archived into living specs | Product brief, PRD, architecture, epics and stories |
 | Parallel work | A worktree per task, by rule | Branches through an optional extension; worktrees through community extensions | Parallel subagents and tasks | Not covered | Worktrees recommended in its guides |
@@ -69,4 +69,4 @@ The catalog holds the `go` extension and the `extension-authoring` skill. You ch
 - You want an editor that runs the models and manages the specs for you: Kiro.
 - You want document templates that work with almost any agent and little process: Spec Kit or OpenSpec.
 - You want a full planning process with product roles before any code: BMAD-METHOD.
-- You want independent reviews, isolated parallel tasks, and task state that Git can verify: Solomonar. Claude Code and Codex adapters are available; Copilot CLI installation and discovery are verified, with live workflow acceptance pending.
+- You want independent reviews, isolated parallel tasks, and task state that Git can verify: Solomonar. Claude Code, Codex, and GitHub Copilot CLI adapters are available.

@@ -17,7 +17,6 @@ layout: base.njk
     <header class="doc-header"><p class="eyebrow">{{ kind }} <span>/</span> {{ group }}</p><h1>{{ title }}{% if inDevelopment %}<span class="cli-label">In development</span>{% endif %}</h1><p class="doc-lead">{{ description }}</p></header>
     <details class="doc-toc" open><summary>On this page</summary><nav aria-label="On this page">{% for heading in content | toc %}<a href="#{{ heading.id }}">{{ heading.title | safe }}</a>{% endfor %}</nav></details>
     <div class="doc-content">{{ content | safe }}</div>
-    {% if sources %}<div class="doc-sources"><span>Source of truth</span>{% for source in sources %}<a href="{{ source | source }}">{{ source }}</a>{% endfor %}</div>{% endif %}
     <nav class="doc-pagination" aria-label="Next reading">
       {% for doc in collections.docs %}{% if doc.url == page.url %}
       {% if not loop.first %}{% set previous = collections.docs[loop.index0 - 1] %}<a href="{{ previous.url | url }}"><span>Previous</span>{{ previous.data.navTitle or previous.data.title }}</a>{% endif %}
