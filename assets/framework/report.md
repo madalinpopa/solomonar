@@ -1,6 +1,6 @@
 # Report contract
 
-Framework version: 0.3.3
+Framework version: 0.3.4
 
 Delegated agent reports, the consolidated correction list, and the PR Verification section follow this file.
 `rules.md` below means `docs/solomonar/rules.md`, which owns orchestration, routing, arbitration, and state.

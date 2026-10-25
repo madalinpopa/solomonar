@@ -1,6 +1,6 @@
 # Module and library prototypes
 
-Framework version: 0.3.3
+Framework version: 0.3.4
 
 - Prototype the selected function, component, or public module interface in the intended language when known.
   Include a minimal executable consumer or harness that calls it directly; avoid building a hosting application

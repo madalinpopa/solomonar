@@ -1,6 +1,6 @@
 # Web prototypes
 
-Framework version: 0.3.3
+Framework version: 0.3.4
 
 - Prefer semantic HTML, CSS, vanilla JavaScript, and native browser APIs. Add a framework only when required
   interaction fidelity justifies its setup; keep styling plain unless visual exploration is requested.
