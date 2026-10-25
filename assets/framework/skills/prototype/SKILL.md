@@ -86,8 +86,9 @@ Framework version: 0.3.7
    ideas and non-blocking unknowns under Open questions. Set `ready for spec` only after explicit approval covering the
    demonstrated behavior; record `user YYYY-MM-DD` and its scope per flow. Later behavioral edits invalidate it.
 5. Commit checkpoints: the first runnable flow, an accepted feedback round, or when requested. Use
-   `prototype(<flow-id>): <summary>`; README-only/multi-flow: `prototype: <summary>`. Select only allowed paths,
-   inspect the staged diff, preserve unrelated staged work, skip unchanged commits, and never push unless asked.
+   `prototype(<flow-id>): <summary>`; README-only/multi-flow: `prototype(readme): <summary>`. Select only
+   allowed paths, inspect the staged diff, preserve unrelated staged work, skip unchanged commits, and never
+   push unless asked.
 
 ## 5. Records and specification handoff
 
