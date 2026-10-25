@@ -123,7 +123,7 @@ The implementer builds the change and hands over a committed revision. The orche
 - Normal code gets the security, correctness, and spec reviewers.
 - Persistence, authentication, concurrency, external integrations, and migrations also face an adversarial reviewer. Saving expenses lands here.
 
-Confirmed problems go back to the implementer, and the new revision is reviewed again. When every check and review passes, the orchestrator commits the final work spec, opens the pull request, and merges it with a merge commit. Then it runs `task done`, which verifies the merge before writing the task as `done`.
+Confirmed problems go back to the implementer, and the new revision is reviewed again. Once reviews pass, the orchestrator pushes the branch, opens the pull request, waits for the required checks, and brings the branch up to date with main. It then closes the task: it commits the final work spec if it changed, and a last commit removes the task's file from `docs/work/`. The orchestrator merges with a merge commit, never squash or rebase. It asks for no extra approval, but approvals your repository requires still apply. Then it runs `task done`, which verifies the merge and the final spec before writing the task as `done`.
 
 ```sh
 solomonar task show W-001
