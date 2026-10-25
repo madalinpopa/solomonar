@@ -25,18 +25,18 @@ func TestInitCopilotAndMixedRuntimes(t *testing.T) {
 		runtimes                  []string
 		created                   int
 	}{
-		{selection: "copilot", runtimes: []string{"copilot"}, created: 28},
+		{selection: "copilot", runtimes: []string{"copilot"}, created: 32},
 		{
 			selection: "copilot,claude", precedingPaths: "CLAUDE.md .claude ",
-			runtimes: []string{"claude", "copilot"}, created: 38,
+			runtimes: []string{"claude", "copilot"}, created: 42,
 		},
 		{
 			selection: "copilot,codex", precedingPaths: ".agents .codex ",
-			runtimes: []string{"codex", "copilot"}, created: 38,
+			runtimes: []string{"codex", "copilot"}, created: 42,
 		},
 		{
 			selection: "copilot,codex,claude", precedingPaths: "CLAUDE.md .claude .agents .codex ",
-			runtimes: []string{"claude", "codex", "copilot"}, created: 48,
+			runtimes: []string{"claude", "codex", "copilot"}, created: 52,
 		},
 	}
 	for _, tt := range tests {

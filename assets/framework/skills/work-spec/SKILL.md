@@ -14,6 +14,9 @@ Framework version: 0.3.2
   revisions, verdicts) and execution progress stay out of this document; progress lives in checkpoint commits.
 - Only the owning orchestrator uses this skill, for a registered task in its assigned `feature/<ID>` worktree.
   Registration, lifecycle transitions, and review stability remain its responsibility outside this skill.
+- Apply `AGENTS.md` rule 9 before specifying new or changed behavior. Inspect `prototype/README.md` if present;
+  require approved flow references covering that behavior. Missing coverage returns to `prototype` through the
+  orchestrator, even for an existing prototype; a task brief or decision cannot replace this handoff.
 - You may edit only `docs/work/<ID>-<slug>.md` in that worktree. You must not edit `docs/specs/`, `docs/ui.md`,
   `docs/decisions.md`, `docs/architecture.md`, `docs/stack.md`, `prototype/`, product code, or workflow state.
 
@@ -64,7 +67,9 @@ assigned worktree on `feature/<ID>`. Stop on mismatch; preserve unrelated edits.
 7. Ask the user only the blocking questions that need no architecture or dependency decision and are not
    conflicts, one per message; wait for each answer. Fold answers into the spec and remove resolved questions
    there. Technical clarifications can stay task-local; product behavior answers enter "Spec changes" (section 4).
-   Report resolved canonical question IDs and their answer sources for the orchestrator's `spec` update.
+   Product answers changing demonstrated behavior require a prototype update and approval before entering
+   "Spec changes"; leave that part blocked until its handoff arrives. Report resolved canonical question IDs
+   and their answer/prototype sources for the orchestrator's `spec` update.
    Once an applicable approved decision exists, cite its ID and remove the question it resolves.
 8. When the readiness gate (section 5) passes, write the implementation plan (section 7) with `Status: In review`.
    Validate the document (section 6), then evaluate the readiness gate.
@@ -91,14 +96,14 @@ assigned worktree on `feature/<ID>`. Stop on mismatch; preserve unrelated edits.
   - bug fix: reproduction steps → expected behavior (cite the rule it violates), plus a regression check;
   - refactor: listed existing behaviors stay unchanged (cite rule IDs), plus the structural target; no new behavior;
   - technical task: the observable or verifiable technical outcome.
-- An AC that relies on an **Observed** rule needs user confirmation. Ask it with the outcome question when
-  possible, once; reuse an existing explicit confirmation and its date. Record it on the AC:
-  `(orders/R-2, confirmed user YYYY-MM-DD)`.
+- An AC relying on an **Observed** rule stays blocked until an approved prototype represents it and `spec`
+  can promote it. Record the approval and flow reference; do not seek spec-only confirmation.
 - Behavior the change adds or alters, including confirmed **Observed** rules and expected behavior no rule states
   yet, goes into the "Spec changes" line: existing rule IDs with their target statement or label, new rules as
   `<capability>/new: <statement>` (the `spec` skill assigns IDs), each with its source (`user YYYY-MM-DD` or
-  an approved decision ID). When multiple proposed rules share `<capability>/new`, distinguish each by its
-  target statement and the AC IDs it supports so final-ID mappings are unambiguous. Only the orchestrator
+  an approved decision ID, plus the approved prototype reference). When multiple proposed rules share
+  `<capability>/new`, distinguish each by its target statement and the AC IDs it supports so final-ID mappings
+  are unambiguous. Only the orchestrator
   applies changes via the `spec` skill in-task mode, after readiness and before implementation (`rules.md`
   section 4 step 6); the work spec then cites the assigned IDs.
 - Never weaken or drop an AC to match an implementation. A change of an AC after implementation starts requires
@@ -113,6 +118,9 @@ The work spec is ready when all hold:
 - [ ] Scope: the outcome and its boundaries are understandable.
 - [ ] Verifiable: every AC is observable and has a named check (section 4).
 - [ ] Context: the relevant specs, decisions, code, and prototype references are cited.
+- [ ] Behavior: every new or changed behavior is demonstrated in an explicitly approved prototype snapshot;
+  no conflicting specification or stale approval remains. Technical work with no behavioral effect cites the
+  existing contract it preserves and does not require a new prototype or renewed approval.
 - [ ] Decisions: no unresolved blocking question or decision prevents the chosen implementation.
 
 - `READY` reports planning readiness, not permission to start implementation or a CLI transition. Before
@@ -139,7 +147,7 @@ Before the verdict and commit, check:
 
 - The document matches the registered task ID and selected path; AC IDs are unique, stable, and not reused.
 - Existing source references resolve; planned paths and proposed rules are explicit. ACs relying on
-  **Observed** rules have explicit confirmation; approval sources cover the proposed behavior.
+  **Observed** rules have approved prototype coverage pending promotion; approval sources cover the proposed behavior.
 - Every AC maps to canonical rules or distinguishable proposed rules (technical outcomes may cite `none`),
   and to a named check with any verification limit.
 - Question markers match their impact; unresolved blockers remain visible. Behavior answers appear in "Spec

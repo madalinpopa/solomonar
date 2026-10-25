@@ -26,8 +26,8 @@ task/session context to resolve overlapping routes. Ask one question only if the
 |---|---|
 | None, or general "status" / "what's next" | Overview (section 3) |
 | A task ID without an action, or a request for its status | Run `solomonar task status <ID>`; report facts without starting or resuming work |
-| Start a product; explore, demonstrate, or change a prototype flow | Load `docs/solomonar/skills/prototype/SKILL.md` |
-| Prototype handoff references, flows ready for spec, or a product behavior the user decided outside a task | Load `docs/solomonar/skills/spec/SKILL.md`, discovery mode, in the main checkout |
+| Start a product; explore, demonstrate, or change CLI, web, module/library, or service behavior | Load `docs/solomonar/skills/prototype/SKILL.md`; for an owned task, its orchestrator coordinates the handoff under `AGENTS.md` rule 9 |
+| Approved prototype handoff references or flows ready for spec | Load `docs/solomonar/skills/spec/SKILL.md`, discovery mode, in the main checkout |
 | A new task, starting `planned` work, or resume, pause, or cancel a task | Take the orchestrator role (section 4) |
 | Task requirements, an answer to `W-NNN/D-n`, or a scope or AC change | Continue in this session if it owns the task; otherwise direct the user to the owning session. An explicit request to resume here follows section 4 |
 | Adopt or drop a language, library, or practice | In-task: owning orchestrator. Otherwise check `solomonar help`; if it lists `extension`, show `solomonar extension list` and propose `solomonar extension add\|remove <name>` for the user to run. Otherwise report that extension management is unsupported by this CLI and stop |

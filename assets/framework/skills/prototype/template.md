@@ -5,26 +5,39 @@ leave placeholders. -->
 
 Objective: <one line, or "see `docs/README.md`">
 
-Open [index.html](index.html) directly in a browser. No build step, no install, no server.
+## Run, inspect, and reset
+
+<!-- One row per independently runnable part, including a single function/component. Group new parts by type
+under cli/, web/, module/, or service/; preserve existing runnable layouts. Create only needed directories.
+Give exact commands and working directories, runtime/version needs, and web URLs where applicable.
+Test/inspect points to executable checks or numbered scenarios with expected success/failure results in Flows. -->
+
+| Part / type | Location and runtime | Run | Test / inspect | Reset |
+|---|---|---|---|---|
+| <part / CLI, web, module, or service> | <path relative to prototype/; runtime requirements> | <command; working directory> | <check command, consumer, requests, or browser scenarios> | <command/steps restoring seeds, or stateless> |
 
 ## Flows
 <!-- ID: stable kebab-case, never renamed or reused once committed. Status: draft | ready for spec | superseded. -->
 
 Entry-file paths are relative to `prototype/`.
 
-| ID | Entry file | Steps | Status | Notes |
-|---|---|---|---|---|
-| <flow-id> | <file>.html | 1. <action> → <visible result>; 2. … | draft | <failure, empty, and permission states with triggers; replacement ID if superseded> |
+| ID | Entry file | Steps | Status | Approval | Notes |
+|---|---|---|---|---|---|
+| <flow-id> | <entry file> | 1. <input/action> → <output/state>; 2. … | draft | none | <relevant failure/boundary/alternate triggers; replacement ID and approved revision if superseded> |
+
+<!-- Record ready for spec only after explicit approval: user YYYY-MM-DD, covering the listed scenarios.
+For longer flows, put numbered scenarios below the table: inputs, outputs/state, validation/constraints,
+relevant failures/edges, persistence and integration outcomes. Mark affected approvals stale on behavioral edits. -->
 
 ## Simulated behavior
-<!-- Every faked backend or service and how (in memory, localStorage). Matches the `SIMULATED:` comments. -->
+<!-- Every external substitute, matching SIMULATED comments. Include limitations affecting interpretation. -->
 
-- <what>: <how> (`<file>`) · flows: <IDs>
+- <what>: <local substitute> (`<file>`) · limits: <what is not demonstrated> · flows: <IDs>
 
-## Prototype-only libraries
-<!-- Optional; delete when none. Never an approved dependency. -->
+## Prototype-only execution choices
+<!-- Optional; delete when none. Justify dependencies/setup beyond the runtime; not production approval. -->
 
-- <name> <version>, `vendor/<file>`: <why it is useful>
+- <dependency/version or setup>: <behavioral fidelity or execution need; exact setup command if any>
 
 ## Intentional changes
 <!-- date (YYYY-MM-DD) · flow ID · change · reason (user decision or observed problem). Not defect fixes. -->

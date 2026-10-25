@@ -8,7 +8,8 @@ and all hints; no placeholders. -->
 ## Rules
 <!-- Label: Observed | Agreed.
 Observed source: `<full SHA>:<path>`; append `, flow <flow-id>` for a prototype.
-Agreed source: `user YYYY-MM-DD` or an approved decision ID. -->
+Agreed source: `user YYYY-MM-DD` or approved decision ID, plus the approved prototype SHA:path and flow ID.
+Resolve missing/ambiguous behavior in the prototype before finalizing its rule. -->
 
 - <capability>/R-1 · **<label>** · <observable rule> · <source>
 

@@ -66,6 +66,10 @@ and `done`, including suggested commands. Unchanged moves create no commit (`rul
 - Route reports and apply the loop stop per `rules.md` sections 2 and 5. Decisions follow `rules.md` section 3,
   including atomic blocker/status/next-action updates and committing approvals and spec changes before
   unblocking. Load `skills/spec/SKILL.md` for those changes; list approved decision IDs in the next packet.
+- For new/changed behavior or a prototype/spec conflict, enforce `AGENTS.md` rule 9 at any stage. Route the
+  affected flow to `prototype` in the primary checkout and wait for its approved committed handoff; do not edit
+  `prototype/` from the task worktree. Bring that snapshot into the task branch, apply `spec`, and refresh the
+  work spec and packet references before delegating dependent implementation or corrections.
 - Retry an incomplete review on the same revision only when closing the gap leaves the candidate unchanged.
   Changes to resolve review results return to `implementation` for a new revision, triage, and affected
   reviews. Wait for running reviews before editing. Reuse only valid `PASS` verdicts under `rules.md`

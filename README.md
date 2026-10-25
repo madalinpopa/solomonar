@@ -35,7 +35,7 @@ The name comes from Romanian folklore: a solomonar is a wizard who learns every 
 
 ## Features
 
-- **Specs before code.** Rules are marked *Agreed*, *Observed*, or *Open*. Agents implement and review against agreed rules only.
+- **Prototype before code.** Demonstrate CLI, web, module/library, or service behavior, approve it, then extract specs and implement. Behavior changes repeat the loop; agents implement and review against agreed rules only.
 - **One orchestrator per task.** The top-level session delegates the implementer and every reviewer, and owns the decisions it brings back to you.
 - **Independent, risk-based review.** Security, correctness, and spec reviewers check the same committed revision in parallel. Risky changes also face an adversarial reviewer.
 - **Parallel tasks in isolated worktrees.** Tasks start one at a time, run in parallel, and merge into `main` one at a time.

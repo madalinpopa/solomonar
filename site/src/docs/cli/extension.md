@@ -186,7 +186,7 @@ Plan
 Proceed? [Y/n] y
 
 Added extension extension-authoring (workflow skill, catalog) in /work/ledger
-  9 files created, 2 updated, 46 unchanged, 1 skipped
+  9 files created, 2 updated, 50 unchanged, 1 skipped
 
 Next:
   1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: add solomonar extension extension-authoring"
@@ -221,7 +221,7 @@ solomonar extension add money-reviewer --yes
 
 ```text
 Added extension money-reviewer (review agent, project) in /work/ledger
-  2 files created, 2 updated, 55 unchanged, 1 skipped
+  2 files created, 2 updated, 59 unchanged, 1 skipped
 
 Next:
   1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: add solomonar extension money-reviewer"
@@ -242,7 +242,7 @@ Adding an extension that is already installed changes nothing:
 
 ```text
 Already installed: go; nothing to do.
-  59 files unchanged, 1 skipped
+  63 files unchanged, 1 skipped
 ```
 
 In a project that has dropped Go (see [`extension remove`](#solomonar-extension-remove)), an orchestrator applying a task decision that adopts it again passes `--decision`; the CLI checks that the entry is approved and edits no entry itself:
@@ -314,7 +314,7 @@ Plan
 Proceed? [Y/n] y
 
 Removed extension money-reviewer (review agent, project) in /work/ledger
-  2 files updated, 2 removed, 55 unchanged, 1 skipped
+  2 files updated, 2 removed, 59 unchanged, 1 skipped
 
 Next:
   1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: remove solomonar extension money-reviewer"
@@ -347,7 +347,7 @@ Plan
 Proceed? [Y/n] y
 
 Removed extension go (language skill, catalog, under P/D-2) in /work/ledger
-  4 files updated, 8 removed, 45 unchanged, 1 skipped
+  4 files updated, 8 removed, 49 unchanged, 1 skipped
 
 Next:
   1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: remove solomonar extension go"

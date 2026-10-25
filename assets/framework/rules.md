@@ -20,9 +20,10 @@ Here, "main" means the integration branch named by `.solomonar/manifest.json` â†
      Preferences stay suggestions.
 - Two approved requirements that contradict each other require a user decision (section 3).
 - Flag every conflict between a global spec and the work spec. Never silently drop an acceptance criterion.
-- Code and prototypes are evidence of existing behavior. They must not change approved requirements.
-- Only **Agreed** spec rules are approved requirements. **Observed** rules, prototype libraries, and
-  simulations are evidence and approve nothing.
+- Apply `AGENTS.md` rule 9 before changing requirements or production behavior. The approved prototype defines
+  represented behavior; **Agreed** spec rules express it for implementation. Pause conflicting work rather than
+  choosing either artifact silently. **Observed** rules and code do not approve behavior; prototype libraries
+  and simulation mechanisms do not approve production architecture or dependencies.
 
 ## 2. Orchestrator responsibilities and delegation
 
@@ -55,8 +56,10 @@ Here, "main" means the integration branch named by `.solomonar/manifest.json` â†
   3. Present question, recommendation, alternatives, impact.
   4. Keep the recovery evidence current (section 10) and wait. No response is not approval. Never repeat the question or retry automatically.
 - While waiting, affected and dependent work must wait. Independent authorized work may continue.
-- On approval: set the entry `approved` with the selected option, update affected specs via `spec` in-task
-  mode, and commit before clearing the blocker. Use
+- On approval: set the entry `approved` with the selected option. If it changes behavior, first complete
+  `AGENTS.md` rule 9 through `prototype` in the primary checkout; keep dependent work blocked. Bring its committed
+  handoff into the task branch, update affected specs via `spec` in-task mode, and commit before clearing the
+  blocker. Use
   `task unblock <ID> <blocker-ID> --as <owner> --next "<actor>:<action>"`; when removing the last blocker from
   a `blocked` task, also pass `--status reserved` at `setup`, otherwise `--status running`. Keep it blocked
   while other blockers stop all work; paused or cancelled tasks still require explicit resumption (section 10).
@@ -95,7 +98,7 @@ The user starts tasks one at a time. Started tasks run in parallel. Work selecte
    (the commit it branched from), its worktree path relative to the main checkout, and the confirmation
    (section 7). Create or refine the work spec in the worktree with `work-spec`. Commit it separately; record it
    with `task move <ID> --as <owner> --spec <path>`.
-6. When the readiness gate owned by `work-spec` passes, apply the work spec's user-confirmed "Spec changes"
+6. When the readiness gate owned by `work-spec` passes, apply its "Spec changes" from the approved prototype
    with the `spec` skill (in-task mode), commit them as `docs(<ID>): apply spec changes`, and cite the assigned
    rule IDs in the work spec (`spec(<ID>): refine task specification`).
 7. Present the work spec's implementation plan (section 5 Checkpoints) to the user. On explicit approval of that

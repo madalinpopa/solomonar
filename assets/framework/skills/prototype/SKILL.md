@@ -1,6 +1,6 @@
 ---
 name: prototype
-description: Builds and updates the static HTML, CSS, and JavaScript prototype in `prototype/` for product discovery through use. Use it to start a new product, explore or demonstrate a flow, or change an existing prototype flow after feedback. Do not use it for production code, specs, or managed tasks.
+description: Builds and updates independently runnable behavioral prototypes in `prototype/` for whole applications or selected functions, components, modules/libraries, workflows, and services. Supports CLI and web interfaces. Use for discovery, feedback, or new or changed behavior before specs and production implementation, including existing prototypes. Does not write specs or production code.
 ---
 
 # Prototype skill
@@ -9,101 +9,96 @@ Framework version: 0.3.2
 
 ## 1. Purpose and boundaries
 
-- The prototype is a discovery tool: evidence of intended behavior, never production code or approved requirements.
+- Treat the prototype as an executable, human-readable agreement: once explicitly approved, it is the source
+  of truth for represented behavior, not production architecture. Keep it independently runnable for inspection;
+  its implementation remains disposable.
+- Enforce **prototype → human review and approval → specifications → production implementation** for every
+  new or changed behavior, including changes to an existing prototype. A request, spec edit, task/plan approval,
+  or production implementation never substitutes for approval of the demonstrated behavior.
+- Resolve behavioral conflicts in the prototype first; route ambiguous or unrepresented behavior for a decision
+  and demonstration before specification. Unapproved changes establish no requirements.
 - Edit only `prototype/**` and these parts of `docs/README.md`: an unset Current objective; user-confirmed
-  Mission and Intended users; the Documents entry for `prototype/README.md` after it exists.
-- No production code, real backend or service calls, integration with product code, build tooling, package
-  manifests, or installed packages. Prototype choices never approve production architecture or dependencies.
-- Use fictional data; never use real personal data, credentials, or secrets.
-- Ask only the next necessary question, one at a time. Reuse existing answers and approvals within their scope.
+  Mission and Intended users; the Documents entry for `prototype/README.md`. Do not edit specs, production code,
+  or task state. An in-task request returns here in the primary checkout; the orchestrator owns task coordination.
+- Reuse existing answers and scoped approvals; ask only the next necessary question. A defect fix restoring
+  already approved prototype behavior or an internal refactor needs verification, not renewed behavioral approval.
 
-## 2. Start
+## 2. Start and select guidance
 
-1. Before editing, inspect `git rev-parse --show-toplevel`, `git branch --show-current`,
-   `git worktree list --porcelain`, and `git status --short`. Require the primary checkout on a named branch;
-   stop in linked worktrees or on `feature/*` or `workflow-state`. Preserve unrelated edits. If repository rules
-   forbid commits on the current branch, use `prototype/<topic>` in the primary checkout and tell the user.
-2. Read `docs/README.md` and `prototype/README.md` if present.
-3. Treat absent/empty objectives and unset placeholders (including "Not established.") as missing. Reuse an
-   objective supplied by the user or recorded in `prototype/README.md`; ask only if still unknown. Fill the
-   unset Current objective in `docs/README.md`; if that file is missing, record it in `prototype/README.md` and
-   say so. Mission and Intended users remain user-owned: propose them if useful, record only after confirmation.
-4. Select the next useful flow; ask only if unclear. Unknown architecture, stack, or layout does not block discovery.
-5. Load `docs/solomonar/skills/prototype/template.md` only when creating `prototype/README.md`. When that README
-   exists, add its Documents entry to `docs/README.md` if present; do not duplicate an existing entry.
+1. Inspect `git rev-parse --show-toplevel`, `git branch --show-current`, `git worktree list --porcelain`, and
+   `git status --short`. Require the primary checkout on a named branch outside `feature/*` and `workflow-state`.
+   Preserve unrelated edits. If repository rules forbid commits there, use `prototype/<topic>` in that checkout.
+2. Read `docs/README.md`, `prototype/README.md`, and relevant existing flow files/specs. Reuse the objective
+   supplied by the user or prototype README; ask only if unknown. Fill an unset Current objective (including
+   "Not established."); if `docs/README.md` is absent, record it in the prototype README and report that limit.
+   Record Mission and Intended users only after user confirmation.
+3. Select the next useful behavior and interface type; a single function, component, module, or workflow is
+   enough. Do not build the whole application to demonstrate one part. Organize independent parts by type under
+   `prototype/cli/`, `prototype/web/`, `prototype/module/`, or `prototype/service/`; create only needed directories
+   and preserve existing runnable layouts. Index each part and its run/check instructions in `prototype/README.md`.
+   Unknown production architecture does not block discovery. Load only matching references below; combine them
+   only for flows crossing those interfaces.
+4. When creating `prototype/README.md`, use [template.md](template.md); index it once in `docs/README.md` if present.
 
-## 3. Build rules
+| Prototype interface | Read |
+|---|---|
+| Commands, flags, terminal output | [references/cli.md](references/cli.md) |
+| Browser screens and interactions | [references/web.md](references/web.md) |
+| Public module/library interface | [references/module.md](references/module.md) |
+| Standalone service or API | [references/service.md](references/service.md) |
 
-- Vanilla HTML, CSS, and JS, opened directly through `file://` without a server. Use classic `<script src>` tags;
-  no ES modules or `fetch` of local files.
-- Keep shared files minimal: `index.html` (flow index), `styles.css`, `app.js`, `data.js`, plus one HTML file
-  per flow screen only when needed.
-- Start each flow with the smallest useful version: the main path plus the states needed to judge it.
-- Avoid libraries. If one is truly useful and the user agrees, vendor a single pinned file
-  (`prototype/vendor/<name>-<version>.js`) and list it as prototype-only in the README. It is never an approved
-  dependency.
-- Simulate every backend or external service in memory or `localStorage`. Mark each with a `SIMULATED: <what>`
-  code comment and list it under "Simulated behavior". A request for a real integration (e.g. a payment API) gets
-  a simulation instead; record the real integration as a non-blocking open question.
-- Every flow must be clickable end to end from `index.html`, including the failure, empty, or permission states
-  that matter to it. Give each such state a visible trigger (e.g. a sample record or a toggle).
-- Use semantic HTML (`form`, `label`, `button`, headings). Keep styling plain unless the user asks for visual
-  exploration.
-- UI copy follows the product's intended language; if unknown, use the user's language and record it as a
-  non-blocking open question. Framework artifacts follow `AGENTS.md`'s language policy.
+## 3. Build constraints
 
-## 4. Discovery loop
+- Use clear names, simple structure, short cohesive functions, and straightforward control flow. Avoid
+  production layers, speculative features, design patterns without a concrete need, and premature optimization.
+- Demonstrate primary workflows end to end with relevant alternate, failure, empty, permission, and boundary cases.
+  Preserve realistic inputs, validation, constraints, state transitions, outputs, and feedback. Make every
+  exposed action functional; omit controls or operations implying unsupported behavior.
+- Use realistic fictional, deterministic seed data. Control time/randomness when they affect results. Simulate
+  external collaborators locally, without production code, services, credentials, personal data, or infrastructure.
+- Keep mock infrastructure identifiable apart from observable behavior, without abstraction layers just for mocks.
+  Mark substitutes with `SIMULATED: <what>` comments and document their limits and scenario triggers in the README.
+- Prefer standard libraries and native platform APIs, with one local run command using an available runtime.
+  Use Node.js built-ins when Node.js fits. Add dependencies, manifests, package managers, build steps, bundlers,
+  or additional services only when execution or behavioral fidelity requires them; record why and pin dependencies.
+  Keep them prototype-local and subject to repository approval rules. Use Docker/Compose only when its portability
+  or reproducibility benefit materially outweighs setup. Prototype choices never approve production dependencies.
+- Give each independently runnable part exact run and test/inspection commands or steps, working directory,
+  runtime requirements, scenario triggers, and expected outputs/state changes, including relevant failures.
+  Use a minimal harness for code without an entry point; never leave behavior as an unexecutable code fragment.
+  Document simulation limitations and, where state matters, a deterministic reset to seeded prototype data.
+  Use product-facing language for interactions; if unknown, use the user's language and record the question.
 
-After each change, verify before presenting a preview or committing:
+## 4. Review and approval loop
 
-- Open `prototype/index.html` through `file://`; exercise the flow's documented steps and relevant failure,
-  empty, and permission states. Recheck flows affected by shared-file changes.
-- Check navigation, local asset loading, and browser errors; fix introduced defects.
-- Report checks and verification limits with the preview or handoff. If browser access is unavailable, state
-  what remains unverified; do not claim browser verification.
+1. Before changing approved behavior, mark every affected flow `draft`, including flows affected by shared files.
+   Keep the previous approved snapshot available. Build the smallest useful change; record intentional changes
+   as date (YYYY-MM-DD) · flow ID · change · reason. Exclude defect fixes and internal refactors from that log.
+2. Run each affected part using its README command, then its documented tests/inspection scenarios and relevant
+   alternate/failure cases; verify expected outputs, state changes, and reset.
+   Recheck affected shared behavior. Use lightweight automated behavior checks where useful; do not introduce
+   production testing infrastructure. Fix introduced defects; report exact checks and execution limits.
+3. Present the runnable result with flow IDs, numbered inspection steps, expected results, and alternate/failure
+   triggers. Collect human feedback; never treat silence, a successful check, or a commit as approval.
+4. Apply feedback and repeat verification. Resolve blocking questions before handoff; keep unrelated ideas and
+   non-blocking unknowns under Open questions. Set `ready for spec` only after explicit approval covering the
+   demonstrated behavior; record `user YYYY-MM-DD` and its scope per flow. Later behavioral edits invalidate it.
+5. Commit checkpoints: the first runnable flow, an accepted feedback round, or when requested. Use
+   `prototype(<flow-id>): <summary>`; README-only/multi-flow: `prototype: <summary>`. Select only allowed paths,
+   inspect the staged diff, preserve unrelated staged work, skip unchanged commits, and never push unless asked.
 
-1. Build or adjust the smallest change that lets the user try the current flow.
-2. Tell the user how to try it: file path, flow ID, numbered steps, and how to reach the non-happy states.
-3. Collect feedback.
-4. Classify each item:
-   - intentional change → apply it and record it under "Intentional changes";
-   - question that blocks the current flow → ask it, one per message, and wait;
-   - accidental defect (the prototype differs from what was agreed) → fix it; do not record it as a change;
-   - unrelated idea or unknown → record it under "Open questions"; do not ask now.
-5. Update `prototype/README.md`: flows, simulated behavior, libraries, changes, questions.
-6. Commit at each checkpoint (section 6): the first runnable version of a flow, a feedback round the user
-   accepts, or when the user asks.
-7. Repeat from step 1, or hand off (section 7) when the user says flows are ready.
+## 5. Records and specification handoff
 
-## 5. Flow IDs and records
-
-- Each flow has a stable kebab-case ID (e.g. `checkout`), an entry file, numbered steps, and a status:
-  `draft` | `ready for spec` | `superseded`.
-- An ID never changes or is reused once it appears in a commit. A replaced flow gets a new ID; mark the old one
-  `superseded` and name its replacement in Notes.
-- Record each intentional change as: date (YYYY-MM-DD) · flow ID · change · reason (user decision or observed
-  problem). Defect fixes and internal refactoring are not recorded.
-- Set `ready for spec` only after the user confirms the flow. `draft` flows may live on the main branch.
-- Before changing a ready flow's behavior, including through shared files, reset it to `draft`. Preserve IDs.
-  Restore readiness only after confirmation of the changed behavior.
-- Files of a `superseded` flow may be deleted; its README row stays.
-
-## 6. Commits
-
-- Messages: `prototype(<flow-id>): <summary>`. Keep one flow per commit when practical. README-only or
-  multi-flow commits: `prototype: <summary>`.
-- Commit only intended changes allowed by section 1, selected by path, on the branch established at startup.
-  Inspect the staged diff; preserve unrelated staged changes. Skip the commit when nothing relevant changed.
-- Never push unless the user asks.
-
-## 7. Handoff to `spec`
-
-1. When the user is ready, confirm which flows are ready (one question if unclear).
-2. Verify the selected flows (section 4), set them to `ready for spec`, and update `prototype/README.md`.
-   Commit relevant changes (section 6); when unchanged, reuse the existing committed snapshot.
-3. Resolve the full SHA with `git rev-parse HEAD`. Check `git show "<SHA>:prototype/README.md"` for each selected
-   flow's `ready for spec` record and `git show "<SHA>:prototype/<entry file>"` for its entry file. Do not hand
-   off uncommitted prototype changes. Give one reference per flow:
-   `<full commit SHA>:prototype/<entry file>, flow <flow-id>`.
-4. List the open questions for those flows, blocking ones first, and any verification limits.
-5. State the next action: run the `spec` skill with these references. Do not write specs yourself.
+- Keep stable kebab-case flow IDs, entry-file paths relative to `prototype/`, numbered scenarios, and status
+  `draft` | `ready for spec` | `superseded`. Never rename/reuse a committed ID; a replacement gets a new ID.
+  Retain superseded rows with their replacement and approved revision reference so prior behavior stays inspectable.
+- Before handoff, ensure each selected flow exposes actions/external inputs; observable outputs and state
+  transitions; validation and business constraints; relevant success/failure/edge cases; persistence and integration
+  outcomes. Do not fill gaps by inference. Resolve ambiguity in the prototype and obtain approval first.
+- Commit the verified, approved flows and README; reuse an unchanged committed snapshot. Resolve the full SHA
+  with `git rev-parse HEAD`; use `git show "<SHA>:prototype/README.md"` and `git show "<SHA>:prototype/<entry file>"`
+  to verify status, approval, and entry files at that revision. Never hand off uncommitted or draft behavior.
+- Give `spec` one reference per flow: `<full commit SHA>:prototype/<entry file>, flow <flow-id>`, plus questions
+  and verification limits. Specifications extract only approved observable behavior, never mock implementation
+  details. The owning orchestrator brings updated prototype/spec references into a waiting task before production
+  work resumes. Do not write specifications or production code through this skill.

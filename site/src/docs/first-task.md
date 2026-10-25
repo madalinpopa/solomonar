@@ -32,18 +32,20 @@ With no request, the skill reports what is waiting on you and what can start. Wi
 
 ## Try the flow as a prototype
 
-When you are not sure how a feature should behave, try it before you specify it:
+Demonstrate new or changed behavior before specifying and implementing it:
 
 ```text
 /solomonar Prototype adding a shared expense. Let me try the empty list,
 a valid expense, and an invalid amount. Use fictional data.
 ```
 
-The `prototype` skill builds a small clickable flow under `prototype/` that opens straight from your file system. Storage and services are simulated. It tells you which file to open and how to reach each state.
+The `prototype` skill builds an independently runnable flow under `prototype/`. For a web flow, use its documented browser URL or entry file; CLI, module/library, and service flows provide commands, consumer examples, or requests. Storage and external services are simulated. Its README gives exact run, inspection, and reset instructions.
+
+A prototype can cover just one function, component, or module. Independent parts can live under `prototype/cli/`, `prototype/web/`, `prototype/module/`, or `prototype/service/`. Each part has an exact run command and tests or inspection scenarios with expected results; a small harness runs code that has no entry point.
 
 Try it and say what should change. Intentional changes are recorded; accidental defects are fixed. The prototype never decides your stack or architecture.
 
-Already know the behavior, as with an API or a CLI? Skip the prototype and describe the rules directly in the next step.
+An existing prototype follows the same loop: update it, review and approve the behavior, update specs, then implement. Task or implementation-plan approval cannot replace prototype approval.
 
 ## Agree the rules
 
@@ -54,7 +56,7 @@ When the flow feels right, say so. The prototype hands off to the `spec` skill, 
 invalid amount shows an error and adds nothing.
 ```
 
-Each rule is marked **Agreed** when you confirmed it, or **Observed** when it only appeared in the prototype. Anything undecided stays an open question. Agents implement and review against agreed rules only.
+The `spec` skill extracts approved behavior as **Agreed** rules, citing the prototype revision and your approval. Existing unconfirmed observations remain **Observed**; anything ambiguous returns to the prototype for a decision and demonstration. Agents implement and review against agreed rules only.
 
 ## Start the task
 

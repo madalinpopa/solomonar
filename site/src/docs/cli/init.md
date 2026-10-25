@@ -73,7 +73,7 @@ Plan
   create     .solomonar/manifest.json
   registry   create refs/heads/workflow-state with an empty registry
 Would initialize solomonar 0.3.2 in /work/ledger
-  29 files created
+  33 files created
 ```
 
 Then set up the project for Claude Code and Codex, in a repository with an `origin` remote:
@@ -85,7 +85,7 @@ solomonar init --name ledger --objective "Track shared household expenses" \
 
 ```text
 Initialized solomonar 0.3.2 in /work/ledger
-  39 files created
+  43 files created
   registry  refs/heads/workflow-state @ 2be8870347892548d1c083c28a0e8c834d1327bb
   pushed    origin/workflow-state
 
@@ -121,7 +121,7 @@ Plan
   create     .solomonar/manifest.json
   registry   create refs/heads/workflow-state with an empty registry
 Would initialize solomonar 0.3.2 in /work/ledger
-  28 files created
+  32 files created
 ```
 
 Remove `--dry-run` to install, then follow the printed commit command. It names individual Copilot adapter files rather than the whole `.github` directory, keeping unrelated GitHub configuration out of the suggested commit. Start `copilot` at the repository root and enter `/solomonar Explore the next useful flow.` in the top-level session. The invocation and discovery paths follow GitHub's [official CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference). Copilot 1.0.85 passed local discovery checks, but account policy rejected a live session; full runtime acceptance and the minimum supported version remain pending. See the [acceptance record]({{ 'docs/cli/interface.md' | source }}#copilot-runtime-acceptance).

@@ -1,6 +1,6 @@
 ---
 name: spec
-description: Maintains capability specifications and shared UI rules in `docs/specs/` and `docs/ui.md` after prototype handoffs or explicit behavior decisions. Use `work-spec` to describe a single task; this skill does not choose architecture or dependencies or write production code.
+description: Extracts approved prototype behavior into capability specifications and shared UI rules in `docs/specs/` and `docs/ui.md`, and maintains them after approved prototype changes. Use `prototype` before specifying new behavior and `work-spec` for a single task. Does not choose architecture/dependencies or write production code.
 ---
 
 # Spec skill
@@ -9,7 +9,8 @@ Framework version: 0.3.2
 
 ## 1. Purpose and boundaries
 
-- Specs state the current agreed product behavior. The prototype and code are evidence, never requirements.
+- Express approved prototype behavior as requirements under `AGENTS.md` rule 9. Never finalize new or changed
+  behavior from user statements, task decisions, code, or draft prototype changes alone.
 - You may edit only `docs/specs/*.md`, `docs/ui.md`, and the document index in `docs/README.md`.
 - You must not edit `docs/work/`, `docs/decisions.md`, `docs/architecture.md`, `docs/stack.md`, `prototype/`,
   product code, or workflow state.
@@ -22,8 +23,8 @@ Framework version: 0.3.2
 
 | Mode | Where | Input | Commits |
 |---|---|---|---|
-| Discovery | Main checkout | Prototype handoff references or user statements | Yes (section 7) |
-| In task | Assigned feature worktree (`feature/<ID>`) | Approved decisions `W-001/D-n`, or the work spec's "Spec changes" line with sources `user YYYY-MM-DD` | No; the owning orchestrator commits |
+| Discovery | Main checkout | Approved prototype handoff references; existing code for observations only | Yes (section 7) |
+| In task | Assigned feature worktree (`feature/<ID>`) | Approved decisions or the work spec's "Spec changes", backed by approved prototype references for behavior | No; the owning orchestrator commits |
 
 - Before editing, inspect `git rev-parse --show-toplevel`, `git branch --show-current`,
   `git worktree list --porcelain`, and `git status --short`; preserve unrelated edits.
@@ -38,10 +39,11 @@ Framework version: 0.3.2
 
 - `<capability>` is the spec file's base name, kebab-case (`orders` for `docs/specs/orders.md`); `ui` for `docs/ui.md`.
 - Each rule is one line under "Rules": `<capability>/R-<n> · **<label>** · <statement> · <source>`.
-  - `**Observed**`: seen in the prototype, not yet confirmed. Source: `<full SHA>:<path>, flow <flow-id>`.
-    Brownfield: existing code at `<full SHA>:<path>` is also a valid source.
-  - `**Agreed**`: explicitly confirmed by the user or covered by a scoped approved decision. Source:
-    `user YYYY-MM-DD` or the decision ID (e.g. `W-001/D-1`). Reuse existing confirmation sources and dates.
+  - `**Observed**`: existing behavior not yet approved; never an implementation requirement. Source:
+    `<full SHA>:<path>`, appending `, flow <flow-id>` for prototype evidence. Do not infer missing behavior.
+  - `**Agreed**`: represented in an explicitly approved prototype flow. Source: `user YYYY-MM-DD` or the scoped
+    decision ID, plus `<full SHA>:prototype/<entry file>, flow <flow-id>`. Reuse existing approval sources/dates;
+    retain legacy agreed rules unchanged until their behavior changes.
 - **Open** items live only under "Open questions", labeled by that section:
   `<capability>/Q-<n> · <question> · blocks: <rule/flow IDs or "none"> · needs decision: yes|no`.
   `yes` = answering needs an architecture or dependency decision; `no` = the user can answer it directly.
@@ -62,26 +64,25 @@ Framework version: 0.3.2
    specs, shared UI rules, and scoped decision entries. Read architecture/stack entries only when needed to
    resolve an implication; expand context for discovered dependencies or shared contracts.
 2. For each handoff, use `git show "<SHA>:prototype/README.md"` to check the selected flow's ID, entry file,
-   and status. Read its entry file and loaded assets at that same SHA, never from the working copy. Entry-file
-   paths in the README are relative to `prototype/`. Select simulations/questions by their flow IDs, plus
-   relevant project-wide entries. Missing references: report and stop for that flow; not `ready for spec`:
-   ask before using it.
-3. Extract features and observable behavior per flow, including failure, empty, and permission states. A
+   `ready for spec` status, and explicit approval covering the selected scenarios. Read its entry file and
+   supporting files at that same SHA, never from the working copy. Entry-file paths in the README are relative
+   to `prototype/`. Select simulations/questions by their flow IDs, plus
+   relevant project-wide entries. Missing references, draft/stale approval, or unrepresented behavior: stop that
+   part and return it to `prototype`; direct confirmation of a spec rule cannot bypass this check.
+3. Extract only demonstrated, approved behavior per flow: actions/inputs, outputs, transitions, validation,
+   business constraints, relevant success/failure/edge cases, and persistence/integration outcomes. A
    `SIMULATED:` step yields only its observable outcome (e.g. "a placed order is still listed after reload"); the
    mechanism (e.g. `localStorage`) stays evidence, subject to section 1's decision boundary.
 4. Map items to capabilities: reuse existing files; create a file only for an independently loadable area; put
    cross-capability layout and interaction rules in `docs/ui.md`. When the split is unclear, propose one and ask.
-5. Label observations **Observed** by default. Clear user statements and applicable approved decisions can
-   establish **Agreed** rules directly; do not reconfirm them. An intentional-change entry counts only when its
-   reason cites a user decision. A flow's readiness alone does not approve every inferred rule.
-6. Conflicts: an observation that contradicts an **Agreed** rule must not overwrite it, even when recorded as an
-   intentional change. Add an **Open** item citing the rule ID and the prototype reference, and ask the user. If
-   the user calls the difference accidental, it is a prototype defect: report it for the `prototype` skill.
-7. Confirm only newly inferred or ambiguous behavior, one decision per message, blocking questions first;
-   wait for each answer. One capability's numbered list of **Observed** rules counts as one question
-   (confirm, correct, or drop each).
-   Confirmed or corrected → **Agreed**, source `user <today>`. Dropped → delete. Unsure → **Open** item. The
-   confirmation lives in the rule's source, never in `docs/decisions.md`.
+5. Mark faithfully extracted approved behavior **Agreed**, citing its approval and prototype reference. Keep
+   existing unconfirmed observations **Observed**; promote them only after representation and prototype approval.
+   A readiness label or intentional-change entry alone does not approve inferred rules or additional behavior.
+6. On a prototype/spec conflict, leave the affected requirement unchanged and record an **Open** item citing
+   both sources. Resolve it through `prototype` first: restore approved behavior for a defect, or demonstrate
+   and obtain approval for a change. Resume only with the resolved approved snapshot; never choose silently.
+7. Surface ambiguous or missing behavior for a decision, blocking questions first. Send it to `prototype` for
+   demonstration/approval before finalizing the related rule; continue independent approved extraction only.
 8. Create or update files and validate them per section 6. Put prototype references under "References".
 9. Commit (section 7) and report: files changed; rules per label per file; open questions, blocking first;
    prototype defects found; next action: `work-spec` for a selected change, or `prototype` for blocking unknowns.
@@ -89,9 +90,11 @@ Framework version: 0.3.2
 ## 5. Procedure, in-task mode
 
 1. Read the listed decisions in `docs/decisions.md` (only status `approved`; a `pending` entry approves nothing)
-   or the work spec's "Spec changes" line, and the spec rules they affect.
+   or the work spec's "Spec changes" line, and the spec rules they affect. Apply section 4 step 2's prototype
+   check to every behavioral change; without that handoff, report it to the orchestrator and leave it unchanged.
 2. Apply each authorized change in the rule's primary document, using section 3's IDs, labels, and sources.
-   Assign final IDs to `<capability>/new` entries; delete the **Open** items the change resolves.
+   Assign final IDs to `<capability>/new` entries; delete the **Open** items the change resolves. Use section 4
+   step 6 for conflicts; a task decision does not authorize resolving one solely in the specification.
 3. Leave everything else unchanged, including **Observed** rules the input does not cover.
 4. An input that is unclear for a rule, lacks a decision or user source, or contradicts another **Agreed** rule:
    change nothing for it; report it.

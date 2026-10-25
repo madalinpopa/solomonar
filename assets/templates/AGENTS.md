@@ -23,7 +23,7 @@ Bare framework paths below are relative to `docs/solomonar/`. Load the routed fi
 | When | Load |
 |---|---|
 | User entry point | `skills/solomonar/SKILL.md` (user-only invocation) |
-| Prototype a flow | `skills/prototype/SKILL.md` |
+| Prototype a CLI, web, module/library, or service flow; change product behavior | `skills/prototype/SKILL.md` |
 | Record product behavior / prototype handoff | `skills/spec/SKILL.md` |
 | Start/resume a task | `agents/orchestrator.md`; top-level only, one task per session |
 | Specify a registered task | `skills/work-spec/SKILL.md`; orchestrator only |
@@ -63,7 +63,8 @@ Use configured formatters/linters. Check CLI availability with `solomonar help`;
 Cite a rule as `AGENTS.md rule n`.
 
 1. Scoped user decisions > approved global rules > work spec > preferences. Escalate contradictions.
-   Only **Agreed** spec rules are requirements; observations, code, and prototypes are evidence.
+   Approved prototypes define represented behavior; **Agreed** specs express it for implementation. Code and
+   unapproved observations establish no requirements. Prototype choices never approve production architecture.
 2. New architecture/dependency changes require user approval; investigate first, then follow your role's
    decision procedure. Scoped approvals persist; silence approves nothing.
 3. Only `solomonar task` writes the registry: orchestrators own their task records; the user owns `task plan`.
@@ -73,7 +74,10 @@ Cite a rule as `AGENTS.md rule n`.
 6. Orchestrators delegate implementation/reviews and consolidate findings; delegated roles report only to them.
 7. Blockers, missing required reviews, or failed/unperformed required checks prevent advancement.
 8. Mark `done` only after confirmed merge into main.
-9. Update canonical specs before merge; commit the final task spec separately.
+9. New or changed behavior must follow prototype → explicit human review/approval → specs → production code,
+   including when a prototype already exists. Resolve prototype/spec conflicts in the prototype first; never
+   implement unrepresented or unapproved behavior. Reuse existing prototype approval when restoring represented
+   behavior; technical work with no behavioral effect requires no new prototype. Commit the final task spec separately.
 10. Closure and verifiable Git references: `rules.md` section 9.
 11. Never commit or report secrets, credentials, or real personal data.
 12. Commit messages: `<type>(<scope>): <summary>`; role/skill defines type and scope.

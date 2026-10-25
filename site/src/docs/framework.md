@@ -36,10 +36,12 @@ Specifications keep the project's intent readable and reviewable. Canonical capa
 The `spec` skill distinguishes three kinds of information:
 
 - **Observed:** behavior seen in a prototype or implementation. It is evidence, not approval.
-- **Agreed:** requirements confirmed by a user decision. These guide implementation and review.
+- **Agreed:** behavior represented in an explicitly approved prototype and extracted into requirements. These guide implementation and review.
 - **Open:** unresolved questions that still need an answer.
 
 The `work-spec` skill prepares one task's outcome, boundaries, criteria, context, and checks. It does not rewrite the whole application's specification.
+
+New or changed behavior follows **prototype → human review and approval → specifications → production implementation**, including when a prototype already exists. The approved prototype defines represented behavior; it does not choose production architecture. Resolve prototype/spec conflicts in the prototype before updating requirements or code. Defect fixes restoring approved behavior and technical changes preserving it reuse the existing agreement.
 
 ## The spells: skills
 
@@ -48,7 +50,7 @@ A skill is a focused procedure, loaded when it is useful.
 | Core skill | Responsibility |
 | --- | --- |
 | `solomonar` | User-invoked entry point; routes the request to the right skill or role in the same session. |
-| `prototype` | Explore a useful flow with static HTML, CSS, JavaScript, and sample data. |
+| `prototype` | Demonstrate a whole application or a selected function, component, module, workflow, or service through independently runnable local examples. |
 | `spec` | Maintain application behavior, preserving the distinction between observed and agreed information. |
 | `work-spec` | Prepare or refine one registered task before implementation. |
 

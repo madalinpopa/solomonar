@@ -211,7 +211,7 @@ func TestInteractiveInitShowsTheGroupedPlan(t *testing.T) {
 			"    create     docs/solomonar/report.md\n"+
 			"    create     docs/solomonar/reviewer.md\n"+
 			"    create     docs/solomonar/rules.md\n"+
-			"    create     docs/solomonar/skills/prototype/ (SKILL.md, template.md)\n"+
+			"    create     docs/solomonar/skills/prototype/ (SKILL.md, references/cli.md, references/module.md, references/service.md, references/web.md, template.md)\n"+
 			"    create     docs/solomonar/skills/solomonar/ (SKILL.md)\n"+
 			"    create     docs/solomonar/skills/spec/ (SKILL.md, template.md)\n"+
 			"    create     docs/solomonar/skills/work-spec/ (SKILL.md, template.md)\n"+

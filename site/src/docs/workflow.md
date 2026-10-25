@@ -16,13 +16,14 @@ This page explains each stage of a managed task and the rule behind it. For a ha
 
 ## Start with one useful outcome
 
-When behavior is unclear, explore the next useful flow with `prototype`. Use `spec` to turn intentional decisions into agreed rules. A known brief can go directly to a managed task; no UI prototype is required for a change whose behavior is already understood.
+For new or changed behavior, use `prototype`, obtain human approval of the demonstrated flow, then use `spec` before production implementation. Update an existing prototype through the same loop. CLI commands, modules/libraries, and services use executable commands, consumers, or requests instead of a browser UI. Technical work preserving existing behavior and defect fixes restoring approved behavior reuse that agreement.
 
 A useful task prompt names the outcome and the boundaries that matter. For example:
 
 ```text
 Use the solomonar skill. Add CSV export to the existing CLI.
-Keep the current text output unchanged. No UI prototype is needed.
+First demonstrate the export command, help, and success/failure output in the CLI
+prototype for my review. Keep the current text output unchanged.
 ```
 
 This is an example of a request, not a built-in export feature.

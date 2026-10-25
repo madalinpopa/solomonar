@@ -47,6 +47,9 @@ or commit it to obtain a clean worktree.
 ## 3. Authority and conflicts
 
 - Apply `AGENTS.md` rules 1–2 for authority and scoped approvals.
+- Apply `AGENTS.md` rule 9 before new/changed production behavior. Missing approved prototype coverage or a
+  prototype/spec conflict → stop that part and report `NEEDS_DECISION` to the orchestrator; never fill the gap
+  in code. Restoring represented approved behavior reuses its existing approval.
 - Never silently drop, narrow, or reinterpret an acceptance criterion (AC).
 - An AC that is ambiguous or contradicts a global spec or another AC: stop that part, apply neither reading, and
   report `NEEDS_DECISION` with a `Decision needed` entry (`report.md` section 6) citing both sources.

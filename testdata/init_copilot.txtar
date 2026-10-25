@@ -10,7 +10,7 @@ stderr '^error: init needs a confirmation \(interactive_required\)$'
 # Results go to stdout, the missing-remote warning to stderr.
 exec solomonar init --runtime copilot --ext none --yes
 stdout '^Initialized solomonar \d+\.\d+\.\d+ in .+/repo$'
-stdout '^  28 files created$'
+stdout '^  32 files created$'
 stdout '^  2\. Start a top-level GitHub Copilot CLI session in .+/repo:$'
 stdout '^       /solomonar Explore the next useful flow\.$'
 stdout 'git add AGENTS.md \.github/skills/prototype/SKILL.md '
@@ -31,7 +31,7 @@ exec git rev-parse refs/heads/workflow-state
 cp stdout ../tip-before.txt
 exec solomonar init
 stdout '^Already initialized with solomonar \d+\.\d+\.\d+; nothing to do\.$'
-stdout '^  27 files unchanged, 1 skipped · registry refs/heads/workflow-state unchanged$'
+stdout '^  31 files unchanged, 1 skipped · registry refs/heads/workflow-state unchanged$'
 cmp .solomonar/manifest.json ../manifest-before.json
 cmp .github/skills/solomonar/SKILL.md ../skill-before.md
 exec git rev-parse refs/heads/workflow-state

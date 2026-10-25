@@ -970,7 +970,7 @@ Plan
     create     docs/solomonar/report.md
     create     docs/solomonar/reviewer.md
     create     docs/solomonar/rules.md
-    create     docs/solomonar/skills/prototype/ (SKILL.md, template.md)
+    create     docs/solomonar/skills/prototype/ (SKILL.md, references/cli.md, references/module.md, references/service.md, references/web.md, template.md)
     create     docs/solomonar/skills/solomonar/ (SKILL.md)
     create     docs/solomonar/skills/spec/ (SKILL.md, template.md)
     create     docs/solomonar/skills/work-spec/ (SKILL.md, template.md)
@@ -996,7 +996,7 @@ Plan
 Proceed? [Y/n] y
 
 Initialized solomonar 0.3.2 in /work/ledger
-  58 files created
+  62 files created
   registry  refs/heads/workflow-state @ 3a5c0d7e9f1b2a4c6d8e0f1a3b5c7d9e1f2a4b6c
   pushed    origin/workflow-state
 
@@ -1188,7 +1188,7 @@ Same choices, identical files: a no-op.
 ```
 $ solomonar init --yes
 Already initialized with solomonar 0.3.2; nothing to do.
-  59 files unchanged, 1 skipped · registry refs/heads/workflow-state unchanged
+  63 files unchanged, 1 skipped · registry refs/heads/workflow-state unchanged
   Change choices with `solomonar runtime|extension add|remove`; move versions with `solomonar upgrade`.
 ```
 
@@ -1516,7 +1516,7 @@ command is a no-op that needs no confirmation and exits 0:
 ```
 $ solomonar extension add go
 Already installed: go; nothing to do.
-  57 files unchanged, 1 skipped
+  61 files unchanged, 1 skipped
 ```
 
 **`extension remove`** deactivates installed extensions. Checks, in order after the manifest and
@@ -1542,7 +1542,7 @@ still uses a technology. Removing `go` from the UC-1 project:
 ```
 $ solomonar extension remove go --yes
 Removed extension go (language skill, catalog, under P/D-2) in /work/ledger
-  4 files updated, 8 removed, 45 unchanged, 1 skipped
+  4 files updated, 8 removed, 49 unchanged, 1 skipped
 
 Next:
   1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: remove solomonar extension go"
@@ -1589,7 +1589,7 @@ Plan
 Proceed? [Y/n] y
 
 Added extension templ (frontend skill, catalog, under P/D-3) in /work/ledger
-  4 files created, 4 updated, 57 unchanged, 1 skipped
+  4 files created, 4 updated, 61 unchanged, 1 skipped
 
 Next:
   1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: add solomonar extension templ"
@@ -1629,7 +1629,7 @@ extension in a stack group records one as in UC-6. Adding the `review` agent `mo
 ```
 $ solomonar extension add money-reviewer --yes
 Added extension money-reviewer (review agent, project) in /work/ledger
-  2 files created, 2 updated, 55 unchanged, 1 skipped
+  2 files created, 2 updated, 59 unchanged, 1 skipped
 
 Next:
   1. git add AGENTS.md .claude .agents .codex .solomonar docs && git commit -m "chore: add solomonar extension money-reviewer"
@@ -1700,7 +1700,7 @@ confirmation:
 ```
 $ solomonar upgrade
 Already at solomonar 0.3.2; nothing to do.
-  48 files unchanged, 1 skipped
+  52 files unchanged, 1 skipped
 ```
 
 Moving a 0.1.7 project with `go` and the claude and codex runtimes to the store layout of the next release
