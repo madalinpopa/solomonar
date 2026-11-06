@@ -85,7 +85,7 @@ jobs:
           jq -n --arg id "$DOKPLOY_COMPOSE_ID" --arg sha "$GITHUB_SHA" \
             '{composeId: $id, title: "CI deploy", description: ("sha-" + $sha)}' |
           curl --fail-with-body --silent --show-error \
-            -X POST https://coderustle.dev/api/compose.deploy \
+            -X POST https://dokploy.coderustle.ro/api/compose.deploy \
             -H "x-api-key: $DOKPLOY_API_KEY" \
             -H "Content-Type: application/json" \
             --data @-
